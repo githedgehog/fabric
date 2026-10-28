@@ -13,6 +13,7 @@ import (
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -117,21 +118,23 @@ func (vpc *VPCInfo) Default() {
 }
 
 func (vpc *VPCInfo) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) error {
+	spec := field.NewPath("spec")
+	domainsPath := spec.Child("topology", "domains")
 	if fabricCfg != nil && !fabricCfg.EnableGateway {
-		return fmt.Errorf("gateway support is not enabled") //nolint:err113
+		return field.Forbidden(spec, "gateway support is not enabled")
 	}
 	if err := meta.ValidateObjectMetadata(vpc); err != nil {
-		return fmt.Errorf("invalid vpcinfo: %w", err)
+		return err //nolint:wrapcheck
 	}
 
 	if err := wiringapi.CheckFabricExists(ctx, kube, vpc.Namespace, vpc.Spec.Topology.Fabric); err != nil {
-		return fmt.Errorf("invalid vpcinfo: %w", err)
+		return field.Invalid(spec.Child("topology", "fabric"), vpc.Spec.Topology.Fabric, err.Error())
 	}
 	if len(vpc.Spec.Topology.Domains) == 0 {
-		return fmt.Errorf("vpcinfo must be in at least one domain") //nolint:err113
+		return field.Required(domainsPath, "vpcinfo must be in at least one domain")
 	}
 	if slices.Contains(vpc.Spec.Topology.Domains, "") {
-		return fmt.Errorf("vpcinfo domain names must not be empty") //nolint:err113
+		return field.Invalid(domainsPath, vpc.Spec.Topology.Domains, "domain names must not be empty")
 	}
 	// a VPCInfo can come from the included wiring as well, and one in a domain the fabric doesn't have would be
 	// served by no gateway
@@ -142,18 +145,18 @@ func (vpc *VPCInfo) Validate(ctx context.Context, kube kclient.Reader, fabricCfg
 		}
 		for _, domain := range vpc.Spec.Topology.Domains {
 			if _, exists := fabric.Domains[domain]; !exists {
-				return fmt.Errorf("domain %s not found in fabric %s", domain, vpc.Spec.Topology.Fabric) //nolint:err113
+				return field.Invalid(domainsPath, domain, fmt.Sprintf("domain %s not found in fabric %s", domain, vpc.Spec.Topology.Fabric))
 			}
 		}
 	}
 
 	if vpc.Spec.VNI == 0 {
-		return fmt.Errorf("VPCInfo VNI must be set and non-zero") //nolint:err113
+		return field.Required(spec.Child("vni"), "must be set and non-zero")
 	}
 
 	for name, subnet := range vpc.Spec.Subnets {
 		if _, err := netip.ParsePrefix(subnet.CIDR); err != nil {
-			return fmt.Errorf("invalid CIDR %s for subnet %s: %w", subnet.CIDR, name, err)
+			return field.Invalid(spec.Child("subnets").Key(name).Child("cidr"), subnet.CIDR, err.Error())
 		}
 	}
 

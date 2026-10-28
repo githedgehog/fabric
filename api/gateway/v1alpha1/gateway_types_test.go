@@ -13,6 +13,7 @@ import (
 	"go.githedgehog.com/fabric/api/gateway/v1alpha1"
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	"go.githedgehog.com/fabric/pkg/util/testutil"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -128,10 +129,11 @@ func TestGatewayValidate(t *testing.T) {
 	base := withObjs(common, oneDomain)
 
 	tests := []struct {
-		name string
-		gw   v1alpha1.Gateway
-		objs []kclient.Object
-		err  error
+		name   string
+		gw     v1alpha1.Gateway
+		objs   []kclient.Object
+		err    bool
+		errMsg string
 	}{
 		{
 			name: "test-no-overlap",
@@ -147,97 +149,97 @@ func TestGatewayValidate(t *testing.T) {
 			name: "test-name-too-long",
 			gw:   *gwa(strings.Repeat("g", v1alpha1.MaxGatewayNameLength+1)),
 			objs: base,
-			err:  v1alpha1.ErrInvalidGW,
+			err:  true,
 		},
 		{
 			name: "test-proto-ip-overlap",
 			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.ProtocolIP = "172.30.8.2/32" }),
 			objs: base,
-			err:  v1alpha1.ErrInvalidGW,
+			err:  true,
 		},
 		{
 			name: "test-vtep-ip-overlap",
 			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.VTEPIP = "172.30.12.0/32" }),
 			objs: base,
-			err:  v1alpha1.ErrInvalidGW,
+			err:  true,
 		},
 		{
 			name: "test-invalid-proto-ip",
 			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.ProtocolIP = "172.30.12.0.1/32" }),
 			objs: base,
-			err:  v1alpha1.ErrInvalidGW,
+			err:  true,
 		},
 		{
 			name: "test-non-32-proto-ip",
 			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.ProtocolIP = "172.30.12.0/24" }),
 			objs: base,
-			err:  v1alpha1.ErrInvalidGW,
+			err:  true,
 		},
 		{
 			name: "test-non-v4-proto-ip",
 			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.ProtocolIP = "2001:db8::1/32" }),
 			objs: base,
-			err:  v1alpha1.ErrInvalidGW,
+			err:  true,
 		},
 		{
 			name: "test-invalid-vtep-ip",
 			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.VTEPIP = "172.30.12.0.1/32" }),
 			objs: base,
-			err:  v1alpha1.ErrInvalidGW,
+			err:  true,
 		},
 		{
 			name: "test-non-32-vtep-ip",
 			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.VTEPIP = "172.30.12.0/24" }),
 			objs: base,
-			err:  v1alpha1.ErrInvalidGW,
+			err:  true,
 		},
 		{
 			name: "test-non-v4-vtep-ip",
 			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.VTEPIP = "2001:db8::1/32" }),
 			objs: base,
-			err:  v1alpha1.ErrInvalidGW,
+			err:  true,
 		},
 		{
 			name: "test-localhost-vtep-ip",
 			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.VTEPIP = "127.0.1.2/32" }),
 			objs: base,
-			err:  v1alpha1.ErrInvalidGW,
+			err:  true,
 		},
 		{
 			name: "test-invalid-mac",
 			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.VTEPMAC = "00:11:22:33:44:55:66" }),
 			objs: base,
-			err:  v1alpha1.ErrInvalidGW,
+			err:  true,
 		},
 		{
 			name: "test-all-zeros-mac",
 			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.VTEPMAC = "00:00:00:00:00:00" }),
 			objs: base,
-			err:  v1alpha1.ErrInvalidGW,
+			err:  true,
 		},
 		{
 			name: "test-multicast-mac",
 			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.VTEPMAC = "01:00:5E:00:00:00" }),
 			objs: base,
-			err:  v1alpha1.ErrInvalidGW,
+			err:  true,
 		},
 		{
 			name: "test-no-asn",
 			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.ASN = 0 }),
 			objs: base,
-			err:  v1alpha1.ErrInvalidGW,
+			err:  true,
 		},
 		{
 			name: "test-asn-not-fabric-gateway-asn",
 			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.ASN = 65102 }),
 			objs: base,
-			err:  v1alpha1.ErrInvalidGW,
+			err:  true,
 		},
 		{
 			name: "test-domain-not-in-fabric",
 			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.Topology.Domain = planeB }),
 			objs: base,
-			err:  v1alpha1.ErrInvalidGW,
+			err:  true,
 		},
 		{
 			name: "test-domain-gateway-asn",
@@ -254,7 +256,7 @@ func TestGatewayValidate(t *testing.T) {
 				gw.Spec.Groups = []v1alpha1.GatewayGroupMembership{{Name: "gr-b"}}
 			}),
 			objs: withObjs(common, twoDomains, groupB),
-			err:  v1alpha1.ErrInvalidGW,
+			err:  true,
 		},
 		{
 			name: "test-domain-group-in-default-domain",
@@ -263,19 +265,19 @@ func TestGatewayValidate(t *testing.T) {
 				gw.Spec.ASN = 65099
 			}),
 			objs: withObjs(common, twoDomains),
-			err:  v1alpha1.ErrInvalidGW,
+			err:  true,
 		},
 		{
 			name: "test-asn-of-another-domain",
 			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.Topology.Domain = planeB }),
 			objs: withObjs(common, twoDomains),
-			err:  v1alpha1.ErrInvalidGW,
+			err:  true,
 		},
 		{
 			name: "test-no-interfaces",
 			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.Interfaces = map[string]v1alpha1.GatewayInterface{} }),
 			objs: base,
-			err:  v1alpha1.ErrInvalidGW,
+			err:  true,
 		},
 		{
 			name: "test-interface-invalid-ip",
@@ -283,7 +285,16 @@ func TestGatewayValidate(t *testing.T) {
 				gw.Spec.Interfaces["eth0"] = v1alpha1.GatewayInterface{IPs: []string{"172.30.128.256/31"}, MTU: 1500}
 			}),
 			objs: base,
-			err:  v1alpha1.ErrInvalidGW,
+			err:  true,
+		},
+		{
+			name: "test-interface-name-too-long",
+			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Spec.Interfaces["port0123456789ab"] = v1alpha1.GatewayInterface{IPs: []string{"172.30.128.3/31"}, MTU: 1500}
+			}),
+			objs:   base,
+			err:    true,
+			errMsg: "spec.interfaces[port0123456789ab]: Too long",
 		},
 		{
 			name: "test-interface-mtu-min",
@@ -305,7 +316,7 @@ func TestGatewayValidate(t *testing.T) {
 				gw.Spec.Interfaces["port0"] = v1alpha1.GatewayInterface{IPs: []string{"172.30.128.3/31"}, MTU: 67}
 			}),
 			objs: base,
-			err:  v1alpha1.ErrInvalidGW,
+			err:  true,
 		},
 		{
 			name: "test-interface-mtu-too-big",
@@ -313,25 +324,25 @@ func TestGatewayValidate(t *testing.T) {
 				gw.Spec.Interfaces["port0"] = v1alpha1.GatewayInterface{IPs: []string{"172.30.128.3/31"}, MTU: 65536}
 			}),
 			objs: base,
-			err:  v1alpha1.ErrInvalidGW,
+			err:  true,
 		},
 		{
 			name: "test-no-neighbors",
 			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.Neighbors = []v1alpha1.GatewayBGPNeighbor{} }),
 			objs: base,
-			err:  v1alpha1.ErrInvalidGW,
+			err:  true,
 		},
 		{
 			name: "test-neighbor-invalid-ip",
 			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.Neighbors[0].IP = "172.30.128.256" }),
 			objs: base,
-			err:  v1alpha1.ErrInvalidGW,
+			err:  true,
 		},
 		{
 			name: "test-neighbor-no-asn",
 			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.Neighbors[0].ASN = 0 }),
 			objs: base,
-			err:  v1alpha1.ErrInvalidGW,
+			err:  true,
 		},
 		{
 			name: "test-too-many-gws-in-group",
@@ -351,7 +362,7 @@ func TestGatewayValidate(t *testing.T) {
 					},
 				})),
 			),
-			err: v1alpha1.ErrInvalidGW,
+			err: true,
 		},
 		{
 			name: "test-fits-in-gw-group",
@@ -371,13 +382,13 @@ func TestGatewayValidate(t *testing.T) {
 			name: "test-proto-ip-overlap-with-switch",
 			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.ProtocolIP = "172.30.8.45/32" }),
 			objs: base,
-			err:  v1alpha1.ErrInvalidGW,
+			err:  true,
 		},
 		{
 			name: "test-vtep-ip-overlap-with-switch",
 			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.VTEPIP = "172.30.12.45/32" }),
 			objs: base,
-			err:  v1alpha1.ErrInvalidGW,
+			err:  true,
 		},
 		{
 			name: "test-proto-ip-no-overlap-with-switch-vtep",
@@ -388,7 +399,7 @@ func TestGatewayValidate(t *testing.T) {
 			name: "test-vtep-mac-overlap",
 			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.VTEPMAC = "ca:fe:ba:be:00:02" }),
 			objs: base,
-			err:  v1alpha1.ErrInvalidGW,
+			err:  true,
 		},
 		{
 			name: "test-log-rate-limit-explicit",
@@ -426,7 +437,7 @@ func TestGatewayValidate(t *testing.T) {
 				gw.Spec.Interfaces["port1"] = v1alpha1.GatewayInterface{IPs: []string{"172.30.128.5/31"}}
 			}),
 			objs: base,
-			err:  v1alpha1.ErrInvalidGW,
+			err:  true,
 		},
 		{
 			name: "test-dpdk-kernel",
@@ -444,7 +455,7 @@ func TestGatewayValidate(t *testing.T) {
 				gw.Spec.Interfaces["port1"] = v1alpha1.GatewayInterface{PCI: "0000:21:00.0", IPs: []string{"172.30.128.5/31"}}
 			}),
 			objs: base,
-			err:  v1alpha1.ErrInvalidGW,
+			err:  true,
 		},
 		{
 			name: "test-dpdk-invalid-pci",
@@ -453,7 +464,7 @@ func TestGatewayValidate(t *testing.T) {
 				gw.Spec.Interfaces["port0"] = v1alpha1.GatewayInterface{PCI: "0000:21:00.8", IPs: []string{"172.30.128.3/31"}}
 			}),
 			objs: base,
-			err:  v1alpha1.ErrInvalidGW,
+			err:  true,
 		},
 		{
 			name: "test-kernel-pci-and-kernel",
@@ -478,7 +489,7 @@ func TestGatewayValidate(t *testing.T) {
 				gw.Spec.Interfaces["port0"] = v1alpha1.GatewayInterface{PCI: "0000:21:00.0", Kernel: "not-a-valid-name", IPs: []string{"172.30.128.3/31"}}
 			}),
 			objs: base,
-			err:  v1alpha1.ErrInvalidGW,
+			err:  true,
 		},
 		{
 			name: "test-kernel-no-pci-no-kernel",
@@ -492,7 +503,7 @@ func TestGatewayValidate(t *testing.T) {
 			name: "test-unknown-driver",
 			gw:   *gwa("gw-1", func(gw *v1alpha1.Gateway) { gw.Spec.Driver = "xdp" }),
 			objs: base,
-			err:  v1alpha1.ErrInvalidGW,
+			err:  true,
 		},
 	}
 
@@ -510,8 +521,15 @@ func TestGatewayValidate(t *testing.T) {
 				Build()
 
 			tt.gw.Default()
-			actual := tt.gw.Validate(ctx, kube, cfg)
-			assert.ErrorIs(t, actual, tt.err, "validate should return expected error")
+			err := tt.gw.Validate(ctx, kube, cfg)
+			if tt.err {
+				testutil.RequireFieldError(t, err, &tt.gw)
+				if tt.errMsg != "" {
+					require.ErrorContains(t, err, tt.errMsg)
+				}
+			} else {
+				require.NoError(t, err)
+			}
 		})
 	}
 }

@@ -5,7 +5,6 @@ package v1alpha1
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"math"
 	"net"
@@ -19,10 +18,9 @@ import (
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
-
-var ErrInvalidGW = errors.New("invalid gateway")
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
@@ -278,84 +276,89 @@ func DaemonSetName(gwName string) string {
 }
 
 func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) error {
+	spec := field.NewPath("spec")
+	domainPath := spec.Child("topology", "domain")
+	protoIPPath, vtepIPPath, vtepMACPath := spec.Child("protocolIP"), spec.Child("vtepIP"), spec.Child("vtepMAC")
+
 	if fabricCfg != nil && !fabricCfg.EnableGateway {
-		return fmt.Errorf("gateway support is not enabled: %w", ErrInvalidGW)
+		return field.Forbidden(spec, "gateway support is not enabled")
 	}
 	if err := meta.ValidateObjectMetadata(gw); err != nil {
-		return fmt.Errorf("%w: %w", ErrInvalidGW, err)
+		return err //nolint:wrapcheck
 	}
 	if len(gw.Name) > MaxGatewayNameLength {
-		return fmt.Errorf("name %s is too long, must be <= %d characters: %w", gw.Name, MaxGatewayNameLength, ErrInvalidGW)
+		return field.TooLong(field.NewPath("metadata", "name"), gw.Name, MaxGatewayNameLength)
 	}
 
 	if err := wiringapi.CheckFabricExists(ctx, kube, gw.Namespace, gw.Spec.Topology.Fabric); err != nil {
-		return fmt.Errorf("%w: %w", ErrInvalidGW, err)
+		return field.Invalid(spec.Child("topology", "fabric"), gw.Spec.Topology.Fabric, err.Error())
 	}
 	if gw.Spec.Topology.Domain == "" {
-		return fmt.Errorf("topology.domain is required: %w", ErrInvalidGW)
+		return field.Required(domainPath, "")
 	}
 
 	if gw.Spec.Workers == 0 || gw.Spec.Workers > 64 {
-		return fmt.Errorf("workers should be between 1 and 64: %w", ErrInvalidGW)
+		return field.Invalid(spec.Child("workers"), gw.Spec.Workers, "should be between 1 and 64")
 	}
 
 	if rl := gw.Spec.Logs.RateLimit; rl != nil {
+		rlPath := spec.Child("logs", "rateLimit")
 		if rl.Burst == 0 {
-			return fmt.Errorf("log rate limit burst must be greater than 0: %w", ErrInvalidGW)
+			return field.Invalid(rlPath.Child("burst"), rl.Burst, "must be greater than 0")
 		}
 		if rl.ReplenishPerSecond == 0 {
-			return fmt.Errorf("log rate limit replenishPerSecond must be greater than 0: %w", ErrInvalidGW)
+			return field.Invalid(rlPath.Child("replenishPerSecond"), rl.ReplenishPerSecond, "must be greater than 0")
 		}
 	}
 
 	protoIP, err := netip.ParsePrefix(gw.Spec.ProtocolIP)
 	if err != nil {
-		return fmt.Errorf("invalid ProtocolIP %s: %w", gw.Spec.ProtocolIP, errors.Join(err, ErrInvalidGW))
+		return field.Invalid(protoIPPath, gw.Spec.ProtocolIP, err.Error())
 	}
 	if protoIP.Bits() != 32 {
-		return fmt.Errorf("ProtocolIP %s must be a /32 prefix: %w", gw.Spec.ProtocolIP, ErrInvalidGW)
+		return field.Invalid(protoIPPath, gw.Spec.ProtocolIP, "must be a /32 prefix")
 	}
 	if !protoIP.Addr().Is4() {
-		return fmt.Errorf("ProtocolIP %s must be an IPv4 address: %w", gw.Spec.ProtocolIP, ErrInvalidGW)
+		return field.Invalid(protoIPPath, gw.Spec.ProtocolIP, "must be an IPv4 address")
 	}
 
 	vtepIP, err := netip.ParsePrefix(gw.Spec.VTEPIP)
 	if err != nil {
-		return fmt.Errorf("invalid VTEPIP %s: %w", gw.Spec.VTEPIP, errors.Join(err, ErrInvalidGW))
+		return field.Invalid(vtepIPPath, gw.Spec.VTEPIP, err.Error())
 	}
 	if vtepIP.Bits() != 32 {
-		return fmt.Errorf("VTEPIP %s must be a /32 prefix: %w", gw.Spec.VTEPIP, ErrInvalidGW)
+		return field.Invalid(vtepIPPath, gw.Spec.VTEPIP, "must be a /32 prefix")
 	}
 	if !vtepIP.Addr().Is4() {
-		return fmt.Errorf("VTEPIP %s must be an IPv4 address: %w", gw.Spec.VTEPIP, ErrInvalidGW)
+		return field.Invalid(vtepIPPath, gw.Spec.VTEPIP, "must be an IPv4 address")
 	}
 	if vtepIP.Addr().IsMulticast() || vtepIP.Addr().IsLoopback() || vtepIP.Addr().IsUnspecified() {
-		return fmt.Errorf("VTEPIP %s must be a unicast IPv4 address: %w", gw.Spec.VTEPIP, ErrInvalidGW)
+		return field.Invalid(vtepIPPath, gw.Spec.VTEPIP, "must be a unicast IPv4 address")
 	}
 	localhostNet, err := netip.ParsePrefix("127.0.0.0/8")
 	if err != nil {
 		return fmt.Errorf("internal error: cannot parse localhost network: %w", err)
 	}
 	if localhostNet.Contains(vtepIP.Addr()) {
-		return fmt.Errorf("VTEPIP %s must not be in the localhost range: %w", gw.Spec.VTEPIP, ErrInvalidGW)
+		return field.Invalid(vtepIPPath, gw.Spec.VTEPIP, "must not be in the localhost range")
 	}
 
 	if gw.Spec.VTEPMAC == "" {
-		return fmt.Errorf("VTEPMAC must be set: %w", ErrInvalidGW)
+		return field.Required(vtepMACPath, "")
 	}
 	vtepMAC, err := net.ParseMAC(gw.Spec.VTEPMAC)
 	if err != nil {
-		return fmt.Errorf("invalid VTEPMAC %s: %w", gw.Spec.VTEPMAC, errors.Join(err, ErrInvalidGW))
+		return field.Invalid(vtepMACPath, gw.Spec.VTEPMAC, err.Error())
 	}
 	if vtepMAC.String() == "00:00:00:00:00:00" {
-		return fmt.Errorf("VTEPMAC must not be all zeros: %w", ErrInvalidGW)
+		return field.Invalid(vtepMACPath, gw.Spec.VTEPMAC, "must not be all zeros")
 	}
 	if (vtepMAC[0] & 1) == 1 {
-		return fmt.Errorf("VTEPMAC %s must be a unicast MAC address: %w", gw.Spec.VTEPMAC, ErrInvalidGW)
+		return field.Invalid(vtepMACPath, gw.Spec.VTEPMAC, "must be a unicast MAC address")
 	}
 
 	if gw.Spec.ASN == 0 {
-		return fmt.Errorf("ASN must be set: %w", ErrInvalidGW)
+		return field.Required(spec.Child("asn"), "")
 	}
 	if fabricCfg != nil && kube != nil {
 		// leaves peer with every gateway of their domain using the domain gateway ASN
@@ -366,97 +369,99 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg 
 		domainName := gw.Spec.Topology.Domain
 		domain, exists := fabric.Domains[domainName]
 		if !exists {
-			return fmt.Errorf("domain %s not found in fabric %s: %w", domainName, gw.Spec.Topology.Fabric, ErrInvalidGW)
+			return field.Invalid(domainPath, domainName, fmt.Sprintf("domain %s not found in fabric %s", domainName, gw.Spec.Topology.Fabric))
 		}
 		if gw.Spec.ASN != domain.GatewayASN {
-			return fmt.Errorf("ASN %d is not the gateway ASN %d of domain %s: %w", gw.Spec.ASN, domain.GatewayASN, domainName, ErrInvalidGW)
+			return field.Invalid(spec.Child("asn"), gw.Spec.ASN, fmt.Sprintf("not the gateway ASN %d of domain %s", domain.GatewayASN, domainName))
 		}
 	}
 
 	if !slices.Contains(GatewayDrivers, gw.Spec.Driver) {
-		return fmt.Errorf("driver %q must be one of %v: %w", gw.Spec.Driver, GatewayDrivers, ErrInvalidGW)
+		return field.NotSupported(spec.Child("driver"), gw.Spec.Driver, GatewayDrivers)
 	}
 
 	if len(gw.Spec.Interfaces) == 0 {
-		return fmt.Errorf("at least one interface must be defined: %w", ErrInvalidGW)
+		return field.Required(spec.Child("interfaces"), "at least one interface must be defined")
 	}
 	pcis := map[string]string{}
 	for name, iface := range gw.Spec.Interfaces {
+		ifacePath := spec.Child("interfaces").Key(name)
 		if len(name) > 15 {
-			return fmt.Errorf("interface name %s is too long: %w", name, ErrInvalidGW)
+			return field.TooLong(ifacePath, name, 15)
 		}
 		if !linuxIfaceNameRegex.MatchString(name) {
-			return fmt.Errorf("interface name %s must be a valid linux interface name (2-10 characters): %w", name, ErrInvalidGW)
+			return field.Invalid(spec.Child("interfaces"), name, "must be a valid linux interface name (2-10 characters)")
 		}
 
 		if len(iface.IPs) == 0 {
-			return fmt.Errorf("interface %s must have at least one IP address: %w", name, ErrInvalidGW)
+			return field.Required(ifacePath.Child("ips"), "at least one IP address is required")
 		}
-		for _, ifaceIP := range iface.IPs {
+		for idx, ifaceIP := range iface.IPs {
 			ifaceIP, err := netip.ParsePrefix(ifaceIP)
 			if err != nil {
-				return fmt.Errorf("invalid interface %s IP %s: %w", name, ifaceIP, errors.Join(err, ErrInvalidGW))
+				return field.Invalid(ifacePath.Child("ips").Index(idx), iface.IPs[idx], err.Error())
 			}
 			if !ifaceIP.Addr().Is4() {
-				return fmt.Errorf("interface %s IP %s must be an IPv4 address: %w", name, ifaceIP, ErrInvalidGW)
+				return field.Invalid(ifacePath.Child("ips").Index(idx), iface.IPs[idx], "must be an IPv4 address")
 			}
 		}
 
 		// same range as the dataplane accepts, 0 means unset
 		if iface.MTU != 0 && (iface.MTU < 68 || iface.MTU > math.MaxUint16) {
-			return fmt.Errorf("interface %s MTU %d must be between 68 and %d: %w", name, iface.MTU, math.MaxUint16, ErrInvalidGW)
+			return field.Invalid(ifacePath.Child("mtu"), iface.MTU, fmt.Sprintf("must be between 68 and %d", math.MaxUint16))
 		}
 
 		// kernel name is allowed but ignored with the dpdk driver
 		if gw.Spec.Driver == GatewayDriverDPDK && iface.PCI == "" {
-			return fmt.Errorf("interface %s must have PCI address with dpdk driver: %w", name, ErrInvalidGW)
+			return field.Required(ifacePath.Child("pci"), "required with the dpdk driver")
 		}
 		if iface.PCI != "" {
-			if err := validatePCI(name, iface.PCI); err != nil {
+			if err := validatePCI(ifacePath.Child("pci"), iface.PCI); err != nil {
 				return err
 			}
 
 			pci := strings.ToLower(iface.PCI)
 			if other, exist := pcis[pci]; exist {
-				return fmt.Errorf("interfaces %s and %s have the same PCI address %s: %w", other, name, iface.PCI, ErrInvalidGW)
+				return field.Invalid(ifacePath.Child("pci"), iface.PCI, "same PCI address as interface "+other)
 			}
 			pcis[pci] = name
 		}
 		if iface.Kernel != "" && !linuxIfaceNameRegex.MatchString(iface.Kernel) {
-			return fmt.Errorf("kernel name %s must be a valid linux interface name (2-10 characters): %w", iface.Kernel, ErrInvalidGW)
+			return field.Invalid(ifacePath.Child("kernel"), iface.Kernel, "must be a valid linux interface name (2-10 characters)")
 		}
 	}
 
 	if len(gw.Spec.Neighbors) == 0 {
-		return fmt.Errorf("at least one BGP neighbor must be defined: %w", ErrInvalidGW)
+		return field.Required(spec.Child("neighbors"), "at least one BGP neighbor must be defined")
 	}
-	for _, neigh := range gw.Spec.Neighbors {
+	for idx, neigh := range gw.Spec.Neighbors {
+		neighPath := spec.Child("neighbors").Index(idx)
 		if neigh.IP == "" {
-			return fmt.Errorf("BGP neighbor must have an IP address: %w", ErrInvalidGW)
+			return field.Required(neighPath.Child("ip"), "")
 		}
 		neighIP, err := netip.ParseAddr(neigh.IP)
 		if err != nil {
-			return fmt.Errorf("invalid neighbor IP %s: %w", neigh.IP, errors.Join(err, ErrInvalidGW))
+			return field.Invalid(neighPath.Child("ip"), neigh.IP, err.Error())
 		}
 		if !neighIP.Is4() {
-			return fmt.Errorf("BGP neighbor IP %s must be an IPv4 address: %w", neigh.IP, ErrInvalidGW)
+			return field.Invalid(neighPath.Child("ip"), neigh.IP, "must be an IPv4 address")
 		}
 		if neighIP.IsMulticast() || neighIP.IsUnspecified() {
-			return fmt.Errorf("BGP neighbor IP %s must be a unicast IPv4 address: %w", neigh.IP, ErrInvalidGW)
+			return field.Invalid(neighPath.Child("ip"), neigh.IP, "must be a unicast IPv4 address")
 		}
 
 		if neigh.ASN == 0 {
-			return fmt.Errorf("BGP neighbor %s must have an ASN: %w", neigh.IP, ErrInvalidGW)
+			return field.Required(neighPath.Child("asn"), "")
 		}
 	}
 
 	if len(gw.Spec.Groups) == 0 {
-		return fmt.Errorf("at least one gateway group must be defined: %w", ErrInvalidGW)
+		return field.Required(spec.Child("groups"), "at least one gateway group must be defined")
 	}
 	usedGwGroups := map[string]bool{}
-	for _, gwGroup := range gw.Spec.Groups {
+	for idx, gwGroup := range gw.Spec.Groups {
 		if usedGwGroups[gwGroup.Name] {
-			return fmt.Errorf("gateway %s group %s is duplicate: %w", gw.Name, gwGroup.Name, ErrInvalidGW)
+			return field.Duplicate(spec.Child("groups").Index(idx).Child("name"), gwGroup.Name)
 		}
 		usedGwGroups[gwGroup.Name] = true
 	}
@@ -513,13 +518,13 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg 
 		}
 
 		if _, exist := protocolIPs[protoIP.Addr()]; exist {
-			return fmt.Errorf("gateway %s protocol IP %s is already in use: %w", gw.Name, protoIP, ErrInvalidGW)
+			return field.Invalid(protoIPPath, gw.Spec.ProtocolIP, "already in use")
 		}
 		if _, exist := vtepIPs[vtepIP.Addr()]; exist {
-			return fmt.Errorf("gateway %s VTEP IP %s is already in use: %w", gw.Name, vtepIP, ErrInvalidGW)
+			return field.Invalid(vtepIPPath, gw.Spec.VTEPIP, "already in use")
 		}
 		if _, exist := vtepMACs[vtepMAC.String()]; exist {
-			return fmt.Errorf("gateway %s VTEP MAC %s is already in use: %w", gw.Name, vtepMAC, ErrInvalidGW)
+			return field.Invalid(vtepMACPath, gw.Spec.VTEPMAC, "already in use")
 		}
 
 		gwGroupList := &GatewayGroupList{}
@@ -532,19 +537,20 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg 
 		}
 		gwFabric := gw.Spec.Topology.Fabric
 		gwDomain := gw.Spec.Topology.Domain
-		for _, gwGroup := range gw.Spec.Groups {
+		for idx, gwGroup := range gw.Spec.Groups {
+			groupPath := spec.Child("groups").Index(idx).Child("name")
 			groupTopology, exists := gwGroupTopologies[gwGroup.Name]
 			if !exists {
-				return fmt.Errorf("gateway group %s not found: %w", gwGroup.Name, ErrInvalidGW)
+				return field.NotFound(groupPath, gwGroup.Name)
 			}
 			if groupFabric := groupTopology.Fabric; groupFabric != gwFabric {
-				return fmt.Errorf("gateway is in fabric %s but gateway group %s is in fabric %s: %w", gwFabric, gwGroup.Name, groupFabric, ErrInvalidGW)
+				return field.Invalid(groupPath, gwGroup.Name, fmt.Sprintf("gateway is in fabric %s but the gateway group is in fabric %s", gwFabric, groupFabric))
 			}
 			if groupDomain := groupTopology.Domain; groupDomain != gwDomain {
-				return fmt.Errorf("gateway is in domain %s but gateway group %s is in domain %s: %w", gwDomain, gwGroup.Name, groupDomain, ErrInvalidGW)
+				return field.Invalid(groupPath, gwGroup.Name, fmt.Sprintf("gateway is in domain %s but the gateway group is in domain %s", gwDomain, groupDomain))
 			}
 			if fabricCfg != nil && len(fabricCfg.GatewayCommunities) > 0 && gwGroupMembers[gwGroup.Name] >= len(fabricCfg.GatewayCommunities) {
-				return fmt.Errorf("gateway group %s already has too many members (%d), max is %d: %w", gwGroup.Name, gwGroupMembers[gwGroup.Name], len(fabricCfg.GatewayCommunities), ErrInvalidGW)
+				return field.Invalid(groupPath, gwGroup.Name, fmt.Sprintf("gateway group already has too many members (%d), max is %d", gwGroupMembers[gwGroup.Name], len(fabricCfg.GatewayCommunities)))
 			}
 		}
 	}
@@ -552,8 +558,8 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg 
 	return nil
 }
 
-func validatePCI(name, pci string) error {
-	invalidPCI := fmt.Errorf("interface %s PCI %s must be a valid PCI address (e.g. 0000:02:00.0): %w", name, pci, ErrInvalidGW)
+func validatePCI(path *field.Path, pci string) error {
+	invalidPCI := field.Invalid(path, pci, "must be a valid PCI address (e.g. 0000:02:00.0)")
 	if len(pci) != 12 {
 		return invalidPCI
 	}
@@ -564,9 +570,9 @@ func validatePCI(name, pci string) error {
 	}
 
 	if function, err := strconv.ParseInt(parts[1], 16, 64); err != nil {
-		return fmt.Errorf("invalid interface %s PCI address %s function: %w", name, pci, errors.Join(err, ErrInvalidGW))
+		return field.Invalid(path, pci, "invalid function: "+err.Error())
 	} else if function < 0 || function > 7 {
-		return fmt.Errorf("invalid interface %s PCI address %s function (0-7): %w", name, pci, ErrInvalidGW)
+		return field.Invalid(path, pci, "invalid function (0-7)")
 	}
 
 	parts = strings.Split(parts[0], ":")
@@ -575,21 +581,21 @@ func validatePCI(name, pci string) error {
 	}
 
 	if domain, err := strconv.ParseInt(parts[0], 16, 64); err != nil {
-		return fmt.Errorf("invalid interface %s PCI address %s domain: %w", name, pci, errors.Join(err, ErrInvalidGW))
+		return field.Invalid(path, pci, "invalid domain: "+err.Error())
 	} else if domain < 0 || domain > 0xFFFF {
-		return fmt.Errorf("invalid interface %s PCI address %s domain (0-FFFF): %w", name, pci, ErrInvalidGW)
+		return field.Invalid(path, pci, "invalid domain (0-FFFF)")
 	}
 
 	if bus, err := strconv.ParseInt(parts[1], 16, 64); err != nil {
-		return fmt.Errorf("invalid interface %s PCI address %s bus: %w", name, pci, errors.Join(err, ErrInvalidGW))
+		return field.Invalid(path, pci, "invalid bus: "+err.Error())
 	} else if bus < 0 || bus > 0xFF {
-		return fmt.Errorf("invalid interface %s PCI address %s bus (0-FF): %w", name, pci, ErrInvalidGW)
+		return field.Invalid(path, pci, "invalid bus (0-FF)")
 	}
 
 	if device, err := strconv.ParseInt(parts[2], 16, 64); err != nil {
-		return fmt.Errorf("invalid interface %s PCI address %s device: %w", name, pci, errors.Join(err, ErrInvalidGW))
+		return field.Invalid(path, pci, "invalid device: "+err.Error())
 	} else if device < 0 || device > 0x1F {
-		return fmt.Errorf("invalid interface %s PCI address %s device (0-1F): %w", name, pci, ErrInvalidGW)
+		return field.Invalid(path, pci, "invalid device (0-1F)")
 	}
 
 	return nil

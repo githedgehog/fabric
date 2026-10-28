@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.githedgehog.com/fabric/api/gateway/v1alpha1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	"go.githedgehog.com/fabric/pkg/util/testutil"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -108,6 +109,7 @@ func TestVPCInfoDomainsInFabric(t *testing.T) {
 				return
 			}
 			require.ErrorContains(t, err, tt.err)
+			testutil.RequireFieldError(t, err, vpc)
 		})
 	}
 }

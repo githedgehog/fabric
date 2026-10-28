@@ -22,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ktypes "k8s.io/apimachinery/pkg/types"
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -355,77 +356,81 @@ func (p *GatewayPeering) Default() {
 }
 
 func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) error {
+	spec := field.NewPath("spec")
 	if fabricCfg != nil && !fabricCfg.EnableGateway {
-		return fmt.Errorf("gateway support is not enabled") //nolint:err113
+		return field.Forbidden(spec, "gateway support is not enabled")
 	}
 	if err := meta.ValidateObjectMetadata(p); err != nil {
-		return fmt.Errorf("invalid gatewaypeering: %w", err)
+		return err //nolint:wrapcheck
 	}
 	if p.Spec.GatewayGroup == "" {
-		return fmt.Errorf("gateway group must be specified %s", p.Name) //nolint:err113
+		return field.Required(spec.Child("gatewayGroup"), "")
 	}
 
 	if err := wiringapi.CheckFabricExists(ctx, kube, p.Namespace, p.Spec.Topology.Fabric); err != nil {
-		return fmt.Errorf("invalid gateway peering: %w", err)
+		return field.Invalid(spec.Child("topology", "fabric"), p.Spec.Topology.Fabric, err.Error())
 	}
 
 	vpcs := slices.Collect(maps.Keys(p.Spec.Peering))
 	if len(vpcs) != 2 {
-		return fmt.Errorf("peering must have exactly 2 VPCs, got %d", len(vpcs)) //nolint:err113
+		return field.Invalid(spec.Child("peering"), field.OmitValueType{}, fmt.Sprintf("peering must have exactly 2 VPCs, got %d", len(vpcs)))
 	}
 	for name, vpc := range p.Spec.Peering {
 		if vpc == nil {
 			continue
 		}
-		for _, expose := range vpc.Expose {
+		for exposeIdx, expose := range vpc.Expose {
+			exposePath := spec.Child("peering").Key(name).Child("expose").Index(exposeIdx)
 			if expose.DefaultDestination && (len(expose.IPs) > 0 || len(expose.As) > 0 || expose.NAT != nil) {
-				return fmt.Errorf("default flag should be the only thing set in expose of VPC %s", name) //nolint:err113
+				return field.Invalid(exposePath, field.OmitValueType{}, "default flag should be the only thing set")
 			}
-			for _, ip := range expose.IPs {
+			for ipIdx, ip := range expose.IPs {
+				ipPath := exposePath.Child("ips").Index(ipIdx)
 				nonnil := 0
 				if ip.CIDR != "" {
 					if _, err := netip.ParsePrefix(ip.CIDR); err != nil {
-						return fmt.Errorf("invalid CIDR %s in peering expose IPs of VPC %s: %w", ip.CIDR, name, err)
+						return field.Invalid(ipPath.Child("cidr"), ip.CIDR, err.Error())
 					}
 					nonnil++
 				}
 				if ip.Not != "" {
 					if _, err := netip.ParsePrefix(ip.Not); err != nil {
-						return fmt.Errorf("invalid Not CIDR %s in peering expose IPs of VPC %s: %w", ip.Not, name, err)
+						return field.Invalid(ipPath.Child("not"), ip.Not, err.Error())
 					}
 					nonnil++
 				}
 				if ip.VPCSubnet != "" {
 					if extName, isExternal := strings.CutPrefix(name, v1beta1.VPCInfoExtPrefix); isExternal {
-						return fmt.Errorf("external %s cannot have an IP block with VPC Subnets specified", extName) //nolint:err113
+						return field.Forbidden(ipPath.Child("vpcSubnet"), fmt.Sprintf("external %s cannot have an IP block with VPC Subnets specified", extName))
 					}
 					nonnil++
 				}
 				if nonnil != 1 {
-					return fmt.Errorf("exactly one of cidr, not or vpcSubnet must be set in peering expose IPs of VPC %s", name) //nolint:err113
+					return field.Invalid(ipPath, field.OmitValueType{}, "exactly one of cidr, not or vpcSubnet must be set")
 				}
 			}
-			for _, as := range expose.As {
+			for asIdx, as := range expose.As {
+				asPath := exposePath.Child("as").Index(asIdx)
 				nonnil := 0
 				if as.CIDR != "" {
 					if _, err := netip.ParsePrefix(as.CIDR); err != nil {
-						return fmt.Errorf("invalid CIDR %s in peering expose AS of VPC %s: %w", as.CIDR, name, err)
+						return field.Invalid(asPath.Child("cidr"), as.CIDR, err.Error())
 					}
 					nonnil++
 				}
 				if as.Not != "" {
 					if _, err := netip.ParsePrefix(as.Not); err != nil {
-						return fmt.Errorf("invalid Not CIDR %s in peering expose AS of VPC %s: %w", as.Not, name, err)
+						return field.Invalid(asPath.Child("not"), as.Not, err.Error())
 					}
 					nonnil++
 				}
 				if nonnil != 1 {
-					return fmt.Errorf("exactly one of cidr or not must be set in peering expose AS of VPC %s", name) //nolint:err113
+					return field.Invalid(asPath, field.OmitValueType{}, "exactly one of cidr or not must be set")
 				}
 			}
 
 			if (len(expose.As) == 0) != (expose.NAT == nil) {
-				return fmt.Errorf("expose.As and expose.NAT must both be set or both be empty in peering expose of VPC %s", name) //nolint:err113
+				return field.Invalid(exposePath, field.OmitValueType{}, "as and nat must both be set or both be empty")
 			}
 
 			if expose.NAT != nil {
@@ -440,26 +445,28 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 					nonNils++
 				}
 
+				natPath := exposePath.Child("nat")
 				if nonNils != 1 {
-					return fmt.Errorf("exactly one of masquerade, static, or portForward must be set in NAT section for peering expose of VPC %s", name) //nolint:err113
+					return field.Invalid(natPath, field.OmitValueType{}, "exactly one of masquerade, static, or portForward must be set")
 				}
 
 				if expose.NAT.PortForward != nil {
+					portsPath := natPath.Child("portForward", "ports")
 					if len(expose.NAT.PortForward.Ports) == 0 {
-						return fmt.Errorf("at least one port forwarding rule must be set in NAT section for peering expose of VPC %s", name) //nolint:err113
+						return field.Required(portsPath, "at least one port forwarding rule must be set")
 					}
 
 					for idx, entry := range expose.NAT.PortForward.Ports {
 						if err := validatePort(entry.Port); err != nil {
-							return fmt.Errorf("invalid port %q in port forwarding rule %d in NAT section for peering expose of VPC %s: %w", entry.Port, idx, name, err)
+							return field.Invalid(portsPath.Index(idx).Child("port"), entry.Port, err.Error())
 						}
 
 						if err := validatePort(entry.As); err != nil {
-							return fmt.Errorf("invalid as %q in port forwarding rule %d in NAT section for peering expose of VPC %s: %w", entry.As, idx, name, err)
+							return field.Invalid(portsPath.Index(idx).Child("as"), entry.As, err.Error())
 						}
 
 						if !slices.Contains(PeeringNATProtocols, entry.Protocol) {
-							return fmt.Errorf("invalid protocol %q in port forwarding rule %d in NAT section for peering expose of VPC %s", entry.Protocol, idx, name) //nolint:err113
+							return field.NotSupported(portsPath.Index(idx).Child("proto"), entry.Protocol, PeeringNATProtocols)
 						}
 					}
 				}
@@ -468,73 +475,75 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 	}
 
 	if acl := p.Spec.ACL; acl != nil {
+		aclPath := spec.Child("acl")
 		if !slices.Contains(ACLDefaultActions, acl.Default) {
-			return fmt.Errorf("invalid default action %q in ACL", acl.Default) //nolint:err113
+			return field.NotSupported(aclPath.Child("default"), acl.Default, ACLDefaultActions)
 		}
 		for i, rule := range acl.Rules {
-			ruleBlob := ""
+			rulePath := aclPath.Child("rules").Index(i)
 			if rule.Name != "" {
-				if len(kvalidation.IsDNS1123Subdomain(rule.Name)) > 0 {
-					return fmt.Errorf("invalid rule name %q in ACL rule %d", rule.Name, i) //nolint:err113
+				if errs := kvalidation.IsDNS1123Subdomain(rule.Name); len(errs) > 0 {
+					return field.Invalid(rulePath.Child("name"), rule.Name, strings.Join(errs, ", "))
 				}
 				if len(rule.Name) > 64 {
-					return fmt.Errorf("rule name %q in ACL rule %d is too long, must be 64 characters or less", rule.Name, i) //nolint:err113
+					return field.TooLong(rulePath.Child("name"), rule.Name, 64)
 				}
-				ruleBlob = fmt.Sprintf(" (%s)", rule.Name)
 			}
 			if !slices.Contains(ACLActions, rule.Action) {
-				return fmt.Errorf("invalid action %q in ACL rule %d%s", rule.Action, i, ruleBlob) //nolint:err113
+				return field.NotSupported(rulePath.Child("action"), rule.Action, ACLActions)
 			}
 			if !slices.Contains(ACLScopes, rule.Scope) {
-				return fmt.Errorf("invalid scope %q in ACL rule %d%s", rule.Scope, i, ruleBlob) //nolint:err113
+				return field.NotSupported(rulePath.Child("scope"), rule.Scope, ACLScopes)
 			}
 			if rule.From == "" && rule.To == "" {
-				return fmt.Errorf("at least one of from and to must be specified in ACL rule %d%s", i, ruleBlob) //nolint:err113
+				return field.Required(rulePath, "at least one of from and to must be specified")
 			}
 			if rule.From != "" && !slices.Contains(vpcs, rule.From) {
-				return fmt.Errorf("invalid from %q in ACL rule %d%s, it has to match one of the two VPCs of the peering: %q", rule.From, i, ruleBlob, vpcs) //nolint:err113
+				return field.NotSupported(rulePath.Child("from"), rule.From, vpcs)
 			}
 			if rule.To != "" && !slices.Contains(vpcs, rule.To) {
-				return fmt.Errorf("invalid to %q in ACL rule %d%s, it has to match one of the two VPCs of the peering: %q", rule.To, i, ruleBlob, vpcs) //nolint:err113
+				return field.NotSupported(rulePath.Child("to"), rule.To, vpcs)
 			}
-			for _, src := range rule.Match.Source {
+			for j, src := range rule.Match.Source {
+				srcPath := rulePath.Child("match", "src").Index(j)
 				if src.CIDR != "" && src.VPCSubnet != "" {
-					return fmt.Errorf("at most one of cidr and vpcSubnet can be specified in source match for rule %d%s", i, ruleBlob) //nolint:err113
+					return field.Invalid(srcPath, field.OmitValueType{}, "at most one of cidr and vpcSubnet can be specified")
 				}
 				if src.CIDR != "" {
 					if _, err := netip.ParsePrefix(src.CIDR); err != nil {
-						return fmt.Errorf("invalid source CIDR %q in ACL rule %d%s: %w", src.CIDR, i, ruleBlob, err)
+						return field.Invalid(srcPath.Child("cidr"), src.CIDR, err.Error())
 					}
 				}
-				for _, port := range src.Ports {
+				for k, port := range src.Ports {
 					if err := validatePort(port); err != nil {
-						return fmt.Errorf("invalid source port %q in ACL rule %d%s: %w", port, i, ruleBlob, err)
+						return field.Invalid(srcPath.Child("ports").Index(k), port, err.Error())
 					}
 				}
 			}
-			for _, dst := range rule.Match.Destination {
+			for j, dst := range rule.Match.Destination {
+				dstPath := rulePath.Child("match", "dst").Index(j)
 				if dst.CIDR != "" && dst.VPCSubnet != "" {
-					return fmt.Errorf("at most one of cidr and vpcSubnet can be specified in destination match for rule %d%s", i, ruleBlob) //nolint:err113
+					return field.Invalid(dstPath, field.OmitValueType{}, "at most one of cidr and vpcSubnet can be specified")
 				}
 				if dst.CIDR != "" {
 					if _, err := netip.ParsePrefix(dst.CIDR); err != nil {
-						return fmt.Errorf("invalid destination CIDR %q in ACL rule %d%s: %w", dst.CIDR, i, ruleBlob, err)
+						return field.Invalid(dstPath.Child("cidr"), dst.CIDR, err.Error())
 					}
 				}
-				for _, port := range dst.Ports {
+				for k, port := range dst.Ports {
 					if err := validatePort(port); err != nil {
-						return fmt.Errorf("invalid destination port %q in ACL rule %d%s: %w", port, i, ruleBlob, err)
+						return field.Invalid(dstPath.Child("ports").Index(k), port, err.Error())
 					}
 				}
 			}
 			if !slices.Contains(ACLMatchProtocols, rule.Match.Protocol) {
 				if _, err := strconv.Atoi(string(rule.Match.Protocol)); err != nil {
-					return fmt.Errorf("invalid protocol %q in ACL rule %d%s: %w", rule.Match.Protocol, i, ruleBlob, err)
+					return field.Invalid(rulePath.Child("match", "proto"), rule.Match.Protocol, fmt.Sprintf("must be one of %q or a protocol number", ACLMatchProtocols))
 				}
 			}
 			// "6" is the protocol number for TCP
 			if rule.Match.TCPFilters != nil && rule.Match.Protocol != ACLMatchProtocolTCP && rule.Match.Protocol != "6" {
-				return fmt.Errorf("TCP filters require protocol %q in ACL rule %d%s", ACLMatchProtocolTCP, i, ruleBlob) //nolint:err113
+				return field.Forbidden(rulePath.Child("match", "tcpFilters"), fmt.Sprintf("TCP filters require protocol %q", ACLMatchProtocolTCP))
 			}
 		}
 	}
@@ -542,7 +551,7 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 		gwGroup := &GatewayGroup{}
 		if err := kube.Get(ctx, kclient.ObjectKey{Name: p.Spec.GatewayGroup, Namespace: p.Namespace}, gwGroup); err != nil {
 			if kapierrors.IsNotFound(err) {
-				return fmt.Errorf("gateway group %s not found", p.Spec.GatewayGroup) //nolint:err113
+				return field.NotFound(spec.Child("gatewayGroup"), p.Spec.GatewayGroup)
 			}
 
 			return fmt.Errorf("failed to get gateway group %s: %w", p.Spec.GatewayGroup, err)
@@ -550,14 +559,14 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 
 		peeringFabric := p.Spec.Topology.Fabric
 		if groupFabric := gwGroup.Spec.Topology.Fabric; groupFabric != peeringFabric {
-			return fmt.Errorf("peering is in fabric %s but gateway group %s is in fabric %s", peeringFabric, p.Spec.GatewayGroup, groupFabric) //nolint:err113
+			return field.Invalid(spec.Child("gatewayGroup"), p.Spec.GatewayGroup, fmt.Sprintf("peering is in fabric %s but the gateway group is in fabric %s", peeringFabric, groupFabric))
 		}
 		// the gateways handling the peering are reachable only from leaves in their domain
 		groupDomain := gwGroup.Spec.Topology.Domain
 		// a stored gateway group the refresh on fabric-ctrl initialization had to leave alone may have none, and an
 		// external without one too would then look like it's in the same domain
 		if groupDomain == "" {
-			return fmt.Errorf("gateway group %s has no domain", p.Spec.GatewayGroup) //nolint:err113
+			return field.Invalid(spec.Child("gatewayGroup"), p.Spec.GatewayGroup, "gateway group has no domain")
 		}
 
 		if fabricCfg != nil && fabricCfg.ExtraValidators.Peering != nil {
@@ -569,23 +578,24 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 		peeringVPCs := make(map[string]*v1beta1.VPC, len(p.Spec.Peering))
 		// check that the exposed CIDRs actually belong to the VPCs the peering is for
 		for vpcName, peering := range p.Spec.Peering {
+			entryPath := spec.Child("peering").Key(vpcName)
 			// A GatewayPeering could be with an external too; in this case, the name will start with
 			// the VPCInfoExtPrefix prefix (currently "ext.")
 			if extName, isExt := strings.CutPrefix(vpcName, v1beta1.VPCInfoExtPrefix); isExt {
 				var external v1beta1.External
 				if err := kube.Get(ctx, ktypes.NamespacedName{Name: extName, Namespace: kmetav1.NamespaceDefault}, &external); err != nil {
 					if kapierrors.IsNotFound(err) {
-						return fmt.Errorf("external %s not found", extName) //nolint:err113
+						return field.Invalid(entryPath, field.OmitValueType{}, fmt.Sprintf("external %s not found", extName))
 					}
 
 					return fmt.Errorf("failed to get External %s: %w", extName, err)
 				}
 
 				if extFabric := external.Spec.Topology.Fabric; extFabric != peeringFabric {
-					return fmt.Errorf("peering is in fabric %s but external %s is in fabric %s", peeringFabric, extName, extFabric) //nolint:err113
+					return field.Invalid(entryPath, field.OmitValueType{}, fmt.Sprintf("peering is in fabric %s but external %s is in fabric %s", peeringFabric, extName, extFabric))
 				}
 				if extDomain := external.Spec.Topology.Domain; extDomain != groupDomain {
-					return fmt.Errorf("gateway group %s is in domain %s but external %s is in domain %s", p.Spec.GatewayGroup, groupDomain, extName, extDomain) //nolint:err113
+					return field.Invalid(entryPath, field.OmitValueType{}, fmt.Sprintf("gateway group %s is in domain %s but external %s is in domain %s", p.Spec.GatewayGroup, groupDomain, extName, extDomain))
 				}
 
 				// checking whether the prefix is part of the external is possible only if the external
@@ -596,16 +606,16 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 			var vpc v1beta1.VPC
 			if err := kube.Get(ctx, ktypes.NamespacedName{Name: vpcName, Namespace: kmetav1.NamespaceDefault}, &vpc); err != nil {
 				if kapierrors.IsNotFound(err) {
-					return fmt.Errorf("VPC %s not found", vpcName) //nolint:err113
+					return field.Invalid(entryPath, field.OmitValueType{}, fmt.Sprintf("VPC %s not found", vpcName))
 				}
 
 				return fmt.Errorf("failed to get VPC %s: %w", vpcName, err)
 			}
 			if vpcFabric := vpc.Spec.Topology.Fabric; vpcFabric != peeringFabric {
-				return fmt.Errorf("peering is in fabric %s but vpc %s is in fabric %s", peeringFabric, vpcName, vpcFabric) //nolint:err113
+				return field.Invalid(entryPath, field.OmitValueType{}, fmt.Sprintf("peering is in fabric %s but vpc %s is in fabric %s", peeringFabric, vpcName, vpcFabric))
 			}
 			if vpcDomains := vpc.Spec.Topology.Domains; !slices.Contains(vpcDomains, groupDomain) {
-				return fmt.Errorf("gateway group %s is in domain %s but vpc %s is in domains %v", p.Spec.GatewayGroup, groupDomain, vpcName, vpcDomains) //nolint:err113
+				return field.Invalid(entryPath, field.OmitValueType{}, fmt.Sprintf("gateway group %s is in domain %s but vpc %s is in domains %v", p.Spec.GatewayGroup, groupDomain, vpcName, vpcDomains))
 			}
 
 			peeringVPCs[vpcName] = &vpc
@@ -613,11 +623,12 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 			if peering == nil {
 				continue
 			}
-			for _, expose := range peering.Expose {
+			for exposeIdx, expose := range peering.Expose {
 				if expose.DefaultDestination {
 					continue
 				}
-				for _, ip := range expose.IPs {
+				for ipIdx, ip := range expose.IPs {
+					ipPath := entryPath.Child("expose").Index(exposeIdx).Child("ips").Index(ipIdx)
 					if ip.CIDR != "" {
 						exposePrefix, err := netip.ParsePrefix(ip.CIDR)
 						if err != nil {
@@ -636,12 +647,12 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 							}
 						}
 						if !found {
-							return fmt.Errorf("CIDR %s is not part of VPC %s", ip.CIDR, vpcName) //nolint:err113
+							return field.Invalid(ipPath.Child("cidr"), ip.CIDR, "not part of VPC "+vpcName)
 						}
 					}
 					if ip.VPCSubnet != "" {
 						if _, ok := vpc.Spec.Subnets[ip.VPCSubnet]; !ok {
-							return fmt.Errorf("VPC subnet %s referenced in peering expose does not exist in VPC %s", ip.VPCSubnet, vpcName) //nolint:err113
+							return field.NotFound(ipPath.Child("vpcSubnet"), ip.VPCSubnet)
 						}
 					}
 				}
@@ -665,23 +676,26 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 					}
 				}
 
-				for _, src := range rule.Match.Source {
+				matchPath := spec.Child("acl", "rules").Index(i).Child("match")
+				for j, src := range rule.Match.Source {
 					if src.VPCSubnet != "" {
+						srcPath := matchPath.Child("src").Index(j).Child("vpcSubnet")
 						if peeringVPCs[from] == nil {
-							return fmt.Errorf("source VPC subnet %s referenced in ACL rule %d but the corresponding peering entry %q is not a VPC", src.VPCSubnet, i, from) //nolint:err113
+							return field.Invalid(srcPath, src.VPCSubnet, fmt.Sprintf("the corresponding peering entry %q is not a VPC", from))
 						}
 						if _, ok := peeringVPCs[from].Spec.Subnets[src.VPCSubnet]; !ok {
-							return fmt.Errorf("source VPC subnet %s referenced in ACL rule %d does not exist in VPC %s", src.VPCSubnet, i, from) //nolint:err113
+							return field.Invalid(srcPath, src.VPCSubnet, "does not exist in VPC "+from)
 						}
 					}
 				}
-				for _, dst := range rule.Match.Destination {
+				for j, dst := range rule.Match.Destination {
 					if dst.VPCSubnet != "" {
+						dstPath := matchPath.Child("dst").Index(j).Child("vpcSubnet")
 						if peeringVPCs[to] == nil {
-							return fmt.Errorf("destination VPC subnet %s referenced in ACL rule %d but the corresponding peering entry %q is not a VPC", dst.VPCSubnet, i, to) //nolint:err113
+							return field.Invalid(dstPath, dst.VPCSubnet, fmt.Sprintf("the corresponding peering entry %q is not a VPC", to))
 						}
 						if _, ok := peeringVPCs[to].Spec.Subnets[dst.VPCSubnet]; !ok {
-							return fmt.Errorf("destination VPC subnet %s referenced in ACL rule %d does not exist in VPC %s", dst.VPCSubnet, i, to) //nolint:err113
+							return field.Invalid(dstPath, dst.VPCSubnet, "does not exist in VPC "+to)
 						}
 					}
 				}
