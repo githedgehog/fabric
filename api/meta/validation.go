@@ -15,17 +15,12 @@
 package meta
 
 import (
-	"fmt"
 	"strings"
 
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
-)
-
-var (
-	ErrInvalidName      = fmt.Errorf("invalid resource name")
-	ErrInvalidNamespace = fmt.Errorf("invalid resource namespace")
 )
 
 // MaxNameLength caps object names, and the names of other objects referenced by them, below the 63 characters
@@ -43,27 +38,27 @@ func IsValidName(name string) bool {
 	return len(name) <= MaxNameLength && len(kvalidation.IsDNS1123Subdomain(name)) == 0
 }
 
-// ValidateName checks the name of an object, or of another object it refers to, what describes it in the error.
+// ValidateName checks the name of an object, or of another object it refers to, at the given path.
 // Object names are lowercase RFC 1123 subdomains, the same as Kubernetes requires, which are valid label values
 // and label key names as long as they fit the length.
-func ValidateName(what, name string) error {
+func ValidateName(path *field.Path, name string) error {
 	if errs := kvalidation.IsDNS1123Subdomain(name); len(errs) > 0 {
-		return fmt.Errorf("%w: %s %q: %s", ErrInvalidName, what, name, strings.Join(errs, ", "))
+		return field.Invalid(path, name, strings.Join(errs, ", "))
 	}
 	if len(name) > MaxNameLength {
-		return fmt.Errorf("%w: %s %s is too long, must be <= %d characters", ErrInvalidName, what, name, MaxNameLength)
+		return field.TooLong(path, name, MaxNameLength)
 	}
 
 	return nil
 }
 
 func ValidateObjectMetadata(obj kclient.Object) error {
-	if err := ValidateName("name", obj.GetName()); err != nil {
+	if err := ValidateName(field.NewPath("metadata", "name"), obj.GetName()); err != nil {
 		return err
 	}
 
 	if obj.GetNamespace() != kmetav1.NamespaceDefault {
-		return fmt.Errorf("%w: only default namespace is currently supported", ErrInvalidNamespace)
+		return field.NotSupported(field.NewPath("metadata", "namespace"), obj.GetNamespace(), []string{kmetav1.NamespaceDefault})
 	}
 
 	return nil

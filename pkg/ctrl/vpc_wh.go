@@ -18,11 +18,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	kctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -43,10 +43,14 @@ func SetupVPCWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, lock *Lock) 
 		Cfg:        cfg,
 	}
 
-	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr, &vpcapi.VPC{}).
+	if err := kctrl.NewWebhookManagedBy(mgr, &vpcapi.VPC{}).
 		WithDefaulter(w).
 		WithValidator(newLockedValidator[*vpcapi.VPC](w, lock)).
-		Complete(), "failed to setup vpc webhook")
+		Complete(); err != nil {
+		return fmt.Errorf("failed to setup vpc webhook: %w", err)
+	}
+
+	return nil
 }
 
 // +kubebuilder:webhook:path=/mutate-vpc-githedgehog-com-v1beta1-vpc,mutating=true,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=vpcs,verbs=create;update,versions=v1beta1,name=mvpc.kb.io,admissionReviewVersions=v1
@@ -63,7 +67,7 @@ func (w *VPCWebhook) Default(_ context.Context, vpc *vpcapi.VPC) error {
 func (w *VPCWebhook) ValidateCreate(ctx context.Context, vpc *vpcapi.VPC) (admission.Warnings, error) {
 	warns, err := vpc.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
-		return warns, errors.Wrapf(err, "failed to validate vpc")
+		return warns, fmt.Errorf("failed to validate vpc: %w", err)
 	}
 
 	return warns, nil
@@ -71,16 +75,16 @@ func (w *VPCWebhook) ValidateCreate(ctx context.Context, vpc *vpcapi.VPC) (admis
 
 func (w *VPCWebhook) ValidateUpdate(ctx context.Context, oldVPC *vpcapi.VPC, newVPC *vpcapi.VPC) (admission.Warnings, error) {
 	if fabricChanged(oldVPC.Spec.Topology.Fabric, newVPC.Spec.Topology.Fabric) {
-		return nil, fmt.Errorf("topology.fabric is immutable") //nolint:err113
+		return nil, field.Invalid(field.NewPath("spec", "topology", "fabric"), newVPC.Spec.Topology.Fabric, "field is immutable")
 	}
 	// so that a VPC update never has to re-check its attachments
 	if domainsChanged(oldVPC.Spec.Topology.Domains, newVPC.Spec.Topology.Domains) {
-		return nil, fmt.Errorf("topology.domains is immutable") //nolint:err113
+		return nil, field.Invalid(field.NewPath("spec", "topology", "domains"), newVPC.Spec.Topology.Domains, "field is immutable")
 	}
 
 	warns, err := newVPC.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
-		return warns, errors.Wrapf(err, "failed to validate vpc")
+		return warns, fmt.Errorf("failed to validate vpc: %w", err)
 	}
 
 	// TODO check that you can only add subnets, or edit/remove unused ones
@@ -104,40 +108,40 @@ func (w *VPCWebhook) ValidateDelete(ctx context.Context, vpc *vpcapi.VPC) (admis
 	if err := w.Client.List(ctx, vpcAttachments, kclient.MatchingLabels{
 		vpcapi.LabelVPC: vpc.Name,
 	}); err != nil {
-		return nil, errors.Wrapf(err, "error listing vpc attachments") // TODO hide internal error
+		return nil, fmt.Errorf("error listing vpc attachments: %w", err) // TODO hide internal error
 	}
 	if len(vpcAttachments.Items) > 0 {
-		return nil, errors.Errorf("VPC has attachments")
+		return nil, fmt.Errorf("VPC has attachments") //nolint:err113
 	}
 
 	vpcPeerings := &vpcapi.VPCPeeringList{}
 	if err := w.Client.List(ctx, vpcPeerings, kclient.MatchingLabels{
 		vpcapi.ListLabelVPC(vpc.Name): vpcapi.ListLabelValue,
 	}); err != nil {
-		return nil, errors.Wrapf(err, "error listing vpc peerings") // TODO hide internal error
+		return nil, fmt.Errorf("error listing vpc peerings: %w", err) // TODO hide internal error
 	}
 	if len(vpcPeerings.Items) > 0 {
-		return nil, errors.Errorf("VPC has peerings")
+		return nil, fmt.Errorf("VPC has peerings") //nolint:err113
 	}
 
 	extPeerings := &vpcapi.ExternalPeeringList{}
 	if err := w.Client.List(ctx, extPeerings, kclient.MatchingLabels{
 		vpcapi.LabelVPC: vpc.Name,
 	}); err != nil {
-		return nil, errors.Wrapf(err, "error listing external peerings") // TODO hide internal error
+		return nil, fmt.Errorf("error listing external peerings: %w", err) // TODO hide internal error
 	}
 	if len(extPeerings.Items) > 0 {
-		return nil, errors.Errorf("VPC has external peerings")
+		return nil, fmt.Errorf("VPC has external peerings") //nolint:err113
 	}
 
 	staticExts := &wiringapi.ConnectionList{}
 	if err := w.Client.List(ctx, staticExts, kclient.MatchingLabels{
 		wiringapi.LabelVPC: vpc.Name,
 	}); err != nil {
-		return nil, errors.Wrapf(err, "error listing connections") // TODO hide internal error
+		return nil, fmt.Errorf("error listing connections: %w", err) // TODO hide internal error
 	}
 	if len(staticExts.Items) > 0 {
-		return nil, errors.Errorf("VPC has static external connections (using withingVPC option)")
+		return nil, fmt.Errorf("VPC has static external connections (using withingVPC option)") //nolint:err113
 	}
 
 	return nil, nil
