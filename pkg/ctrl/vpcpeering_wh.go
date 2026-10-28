@@ -18,10 +18,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	kctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -42,10 +42,14 @@ func SetupVPCPeeringWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, lock 
 		Cfg:        cfg,
 	}
 
-	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr, &vpcapi.VPCPeering{}).
+	if err := kctrl.NewWebhookManagedBy(mgr, &vpcapi.VPCPeering{}).
 		WithDefaulter(w).
 		WithValidator(newLockedValidator[*vpcapi.VPCPeering](w, lock)).
-		Complete(), "failed to setup vpc peering webhook")
+		Complete(); err != nil {
+		return fmt.Errorf("failed to setup vpc peering webhook: %w", err)
+	}
+
+	return nil
 }
 
 // +kubebuilder:webhook:path=/mutate-vpc-githedgehog-com-v1beta1-vpcpeering,mutating=true,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=vpcpeerings,verbs=create;update,versions=v1beta1,name=mvpcpeering.kb.io,admissionReviewVersions=v1
@@ -62,7 +66,7 @@ func (w *VPCPeeringWebhook) Default(_ context.Context, peer *vpcapi.VPCPeering) 
 func (w *VPCPeeringWebhook) ValidateCreate(ctx context.Context, peer *vpcapi.VPCPeering) (admission.Warnings, error) {
 	warns, err := peer.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
-		return warns, errors.Wrapf(err, "failed to validate vpc peering")
+		return warns, fmt.Errorf("failed to validate vpc peering: %w", err)
 	}
 
 	return warns, nil
@@ -70,7 +74,7 @@ func (w *VPCPeeringWebhook) ValidateCreate(ctx context.Context, peer *vpcapi.VPC
 
 func (w *VPCPeeringWebhook) ValidateUpdate(ctx context.Context, oldPeer *vpcapi.VPCPeering, newPeer *vpcapi.VPCPeering) (admission.Warnings, error) {
 	if fabricChanged(oldPeer.Spec.Topology.Fabric, newPeer.Spec.Topology.Fabric) {
-		return nil, fmt.Errorf("topology.fabric is immutable") //nolint:err113
+		return nil, field.Invalid(field.NewPath("spec", "topology", "fabric"), newPeer.Spec.Topology.Fabric, "field is immutable")
 	}
 
 	// if !equality.Semantic.DeepEqual(oldPeer.Spec.Permit, newPeer.Spec.Permit) {
@@ -79,7 +83,7 @@ func (w *VPCPeeringWebhook) ValidateUpdate(ctx context.Context, oldPeer *vpcapi.
 
 	warns, err := newPeer.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
-		return warns, errors.Wrapf(err, "failed to validate vpc peering")
+		return warns, fmt.Errorf("failed to validate vpc peering: %w", err)
 	}
 
 	return warns, nil

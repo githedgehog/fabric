@@ -18,10 +18,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	kctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -42,10 +42,14 @@ func SetupExternalWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, lock *L
 		Cfg:        cfg,
 	}
 
-	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr, &vpcapi.External{}).
+	if err := kctrl.NewWebhookManagedBy(mgr, &vpcapi.External{}).
 		WithDefaulter(w).
 		WithValidator(newLockedValidator[*vpcapi.External](w, lock)).
-		Complete(), "failed to setup external webhook")
+		Complete(); err != nil {
+		return fmt.Errorf("failed to setup external webhook: %w", err)
+	}
+
+	return nil
 }
 
 // +kubebuilder:webhook:path=/mutate-vpc-githedgehog-com-v1beta1-external,mutating=true,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=externals,verbs=create;update,versions=v1beta1,name=mexternal.kb.io,admissionReviewVersions=v1
@@ -62,7 +66,7 @@ func (w *ExternalWebhook) Default(_ context.Context, ext *vpcapi.External) error
 func (w *ExternalWebhook) ValidateCreate(ctx context.Context, ext *vpcapi.External) (admission.Warnings, error) {
 	warns, err := ext.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
-		return warns, errors.Wrapf(err, "error validating external")
+		return warns, fmt.Errorf("error validating external: %w", err)
 	}
 
 	return warns, nil
@@ -70,11 +74,11 @@ func (w *ExternalWebhook) ValidateCreate(ctx context.Context, ext *vpcapi.Extern
 
 func (w *ExternalWebhook) ValidateUpdate(ctx context.Context, oldExt *vpcapi.External, newExt *vpcapi.External) (admission.Warnings, error) {
 	if fabricChanged(oldExt.Spec.Topology.Fabric, newExt.Spec.Topology.Fabric) {
-		return nil, fmt.Errorf("topology.fabric is immutable") //nolint:err113
+		return nil, field.Invalid(field.NewPath("spec", "topology", "fabric"), newExt.Spec.Topology.Fabric, "field is immutable")
 	}
 	// so that an External update never has to re-check its attachments
 	if domainChanged(oldExt.Spec.Topology.Domain, newExt.Spec.Topology.Domain) {
-		return nil, fmt.Errorf("topology.domain is immutable") //nolint:err113
+		return nil, field.Invalid(field.NewPath("spec", "topology", "domain"), newExt.Spec.Topology.Domain, "field is immutable")
 	}
 
 	// if !equality.Semantic.DeepEqual(oldExt.Spec, newExt.Spec) {
@@ -83,7 +87,7 @@ func (w *ExternalWebhook) ValidateUpdate(ctx context.Context, oldExt *vpcapi.Ext
 
 	warns, err := newExt.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
-		return warns, errors.Wrapf(err, "error validating external")
+		return warns, fmt.Errorf("error validating external: %w", err)
 	}
 
 	// static attachments install one route per spec.static.prefixes, so dropping the prefixes
@@ -93,11 +97,11 @@ func (w *ExternalWebhook) ValidateUpdate(ctx context.Context, oldExt *vpcapi.Ext
 		if err := w.Client.List(ctx, extAttachments, kclient.MatchingLabels{
 			vpcapi.LabelExternal: newExt.Name,
 		}); err != nil {
-			return warns, errors.Wrapf(err, "error listing external attachments") // TODO hide internal error
+			return warns, fmt.Errorf("error listing external attachments: %w", err) // TODO hide internal error
 		}
 		for _, attach := range extAttachments.Items {
 			if attach.Spec.Static != nil {
-				return warns, errors.Errorf("external attachment %s is still static, convert it to BGP before removing static from the external", attach.Name)
+				return warns, field.Forbidden(field.NewPath("spec", "static"), fmt.Sprintf("external attachment %s is still static, convert it to BGP before removing static from the external", attach.Name))
 			}
 		}
 	}
@@ -110,20 +114,20 @@ func (w *ExternalWebhook) ValidateDelete(ctx context.Context, ext *vpcapi.Extern
 	if err := w.Client.List(ctx, extAttachments, kclient.MatchingLabels{
 		vpcapi.LabelExternal: ext.Name,
 	}); err != nil {
-		return nil, errors.Wrapf(err, "error listing external attachments") // TODO hide internal error
+		return nil, fmt.Errorf("error listing external attachments: %w", err) // TODO hide internal error
 	}
 	if len(extAttachments.Items) > 0 {
-		return nil, errors.Errorf("external has attachments")
+		return nil, fmt.Errorf("external has attachments") //nolint:err113
 	}
 
 	extPeerings := &vpcapi.ExternalPeeringList{}
 	if err := w.Client.List(ctx, extPeerings, kclient.MatchingLabels{
 		vpcapi.LabelExternal: ext.Name,
 	}); err != nil {
-		return nil, errors.Wrapf(err, "error listing external peerings") // TODO hide internal error
+		return nil, fmt.Errorf("error listing external peerings: %w", err) // TODO hide internal error
 	}
 	if len(extPeerings.Items) > 0 {
-		return nil, errors.Errorf("external has peerings")
+		return nil, fmt.Errorf("external has peerings") //nolint:err113
 	}
 
 	return nil, nil
