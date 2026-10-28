@@ -11,8 +11,10 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	"go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	"go.githedgehog.com/fabric/pkg/util/testutil"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -476,7 +478,7 @@ func TestExternalAttachmentValidation(t *testing.T) {
 				Build()
 			warns, err := test.extAtt.Validate(t.Context(), kube, cfg)
 			if test.err {
-				require.Error(t, err, "expected error but got none")
+				testutil.RequireFieldError(t, err, test.extAtt)
 			} else {
 				require.NoError(t, err, "unexpected error during validation")
 			}
@@ -751,9 +753,9 @@ func TestExternalAttachmentInboundACLValidation(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			_, err := test.extAtt.Spec.InboundACL.Validate()
+			_, err := test.extAtt.Spec.InboundACL.Validate(field.NewPath("spec", "inboundACL"))
 			if test.err {
-				require.Error(t, err)
+				testutil.RequireFieldError(t, err, test.extAtt)
 			} else {
 				require.NoError(t, err)
 			}

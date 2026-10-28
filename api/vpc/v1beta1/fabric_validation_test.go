@@ -10,6 +10,7 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	"go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	"go.githedgehog.com/fabric/pkg/util/testutil"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -147,6 +148,7 @@ func TestFabricMismatchValidation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := tt.obj.Validate(t.Context(), kube, &meta.FabricConfig{})
 			require.ErrorContains(t, err, "is in fabric other")
+			testutil.RequireFieldError(t, err, tt.obj)
 		})
 	}
 }
@@ -221,6 +223,7 @@ func TestFabricMustExistValidation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := tt.obj.Validate(t.Context(), kube, &meta.FabricConfig{})
 			require.ErrorContains(t, err, "fabric nope not found")
+			testutil.RequireFieldError(t, err, tt.obj)
 		})
 	}
 }

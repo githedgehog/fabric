@@ -19,13 +19,13 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ktypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -122,7 +122,7 @@ func (s *VPCPeeringSpec) VPCs() (string, string, error) {
 	vpcs := []string{}
 	for idx, permit := range s.Permit {
 		if len(permit) != 2 {
-			return "", "", errors.Errorf("each permit policy must have exactly 2 VPCs (idx %d)", idx)
+			return "", "", field.Invalid(field.NewPath("spec", "permit").Index(idx), field.OmitValueType{}, "must have exactly 2 VPCs")
 		}
 
 		for vpc := range permit {
@@ -133,7 +133,7 @@ func (s *VPCPeeringSpec) VPCs() (string, string, error) {
 	}
 
 	if len(vpcs) != 2 {
-		return "", "", errors.Errorf("VPCPeering must have exactly 2 VPCs")
+		return "", "", field.Invalid(field.NewPath("spec", "permit"), field.OmitValueType{}, "VPCPeering must have exactly 2 VPCs")
 	}
 
 	slices.Sort(vpcs)
@@ -169,30 +169,26 @@ func (peering *VPCPeering) Default() {
 
 func (peering *VPCPeering) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(peering); err != nil {
-		return nil, errors.Wrapf(err, "failed to validate metadata")
+		return nil, err //nolint:wrapcheck
 	}
 
+	spec := field.NewPath("spec")
+
 	if err := wiringapi.CheckFabricExists(ctx, kube, peering.Namespace, peering.Spec.Topology.Fabric); err != nil {
-		return nil, fmt.Errorf("failed to validate fabric: %w", err)
+		return nil, field.Invalid(spec.Child("topology", "fabric"), peering.Spec.Topology.Fabric, err.Error())
 	}
 
 	if fabricCfg != nil && fabricCfg.VPCPeeringDisabled {
-		return nil, errors.Errorf("vpc peering is not allowed")
+		return nil, field.Forbidden(spec, "vpc peering is not allowed")
 	}
 
 	if peering.Spec.Remote != "" {
-		return nil, errors.Errorf("remote field is deprecated and no longer supported")
+		return nil, field.Forbidden(spec.Child("remote"), "deprecated and no longer supported")
 	}
 
 	vpc1Name, vpc2Name, err := peering.Spec.VPCs()
 	if err != nil {
 		return nil, err
-	}
-
-	for idx, permit := range peering.Spec.Permit {
-		if len(permit) != 2 {
-			return nil, errors.Errorf("permit must have exactly 2 VPCs (idx %d)", idx)
-		}
 	}
 
 	if kube != nil {
@@ -210,14 +206,14 @@ func (peering *VPCPeering) Validate(ctx context.Context, kube kclient.Reader, fa
 			err := kube.Get(ctx, ktypes.NamespacedName{Name: vpcName, Namespace: peering.Namespace}, vpc)
 			if err != nil {
 				if kapierrors.IsNotFound(err) {
-					return nil, errors.Errorf("vpc %s not found", vpcName)
+					return nil, field.NotFound(spec.Child("permit"), vpcName)
 				}
 
-				return nil, errors.Wrapf(err, "failed to list VPCs") // TODO replace with some internal error to not expose to the user
+				return nil, fmt.Errorf("failed to list VPCs: %w", err) // TODO replace with some internal error to not expose to the user
 			}
 
 			if vpcFabric := vpc.Spec.Topology.Fabric; vpcFabric != peeringFabric {
-				return nil, fmt.Errorf("peering is in fabric %s but vpc %s is in fabric %s", peeringFabric, vpcName, vpcFabric) //nolint:err113
+				return nil, field.Invalid(spec.Child("permit"), vpcName, fmt.Sprintf("peering is in fabric %s but the vpc is in fabric %s", peeringFabric, vpcFabric))
 			}
 
 			ipv4Namespaces = append(ipv4Namespaces, vpc.Spec.IPv4Namespace)
@@ -225,57 +221,57 @@ func (peering *VPCPeering) Validate(ctx context.Context, kube kclient.Reader, fa
 		}
 
 		if len(ipv4Namespaces) != 2 {
-			return nil, errors.Errorf("failed to find IPv4 namespaces for VPCs")
+			return nil, fmt.Errorf("failed to find IPv4 namespaces for VPCs") //nolint:err113
 		}
 		if ipv4Namespaces[0] != ipv4Namespaces[1] {
-			return nil, errors.Errorf("VPCs must be in the same IPv4 namespace")
+			return nil, field.Invalid(spec.Child("permit"), field.OmitValueType{}, "VPCs must be in the same IPv4 namespace")
 		}
 
 		if len(vlanNamespaces) != 2 {
-			return nil, errors.Errorf("failed to find VLAN namespaces for VPCs")
+			return nil, fmt.Errorf("failed to find VLAN namespaces for VPCs") //nolint:err113
 		}
 		if vlanNamespaces[0] != vlanNamespaces[1] {
-			return nil, errors.Errorf("VPCs must be in the same VLAN namespace")
+			return nil, field.Invalid(spec.Child("permit"), field.OmitValueType{}, "VPCs must be in the same VLAN namespace")
 		}
 
 		vpc1 := &VPC{}
 		err = kube.Get(ctx, ktypes.NamespacedName{Name: vpc1Name, Namespace: peering.Namespace}, vpc1)
 		if err != nil {
 			if kapierrors.IsNotFound(err) {
-				return nil, errors.Errorf("VPC %s not found", vpc1Name)
+				return nil, field.NotFound(spec.Child("permit"), vpc1Name)
 			}
 
-			return nil, errors.Wrapf(err, "failed to get VPC %s", vpc1Name) // TODO replace with some internal error to not expose to the user
+			return nil, fmt.Errorf("failed to get VPC %s: %w", vpc1Name, err) // TODO replace with some internal error to not expose to the user
 		}
 
 		vpc2 := &VPC{}
 		err = kube.Get(ctx, ktypes.NamespacedName{Name: vpc2Name, Namespace: peering.Namespace}, vpc2)
 		if err != nil {
 			if kapierrors.IsNotFound(err) {
-				return nil, errors.Errorf("VPC %s not found", vpc2Name)
+				return nil, field.NotFound(spec.Child("permit"), vpc2Name)
 			}
 
-			return nil, errors.Wrapf(err, "failed to get VPC %s", vpc2Name) // TODO replace with some internal error to not expose to the user
+			return nil, fmt.Errorf("failed to get VPC %s: %w", vpc2Name, err) // TODO replace with some internal error to not expose to the user
 		}
 
 		// VPCs with no domain in common could only reach each other through a leaf shared by their domains
 		vpc1Domains, vpc2Domains := vpc1.Spec.Topology.Domains, vpc2.Spec.Topology.Domains
 		if !slices.ContainsFunc(vpc1Domains, func(domain string) bool { return slices.Contains(vpc2Domains, domain) }) {
-			return nil, fmt.Errorf("vpc %s is in domains %v and vpc %s in domains %v, they must share one", vpc1Name, vpc1Domains, vpc2Name, vpc2Domains) //nolint:err113
+			return nil, field.Invalid(spec.Child("permit"), field.OmitValueType{}, fmt.Sprintf("vpc %s is in domains %v and vpc %s in domains %v, they must share one", vpc1Name, vpc1Domains, vpc2Name, vpc2Domains))
 		}
 
-		for _, permit := range peering.Spec.Permit {
+		for idx, permit := range peering.Spec.Permit {
 			for vpcName, vpcPeer := range permit {
 				vpc := vpc1
 				if vpcName == vpc2Name {
 					vpc = vpc2
 				} else if vpcName != vpc1Name {
-					return nil, errors.Errorf("unexpected VPC %s in permit", vpcName)
+					return nil, field.Invalid(spec.Child("permit").Index(idx), vpcName, "unexpected VPC")
 				}
 
 				for _, subnet := range vpcPeer.Subnets {
 					if vpc.Spec.Subnets == nil || vpc.Spec.Subnets[subnet] == nil {
-						return nil, errors.Errorf("subnet %s not found in VPC %s", subnet, vpcName)
+						return nil, field.NotFound(spec.Child("permit").Index(idx).Key(vpcName).Child("subnets"), subnet)
 					}
 				}
 			}

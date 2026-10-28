@@ -20,13 +20,13 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ktypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -164,23 +164,26 @@ func (peering *ExternalPeering) Default() {
 
 func (peering *ExternalPeering) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(peering); err != nil {
-		return nil, errors.Wrapf(err, "failed to validate metadata")
+		return nil, err //nolint:wrapcheck
 	}
 
+	spec := field.NewPath("spec")
+	vpcPath, extPath := spec.Child("permit", "vpc"), spec.Child("permit", "external")
+
 	if err := wiringapi.CheckFabricExists(ctx, kube, peering.Namespace, peering.Spec.Topology.Fabric); err != nil {
-		return nil, fmt.Errorf("failed to validate fabric: %w", err)
+		return nil, field.Invalid(spec.Child("topology", "fabric"), peering.Spec.Topology.Fabric, err.Error())
 	}
 
 	if peering.Spec.Permit.VPC.Name == "" {
-		return nil, errors.Errorf("vpc.name is required")
+		return nil, field.Required(vpcPath.Child("name"), "")
 	}
 	if peering.Spec.Permit.External.Name == "" {
-		return nil, errors.Errorf("external.name is required")
+		return nil, field.Required(extPath.Child("name"), "")
 	}
 
-	for _, permit := range peering.Spec.Permit.External.Prefixes {
+	for idx, permit := range peering.Spec.Permit.External.Prefixes {
 		if permit.Prefix == "" {
-			return nil, errors.Errorf("external.prefixes.prefix is required")
+			return nil, field.Required(extPath.Child("prefixes").Index(idx).Child("prefix"), "")
 		}
 	}
 
@@ -194,39 +197,39 @@ func (peering *ExternalPeering) Validate(ctx context.Context, kube kclient.Reade
 		vpc := &VPC{}
 		if err := kube.Get(ctx, ktypes.NamespacedName{Name: peering.Spec.Permit.VPC.Name, Namespace: peering.Namespace}, vpc); err != nil {
 			if kapierrors.IsNotFound(err) {
-				return nil, errors.Errorf("vpc %s not found", peering.Spec.Permit.VPC.Name)
+				return nil, field.NotFound(vpcPath.Child("name"), peering.Spec.Permit.VPC.Name)
 			}
 
-			return nil, errors.Wrapf(err, "failed to read vpc %s", peering.Spec.Permit.VPC.Name) // TODO replace with some internal error to not expose to the user
+			return nil, fmt.Errorf("failed to read vpc %s: %w", peering.Spec.Permit.VPC.Name, err) // TODO replace with some internal error to not expose to the user
 		}
 
 		ext := &External{}
 		if err := kube.Get(ctx, ktypes.NamespacedName{Name: peering.Spec.Permit.External.Name, Namespace: peering.Namespace}, ext); err != nil {
 			if kapierrors.IsNotFound(err) {
-				return nil, errors.Errorf("external %s not found", peering.Spec.Permit.External.Name)
+				return nil, field.NotFound(extPath.Child("name"), peering.Spec.Permit.External.Name)
 			}
 
-			return nil, errors.Wrapf(err, "failed to read external %s", peering.Spec.Permit.External.Name) // TODO replace with some internal error to not expose to the user
+			return nil, fmt.Errorf("failed to read external %s: %w", peering.Spec.Permit.External.Name, err) // TODO replace with some internal error to not expose to the user
 		}
 
 		peeringFabric := peering.Spec.Topology.Fabric
 		if vpcFabric := vpc.Spec.Topology.Fabric; vpcFabric != peeringFabric {
-			return nil, fmt.Errorf("peering is in fabric %s but vpc %s is in fabric %s", peeringFabric, peering.Spec.Permit.VPC.Name, vpcFabric) //nolint:err113
+			return nil, field.Invalid(vpcPath.Child("name"), peering.Spec.Permit.VPC.Name, fmt.Sprintf("peering is in fabric %s but the vpc is in fabric %s", peeringFabric, vpcFabric))
 		}
 		if extFabric := ext.Spec.Topology.Fabric; extFabric != peeringFabric {
-			return nil, fmt.Errorf("peering is in fabric %s but external %s is in fabric %s", peeringFabric, peering.Spec.Permit.External.Name, extFabric) //nolint:err113
+			return nil, field.Invalid(extPath.Child("name"), peering.Spec.Permit.External.Name, fmt.Sprintf("peering is in fabric %s but the external is in fabric %s", peeringFabric, extFabric))
 		}
 		if extDomain, vpcDomains := ext.Spec.Topology.Domain, vpc.Spec.Topology.Domains; !slices.Contains(vpcDomains, extDomain) {
-			return nil, fmt.Errorf("external %s is in domain %s but vpc %s is in domains %v", peering.Spec.Permit.External.Name, extDomain, peering.Spec.Permit.VPC.Name, vpcDomains) //nolint:err113
+			return nil, field.Invalid(extPath.Child("name"), peering.Spec.Permit.External.Name, fmt.Sprintf("external %s is in domain %s but vpc %s is in domains %v", peering.Spec.Permit.External.Name, extDomain, peering.Spec.Permit.VPC.Name, vpcDomains))
 		}
 
 		if vpc.Spec.IPv4Namespace != ext.Spec.IPv4Namespace {
-			return nil, errors.Errorf("vpc's IPv4 namespace %s is different from the external's IPv4 namespace %s", vpc.Spec.IPv4Namespace, ext.Spec.IPv4Namespace)
+			return nil, field.Invalid(extPath.Child("name"), peering.Spec.Permit.External.Name, fmt.Sprintf("vpc's IPv4 namespace %s is different from the external's IPv4 namespace %s", vpc.Spec.IPv4Namespace, ext.Spec.IPv4Namespace))
 		}
 
-		for _, subnet := range peering.Spec.Permit.VPC.Subnets {
+		for idx, subnet := range peering.Spec.Permit.VPC.Subnets {
 			if _, exists := vpc.Spec.Subnets[subnet]; !exists {
-				return nil, errors.Errorf("vpc %s does not have subnet %s", peering.Spec.Permit.VPC.Name, subnet)
+				return nil, field.NotFound(vpcPath.Child("subnets").Index(idx), subnet)
 			}
 		}
 	}

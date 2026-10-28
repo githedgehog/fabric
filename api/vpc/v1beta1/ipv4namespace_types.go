@@ -21,12 +21,12 @@ import (
 	"net/netip"
 	"slices"
 
-	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/iputil"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -132,22 +132,24 @@ func (ns *IPv4Namespace) Default() {
 
 func (ns *IPv4Namespace) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(ns); err != nil {
-		return nil, errors.Wrapf(err, "failed to validate metadata")
+		return nil, err //nolint:wrapcheck
 	}
 
+	spec := field.NewPath("spec")
+
 	if err := wiringapi.CheckFabricExists(ctx, kube, ns.Namespace, ns.Spec.Topology.Fabric); err != nil {
-		return nil, fmt.Errorf("failed to validate fabric: %w", err)
+		return nil, field.Invalid(spec.Child("topology", "fabric"), ns.Spec.Topology.Fabric, err.Error())
 	}
 
 	if len(ns.Name) > 11 {
-		return nil, errors.Errorf("name %s is too long, must be <= 11 characters", ns.Name)
+		return nil, field.TooLong(field.NewPath("metadata", "name"), ns.Name, 11)
 	}
 
 	subnets := []netip.Prefix{}
-	for _, subnet := range ns.Spec.Subnets {
+	for idx, subnet := range ns.Spec.Subnets {
 		prefix, err := netip.ParsePrefix(subnet)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to parse cidr %s", subnet)
+			return nil, field.Invalid(spec.Child("subnets").Index(idx), subnet, err.Error())
 		}
 
 		subnets = append(subnets, prefix.Masked())
@@ -157,18 +159,24 @@ func (ns *IPv4Namespace) Validate(ctx context.Context, kube kclient.Reader, fabr
 	// to prevent traffic local to it from being peered via the external.
 	// ACLs are limited so let's err on the side of caution
 	if len(subnets) > MaxIPv4NamespaceSubnets {
-		return nil, errors.Errorf("too many subnets defined (%d), maximum is %d", len(subnets), MaxIPv4NamespaceSubnets)
+		return nil, field.TooMany(spec.Child("subnets"), len(subnets), MaxIPv4NamespaceSubnets)
 	}
 
 	if err := iputil.VerifyNoOverlapNetip(subnets); err != nil {
-		return nil, errors.Wrapf(err, "subnets overlap")
+		return nil, field.Invalid(spec.Child("subnets"), field.OmitValueType{}, err.Error())
 	}
 
 	if fabricCfg != nil {
-		subnets = append(subnets, fabricCfg.ParsedReservedSubnets()...)
+		for idx, subnet := range subnets {
+			for _, reserved := range fabricCfg.ParsedReservedSubnets() {
+				if subnet.Overlaps(reserved) {
+					return nil, field.Invalid(spec.Child("subnets").Index(idx), ns.Spec.Subnets[idx], "overlaps with reserved subnet "+reserved.String())
+				}
+			}
+		}
 	}
 
-	return nil, errors.Wrapf(iputil.VerifyNoOverlapNetip(subnets), "subnets overlap with reserved subnets")
+	return nil, nil
 }
 
 // CheckOutside checks that none of the prefixes is inside a subnet of the namespace, as an External drops the routes

@@ -22,13 +22,13 @@ import (
 	"regexp"
 	"slices"
 
-	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ktypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -187,34 +187,37 @@ func (external *External) Default() {
 func (external *External) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
 	var warns admission.Warnings
 	if err := meta.ValidateObjectMetadata(external); err != nil {
-		return nil, errors.Wrapf(err, "failed to validate metadata")
+		return nil, err //nolint:wrapcheck
 	}
 
+	spec := field.NewPath("spec")
+	inboundPrefixesPath := spec.Child("inboundPrefixes")
+
 	if err := wiringapi.CheckFabricExists(ctx, kube, external.Namespace, external.Spec.Topology.Fabric); err != nil {
-		return nil, fmt.Errorf("failed to validate fabric: %w", err)
+		return nil, field.Invalid(spec.Child("topology", "fabric"), external.Spec.Topology.Fabric, err.Error())
 	}
 	if external.Spec.Topology.Domain == "" {
-		return nil, fmt.Errorf("topology.domain is required") //nolint:err113
+		return nil, field.Required(spec.Child("topology", "domain"), "")
 	}
 
 	if len(external.Name) > 11 {
-		return nil, errors.Errorf("name %s is too long, must be <= 11 characters", external.Name)
+		return nil, field.TooLong(field.NewPath("metadata", "name"), external.Name, 11)
 	}
 	if external.Spec.IPv4Namespace == "" {
-		return nil, errors.Errorf("IPv4Namespace is required")
+		return nil, field.Required(spec.Child("ipv4Namespace"), "")
 	}
 
 	if external.Spec.Static == nil {
 		if external.Spec.InboundCommunity != "" && !communityCheck.MatchString(external.Spec.InboundCommunity) {
-			return nil, errors.Errorf("inboundCommunity %s is not a valid community, example 65102:5000", external.Spec.InboundCommunity)
+			return nil, field.Invalid(spec.Child("inboundCommunity"), external.Spec.InboundCommunity, "not a valid community, example 65102:5000")
 		}
 		// the inbound community stays on the routes, which would then pass as a gateway's: preferred like one, and
 		// advertised to the other externals
 		if fabricCfg != nil && external.Spec.InboundCommunity != "" && slices.Contains(slices.Collect(maps.Values(fabricCfg.GatewayCommunities)), external.Spec.InboundCommunity) {
-			return nil, fmt.Errorf("inboundCommunity %s is one of the fabric's gateway communities", external.Spec.InboundCommunity) //nolint:err113
+			return nil, field.Invalid(spec.Child("inboundCommunity"), external.Spec.InboundCommunity, "one of the fabric's gateway communities")
 		}
 		if external.Spec.OutboundCommunity != "" && !communityCheck.MatchString(external.Spec.OutboundCommunity) {
-			return nil, errors.Errorf("outboundCommunity %s is not a valid community, example 50000:50001", external.Spec.OutboundCommunity)
+			return nil, field.Invalid(spec.Child("outboundCommunity"), external.Spec.OutboundCommunity, "not a valid community, example 50000:50001")
 		}
 	} else {
 		// While static prefixes are present the external may also have BGP attachments, and a
@@ -224,28 +227,28 @@ func (external *External) Validate(ctx context.Context, kube kclient.Reader, fab
 		// ext-inbound--<ext> is also the EVPN advertise policy, so the static route would never be
 		// re-originated as a type-5, and the same applies to the leak into a VPC VRF.
 		if external.Spec.InboundCommunity != "" || external.Spec.OutboundCommunity != "" {
-			return nil, errors.Errorf("inboundCommunity and outboundCommunity must be empty when static configuration is present")
+			return nil, field.Forbidden(spec, "inboundCommunity and outboundCommunity must be empty when static configuration is present")
 		}
 
 		if len(external.Spec.InboundPrefixes) > 0 {
-			return nil, fmt.Errorf("inboundPrefixes must be empty when static configuration is present") //nolint:err113
+			return nil, field.Forbidden(inboundPrefixesPath, "inboundPrefixes must be empty when static configuration is present")
 		}
 
 		if len(external.Spec.Static.Prefixes) == 0 {
-			return nil, errors.Errorf("at least one prefix must be specified for static externals")
+			return nil, field.Required(spec.Child("static", "prefixes"), "at least one prefix must be specified for static externals")
 		}
 		prefixes := []netip.Prefix{}
-		for _, p := range external.Spec.Static.Prefixes {
+		for idx, p := range external.Spec.Static.Prefixes {
 			parsed, err := netip.ParsePrefix(p)
 			if err != nil {
-				return nil, fmt.Errorf("invalid prefix %s in static external configuration: %w", p, err)
+				return nil, field.Invalid(spec.Child("static", "prefixes").Index(idx), p, err.Error())
 			}
 			prefixes = append(prefixes, parsed)
 		}
 		for i := range prefixes {
 			for j := i + 1; j < len(prefixes); j++ {
 				if prefixes[i].Overlaps(prefixes[j]) {
-					return nil, fmt.Errorf("static prefixes %s and %s overlap with each other", prefixes[i].String(), prefixes[j].String()) //nolint:err113
+					return nil, field.Invalid(spec.Child("static", "prefixes").Index(j), external.Spec.Static.Prefixes[j], "overlaps with prefix "+prefixes[i].String())
 				}
 			}
 		}
@@ -254,19 +257,19 @@ func (external *External) Validate(ctx context.Context, kube kclient.Reader, fab
 	for prefixStr, lens := range external.Spec.InboundPrefixes {
 		prefix, err := netip.ParsePrefix(prefixStr)
 		if err != nil {
-			return nil, fmt.Errorf("invalid inbound prefix %s: %w", prefixStr, err)
+			return nil, field.Invalid(inboundPrefixesPath, prefixStr, "invalid inbound prefix: "+err.Error())
 		}
 		if !prefix.Addr().Is4() {
-			return nil, fmt.Errorf("inbound prefix %s is not IPv4", prefixStr) //nolint:err113
+			return nil, field.Invalid(inboundPrefixesPath, prefixStr, "is not IPv4")
 		}
 		if prefix.Masked() != prefix {
-			return nil, fmt.Errorf("inbound prefix %s has host bits set", prefixStr) //nolint:err113
+			return nil, field.Invalid(inboundPrefixesPath, prefixStr, "has host bits set")
 		}
 		if lens.MinPrefixLen != 0 && (int(lens.MinPrefixLen) < prefix.Bits() || lens.MinPrefixLen > 32) {
-			return nil, fmt.Errorf("inbound prefix %s: minPrefixLen %d is not between %d and 32", prefixStr, lens.MinPrefixLen, prefix.Bits()) //nolint:err113
+			return nil, field.Invalid(inboundPrefixesPath.Key(prefixStr).Child("minPrefixLen"), lens.MinPrefixLen, fmt.Sprintf("not between %d and 32", prefix.Bits()))
 		}
 		if minLen, maxLen := lens.PrefixLens(prefix); maxLen < minLen || maxLen > 32 {
-			return nil, fmt.Errorf("inbound prefix %s: maxPrefixLen %d is not between %d and 32", prefixStr, lens.MaxPrefixLen, minLen) //nolint:err113
+			return nil, field.Invalid(inboundPrefixesPath.Key(prefixStr).Child("maxPrefixLen"), lens.MaxPrefixLen, fmt.Sprintf("not between %d and 32", minLen))
 		}
 	}
 
@@ -275,19 +278,19 @@ func (external *External) Validate(ctx context.Context, kube kclient.Reader, fab
 		err := kube.Get(ctx, ktypes.NamespacedName{Name: external.Spec.IPv4Namespace, Namespace: external.Namespace}, ipNs)
 		if err != nil {
 			if kapierrors.IsNotFound(err) {
-				return nil, errors.Errorf("IPv4Namespace %s not found", external.Spec.IPv4Namespace)
+				return nil, field.NotFound(spec.Child("ipv4Namespace"), external.Spec.IPv4Namespace)
 			}
 
-			return nil, errors.Wrapf(err, "failed to get IPv4Namespace %s", external.Spec.IPv4Namespace) // TODO replace with some internal error to not expose to the user
+			return nil, fmt.Errorf("failed to get IPv4Namespace %s: %w", external.Spec.IPv4Namespace, err) // TODO replace with some internal error to not expose to the user
 		}
 
 		extFabric := external.Spec.Topology.Fabric
 		if nsFabric := ipNs.Spec.Topology.Fabric; nsFabric != extFabric {
-			return nil, fmt.Errorf("external is in fabric %s but its IPv4Namespace %s is in fabric %s", extFabric, ipNs.Name, nsFabric) //nolint:err113
+			return nil, field.Invalid(spec.Child("ipv4Namespace"), external.Spec.IPv4Namespace, fmt.Sprintf("external is in fabric %s but the IPv4Namespace is in fabric %s", extFabric, nsFabric))
 		}
 
 		if err := ipNs.CheckOutside("inbound prefix", slices.Sorted(maps.Keys(external.Spec.InboundPrefixes))); err != nil {
-			return nil, err
+			return nil, field.Invalid(inboundPrefixesPath, field.OmitValueType{}, err.Error())
 		}
 
 		fabric, err := wiringapi.GetFabricSpec(ctx, kube, external.Namespace, external.Spec.Topology.Fabric)
@@ -296,12 +299,12 @@ func (external *External) Validate(ctx context.Context, kube kclient.Reader, fab
 		}
 		domain := external.Spec.Topology.Domain
 		if _, exists := fabric.Domains[domain]; !exists {
-			return nil, fmt.Errorf("domain %s not found in fabric %s, topology.domain must name one of its domains", domain, extFabric) //nolint:err113
+			return nil, field.Invalid(spec.Child("topology", "domain"), domain, fmt.Sprintf("domain %s not found in fabric %s", domain, extFabric))
 		}
 
 		if localASN := external.Spec.LocalASN; localASN != 0 {
 			if what := asnCollision(fabric, localASN); what != "" {
-				return nil, fmt.Errorf("localASN %d is %s of its own fabric", localASN, what) //nolint:err113
+				return nil, field.Invalid(spec.Child("localASN"), localASN, fmt.Sprintf("is %s of its own fabric", what))
 			}
 
 			attaches := &ExternalAttachmentList{}
@@ -314,10 +317,10 @@ func (external *External) Validate(ctx context.Context, kube kclient.Reader, fab
 				}
 				// see ExternalAttachment.Validate, a neighbor ASN is required with a localASN
 				if attach.Spec.Neighbor.ASN == 0 {
-					return nil, fmt.Errorf("localASN requires a neighbor ASN, external attachment %s has none", attach.Name) //nolint:err113
+					return nil, field.Invalid(spec.Child("localASN"), localASN, fmt.Sprintf("requires a neighbor ASN, external attachment %s has none", attach.Name))
 				}
 				if attach.Spec.Neighbor.ASN == localASN {
-					return nil, fmt.Errorf("localASN %d is the neighbor ASN of external attachment %s", localASN, attach.Name) //nolint:err113
+					return nil, field.Invalid(spec.Child("localASN"), localASN, "the neighbor ASN of external attachment "+attach.Name)
 				}
 			}
 

@@ -10,6 +10,7 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	"go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	"go.githedgehog.com/fabric/pkg/util/testutil"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -208,7 +209,7 @@ func TestExternalPeeringValidation(t *testing.T) {
 
 			_, err := test.peering.Validate(t.Context(), kube, &meta.FabricConfig{})
 			if test.err {
-				require.Error(t, err, "expected error but got none")
+				testutil.RequireFieldError(t, err, test.peering)
 			} else {
 				require.NoError(t, err, "unexpected error during validation")
 			}
