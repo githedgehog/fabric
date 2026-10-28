@@ -260,6 +260,10 @@ linters:
         - all
         # TODO enable quickfix checks (new in v2): 84 issues, QF1008 x40, QF1012 x32, QF1003 x6, QF1001 x6
         - -QF*
+    wrapcheck:
+      # validation returns field errors as is, so the webhooks can report the field path
+      ignore-package-globs:
+        - k8s.io/apimachinery/pkg/util/validation/field
 
   exclusions:
     # v1 default, v2 defaults to strict

@@ -4,11 +4,13 @@
 package meta
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	kvalidation "k8s.io/apimachinery/pkg/util/validation"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
 func TestValidateName(t *testing.T) {
@@ -27,10 +29,12 @@ func TestValidateName(t *testing.T) {
 		{name: "a/b"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			err := ValidateName("name", tt.name)
+			err := ValidateName(field.NewPath("metadata", "name"), tt.name)
 			require.Equal(t, tt.valid, IsValidName(tt.name))
 			if !tt.valid {
-				require.ErrorIs(t, err, ErrInvalidName)
+				fieldErr, ok := errors.AsType[*field.Error](err)
+				require.True(t, ok, "expected a field error, got %v", err)
+				require.Equal(t, "metadata.name", fieldErr.Field)
 
 				return
 			}

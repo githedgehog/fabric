@@ -11,6 +11,7 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	"go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	"go.githedgehog.com/fabric/pkg/util/testutil"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -157,6 +158,7 @@ func TestVPCDomains(t *testing.T) {
 			_, err := vpc.Validate(t.Context(), kube, &meta.FabricConfig{})
 			if tt.err != "" {
 				require.ErrorContains(t, err, tt.err)
+				testutil.RequireFieldError(t, err, vpc)
 
 				return
 			}
@@ -257,10 +259,10 @@ func TestPeeringDomains(t *testing.T) {
 		err      string
 	}{
 		{name: "dhcp relay vpc sharing a domain", validate: relayVPC("plane-1", "storage")},
-		{name: "dhcp relay vpc in another ipv4 namespace", validate: relayVPC("plane-1", "other-ipv4ns"), err: "subnet default: vpc is in IPv4 namespace default but dhcp relay vpc other-ipv4ns is in ipv4ns-2"},
-		{name: "dhcp relay vpc in another vlan namespace", validate: relayVPC("plane-1", "other-vlanns"), err: "subnet default: vpc is in VLAN namespace default but dhcp relay vpc other-vlanns is in vlanns-2"},
-		{name: "dhcp relay vpc sharing no domain", validate: relayVPC("plane-1", "plane-2"), err: "subnet default: vpc is in domains [plane-1] and dhcp relay vpc plane-2 in domains [plane-2], they must share one"},
-		{name: "dhcp relay vpc in another fabric", validate: relayVPC("plane-1", "other-fabric"), err: "subnet default: vpc is in fabric default but dhcp relay vpc other-fabric is in fabric backend"},
+		{name: "dhcp relay vpc in another ipv4 namespace", validate: relayVPC("plane-1", "other-ipv4ns"), err: `spec.subnets[default].dhcp.relayVPC: Invalid value: "other-ipv4ns": vpc is in IPv4 namespace default but the relay vpc is in ipv4ns-2`},
+		{name: "dhcp relay vpc in another vlan namespace", validate: relayVPC("plane-1", "other-vlanns"), err: `spec.subnets[default].dhcp.relayVPC: Invalid value: "other-vlanns": vpc is in VLAN namespace default but the relay vpc is in vlanns-2`},
+		{name: "dhcp relay vpc sharing no domain", validate: relayVPC("plane-1", "plane-2"), err: `spec.subnets[default].dhcp.relayVPC: Invalid value: "plane-2": vpc is in domains [plane-1] and the relay vpc in domains [plane-2], they must share one`},
+		{name: "dhcp relay vpc in another fabric", validate: relayVPC("plane-1", "other-fabric"), err: `spec.subnets[default].dhcp.relayVPC: Invalid value: "other-fabric": vpc is in fabric default but the relay vpc is in fabric backend`},
 		{name: "vpc peering sharing one domain", validate: vpcPeering("plane-1", "storage")},
 		{name: "vpc peering sharing the other domain", validate: vpcPeering("storage", "plane-2")},
 		{name: "vpc peering sharing no domain", validate: vpcPeering("plane-1", "plane-2"), err: "vpc plane-1 is in domains [plane-1] and vpc plane-2 in domains [plane-2], they must share one"},

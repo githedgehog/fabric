@@ -69,7 +69,7 @@ func TestFabricValidation(t *testing.T) {
 			fabric: fabricGen("backend", 64101, 64200, map[string]wiringapi.FabricDomainSpec{"Plane_A": {SpineASN: 64100, GatewayASN: 64201}}),
 		},
 		{
-			name: "long name", err: "too long",
+			name: "long name", err: "metadata.name: Too long",
 			fabric: fabricGen(strings.Repeat("f", 64), 64101, 64200, domain(64100, 64201)),
 		},
 		{
