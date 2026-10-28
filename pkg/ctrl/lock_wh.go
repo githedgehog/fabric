@@ -5,10 +5,13 @@ package ctrl
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -48,7 +51,9 @@ func (v *lockedValidator[T]) ValidateCreate(ctx context.Context, obj T) (admissi
 		return nil, err
 	}
 
-	return v.inner.ValidateCreate(ctx, obj) //nolint:wrapcheck
+	warns, err := v.inner.ValidateCreate(ctx, obj)
+
+	return warns, invalidError(ctx, err)
 }
 
 func (v *lockedValidator[T]) ValidateUpdate(ctx context.Context, oldObj, newObj T) (admission.Warnings, error) {
@@ -56,7 +61,9 @@ func (v *lockedValidator[T]) ValidateUpdate(ctx context.Context, oldObj, newObj 
 		return nil, err
 	}
 
-	return v.inner.ValidateUpdate(ctx, oldObj, newObj) //nolint:wrapcheck
+	warns, err := v.inner.ValidateUpdate(ctx, oldObj, newObj)
+
+	return warns, invalidError(ctx, err)
 }
 
 func (v *lockedValidator[T]) ValidateDelete(ctx context.Context, obj T) (admission.Warnings, error) {
@@ -65,4 +72,30 @@ func (v *lockedValidator[T]) ValidateDelete(ctx context.Context, obj T) (admissi
 	}
 
 	return v.inner.ValidateDelete(ctx, obj) //nolint:wrapcheck
+}
+
+// invalidError turns a create or update validation error into a 422 Invalid, pointing at spec unless it's already a
+// field error. controller-runtime returns a 403 for plain errors, on which kubectl edit (and so k9s) gives up instead
+// of reopening the editor with the error.
+func invalidError(ctx context.Context, err error) error {
+	if err == nil {
+		return nil
+	}
+
+	req, reqErr := admission.RequestFromContext(ctx)
+	if reqErr != nil {
+		return err
+	}
+	gk := schema.GroupKind{Group: req.Kind.Group, Kind: req.Kind.Kind}
+
+	if fieldErr, ok := errors.AsType[*field.Error](err); ok {
+		return kapierrors.NewInvalid(gk, req.Name, field.ErrorList{fieldErr}) //nolint:wrapcheck // API status error returned to the client as is
+	}
+
+	var apiStatus kapierrors.APIStatus
+	if errors.As(err, &apiStatus) {
+		return err
+	}
+
+	return kapierrors.NewInvalid(gk, req.Name, field.ErrorList{field.Invalid(field.NewPath("spec"), field.OmitValueType{}, err.Error())}) //nolint:wrapcheck // API status error returned to the client as is
 }
