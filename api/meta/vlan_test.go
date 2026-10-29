@@ -101,6 +101,17 @@ func TestNormalizedVLANRanges(t *testing.T) {
 				{From: 700, To: 700},
 			},
 		},
+		{
+			name: "overlaps-contained",
+			in: []VLANRange{
+				{From: 1100, To: 1200},
+				{From: 1000, To: 2000},
+				{From: 1500},
+			},
+			out: []VLANRange{
+				{From: 1000, To: 2000},
+			},
+		},
 	}
 
 	for _, tt := range tests {
