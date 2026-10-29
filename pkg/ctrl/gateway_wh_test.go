@@ -29,6 +29,7 @@ func TestGatewayDeleteGuard(t *testing.T) {
 			}},
 		}},
 	}
+	gwConn.Default()
 
 	for _, tt := range []struct {
 		name    string

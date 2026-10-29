@@ -110,7 +110,9 @@ func (w *GatewayWebhook) ValidateUpdate(ctx context.Context, oldGw *gwapi.Gatewa
 // recreating a cabled gateway in another domain would otherwise bypass the connection checks
 func (w *GatewayWebhook) ValidateDelete(ctx context.Context, gw *gwapi.Gateway) (admission.Warnings, error) {
 	conns := &wiringapi.ConnectionList{}
-	if err := w.List(ctx, conns, kclient.InNamespace(gw.Namespace)); err != nil {
+	if err := w.List(ctx, conns, kclient.InNamespace(gw.Namespace), kclient.MatchingLabels{
+		wiringapi.LabelConnectionType: wiringapi.ConnectionTypeGateway,
+	}); err != nil {
 		return nil, fmt.Errorf("listing connections: %w", err)
 	}
 	for _, conn := range conns.Items {
