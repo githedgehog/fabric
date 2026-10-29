@@ -349,18 +349,29 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 }
 
 func swp(in string) string {
-	// support breakout parsing
-	if portStr, ok := strings.CutPrefix(in, "E1/"); ok {
-		port, err := strconv.ParseUint(portStr, 10, 16)
-		if err != nil {
-			slog.Warn("invalid ParseUint", "portStr", portStr)
-			return "port-invalid-uint"
-		}
+	portStr, ok := strings.CutPrefix(in, "E1/")
+	if !ok {
+		return "port-invalid-prefix"
+	}
 
+	portStr, breakoutStr, isBreakout := strings.Cut(portStr, "/")
+	port, err := strconv.ParseUint(portStr, 10, 16)
+	if err != nil {
+		slog.Warn("invalid port", "in", in)
+		return "port-invalid-uint"
+	}
+	if !isBreakout {
 		return fmt.Sprintf("swp%d", port)
 	}
 
-	return "port-invalid-prefix"
+	breakout, err := strconv.ParseUint(breakoutStr, 10, 16)
+	if err != nil {
+		slog.Warn("invalid breakout", "in", in)
+		return "port-invalid-uint"
+	}
+
+	// our breakouts are 1-indexed (E1/1/1), cumulus is 0-indexed (swp1s0)
+	return fmt.Sprintf("swp%ds%d", port, breakout-1)
 }
 
 //go:embed ztp_script.tmpl.sh
