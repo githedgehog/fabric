@@ -133,6 +133,29 @@ func TestExternalPeeringValidation(t *testing.T) {
 			err:     true,
 		},
 		{
+			name: "external prefix is not a prefix",
+			peering: extPeeringGen("ext-peer-05", func(peering *v1beta1.ExternalPeering) {
+				peering.Spec.Permit.External.Prefixes = []v1beta1.ExternalPeeringSpecPrefix{
+					{Prefix: "10.10.0.1"},
+				}
+			}),
+			objects: baseObjs,
+			err:     true,
+		},
+		{
+			// defaulting sorts the prefixes, so the error can't point at the index the user wrote
+			name: "external prefix out of order is not a prefix",
+			peering: extPeeringGen("ext-peer-05", func(peering *v1beta1.ExternalPeering) {
+				peering.Spec.Permit.External.Prefixes = []v1beta1.ExternalPeeringSpecPrefix{
+					{Prefix: "10.10.0.1"},
+					{Prefix: "0.0.0.0/0"},
+				}
+			}),
+			objects: baseObjs,
+			err:     true,
+			errMsg:  `spec.permit.external.prefixes: Invalid value: "10.10.0.1"`,
+		},
+		{
 			name: "vpc does not exist",
 			peering: extPeeringGen("ext-peer-06", func(peering *v1beta1.ExternalPeering) {
 				peering.Spec.Permit.VPC.Name = "vpc-456"

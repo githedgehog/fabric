@@ -17,6 +17,7 @@ package v1beta1
 import (
 	"context"
 	"fmt"
+	"net/netip"
 	"slices"
 	"strings"
 
@@ -187,6 +188,9 @@ func (peering *ExternalPeering) Validate(ctx context.Context, kube kclient.Reade
 	for _, permit := range peering.Spec.Permit.External.Prefixes {
 		if permit.Prefix == "" {
 			return nil, field.Required(prefixPath, "")
+		}
+		if _, err := netip.ParsePrefix(permit.Prefix); err != nil {
+			return nil, field.Invalid(prefixPath, permit.Prefix, err.Error())
 		}
 	}
 
