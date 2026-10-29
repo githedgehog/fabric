@@ -130,6 +130,16 @@ func TestExternalPeeringValidation(t *testing.T) {
 			err:     true,
 		},
 		{
+			name: "external prefix is not a prefix",
+			peering: extPeeringGen("ext-peer-05", func(peering *v1beta1.ExternalPeering) {
+				peering.Spec.Permit.External.Prefixes = []v1beta1.ExternalPeeringSpecPrefix{
+					{Prefix: "10.10.0.1"},
+				}
+			}),
+			objects: baseObjs,
+			err:     true,
+		},
+		{
 			name: "vpc does not exist",
 			peering: extPeeringGen("ext-peer-06", func(peering *v1beta1.ExternalPeering) {
 				peering.Spec.Permit.VPC.Name = "vpc-456"

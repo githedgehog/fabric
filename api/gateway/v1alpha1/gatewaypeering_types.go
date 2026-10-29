@@ -293,6 +293,10 @@ func (p *GatewayPeering) Default() {
 
 	p.Labels[wiringapi.ListLabelFabric(p.Spec.Topology.Fabric)] = ListLabelValue
 
+	if p.Spec.GatewayGroup == "" {
+		p.Spec.GatewayGroup = DefaultGatewayGroup
+	}
+
 	vpcs := slices.Sorted(maps.Keys(p.Spec.Peering))
 	if len(vpcs) != 2 {
 		return
@@ -337,10 +341,6 @@ func (p *GatewayPeering) Default() {
 		p.Annotations[LabelNAT] = strings.Join(slices.Compact(nats), ",")
 	} else {
 		delete(p.Annotations, LabelNAT)
-	}
-
-	if p.Spec.GatewayGroup == "" {
-		p.Spec.GatewayGroup = DefaultGatewayGroup
 	}
 
 	if acl := p.Spec.ACL; acl != nil {

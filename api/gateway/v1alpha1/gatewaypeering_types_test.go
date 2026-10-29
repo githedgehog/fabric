@@ -28,6 +28,7 @@ func TestPeeringDefaultEmpty(t *testing.T) {
 	}
 	ref.Annotations = map[string]string{}
 	ref.Spec.Topology.Fabric = wiringapi.DefaultFabric
+	ref.Spec.GatewayGroup = DefaultGatewayGroup
 
 	peering := &GatewayPeering{}
 	peering.Default()

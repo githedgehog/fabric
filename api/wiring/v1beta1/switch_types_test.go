@@ -670,6 +670,13 @@ func TestSwitchDomainsValidation(t *testing.T) {
 			name: "boot MAC in another format",
 			sw:   swGen(func(sw *wiringapi.Switch) { sw.Spec.Boot.MAC = "0C-20-12-FE-01-00" }),
 		},
+		{
+			name: "speed of a port in a group", err: `spec.portSpeeds[E1/1]: Invalid value: "10G": port is in port group 1, set the speed in portGroupSpeeds`,
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Spec.Profile = switchprofile.DellS5248FON.Name
+				sw.Spec.PortSpeeds = map[string]string{"E1/1": "10G"}
+			}),
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := &meta.FabricConfig{

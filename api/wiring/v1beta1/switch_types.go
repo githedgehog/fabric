@@ -786,6 +786,9 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 			if !exists {
 				return nil, field.Invalid(spec.Child("portSpeeds"), name, "port not found in switch profile")
 			}
+			if port.Group != "" {
+				return nil, field.Invalid(path, speed, fmt.Sprintf("port is in port group %s, set the speed in portGroupSpeeds", port.Group))
+			}
 
 			profile, exists := sp.Spec.PortProfiles[port.Profile]
 			if !exists {
