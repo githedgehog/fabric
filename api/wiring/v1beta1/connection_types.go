@@ -970,9 +970,37 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 			}
 		}
 
-		conns := &ConnectionList{}
-		if err := kube.List(ctx, conns, &kclient.ListOptions{Namespace: conn.Namespace}); err != nil { // TODO namespace could be different?
-			return nil, errors.Wrapf(err, "failed to list connections")
+		// a port can only be used by another connection on the same device, and a gateway port only by another
+		// gateway connection, which are all listed for the fabric IPs below
+		others := map[string]*Connection{}
+		listOthers := func(labels kclient.MatchingLabels) error {
+			conns := &ConnectionList{}
+			if err := kube.List(ctx, conns, kclient.InNamespace(conn.Namespace), labels); err != nil { // TODO namespace could be different?
+				return fmt.Errorf("failed to list connections: %w", err)
+			}
+			for idx := range conns.Items {
+				others[conns.Items[idx].Name] = &conns.Items[idx]
+			}
+
+			return nil
+		}
+		for _, switchName := range switches {
+			if err := listOthers(MatchingLabelsForListLabelSwitch(switchName)); err != nil {
+				return nil, err
+			}
+		}
+		for _, serverName := range servers {
+			if err := listOthers(MatchingLabelsForListLabelServer(serverName)); err != nil {
+				return nil, err
+			}
+		}
+		// fabric IPs are only set on, and checked for, these connection types
+		if conn.Spec.Fabric != nil || conn.Spec.Mesh != nil || conn.Spec.Gateway != nil {
+			for _, connType := range []string{ConnectionTypeFabric, ConnectionTypeMesh, ConnectionTypeGateway} {
+				if err := listOthers(kclient.MatchingLabels{LabelConnectionType: connType}); err != nil {
+					return nil, err
+				}
+			}
 		}
 
 		fabricSubnet, err := netip.ParsePrefix(fabricCfg.FabricSubnet)
@@ -980,7 +1008,8 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 			return nil, errors.Wrapf(err, "failed to parse fabric subnet %s", fabricCfg.FabricSubnet)
 		}
 		fabricIPs := map[netip.Addr]bool{}
-		for _, other := range conns.Items {
+		for _, name := range slices.Sorted(maps.Keys(others)) {
+			other := others[name]
 			if other.Name == conn.Name {
 				continue
 			}
