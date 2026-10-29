@@ -203,6 +203,15 @@ func TestConnectionValidation(t *testing.T) {
 			Subnets:      []string{"10.10.0.0/16"},
 		}}},
 	}})
+	server := withName("server-01", &wiringapi.Server{})
+	unbundledConn := func(name, switchPort, serverPort string) *wiringapi.Connection {
+		return withName(name, &wiringapi.Connection{Spec: wiringapi.ConnectionSpec{
+			Unbundled: &wiringapi.ConnUnbundled{Link: wiringapi.ServerToSwitchLink{
+				Server: wiringapi.NewBasePortName(serverPort),
+				Switch: wiringapi.NewBasePortName(switchPort),
+			}},
+		}})
+	}
 
 	for _, tt := range []struct {
 		name       string
@@ -850,6 +859,32 @@ func TestConnectionValidation(t *testing.T) {
 			}),
 		},
 		{
+			name:       "no-collision-server-ports-on-other-switch",
+			conn:       unbundledConn("unbundled-1", "leaf-01/E1/2", "server-01/enp2s1"),
+			withClient: true,
+			objects:    withObjs(base, server, unbundledConn("unbundled-2", "leaf-02/E1/2", "server-01/enp2s2")),
+		},
+		{
+			// only found by the server's connections, the switches differ
+			name:       "collision-server-port-on-other-switch",
+			conn:       unbundledConn("unbundled-1", "leaf-01/E1/2", "server-01/enp2s1"),
+			withClient: true,
+			objects:    withObjs(base, server, unbundledConn("unbundled-2", "leaf-02/E1/2", "server-01/enp2s1")),
+			err:        true,
+		},
+		{
+			// only found by the gateway connections, the switches differ
+			name:       "collision-gateway-with-gateway-port-on-other-switch",
+			conn:       gwConnGen("gw-1"),
+			withClient: true,
+			objects: withObjs(base, gwConnGen("gw-2", func(conn *wiringapi.Connection) {
+				conn.Spec.Gateway.Links[0].Switch.BasePortName = wiringapi.NewBasePortName("leaf-02/E1/5")
+				conn.Spec.Gateway.Links[0].Gateway.IP = AltIP41
+				conn.Spec.Gateway.Links[0].Switch.IP = AltIP40
+			})),
+			err: true,
+		},
+		{
 			name: "mclag-is-deprecated",
 			conn: withName("mclag-1", &wiringapi.Connection{
 				Spec: wiringapi.ConnectionSpec{
@@ -882,9 +917,18 @@ func TestConnectionValidation(t *testing.T) {
 				require.NoError(t, wiringapi.AddToScheme(scheme))
 				// the default fabric always exists
 				defaultFabric := withName(wiringapi.DefaultFabric, &wiringapi.Fabric{Spec: wiringapi.DefaultFabricSpec(cfg)})
+				objs := withObjs(tt.objects, defaultFabric)
+				for idx, obj := range objs {
+					// stored connections carry the labels they are looked up by
+					if conn, ok := obj.(*wiringapi.Connection); ok {
+						conn = conn.DeepCopy()
+						conn.Default()
+						objs[idx] = conn
+					}
+				}
 				kube = fake.NewClientBuilder().
 					WithScheme(scheme).
-					WithObjects(withObjs(tt.objects, defaultFabric)...).
+					WithObjects(objs...).
 					Build()
 				profiles := switchprofile.NewDefaultSwitchProfiles()
 				require.NoError(t, profiles.RegisterAll(ctx, kube, cfg))
