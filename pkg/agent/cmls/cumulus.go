@@ -351,13 +351,19 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 func swp(in string) string {
 	// support breakout parsing
 	if portStr, ok := strings.CutPrefix(in, "E1/"); ok {
-		port, err := strconv.ParseUint(portStr, 10, 16)
-		if err != nil {
-			slog.Warn("invalid ParseUint", "portStr", portStr)
-			return "port-invalid-uint"
-		}
+		if strings.Count("/", portStr) > 0 {
+			// we have a breakout
+			brkOutString := portStr[strings.Index("/", portStr):]
+			brkOut, ok := strconv.ParseUint(brkOutString, 10, 16)
+		} else {
+			port, err := strconv.ParseUint(portStr, 10, 16)
+			if err != nil {
+				slog.Warn("invalid ParseUint", "portStr", portStr)
+				return "port-invalid-uint"
+			}
 
-		return fmt.Sprintf("swp%d", port)
+			return fmt.Sprintf("swp%d", port)
+		}
 	}
 
 	return "port-invalid-prefix"
