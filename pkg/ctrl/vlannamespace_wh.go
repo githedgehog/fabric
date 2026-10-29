@@ -75,14 +75,14 @@ func (w *VLANNamespaceWebhook) ValidateUpdate(ctx context.Context, _ *wiringapi.
 
 	vpcs := &vpcapi.VPCList{}
 	if err := w.Client.List(ctx, vpcs, kclient.MatchingLabels{
-		vpcapi.LabelIPv4NS: ns.Name,
+		vpcapi.LabelVLANNS: ns.Name,
 	}); err != nil {
 		return nil, errors.Wrapf(err, "error listing vpcs") // TODO hide internal error
 	}
 
 	for _, vpc := range vpcs.Items {
 		for subnetName, subnetCfg := range vpc.Spec.Subnets {
-			if !ns.Spec.Contains(subnetCfg.VLAN) {
+			if !subnetCfg.HostBGP && !ns.Spec.Contains(subnetCfg.VLAN) {
 				return nil, errors.Errorf("existing vpc %s subnet %s (vlan %d) doesn't fit updated VLAN namespace", vpc.Name, subnetName, subnetCfg.VLAN)
 			}
 		}
