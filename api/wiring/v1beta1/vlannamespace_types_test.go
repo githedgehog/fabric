@@ -39,6 +39,12 @@ func vlanNSGen(name string, ranges []meta.VLANRange) *wiringapi.VLANNamespace {
 	})
 }
 
+func TestDefaultNormalizesRanges(t *testing.T) {
+	ns := vlanNSGen("ns-1", []meta.VLANRange{{From: 1100, To: 1200}, {From: 1000, To: 2000}, {From: 10}})
+	ns.Default()
+	require.Equal(t, []meta.VLANRange{{From: 10, To: 10}, {From: 1000, To: 2000}}, ns.Spec.Ranges)
+}
+
 func TestValidate(t *testing.T) {
 	cfg := &meta.FabricConfig{
 		VPCIRBVLANRanges:       []meta.VLANRange{{From: 3000, To: 3199}},

@@ -114,7 +114,7 @@ func (ns *VLANNamespace) Default() {
 
 	maps.Copy(ns.Labels, ns.Spec.Labels())
 
-	if ranges, err := meta.NormalizedVLANRanges(ns.Spec.Ranges); err != nil {
+	if ranges, err := meta.NormalizedVLANRanges(ns.Spec.Ranges); err == nil {
 		ns.Spec.Ranges = ranges
 	}
 }
