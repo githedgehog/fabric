@@ -57,7 +57,7 @@ func NormalizedVLANRanges(ranges []VLANRange) ([]VLANRange, error) {
 	res := []VLANRange{ranges[0]}
 	for idx := 1; idx < len(ranges); idx++ {
 		if res[len(res)-1].To >= ranges[idx].From {
-			res[len(res)-1].To = ranges[idx].To
+			res[len(res)-1].To = max(res[len(res)-1].To, ranges[idx].To)
 		} else {
 			res = append(res, ranges[idx])
 		}
