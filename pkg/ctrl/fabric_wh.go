@@ -153,8 +153,8 @@ func (w *FabricWebhook) ValidateDelete(ctx context.Context, fabric *wiringapi.Fa
 
 	// Deleting a fabric out from under its objects does not just orphan them: every one of these
 	// types checks that its fabric exists, so they would keep working but could never be updated
-	// again. Filtering on the spec and not on the fabric label, which may never have been
-	// backfilled.
+	// again. The fabric label is set on all stored objects by the refresh on fabric-ctrl
+	// initialization, except the ones it reports as rejected or stale.
 	for _, ref := range []struct {
 		kind string
 		list kclient.ObjectList
@@ -174,49 +174,13 @@ func (w *FabricWebhook) ValidateDelete(ctx context.Context, fabric *wiringapi.Fa
 		{"gateway peering", &gwapi.GatewayPeeringList{}},
 		{"VPC info", &gwapi.VPCInfoList{}},
 	} {
-		if err := w.Client.List(ctx, ref.list); err != nil {
+		if err := w.Client.List(ctx, ref.list, kclient.MatchingLabels{
+			wiringapi.ListLabelFabric(fabric.Name): wiringapi.ListLabelValue,
+		}); err != nil {
 			return nil, fmt.Errorf("error listing %ss: %w", ref.kind, err) // TODO hide internal error
 		}
 
 		if err := kmeta.EachListItem(ref.list, func(item runtime.Object) error {
-			var declared string
-			switch o := item.(type) {
-			case *wiringapi.Switch:
-				declared = o.Spec.Topology.Fabric
-			case *wiringapi.SwitchGroup:
-				declared = o.Spec.Topology.Fabric
-			case *wiringapi.Connection:
-				declared = o.Spec.Topology.Fabric
-			case *vpcapi.IPv4Namespace:
-				declared = o.Spec.Topology.Fabric
-			case *vpcapi.VPC:
-				declared = o.Spec.Topology.Fabric
-			case *vpcapi.VPCAttachment:
-				declared = o.Spec.Topology.Fabric
-			case *vpcapi.VPCPeering:
-				declared = o.Spec.Topology.Fabric
-			case *vpcapi.External:
-				declared = o.Spec.Topology.Fabric
-			case *vpcapi.ExternalAttachment:
-				declared = o.Spec.Topology.Fabric
-			case *vpcapi.ExternalPeering:
-				declared = o.Spec.Topology.Fabric
-			case *gwapi.Gateway:
-				declared = o.Spec.Topology.Fabric
-			case *gwapi.GatewayGroup:
-				declared = o.Spec.Topology.Fabric
-			case *gwapi.GatewayPeering:
-				declared = o.Spec.Topology.Fabric
-			case *gwapi.VPCInfo:
-				declared = o.Spec.Topology.Fabric
-			default:
-				return fmt.Errorf("unexpected type %T", item) //nolint:err113
-			}
-
-			if fabricOrDefault(declared) != fabric.Name {
-				return nil
-			}
-
 			obj, ok := item.(kclient.Object)
 			if !ok {
 				return fmt.Errorf("unexpected type %T", item) //nolint:err113

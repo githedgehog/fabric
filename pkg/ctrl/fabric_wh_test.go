@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
+	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -88,7 +89,7 @@ func TestFabricDeleteGuard(t *testing.T) {
 	require.NoError(t, gwapi.AddToScheme(scheme))
 
 	inFabric := func(fabricName string) []kclient.Object {
-		return []kclient.Object{
+		objs := []kclient.Object{
 			&wiringapi.Switch{
 				Name: "leaf-01", Namespace: kmetav1.NamespaceDefault,
 				Spec: wiringapi.SwitchSpec{Topology: wiringapi.SwitchTopology{Fabric: fabricName}},
@@ -106,6 +107,13 @@ func TestFabricDeleteGuard(t *testing.T) {
 				Spec: gwapi.VPCInfoSpec{Topology: gwapi.VPCInfoTopology{Fabric: fabricName}},
 			},
 		}
+		for _, obj := range objs {
+			defaultable, ok := obj.(meta.Defaultable)
+			require.True(t, ok)
+			defaultable.Default()
+		}
+
+		return objs
 	}
 
 	for _, tt := range []struct {
