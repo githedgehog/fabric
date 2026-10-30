@@ -143,12 +143,13 @@ func TestLockedValidatorStatusErrors(t *testing.T) {
 			lock.unlocked.Store(true)
 			v := newLockedValidator[*wiringapi.Server](&failingValidator{err: tt.err}, lock)
 
+			// no name in the request, as for a create with generateName
 			ctx := admission.NewContextWithRequest(t.Context(), admission.Request{
-				Name: "server-1",
 				Kind: kmetav1.GroupVersionKind{Group: "wiring.githedgehog.com", Version: "v1beta1", Kind: "Server"},
 			})
 
 			srv := &wiringapi.Server{}
+			srv.Name = "server-1"
 			_, createErr := v.ValidateCreate(ctx, srv)
 			_, updateErr := v.ValidateUpdate(ctx, srv, srv)
 			_, deleteErr := v.ValidateDelete(ctx, srv)

@@ -9,9 +9,9 @@ import (
 	"fmt"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -19,12 +19,12 @@ import (
 // it's locked. The fabric controller's own writes skip validation then: reconcilers wait while locked, so they're
 // all from the initialization (refreshing stored objects with the current defaults, the default fabric, built-in
 // switch profiles), which has to go through no matter how expensive or how much stricter validation has become.
-type lockedValidator[T runtime.Object] struct {
+type lockedValidator[T kclient.Object] struct {
 	inner admission.Validator[T]
 	lock  *Lock
 }
 
-func newLockedValidator[T runtime.Object](inner admission.Validator[T], lock *Lock) admission.Validator[T] {
+func newLockedValidator[T kclient.Object](inner admission.Validator[T], lock *Lock) admission.Validator[T] {
 	return &lockedValidator[T]{inner: inner, lock: lock}
 }
 
@@ -53,7 +53,7 @@ func (v *lockedValidator[T]) ValidateCreate(ctx context.Context, obj T) (admissi
 
 	warns, err := v.inner.ValidateCreate(ctx, obj)
 
-	return warns, apiStatusError(ctx, err)
+	return warns, apiStatusError(ctx, obj, err)
 }
 
 func (v *lockedValidator[T]) ValidateUpdate(ctx context.Context, oldObj, newObj T) (admission.Warnings, error) {
@@ -63,7 +63,7 @@ func (v *lockedValidator[T]) ValidateUpdate(ctx context.Context, oldObj, newObj 
 
 	warns, err := v.inner.ValidateUpdate(ctx, oldObj, newObj)
 
-	return warns, apiStatusError(ctx, err)
+	return warns, apiStatusError(ctx, newObj, err)
 }
 
 func (v *lockedValidator[T]) ValidateDelete(ctx context.Context, obj T) (admission.Warnings, error) {
@@ -76,8 +76,9 @@ func (v *lockedValidator[T]) ValidateDelete(ctx context.Context, obj T) (admissi
 
 // apiStatusError turns a field error from create or update validation into a 422 Invalid, so that kubectl edit (and
 // so k9s) reopens the editor with it instead of giving up as it does on the 403 controller-runtime returns for other
-// errors. Other errors are returned as they are.
-func apiStatusError(ctx context.Context, err error) error {
+// errors. Other errors are returned as they are. The name comes from the object, as the request has none for a
+// create with generateName.
+func apiStatusError(ctx context.Context, obj kclient.Object, err error) error {
 	fieldErr, ok := errors.AsType[*field.Error](err)
 	if !ok {
 		return err
@@ -88,5 +89,5 @@ func apiStatusError(ctx context.Context, err error) error {
 		return err
 	}
 
-	return kapierrors.NewInvalid(schema.GroupKind{Group: req.Kind.Group, Kind: req.Kind.Kind}, req.Name, field.ErrorList{fieldErr}) //nolint:wrapcheck // API status error returned to the client as is
+	return kapierrors.NewInvalid(schema.GroupKind{Group: req.Kind.Group, Kind: req.Kind.Kind}, obj.GetName(), field.ErrorList{fieldErr}) //nolint:wrapcheck // API status error returned to the client as is
 }
