@@ -56,3 +56,53 @@ func TestVPCSubnetAttachments(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, []string{"attach-2"}, attaches(out))
 }
+
+func TestVPCSubnetPeerings(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, wiringapi.AddToScheme(scheme))
+	require.NoError(t, vpcapi.AddToScheme(scheme))
+
+	// stored peerings are always defaulted, which sets the vpc list labels
+	peeringGen := func(name string, subnets ...string) kclient.Object {
+		peering := &vpcapi.VPCPeering{Spec: vpcapi.VPCPeeringSpec{Permit: []map[string]vpcapi.VPCPeer{{
+			"vpc-1": {Subnets: subnets},
+			name:    {},
+		}}}}
+		peering.Name, peering.Namespace = "vpc-1--"+name, kmetav1.NamespaceDefault
+		peering.Default()
+
+		return peering
+	}
+
+	vpcGen := func(name string) kclient.Object {
+		vpc := &vpcapi.VPC{Spec: vpcapi.VPCSpec{Subnets: map[string]*vpcapi.VPCSubnet{
+			"subnet-1": {Subnet: "10.0.1.0/24"},
+			"subnet-2": {Subnet: "10.0.2.0/24"},
+		}}}
+		vpc.Name, vpc.Namespace = name, kmetav1.NamespaceDefault
+
+		return vpc
+	}
+
+	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+		vpcGen("vpc-1"),
+		vpcGen("vpc-2"),
+		vpcGen("vpc-3"),
+		vpcGen("vpc-4"),
+		peeringGen("vpc-2"),
+		peeringGen("vpc-3", "subnet-1"),
+		peeringGen("vpc-4", "subnet-2"),
+	).Build()
+
+	peerings := func(out *VPCOut) []string {
+		return slices.Sorted(maps.Keys(out.VPCPeerings))
+	}
+
+	out, err := VPC(t.Context(), kube, VPCIn{Name: "vpc-1"})
+	require.NoError(t, err)
+	require.Equal(t, []string{"vpc-1--vpc-2", "vpc-1--vpc-3", "vpc-1--vpc-4"}, peerings(out))
+
+	out, err = VPC(t.Context(), kube, VPCIn{Name: "vpc-1", Subnet: "subnet-2"})
+	require.NoError(t, err)
+	require.Equal(t, []string{"vpc-1--vpc-2", "vpc-1--vpc-4"}, peerings(out))
+}
