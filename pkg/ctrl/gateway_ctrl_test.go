@@ -71,12 +71,13 @@ func gatewayTestKube(t *testing.T, extra ...kclient.Object) kclient.Client {
 		return vpc
 	}
 
-	peering := func(name, fabric, vpc1, vpc2 string) *gwapi.GatewayPeering {
+	peering := func(name, fabric, group, vpc1, vpc2 string) *gwapi.GatewayPeering {
 		p := &gwapi.GatewayPeering{
 			ObjectMeta: objMeta(name),
 			Spec: gwapi.PeeringSpec{
-				Topology: gwapi.GatewayPeeringTopology{Fabric: fabric},
-				Peering:  map[string]*gwapi.PeeringEntry{vpc1: {}, vpc2: {}},
+				Topology:     gwapi.GatewayPeeringTopology{Fabric: fabric},
+				GatewayGroup: group,
+				Peering:      map[string]*gwapi.PeeringEntry{vpc1: {}, vpc2: {}},
 			},
 		}
 		p.Default()
@@ -106,10 +107,12 @@ func gatewayTestKube(t *testing.T, extra ...kclient.Object) kclient.Client {
 		vpcInfo("vpc-4", "", wiringapi.DefaultFabricDomain, "d2"),
 		vpcInfo("vpc-5", "other", wiringapi.DefaultFabricDomain),
 
-		peering("vpc-1--vpc-2", "", "vpc-1", "vpc-2"),
-		peering("vpc-1--vpc-4", "", "vpc-1", "vpc-4"),
-		peering("vpc-3--vpc-4", "", "vpc-3", "vpc-4"),
-		peering("vpc-5--vpc-6", "other", "vpc-5", "vpc-6"),
+		peering("vpc-1--vpc-2", "", "g1", "vpc-1", "vpc-2"),
+		peering("vpc-1--vpc-4", "", "g1", "vpc-1", "vpc-4"),
+		// in the gateways' domain but in a group without any gateway
+		peering("vpc-2--vpc-4", "", "", "vpc-2", "vpc-4"),
+		peering("vpc-3--vpc-4", "", "g2", "vpc-3", "vpc-4"),
+		peering("vpc-5--vpc-6", "other", "g3", "vpc-5", "vpc-6"),
 	}
 
 	return fake.NewClientBuilder().WithScheme(scheme).WithObjects(append(objs, extra...)...).Build()

@@ -401,13 +401,19 @@ func BuildGatewayAgent(ctx context.Context, kube kclient.Reader, cfg *meta.Fabri
 		}
 	}
 
-	// peerings have no domain of their own, only the ones of the VPCs in the gateway's domain are kept below
+	// peerings have no domain of their own, only the ones of the gateway's groups and of the VPCs in the gateway's
+	// domain are kept below
 	peeringList := &gwapi.GatewayPeeringList{}
 	if err := kube.List(ctx, peeringList, inFabric); err != nil {
 		return nil, fmt.Errorf("listing peerings: %w", err)
 	}
 	peerings := map[string]gwintapi.PeeringSpecAnn{}
 	for _, peering := range peeringList.Items {
+		// only the gateways of its group process a peering, the dataplane rejects a peering of a group it doesn't have
+		if !inGwGroups[peering.Spec.GatewayGroup] {
+			continue
+		}
+
 		missingVPC := false
 
 		for peerVPC := range peering.Spec.Peering {
