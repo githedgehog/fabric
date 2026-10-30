@@ -166,20 +166,16 @@ func VPC(ctx context.Context, kube kclient.Reader, in VPCIn) (*VPCOut, error) {
 
 	out.Spec = vpc.Spec
 
+	attachLabels := kclient.MatchingLabels{vpcapi.LabelVPC: name}
+	if subnet != "" {
+		attachLabels[vpcapi.LabelSubnet] = subnet
+	}
 	vpcAttaches := &vpcapi.VPCAttachmentList{}
-	if err := kube.List(ctx, vpcAttaches, kclient.MatchingLabels{
-		vpcapi.LabelVPC: name,
-	}); err != nil {
-		return nil, errors.Wrap(err, "failed to list VPC attachments")
+	if err := kube.List(ctx, vpcAttaches, attachLabels); err != nil {
+		return nil, fmt.Errorf("failed to list VPC attachments: %w", err)
 	}
 
 	for _, vpcAttach := range vpcAttaches.Items {
-		attachSubnet := strings.SplitN(vpcAttach.Spec.Subnet, "/", 2)[1]
-
-		if subnet != "" && attachSubnet != subnet {
-			continue
-		}
-
 		out.VPCAttachments[vpcAttach.Name] = new(vpcAttach.Spec)
 	}
 
