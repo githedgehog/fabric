@@ -1544,8 +1544,14 @@ Examples:
 								Usage:    "MAC address",
 								Required: true,
 							},
-							inspectFabricFlag,
-							inspectDomainFlag,
+							&cli.StringFlag{
+								Name:  "fabric",
+								Usage: "only look for the MAC on switch ports of this Fabric (DHCP leases are always looked up in all subnets)",
+							},
+							&cli.StringFlag{
+								Name:  "domain",
+								Usage: "only look for the MAC on switch ports of this Fabric domain (requires --fabric)",
+							},
 						},
 						Before: func(_ *cli.Context) error {
 							return setupLogger(verbose)
