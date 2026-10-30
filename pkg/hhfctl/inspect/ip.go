@@ -26,6 +26,8 @@ import (
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	kyaml "sigs.k8s.io/yaml"
 )
@@ -265,10 +267,18 @@ func ipInSwitches(ctx context.Context, res *IPOut, kube kclient.Reader, ip net.I
 }
 
 func ipInConnections(ctx context.Context, res *IPOut, kube kclient.Reader, ip net.IP) error {
-	conns := &wiringapi.ConnectionList{}
-	err := kube.List(ctx, conns)
+	connTypes, err := labels.NewRequirement(wiringapi.LabelConnectionType, selection.In, []string{
+		wiringapi.ConnectionTypeFabric,
+		wiringapi.ConnectionTypeMesh,
+		wiringapi.ConnectionTypeStaticExternal,
+	})
 	if err != nil {
-		return errors.Wrap(err, "cannot list Connection")
+		return fmt.Errorf("building connection type selector: %w", err)
+	}
+
+	conns := &wiringapi.ConnectionList{}
+	if err := kube.List(ctx, conns, kclient.MatchingLabelsSelector{Selector: labels.NewSelector().Add(*connTypes)}); err != nil {
+		return fmt.Errorf("cannot list Connection: %w", err)
 	}
 
 	for _, conn := range conns.Items {
