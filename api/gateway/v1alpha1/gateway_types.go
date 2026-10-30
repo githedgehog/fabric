@@ -383,8 +383,8 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg 
 	pcis := map[string]string{}
 	for name, iface := range gw.Spec.Interfaces {
 		ifacePath := spec.Child("interfaces").Key(name)
-		if len(name) > 15 {
-			return field.TooLong(ifacePath, name, 15)
+		if len(name) > 10 {
+			return field.TooLong(ifacePath, name, 10)
 		}
 		if !linuxIfaceNameRegex.MatchString(name) {
 			return field.Invalid(ifacePath, name, "must be a valid linux interface name (2-10 characters)")
