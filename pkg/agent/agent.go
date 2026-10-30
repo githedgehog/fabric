@@ -15,6 +15,7 @@
 package agent
 
 import (
+	"bytes"
 	"context"
 	_ "embed"
 	"fmt"
@@ -63,6 +64,7 @@ const (
 	DefaultHeartbeatInterval = 15 * time.Second
 	DefaultEnforceInterval   = 2 * time.Minute
 	shadowPath               = "/etc/shadow"
+	rsyslogDropDebugPath     = "/etc/rsyslog.d/18-hh-drop-debug.conf"
 )
 
 func intervals(agent *agentapi.Agent) (time.Duration, time.Duration) {
@@ -74,6 +76,9 @@ func intervals(agent *agentapi.Agent) (time.Duration, time.Duration) {
 
 //go:embed motd.txt
 var motd []byte
+
+//go:embed sonic-rsyslog-drop-debug.conf
+var rsyslogDropDebug []byte
 
 type Service struct {
 	Basedir string
@@ -645,6 +650,12 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, rea
 		if err := alloy.EnsureInstalled(ctx, agent, svc.Basedir); err != nil {
 			return fmt.Errorf("ensuring alloy installed: %w", err)
 		}
+
+		if slices.Contains(fmeta.NOSTypesSONiCBCM, agent.Spec.SwitchProfile.NOSType) {
+			if err := ensureSyslogDropDebug(ctx); err != nil {
+				return fmt.Errorf("ensuring rsyslog drop debug: %w", err)
+			}
+		}
 	}
 
 	return nil
@@ -1191,6 +1202,55 @@ func prepareSONiC(ctx context.Context) error {
 		if err := cmd.Run(); err != nil {
 			return fmt.Errorf("removing duplicate iptables entry for SSH: %w", err)
 		}
+	}
+
+	return nil
+}
+
+// rsyslog reads its config only at startup, so restart it only if the drop-in changed
+func ensureSyslogDropDebug(ctx context.Context) error {
+	cur, err := os.ReadFile(rsyslogDropDebugPath)
+	if err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("reading %s: %w", rsyslogDropDebugPath, err)
+	}
+	exists := err == nil
+	if exists && bytes.Equal(cur, rsyslogDropDebug) {
+		return nil
+	}
+
+	if err := os.WriteFile(rsyslogDropDebugPath, rsyslogDropDebug, 0o644); err != nil { //nolint:gosec
+		return fmt.Errorf("writing %s: %w", rsyslogDropDebugPath, err)
+	}
+
+	if err := restartRsyslog(ctx); err != nil {
+		// restore the previous state so the next run sees the change again and retries the restart
+		var revertErr error
+		if exists {
+			revertErr = os.WriteFile(rsyslogDropDebugPath, cur, 0o644) //nolint:gosec
+		} else {
+			revertErr = os.Remove(rsyslogDropDebugPath)
+		}
+		if revertErr != nil {
+			return fmt.Errorf("%w, reverting %s: %w", err, rsyslogDropDebugPath, revertErr)
+		}
+
+		return err
+	}
+
+	slog.Info("Installed rsyslog drop-in, debug logs are dropped", "path", rsyslogDropDebugPath)
+
+	return nil
+}
+
+func restartRsyslog(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Minute)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "systemctl", "restart", "rsyslog")
+	cmd.Stdout = logutil.NewSink(ctx, slog.Debug, "rsyslog: ")
+	cmd.Stderr = logutil.NewSink(ctx, slog.Debug, "rsyslog: ")
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("restarting rsyslog: %w", err)
 	}
 
 	return nil
