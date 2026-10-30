@@ -25,7 +25,6 @@ import (
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
-	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -150,6 +149,15 @@ func Fabric(ctx context.Context, kube kclient.Reader, in FabricIn) (*FabricOut, 
 		return nil, errors.Wrap(err, "cannot list switches")
 	}
 
+	agList := &agentapi.AgentList{}
+	if err := kube.List(ctx, agList); err != nil {
+		return nil, fmt.Errorf("cannot list agents: %w", err)
+	}
+	agents := map[string]*agentapi.Agent{}
+	for idx := range agList.Items {
+		agents[agList.Items[idx].Name] = &agList.Items[idx]
+	}
+
 	profiles := map[string]*wiringapi.SwitchProfile{}
 	for _, sw := range swList.Items {
 		swName := sw.Name
@@ -170,14 +178,11 @@ func Fabric(ctx context.Context, kube kclient.Reader, in FabricIn) (*FabricOut, 
 		}
 
 		skipActual := false
-		agent := &agentapi.Agent{}
-		if err := kube.Get(ctx, kclient.ObjectKey{Name: swName, Namespace: kmetav1.NamespaceDefault}, agent); err != nil {
-			if kapierrors.IsNotFound(err) {
-				skipActual = true
-				slog.Warn("Agent object not found", "name", swName)
-			} else {
-				return nil, errors.Wrapf(err, "failed to get Agent %s", swName)
-			}
+		agent, ok := agents[swName]
+		if !ok {
+			skipActual = true
+			agent = &agentapi.Agent{}
+			slog.Warn("Agent object not found", "name", swName)
 		}
 
 		swState := &FabricOutSwitch{

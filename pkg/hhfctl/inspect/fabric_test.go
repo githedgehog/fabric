@@ -33,11 +33,14 @@ func TestFabricFilter(t *testing.T) {
 		return sw
 	}
 
-	profileGets := 0
+	profileGets, agentGets := 0, 0
 	kube := fake.NewClientBuilder().WithScheme(scheme).WithInterceptorFuncs(interceptor.Funcs{
 		Get: func(ctx context.Context, kube kclient.WithWatch, key kclient.ObjectKey, obj kclient.Object, opts ...kclient.GetOption) error {
-			if _, ok := obj.(*wiringapi.SwitchProfile); ok {
+			switch obj.(type) {
+			case *wiringapi.SwitchProfile:
 				profileGets++
+			case *agentapi.Agent:
+				agentGets++
 			}
 
 			return kube.Get(ctx, key, obj, opts...)
@@ -49,6 +52,8 @@ func TestFabricFilter(t *testing.T) {
 		// created without a fabric, so defaulted to the default one
 		switchGen("leaf-01", ""),
 		switchGen("leaf-02", "backend"),
+		// leaf-02 has no agent yet
+		&agentapi.Agent{ObjectMeta: meta("leaf-01")},
 	).Build()
 
 	names := func(out *FabricOut) ([]string, []string) {
@@ -69,6 +74,8 @@ func TestFabricFilter(t *testing.T) {
 	require.Equal(t, []string{"backend", "default"}, fabrics)
 	require.Equal(t, []string{"leaf-01@default", "leaf-02@backend"}, switches)
 	require.Equal(t, 1, profileGets, "shared switch profile should be fetched once")
+	require.Zero(t, agentGets, "agents should be listed, not fetched one by one")
+	require.Equal(t, "Ready: 1/2 switches", out.Summary)
 
 	out, err = Fabric(t.Context(), kube, FabricIn{Name: "default"})
 	require.NoError(t, err)
