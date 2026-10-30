@@ -256,8 +256,8 @@ func Port(ctx context.Context, kube kclient.Reader, in PortIn) (*PortOut, error)
 	}
 
 	conns := &wiringapi.ConnectionList{}
-	if err := kube.List(ctx, conns); err != nil {
-		return nil, errors.Wrap(err, "cannot list Connections")
+	if err := kube.List(ctx, conns, wiringapi.MatchingLabelsForListLabelSwitch(swName)); err != nil {
+		return nil, fmt.Errorf("cannot list Connections of switch %s: %w", swName, err)
 	}
 
 	for _, conn := range conns.Items {
