@@ -290,11 +290,11 @@ func TestGatewayValidate(t *testing.T) {
 		{
 			name: "test-interface-name-too-long",
 			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
-				gw.Spec.Interfaces["port0123456789ab"] = v1alpha1.GatewayInterface{IPs: []string{"172.30.128.3/31"}, MTU: 1500}
+				gw.Spec.Interfaces["port0123456"] = v1alpha1.GatewayInterface{IPs: []string{"172.30.128.3/31"}, MTU: 1500}
 			}),
 			objs:   base,
 			err:    true,
-			errMsg: "spec.interfaces[port0123456789ab]: Too long",
+			errMsg: "spec.interfaces[port0123456]: Too long: may not be more than 10 bytes",
 		},
 		{
 			name: "test-interface-mtu-min",
