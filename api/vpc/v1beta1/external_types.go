@@ -256,21 +256,22 @@ func (external *External) Validate(ctx context.Context, kube kclient.Reader, fab
 	}
 
 	for prefixStr, lens := range external.Spec.InboundPrefixes {
+		prefixPath := inboundPrefixesPath.Key(prefixStr)
 		prefix, err := netip.ParsePrefix(prefixStr)
 		if err != nil {
-			return nil, field.Invalid(inboundPrefixesPath, prefixStr, "invalid inbound prefix: "+err.Error())
+			return nil, field.Invalid(prefixPath, prefixStr, "invalid inbound prefix: "+err.Error())
 		}
 		if !prefix.Addr().Is4() {
-			return nil, field.Invalid(inboundPrefixesPath, prefixStr, "is not IPv4")
+			return nil, field.Invalid(prefixPath, prefixStr, "is not IPv4")
 		}
 		if prefix.Masked() != prefix {
-			return nil, field.Invalid(inboundPrefixesPath, prefixStr, "has host bits set")
+			return nil, field.Invalid(prefixPath, prefixStr, "has host bits set")
 		}
 		if lens.MinPrefixLen != 0 && (int(lens.MinPrefixLen) < prefix.Bits() || lens.MinPrefixLen > 32) {
-			return nil, field.Invalid(inboundPrefixesPath.Key(prefixStr).Child("minPrefixLen"), lens.MinPrefixLen, fmt.Sprintf("not between %d and 32", prefix.Bits()))
+			return nil, field.Invalid(prefixPath.Child("minPrefixLen"), lens.MinPrefixLen, fmt.Sprintf("not between %d and 32", prefix.Bits()))
 		}
 		if minLen, maxLen := lens.PrefixLens(prefix); maxLen < minLen || maxLen > 32 {
-			return nil, field.Invalid(inboundPrefixesPath.Key(prefixStr).Child("maxPrefixLen"), lens.MaxPrefixLen, fmt.Sprintf("not between %d and 32", minLen))
+			return nil, field.Invalid(prefixPath.Child("maxPrefixLen"), lens.MaxPrefixLen, fmt.Sprintf("not between %d and 32", minLen))
 		}
 	}
 

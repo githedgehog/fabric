@@ -202,12 +202,13 @@ func (fabric *Fabric) Validate(ctx context.Context, kube kclient.Reader, _ *meta
 		return nil, field.Required(spec.Child("domains"), "at least one domain is required")
 	}
 	for name := range fabric.Spec.Domains {
+		domainPath := spec.Child("domains").Key(name)
 		// the name becomes a label key segment
 		if errs := validation.IsDNS1123Label(name); len(errs) > 0 {
-			return nil, field.Invalid(spec.Child("domains"), name, strings.Join(errs, ", "))
+			return nil, field.Invalid(domainPath, name, strings.Join(errs, ", "))
 		}
 		if len(name) > meta.MaxNameLength {
-			return nil, field.TooLong(spec.Child("domains").Key(name), name, meta.MaxNameLength)
+			return nil, field.TooLong(domainPath, name, meta.MaxNameLength)
 		}
 	}
 

@@ -1082,9 +1082,12 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 		if conn.Spec.Fabric != nil { //nolint:gocritic
 			cf := conn.Spec.Fabric
 			for idx, link := range cf.Links {
+				linkPath := spec.Child("fabric", "links").Index(idx)
+				spineIPPath, leafIPPath := linkPath.Child("spine", "ip"), linkPath.Child("leaf", "ip")
+
 				// no IPs on either side means BGP unnumbered, but a link with just one IP is broken
 				if (link.Spine.IP == "") != (link.Leaf.IP == "") {
-					return nil, field.Invalid(spec.Child("fabric", "links").Index(idx), field.OmitValueType{}, "has an IP on only one side, it must be set on both for a numbered link or on neither for an unnumbered one")
+					return nil, field.Invalid(linkPath, field.OmitValueType{}, "has an IP on only one side, it must be set on both for a numbered link or on neither for an unnumbered one")
 				}
 				if link.Spine.IP == "" {
 					continue
@@ -1092,48 +1095,51 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 
 				spinePrefix, err := netip.ParsePrefix(link.Spine.IP)
 				if err != nil {
-					return nil, field.Invalid(spec.Child("fabric", "links").Index(idx).Child("spine", "ip"), link.Spine.IP, err.Error())
+					return nil, field.Invalid(spineIPPath, link.Spine.IP, err.Error())
 				}
 				if spinePrefix.Bits() != 31 {
-					return nil, field.Invalid(spec.Child("fabric", "links").Index(idx).Child("spine", "ip"), link.Spine.IP, "not a /31")
+					return nil, field.Invalid(spineIPPath, link.Spine.IP, "not a /31")
 				}
 
 				spineIP := spinePrefix.Addr()
 				if !fabricSubnet.Contains(spineIP) {
-					return nil, field.Invalid(spec.Child("fabric", "links").Index(idx).Child("spine", "ip"), link.Spine.IP, "not in the fabric subnet "+fabricSubnet.String())
+					return nil, field.Invalid(spineIPPath, link.Spine.IP, "not in the fabric subnet "+fabricSubnet.String())
 				}
 				if _, exist := fabricIPs[spineIP]; exist {
-					return nil, field.Invalid(spec.Child("fabric", "links").Index(idx).Child("spine", "ip"), link.Spine.IP, "already in use")
+					return nil, field.Invalid(spineIPPath, link.Spine.IP, "already in use")
 				}
 				fabricIPs[spineIP] = true
 
 				leafPrefix, err := netip.ParsePrefix(link.Leaf.IP)
 				if err != nil {
-					return nil, field.Invalid(spec.Child("fabric", "links").Index(idx).Child("leaf", "ip"), link.Leaf.IP, err.Error())
+					return nil, field.Invalid(leafIPPath, link.Leaf.IP, err.Error())
 				}
 				if leafPrefix.Bits() != 31 {
-					return nil, field.Invalid(spec.Child("fabric", "links").Index(idx).Child("leaf", "ip"), link.Leaf.IP, "not a /31")
+					return nil, field.Invalid(leafIPPath, link.Leaf.IP, "not a /31")
 				}
 
 				leafIP := leafPrefix.Addr()
 				if !fabricSubnet.Contains(leafIP) {
-					return nil, field.Invalid(spec.Child("fabric", "links").Index(idx).Child("leaf", "ip"), link.Leaf.IP, "not in the fabric subnet "+fabricSubnet.String())
+					return nil, field.Invalid(leafIPPath, link.Leaf.IP, "not in the fabric subnet "+fabricSubnet.String())
 				}
 				if _, exist := fabricIPs[leafIP]; exist {
-					return nil, field.Invalid(spec.Child("fabric", "links").Index(idx).Child("leaf", "ip"), link.Leaf.IP, "already in use")
+					return nil, field.Invalid(leafIPPath, link.Leaf.IP, "already in use")
 				}
 				fabricIPs[leafIP] = true
 
 				if spinePrefix.Masked() != leafPrefix.Masked() {
-					return nil, field.Invalid(spec.Child("fabric", "links").Index(idx), field.OmitValueType{}, fmt.Sprintf("spine IP %s and leaf IP %s are not in the same subnet", spineIP, leafIP))
+					return nil, field.Invalid(linkPath, field.OmitValueType{}, fmt.Sprintf("spine IP %s and leaf IP %s are not in the same subnet", spineIP, leafIP))
 				}
 			}
 		} else if conn.Spec.Mesh != nil {
 			cm := conn.Spec.Mesh
 			for idx, link := range cm.Links {
+				linkPath := spec.Child("mesh", "links").Index(idx)
+				leaf1IPPath, leaf2IPPath := linkPath.Child("leaf1", "ip"), linkPath.Child("leaf2", "ip")
+
 				// no IPs on either side means BGP unnumbered, but a link with just one IP is broken
 				if (link.Leaf1.IP == "") != (link.Leaf2.IP == "") {
-					return nil, field.Invalid(spec.Child("mesh", "links").Index(idx), field.OmitValueType{}, "has an IP on only one side, it must be set on both for a numbered link or on neither for an unnumbered one")
+					return nil, field.Invalid(linkPath, field.OmitValueType{}, "has an IP on only one side, it must be set on both for a numbered link or on neither for an unnumbered one")
 				}
 				if link.Leaf1.IP == "" {
 					continue
@@ -1141,86 +1147,89 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 
 				leaf1Prefix, err := netip.ParsePrefix(link.Leaf1.IP)
 				if err != nil {
-					return nil, field.Invalid(spec.Child("mesh", "links").Index(idx).Child("leaf1", "ip"), link.Leaf1.IP, err.Error())
+					return nil, field.Invalid(leaf1IPPath, link.Leaf1.IP, err.Error())
 				}
 				if leaf1Prefix.Bits() != 31 {
-					return nil, field.Invalid(spec.Child("mesh", "links").Index(idx).Child("leaf1", "ip"), link.Leaf1.IP, "not a /31")
+					return nil, field.Invalid(leaf1IPPath, link.Leaf1.IP, "not a /31")
 				}
 
 				leaf1IP := leaf1Prefix.Addr()
 				if !fabricSubnet.Contains(leaf1IP) {
-					return nil, field.Invalid(spec.Child("mesh", "links").Index(idx).Child("leaf1", "ip"), link.Leaf1.IP, "not in the fabric subnet "+fabricSubnet.String())
+					return nil, field.Invalid(leaf1IPPath, link.Leaf1.IP, "not in the fabric subnet "+fabricSubnet.String())
 				}
 				if _, exist := fabricIPs[leaf1IP]; exist {
-					return nil, field.Invalid(spec.Child("mesh", "links").Index(idx).Child("leaf1", "ip"), link.Leaf1.IP, "already in use")
+					return nil, field.Invalid(leaf1IPPath, link.Leaf1.IP, "already in use")
 				}
 				fabricIPs[leaf1IP] = true
 
 				leaf2Prefix, err := netip.ParsePrefix(link.Leaf2.IP)
 				if err != nil {
-					return nil, field.Invalid(spec.Child("mesh", "links").Index(idx).Child("leaf2", "ip"), link.Leaf2.IP, err.Error())
+					return nil, field.Invalid(leaf2IPPath, link.Leaf2.IP, err.Error())
 				}
 				if leaf2Prefix.Bits() != 31 {
-					return nil, field.Invalid(spec.Child("mesh", "links").Index(idx).Child("leaf2", "ip"), link.Leaf2.IP, "not a /31")
+					return nil, field.Invalid(leaf2IPPath, link.Leaf2.IP, "not a /31")
 				}
 
 				leaf2IP := leaf2Prefix.Addr()
 				if !fabricSubnet.Contains(leaf2IP) {
-					return nil, field.Invalid(spec.Child("mesh", "links").Index(idx).Child("leaf2", "ip"), link.Leaf2.IP, "not in the fabric subnet "+fabricSubnet.String())
+					return nil, field.Invalid(leaf2IPPath, link.Leaf2.IP, "not in the fabric subnet "+fabricSubnet.String())
 				}
 				if _, exist := fabricIPs[leaf2IP]; exist {
-					return nil, field.Invalid(spec.Child("mesh", "links").Index(idx).Child("leaf2", "ip"), link.Leaf2.IP, "already in use")
+					return nil, field.Invalid(leaf2IPPath, link.Leaf2.IP, "already in use")
 				}
 				fabricIPs[leaf2IP] = true
 
 				if leaf1Prefix.Masked() != leaf2Prefix.Masked() {
-					return nil, field.Invalid(spec.Child("mesh", "links").Index(idx), field.OmitValueType{}, fmt.Sprintf("leaf1 IP %s and leaf2 IP %s are not in the same subnet", leaf1IP, leaf2IP))
+					return nil, field.Invalid(linkPath, field.OmitValueType{}, fmt.Sprintf("leaf1 IP %s and leaf2 IP %s are not in the same subnet", leaf1IP, leaf2IP))
 				}
 			}
 		} else if conn.Spec.Gateway != nil {
 			cg := conn.Spec.Gateway
 			for idx, link := range cg.Links {
+				linkPath := spec.Child("gateway", "links").Index(idx)
+				switchIPPath, gatewayIPPath := linkPath.Child("switch", "ip"), linkPath.Child("gateway", "ip")
+
 				// unlike fabric and mesh links, gateway links can't be unnumbered yet, so both IPs are required
 				if link.Switch.IP == "" || link.Gateway.IP == "" {
-					return nil, field.Invalid(spec.Child("gateway", "links").Index(idx), field.OmitValueType{}, "is missing an IP, it must be set on both sides as unnumbered gateway links are not supported yet")
+					return nil, field.Invalid(linkPath, field.OmitValueType{}, "is missing an IP, it must be set on both sides as unnumbered gateway links are not supported yet")
 				}
 
 				switchPrefix, err := netip.ParsePrefix(link.Switch.IP)
 				if err != nil {
-					return nil, field.Invalid(spec.Child("gateway", "links").Index(idx).Child("switch", "ip"), link.Switch.IP, err.Error())
+					return nil, field.Invalid(switchIPPath, link.Switch.IP, err.Error())
 				}
 				if switchPrefix.Bits() != 31 {
-					return nil, field.Invalid(spec.Child("gateway", "links").Index(idx).Child("switch", "ip"), link.Switch.IP, "not a /31")
+					return nil, field.Invalid(switchIPPath, link.Switch.IP, "not a /31")
 				}
 
 				switchIP := switchPrefix.Addr()
 				if !fabricSubnet.Contains(switchIP) {
-					return nil, field.Invalid(spec.Child("gateway", "links").Index(idx).Child("switch", "ip"), link.Switch.IP, "not in the fabric subnet "+fabricSubnet.String())
+					return nil, field.Invalid(switchIPPath, link.Switch.IP, "not in the fabric subnet "+fabricSubnet.String())
 				}
 				if _, exist := fabricIPs[switchIP]; exist {
-					return nil, field.Invalid(spec.Child("gateway", "links").Index(idx).Child("switch", "ip"), link.Switch.IP, "already in use")
+					return nil, field.Invalid(switchIPPath, link.Switch.IP, "already in use")
 				}
 				fabricIPs[switchIP] = true
 
 				gwPrefix, err := netip.ParsePrefix(link.Gateway.IP)
 				if err != nil {
-					return nil, field.Invalid(spec.Child("gateway", "links").Index(idx).Child("gateway", "ip"), link.Gateway.IP, err.Error())
+					return nil, field.Invalid(gatewayIPPath, link.Gateway.IP, err.Error())
 				}
 				if gwPrefix.Bits() != 31 {
-					return nil, field.Invalid(spec.Child("gateway", "links").Index(idx).Child("gateway", "ip"), link.Gateway.IP, "not a /31")
+					return nil, field.Invalid(gatewayIPPath, link.Gateway.IP, "not a /31")
 				}
 
 				gwIP := gwPrefix.Addr()
 				if !fabricSubnet.Contains(gwIP) {
-					return nil, field.Invalid(spec.Child("gateway", "links").Index(idx).Child("gateway", "ip"), link.Gateway.IP, "not in the fabric subnet "+fabricSubnet.String())
+					return nil, field.Invalid(gatewayIPPath, link.Gateway.IP, "not in the fabric subnet "+fabricSubnet.String())
 				}
 				if _, exist := fabricIPs[gwIP]; exist {
-					return nil, field.Invalid(spec.Child("gateway", "links").Index(idx).Child("gateway", "ip"), link.Gateway.IP, "already in use")
+					return nil, field.Invalid(gatewayIPPath, link.Gateway.IP, "already in use")
 				}
 				fabricIPs[gwIP] = true
 
 				if switchPrefix.Masked() != gwPrefix.Masked() {
-					return nil, field.Invalid(spec.Child("gateway", "links").Index(idx), field.OmitValueType{}, fmt.Sprintf("switch IP %s and gateway IP %s are not in the same subnet", switchIP, gwIP))
+					return nil, field.Invalid(linkPath, field.OmitValueType{}, fmt.Sprintf("switch IP %s and gateway IP %s are not in the same subnet", switchIP, gwIP))
 				}
 			}
 		}

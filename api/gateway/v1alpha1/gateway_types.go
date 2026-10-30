@@ -387,7 +387,7 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg 
 			return field.TooLong(ifacePath, name, 15)
 		}
 		if !linuxIfaceNameRegex.MatchString(name) {
-			return field.Invalid(spec.Child("interfaces"), name, "must be a valid linux interface name (2-10 characters)")
+			return field.Invalid(ifacePath, name, "must be a valid linux interface name (2-10 characters)")
 		}
 
 		if len(iface.IPs) == 0 {
