@@ -25,12 +25,16 @@ import (
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
+	"go.githedgehog.com/fabric/pkg/util/apiutil"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type MACIn struct {
 	Value string
+	// Fabric and Domain limit the switch ports looked at, DHCP leases are always looked up in all subnets
+	Fabric string
+	Domain string
 }
 
 type MACOut struct {
@@ -74,9 +78,15 @@ func MAC(ctx context.Context, kube kclient.Reader, in MACIn) (*MACOut, error) {
 		return nil, errors.Wrapf(err, "invalid MAC address %s", mac)
 	}
 
+	filter := apiutil.SwitchFilter{Fabric: in.Fabric, Domain: in.Domain}
+	if err := filter.Check(ctx, kube); err != nil {
+		return nil, fmt.Errorf("invalid switch filter: %w", err)
+	}
+
+	// agents carry the labels of their switches
 	agents := &agentapi.AgentList{}
-	if err := kube.List(ctx, agents); err != nil {
-		return nil, errors.Wrap(err, "cannot list agents")
+	if err := kube.List(ctx, agents, kclient.MatchingLabels(filter.FabricLabels(true))); err != nil {
+		return nil, fmt.Errorf("cannot list agents: %w", err)
 	}
 
 	for _, agent := range agents.Items {

@@ -80,7 +80,7 @@ func loadExternals(ctx context.Context, kube kclient.Reader, filter SwitchFilter
 
 	// externals and their attachments are per fabric, but the domain is only on the externals and attachments are
 	// looked up by connection anyway
-	sel := kclient.MatchingLabels(filter.fabricLabels(false))
+	sel := kclient.MatchingLabels(filter.FabricLabels(false))
 
 	extList := &vpcapi.ExternalList{}
 	if err := kube.List(ctx, extList, kclient.InNamespace(kmetav1.NamespaceDefault), sel); err != nil {
@@ -114,7 +114,7 @@ func GetBGPStatus(ctx context.Context, kube kclient.Reader, fabCfg *meta.FabricC
 		return nil, fmt.Errorf("fabric config is nil") //nolint:err113
 	}
 
-	if err := filter.check(ctx, kube); err != nil {
+	if err := filter.Check(ctx, kube); err != nil {
 		return nil, err
 	}
 

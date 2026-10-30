@@ -187,7 +187,7 @@ func (d *lldpData) nos2APIPorts(ctx context.Context, in *switchInput, swName str
 
 // GetLLDPNeighbors returns the LLDP neighbors of the switches selected by the filter, keyed by switch name and port
 func GetLLDPNeighbors(ctx context.Context, kube kclient.Reader, filter SwitchFilter, opts LLDPNeighborsOpts) (map[string]map[string]LLDPNeighborStatus, error) {
-	if err := filter.check(ctx, kube); err != nil {
+	if err := filter.Check(ctx, kube); err != nil {
 		return nil, err
 	}
 
