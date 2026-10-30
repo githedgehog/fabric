@@ -218,7 +218,8 @@ func getBGPStatus(ctx context.Context, kube kclient.Reader, filter apiutil.Switc
 	}
 
 	if _, err := fabCfg.Init(meta.ExtraValidators{
-		Peering: valid.Peering,
+		Peering:    valid.Peering,
+		Connection: valid.Connection,
 	}); err != nil {
 		return nil, fmt.Errorf("initializing fabric config: %w", err)
 	}

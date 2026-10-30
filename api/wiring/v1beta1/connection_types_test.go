@@ -15,6 +15,8 @@
 package v1beta1_test
 
 import (
+	"context"
+	"errors"
 	"slices"
 	"testing"
 
@@ -962,4 +964,50 @@ func TestConnectionValidationWithoutClient(t *testing.T) {
 	conn.Default()
 	_, err = conn.Validate(t.Context(), nil, nil)
 	require.NoError(t, err)
+}
+
+var errExtraValidator = errors.New("extra validator")
+
+func TestConnectionValidationExtraValidator(t *testing.T) {
+	ctx := t.Context()
+	cfg := &meta.FabricConfig{
+		ReservedSubnets: []string{"172.30.1.0/24"},
+		FabricSubnet:    "172.30.128.0/24",
+		FabricMode:      meta.FabricModeSpineLeaf,
+	}
+	require.NoError(t, cfg.WithReservedSubnets())
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, wiringapi.AddToScheme(scheme))
+	switchWithRole := func(name string, role wiringapi.SwitchRole) *wiringapi.Switch {
+		sw := withName(name, &wiringapi.Switch{Spec: wiringapi.SwitchSpec{Role: role, Profile: switchprofile.DellS5232FON.Name}})
+		sw.Default()
+
+		return sw
+	}
+	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+		withName(wiringapi.DefaultFabric, &wiringapi.Fabric{Spec: wiringapi.DefaultFabricSpec(cfg)}),
+		switchWithRole("spine-01", wiringapi.SwitchRoleSpine),
+		switchWithRole("leaf-01", wiringapi.SwitchRoleServerLeaf),
+	).Build()
+	profiles := switchprofile.NewDefaultSwitchProfiles()
+	require.NoError(t, profiles.RegisterAll(ctx, kube, cfg))
+	require.NoError(t, profiles.Enforce(ctx, kube, cfg, false))
+
+	conn := fabricConnGen("spine-01--fabric--leaf-01")
+	conn.Default()
+
+	// not set yet in fabricator
+	_, err := conn.Validate(ctx, kube, cfg)
+	require.NoError(t, err)
+
+	var validated []string
+	cfg.ExtraValidators.Connection = func(_ context.Context, _ kclient.Reader, obj kclient.Object) error {
+		validated = append(validated, obj.GetName())
+
+		return errExtraValidator
+	}
+	_, err = conn.Validate(ctx, kube, cfg)
+	require.ErrorIs(t, err, errExtraValidator)
+	require.Equal(t, []string{conn.Name}, validated)
 }

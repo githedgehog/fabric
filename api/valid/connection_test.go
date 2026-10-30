@@ -1,7 +1,7 @@
 // Copyright 2026 Hedgehog
 // SPDX-License-Identifier: Apache-2.0
 
-package ctrl
+package valid
 
 import (
 	"testing"
@@ -106,12 +106,8 @@ func TestConnectionReferencesFabric(t *testing.T) {
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tt.objects...).Build()
-			w := &ConnectionWebhook{}
 
-			err := w.validateStaticExternal(t.Context(), kube, tt.conn)
-			if err == nil {
-				err = w.validateGateway(t.Context(), kube, tt.conn)
-			}
+			err := Connection(t.Context(), kube, tt.conn)
 			if tt.err == "" {
 				require.NoError(t, err)
 

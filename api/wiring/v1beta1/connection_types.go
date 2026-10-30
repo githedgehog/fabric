@@ -1220,6 +1220,13 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 				}
 			}
 		}
+
+		// TODO require it once fabricator sets it as well
+		if fabricCfg.ExtraValidators.Connection != nil {
+			if err := fabricCfg.ExtraValidators.Connection(ctx, kube, conn); err != nil {
+				return nil, err //nolint:wrapcheck
+			}
+		}
 	}
 
 	return nil, nil
