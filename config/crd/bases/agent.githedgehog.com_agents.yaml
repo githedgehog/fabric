@@ -471,6 +471,9 @@ spec:
                       Domains holds every domain of the switch's fabric. It replaces GatewayASN and SpineASN, which
                       are still filled in for older agents and read only from configs saved before Domains existed.
                     type: object
+                  enforceInterval:
+                    format: int32
+                    type: integer
                   eslagESIPrefix:
                     type: string
                   eslagMACBase:
@@ -488,6 +491,9 @@ spec:
                     additionalProperties:
                       type: string
                     type: object
+                  heartbeatInterval:
+                    format: int32
+                    type: integer
                   mclagSessionSubnet:
                     type: string
                   protocolSubnet:

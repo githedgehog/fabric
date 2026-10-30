@@ -98,6 +98,8 @@ type AgentSpecConfig struct {
 	GatewayBFD            bool                      `json:"gatewayBFD,omitempty"`
 	Alloy                 alloy.Config              `json:"alloy,omitempty"`
 	GatewayCommunities    map[string]string         `json:"gatewayCommunities,omitempty"`
+	HeartbeatInterval     uint32                    `json:"heartbeatInterval,omitempty"` // seconds, default and minimum 15
+	EnforceInterval       uint32                    `json:"enforceInterval,omitempty"`   // seconds, default and minimum 120
 	// Domains holds every domain of the switch's fabric. It replaces GatewayASN and SpineASN, which
 	// are still filled in for older agents and read only from configs saved before Domains existed.
 	Domains map[string]wiringapi.FabricDomainSpec `json:"domains,omitempty"`

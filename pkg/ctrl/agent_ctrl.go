@@ -1109,6 +1109,8 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 			GatewayBFD:            !fabric.DisableBFD,
 			Alloy:                 alloyCfg,
 			GatewayCommunities:    map[string]string{},
+			HeartbeatInterval:     r.cfg.AgentHeartbeatInterval,
+			EnforceInterval:       r.cfg.AgentEnforceInterval,
 		}
 		if r.cfg.FabricMode == fmeta.FabricModeSpineLeaf {
 			agent.Spec.Config.SpineLeaf = &agentapi.AgentSpecConfigSpineLeaf{}
