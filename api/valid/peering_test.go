@@ -190,3 +190,7 @@ func TestValidatePeering(t *testing.T) {
 		})
 	}
 }
+
+func TestValidatePeeringWithoutClient(t *testing.T) {
+	require.ErrorContains(t, Peering(t.Context(), nil, vpcPeering("vpc-1", "vpc-2")), "kube client is nil")
+}
