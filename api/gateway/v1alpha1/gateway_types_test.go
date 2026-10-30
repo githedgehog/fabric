@@ -294,7 +294,7 @@ func TestGatewayValidate(t *testing.T) {
 			}),
 			objs:   base,
 			err:    true,
-			errMsg: "spec.interfaces[port0123456]: Too long: may not be more than 10 bytes",
+			errMsg: `spec.interfaces[port0123456]: Invalid value: "port0123456": must be a valid linux interface name (2-10 characters)`,
 		},
 		{
 			name: "test-interface-mtu-min",
