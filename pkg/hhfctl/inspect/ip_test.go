@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -15,10 +16,20 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-func TestIPConnections(t *testing.T) {
+func TestIP(t *testing.T) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, wiringapi.AddToScheme(scheme))
 	require.NoError(t, vpcapi.AddToScheme(scheme))
+	require.NoError(t, gwapi.AddToScheme(scheme))
+
+	gw := &gwapi.Gateway{Spec: gwapi.GatewaySpec{
+		ProtocolIP: "172.30.8.1/32",
+		VTEPIP:     "172.30.12.1/32",
+		Interfaces: map[string]gwapi.GatewayInterface{
+			"enp2s1": {IPs: []string{"172.30.128.11/31"}},
+		},
+	}}
+	gw.Name, gw.Namespace = "gw-1", kmetav1.NamespaceDefault
 
 	// stored connections are always defaulted, which sets the connection type label
 	connGen := func(name string, spec wiringapi.ConnectionSpec) kclient.Object {
@@ -30,6 +41,11 @@ func TestIPConnections(t *testing.T) {
 	}
 
 	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+		gw,
+		connGen("spine-1--gateway--gw-1", wiringapi.ConnectionSpec{Gateway: &wiringapi.ConnGateway{Links: []wiringapi.GatewayLink{{
+			Switch:  wiringapi.ConnFabricLinkSwitch{BasePortName: wiringapi.NewBasePortName("spine-1/E1/7"), IP: "172.30.128.10/31"},
+			Gateway: wiringapi.ConnGatewayLinkGateway{BasePortName: wiringapi.NewBasePortName("gw-1/enp2s1"), IP: "172.30.128.11/31"},
+		}}}}),
 		connGen("spine-1--fabric--leaf-1", wiringapi.ConnectionSpec{Fabric: &wiringapi.ConnFabric{Links: []wiringapi.FabricLink{{
 			Spine: wiringapi.ConnFabricLinkSwitch{BasePortName: wiringapi.NewBasePortName("spine-1/E1/3"), IP: "172.30.128.0/31"},
 			Leaf:  wiringapi.ConnFabricLinkSwitch{BasePortName: wiringapi.NewBasePortName("leaf-1/E1/2"), IP: "172.30.128.1/31"},
@@ -52,22 +68,34 @@ func TestIPConnections(t *testing.T) {
 		}}}),
 	).Build()
 
-	for ip, conn := range map[string]string{
-		"172.30.128.0": "spine-1--fabric--leaf-1",
-		"172.30.128.1": "spine-1--fabric--leaf-1",
-		"172.30.129.1": "leaf-1--mesh--leaf-2",
-		"172.31.0.2":   "leaf-1--static-external",
-		"10.99.1.1":    "leaf-1--static-external",
-		"172.30.130.1": "",
+	for ip, tt := range map[string]struct {
+		conn, gw string
+	}{
+		"172.30.128.0":  {conn: "spine-1--fabric--leaf-1"},
+		"172.30.128.1":  {conn: "spine-1--fabric--leaf-1"},
+		"172.30.129.1":  {conn: "leaf-1--mesh--leaf-2"},
+		"172.31.0.2":    {conn: "leaf-1--static-external"},
+		"10.99.1.1":     {conn: "leaf-1--static-external"},
+		"172.30.128.10": {conn: "spine-1--gateway--gw-1"},
+		"172.30.128.11": {conn: "spine-1--gateway--gw-1", gw: "gw-1"},
+		"172.30.8.1":    {gw: "gw-1"},
+		"172.30.12.1":   {gw: "gw-1"},
+		"172.30.130.1":  {},
 	} {
 		t.Run(ip, func(t *testing.T) {
 			out, err := IP(t.Context(), kube, IPIn{IP: ip})
 			require.NoError(t, err)
-			if conn == "" {
+			if tt.conn == "" {
 				require.Empty(t, out.Connections)
 			} else {
 				require.Len(t, out.Connections, 1)
-				require.Equal(t, conn, out.Connections[0].Name)
+				require.Equal(t, tt.conn, out.Connections[0].Name)
+			}
+			if tt.gw == "" {
+				require.Nil(t, out.Gateway)
+			} else {
+				require.NotNil(t, out.Gateway)
+				require.Equal(t, tt.gw, out.Gateway.Name)
 			}
 		})
 	}

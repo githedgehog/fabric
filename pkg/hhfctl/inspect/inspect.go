@@ -31,6 +31,7 @@ import (
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
+	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/kubeutil"
@@ -82,6 +83,7 @@ func Run[TIn In, TOut Out[TIn]](ctx context.Context, f Func[TIn, TOut], args Arg
 		vpcapi.AddToScheme,
 		agentapi.AddToScheme,
 		dhcpapi.AddToScheme,
+		gwapi.AddToScheme,
 		coreapi.AddToScheme,
 	)
 	if err != nil {
