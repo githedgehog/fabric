@@ -433,6 +433,39 @@ func main() {
 					}), "failed to install systemd unit")
 				},
 			},
+			{
+				Name:  "factory-reset",
+				Usage: "erase the startup config and reboot, the agent re-applies the fabric config from scratch on boot",
+				Description: `Erases the startup config of the switch and reboots it. On the next boot the agent reconfigures
+the control link and re-applies the whole fabric config from scratch.
+
+Prefer "kubectl fabric switch factory-reset" from the control node, this is the escape hatch for
+when the switch can't be reached from there.`,
+				Flags: []cli.Flag{
+					verboseFlag,
+					basedirFlag,
+					&cli.BoolFlag{
+						Name:    "yes",
+						Aliases: []string{"y"},
+						Usage:   "confirm erasing the config and rebooting",
+					},
+				},
+				Before: func(_ *cli.Context) error {
+					var err error
+					logFile, err = setupLogger(verbose, true, false)
+
+					return err
+				},
+				Action: func(cCtx *cli.Context) error {
+					if !cCtx.Bool("yes") {
+						return cli.Exit("Config will be erased and the switch will reboot. Please confirm with --yes if you're sure.", 1)
+					}
+
+					return errors.Wrapf((&agent.Service{
+						Basedir: basedir,
+					}).FactoryReset(ctx), "failed to factory reset")
+				},
+			},
 		},
 	}
 

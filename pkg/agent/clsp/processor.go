@@ -33,9 +33,12 @@ func (c *CelesticaPlusProcessor) Reinstall(ctx context.Context) error {
 	return bcm.Processor().Reinstall(ctx) //nolint:wrapcheck
 }
 
-// TODO
 func (c *CelesticaPlusProcessor) FactoryReset(ctx context.Context) error {
-	return fmt.Errorf("not implemented") //nolint:err113
+	if err := bcm.SonicCLIConfirm(ctx, "write erase", "y\n"); err != nil {
+		return fmt.Errorf("failed to reset config: %w", err)
+	}
+
+	return c.Reboot(ctx, true)
 }
 
 // TODO
@@ -108,4 +111,12 @@ func (c *CelesticaPlusProcessor) ApplyActions(ctx context.Context, actions []doz
 
 func (c *CelesticaPlusProcessor) CalculateActions(ctx context.Context, actual *dozer.Spec, desired *dozer.Spec) ([]dozer.Action, error) {
 	return nil, fmt.Errorf("unsupported operation") //nolint:err113
+}
+
+func (c *CelesticaPlusProcessor) SaveConfig(ctx context.Context) error {
+	if err := bcm.SonicCLI(ctx, "copy running-config startup-config"); err != nil {
+		return fmt.Errorf("failed to save config: %w", err)
+	}
+
+	return nil
 }
