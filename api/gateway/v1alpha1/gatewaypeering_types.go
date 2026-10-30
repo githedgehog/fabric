@@ -486,7 +486,7 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 					return field.Invalid(rulePath.Child("name"), rule.Name, strings.Join(errs, ", "))
 				}
 				if len(rule.Name) > 64 {
-					return field.TooLong(rulePath.Child("name"), rule.Name, 64)
+					return field.TooLongCharacters(rulePath.Child("name"), rule.Name, 64)
 				}
 			}
 			if !slices.Contains(ACLActions, rule.Action) {

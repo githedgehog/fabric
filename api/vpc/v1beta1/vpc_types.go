@@ -473,7 +473,7 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 	}
 
 	if len(vpc.Name) > 11 {
-		return nil, field.TooLong(field.NewPath("metadata", "name"), vpc.Name, 11)
+		return nil, field.TooLongCharacters(field.NewPath("metadata", "name"), vpc.Name, 11)
 	}
 	if strings.HasPrefix(vpc.Name, VPCInfoExtPrefix) {
 		return nil, field.Invalid(field.NewPath("metadata", "name"), vpc.Name, fmt.Sprintf("cannot start with %q", VPCInfoExtPrefix))

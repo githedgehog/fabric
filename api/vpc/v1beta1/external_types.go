@@ -202,7 +202,7 @@ func (external *External) Validate(ctx context.Context, kube kclient.Reader, fab
 	}
 
 	if len(external.Name) > 11 {
-		return nil, field.TooLong(field.NewPath("metadata", "name"), external.Name, 11)
+		return nil, field.TooLongCharacters(field.NewPath("metadata", "name"), external.Name, 11)
 	}
 	if external.Spec.IPv4Namespace == "" {
 		return nil, field.Required(spec.Child("ipv4Namespace"), "")

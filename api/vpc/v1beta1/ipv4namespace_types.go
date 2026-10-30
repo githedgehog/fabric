@@ -142,7 +142,7 @@ func (ns *IPv4Namespace) Validate(ctx context.Context, kube kclient.Reader, fabr
 	}
 
 	if len(ns.Name) > 11 {
-		return nil, field.TooLong(field.NewPath("metadata", "name"), ns.Name, 11)
+		return nil, field.TooLongCharacters(field.NewPath("metadata", "name"), ns.Name, 11)
 	}
 
 	subnets := []netip.Prefix{}

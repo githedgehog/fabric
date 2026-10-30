@@ -46,7 +46,7 @@ func ValidateName(path *field.Path, name string) error {
 		return field.Invalid(path, name, strings.Join(errs, ", "))
 	}
 	if len(name) > MaxNameLength {
-		return field.TooLong(path, name, MaxNameLength)
+		return field.TooLongCharacters(path, name, MaxNameLength)
 	}
 
 	return nil

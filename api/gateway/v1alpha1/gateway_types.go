@@ -287,7 +287,7 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg 
 		return err //nolint:wrapcheck
 	}
 	if len(gw.Name) > MaxGatewayNameLength {
-		return field.TooLong(field.NewPath("metadata", "name"), gw.Name, MaxGatewayNameLength)
+		return field.TooLongCharacters(field.NewPath("metadata", "name"), gw.Name, MaxGatewayNameLength)
 	}
 
 	fabric, err := wiringapi.CheckFabricExists(ctx, kube, gw.Namespace, gw.Spec.Topology.Fabric)
@@ -383,9 +383,6 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg 
 	pcis := map[string]string{}
 	for name, iface := range gw.Spec.Interfaces {
 		ifacePath := spec.Child("interfaces").Key(name)
-		if len(name) > 10 {
-			return field.TooLong(ifacePath, name, 10)
-		}
 		if !linuxIfaceNameRegex.MatchString(name) {
 			return field.Invalid(ifacePath, name, "must be a valid linux interface name (2-10 characters)")
 		}
