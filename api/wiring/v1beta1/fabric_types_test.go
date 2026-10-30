@@ -66,7 +66,7 @@ func TestFabricValidation(t *testing.T) {
 			}),
 		},
 		{
-			name: "invalid domain name", err: `spec.domains: Invalid value: "Plane_A"`,
+			name: "invalid domain name", err: `spec.domains[Plane_A]: Invalid value: "Plane_A"`,
 			fabric: fabricGen("backend", 64101, 64200, map[string]wiringapi.FabricDomainSpec{"Plane_A": {SpineASN: 64100, GatewayASN: 64201}}),
 		},
 		{
