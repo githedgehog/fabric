@@ -127,7 +127,8 @@ func (vpc *VPCInfo) Validate(ctx context.Context, kube kclient.Reader, fabricCfg
 		return err //nolint:wrapcheck
 	}
 
-	if err := wiringapi.CheckFabricExists(ctx, kube, vpc.Namespace, vpc.Spec.Topology.Fabric); err != nil {
+	fabric, err := wiringapi.CheckFabricExists(ctx, kube, vpc.Namespace, vpc.Spec.Topology.Fabric)
+	if err != nil {
 		return err //nolint:wrapcheck
 	}
 	if len(vpc.Spec.Topology.Domains) == 0 {
@@ -139,10 +140,6 @@ func (vpc *VPCInfo) Validate(ctx context.Context, kube kclient.Reader, fabricCfg
 	// a VPCInfo can come from the included wiring as well, and one in a domain the fabric doesn't have would be
 	// served by no gateway
 	if kube != nil {
-		fabric, err := wiringapi.GetFabricSpec(ctx, kube, vpc.Namespace, vpc.Spec.Topology.Fabric)
-		if err != nil {
-			return fmt.Errorf("invalid vpcinfo: %w", err)
-		}
 		for _, domain := range vpc.Spec.Topology.Domains {
 			if _, exists := fabric.Domains[domain]; !exists {
 				return field.Invalid(domainsPath, domain, fmt.Sprintf("domain %s not found in fabric %s", domain, vpc.Spec.Topology.Fabric))

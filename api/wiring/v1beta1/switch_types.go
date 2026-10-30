@@ -550,10 +550,7 @@ func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, 
 		}
 	}
 
-	if err := CheckFabricExists(ctx, kube, sw.Namespace, sw.Spec.Topology.Fabric); err != nil {
-		return err
-	}
-	fabric, err := GetFabricSpec(ctx, kube, sw.Namespace, sw.Spec.Topology.Fabric)
+	fabric, err := CheckFabricExists(ctx, kube, sw.Namespace, sw.Spec.Topology.Fabric)
 	if err != nil {
 		return err
 	}
@@ -653,7 +650,8 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 		return nil, field.Invalid(domainsPath, sw.Spec.Topology.Domains, "domains must be unique")
 	}
 
-	if err := CheckFabricExists(ctx, kube, sw.Namespace, sw.Spec.Topology.Fabric); err != nil {
+	fabric, err := CheckFabricExists(ctx, kube, sw.Namespace, sw.Spec.Topology.Fabric)
+	if err != nil {
 		return nil, err
 	}
 	if sw.Spec.ASN == 0 {
@@ -732,10 +730,6 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 			return nil, field.Invalid(spec.Child("vlanNamespaces"), sw.Spec.VLANNamespaces, err.Error())
 		}
 
-		fabric, err := GetFabricSpec(ctx, kube, sw.Namespace, sw.Spec.Topology.Fabric)
-		if err != nil {
-			return nil, err
-		}
 		swFabric := sw.Spec.Topology.Fabric
 		for _, domain := range domains {
 			if _, exists := fabric.Domains[domain]; !exists {
