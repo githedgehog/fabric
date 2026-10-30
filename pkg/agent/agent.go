@@ -34,6 +34,7 @@ import (
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	fmeta "go.githedgehog.com/fabric/api/meta"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/agent/alloy"
 	"go.githedgehog.com/fabric/pkg/agent/clsp"
 	"go.githedgehog.com/fabric/pkg/agent/cmls"
@@ -652,7 +653,7 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, rea
 		}
 
 		if slices.Contains(fmeta.NOSTypesSONiCBCM, agent.Spec.SwitchProfile.NOSType) {
-			if err := ensureSyslogDropDebug(ctx); err != nil {
+			if err := ensureSyslogDropDebug(ctx, agent); err != nil {
 				return fmt.Errorf("ensuring rsyslog drop debug: %w", err)
 			}
 		}
@@ -1208,18 +1209,32 @@ func prepareSONiC(ctx context.Context) error {
 }
 
 // rsyslog reads its config only at startup, so restart it only if the drop-in changed
-func ensureSyslogDropDebug(ctx context.Context) error {
+func ensureSyslogDropDebug(ctx context.Context, agent *agentapi.Agent) error {
+	debug, err := wiringapi.SwitchSyslogDebug(agent.Annotations)
+	if err != nil {
+		return fmt.Errorf("checking syslog debug: %w", err)
+	}
+
 	cur, err := os.ReadFile(rsyslogDropDebugPath)
 	if err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("reading %s: %w", rsyslogDropDebugPath, err)
 	}
 	exists := err == nil
-	if exists && bytes.Equal(cur, rsyslogDropDebug) {
-		return nil
-	}
 
-	if err := os.WriteFile(rsyslogDropDebugPath, rsyslogDropDebug, 0o644); err != nil { //nolint:gosec
-		return fmt.Errorf("writing %s: %w", rsyslogDropDebugPath, err)
+	if debug {
+		if !exists {
+			return nil
+		}
+		if err := os.Remove(rsyslogDropDebugPath); err != nil {
+			return fmt.Errorf("removing %s: %w", rsyslogDropDebugPath, err)
+		}
+	} else {
+		if exists && bytes.Equal(cur, rsyslogDropDebug) {
+			return nil
+		}
+		if err := os.WriteFile(rsyslogDropDebugPath, rsyslogDropDebug, 0o644); err != nil { //nolint:gosec
+			return fmt.Errorf("writing %s: %w", rsyslogDropDebugPath, err)
+		}
 	}
 
 	if err := restartRsyslog(ctx); err != nil {
@@ -1237,7 +1252,12 @@ func ensureSyslogDropDebug(ctx context.Context) error {
 		return err
 	}
 
-	slog.Info("Installed rsyslog drop-in, debug logs are dropped", "path", rsyslogDropDebugPath)
+	if debug {
+		slog.Info("Removed rsyslog drop-in, debug logs are kept", "path", rsyslogDropDebugPath)
+	} else {
+		slog.Info("Installed rsyslog drop-in, debug logs are dropped", "path", rsyslogDropDebugPath,
+			"keepWith", wiringapi.AnnotationSwitchSyslogDebug+"=true")
+	}
 
 	return nil
 }

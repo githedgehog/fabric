@@ -669,6 +669,18 @@ func TestSwitchDomainsValidation(t *testing.T) {
 			name: "boot MAC in another format",
 			sw:   swGen(func(sw *wiringapi.Switch) { sw.Spec.Boot.MAC = "0C-20-12-FE-01-00" }),
 		},
+		{
+			name: "syslog debug annotation",
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Annotations = map[string]string{wiringapi.AnnotationSwitchSyslogDebug: "true"}
+			}),
+		},
+		{
+			name: "invalid syslog debug annotation", err: "annotation fabric.githedgehog.com/syslog-debug must be a boolean",
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Annotations = map[string]string{wiringapi.AnnotationSwitchSyslogDebug: "yes"}
+			}),
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := &meta.FabricConfig{
