@@ -22,6 +22,10 @@ var _ meta.ConnectionValidator = Connection
 
 // Connection checks the VPCs and gateways referenced by a connection, the wiring API can't import their packages
 func Connection(ctx context.Context, kube kclient.Reader, checkConn kclient.Object) error {
+	if kube == nil {
+		return fmt.Errorf("kube client is nil") //nolint:err113
+	}
+
 	conn, ok := checkConn.(*wiringapi.Connection)
 	if !ok {
 		return fmt.Errorf("unexpected connection type %T for %q", checkConn, checkConn.GetName()) //nolint:err113
