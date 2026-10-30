@@ -291,8 +291,10 @@ func (external *External) Validate(ctx context.Context, kube kclient.Reader, fab
 			return nil, field.Invalid(spec.Child("ipv4Namespace"), external.Spec.IPv4Namespace, fmt.Sprintf("external is in fabric %s but the IPv4Namespace is in fabric %s", extFabric, nsFabric))
 		}
 
-		if err := ipNs.CheckOutside("inbound prefix", slices.Sorted(maps.Keys(external.Spec.InboundPrefixes))); err != nil {
-			return nil, field.Invalid(inboundPrefixesPath, field.OmitValueType{}, err.Error())
+		for _, prefixStr := range slices.Sorted(maps.Keys(external.Spec.InboundPrefixes)) {
+			if idx := ipNs.SubnetContaining(prefixStr); idx >= 0 {
+				return nil, field.Invalid(inboundPrefixesPath.Key(prefixStr), prefixStr, fmt.Sprintf("inside subnet %s of IPv4Namespace %s", ipNs.Spec.Subnets[idx], ipNs.Name))
+			}
 		}
 
 		domain := external.Spec.Topology.Domain

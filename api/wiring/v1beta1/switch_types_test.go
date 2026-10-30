@@ -615,7 +615,7 @@ func TestSwitchDomainsValidation(t *testing.T) {
 			sw: swGen(spine(65099), domains("plane-b", "default")),
 		},
 		{
-			name: "domain not in fabric", err: "domain plane-c not found in fabric default",
+			name: "domain not in fabric", err: `spec.topology.domains: Invalid value: "plane-c": domain plane-c not found in fabric default`,
 			sw: swGen(domains("plane-c")),
 		},
 		{
@@ -669,6 +669,30 @@ func TestSwitchDomainsValidation(t *testing.T) {
 		{
 			name: "boot MAC in another format",
 			sw:   swGen(func(sw *wiringapi.Switch) { sw.Spec.Boot.MAC = "0C-20-12-FE-01-00" }),
+		},
+		{
+			name: "speed of an unknown port", err: `spec.portSpeeds[E1/99]: Invalid value: "100G": port not found in switch profile`,
+			sw: swGen(func(sw *wiringapi.Switch) { sw.Spec.PortSpeeds = map[string]string{"E1/99": "100G"} }),
+		},
+		{
+			name: "speed of an unknown port group", err: `spec.portGroupSpeeds[99]: Invalid value: "10G": port group not found in switch profile`,
+			sw: swGen(func(sw *wiringapi.Switch) { sw.Spec.PortGroupSpeeds = map[string]string{"99": "10G"} }),
+		},
+		{
+			name: "breakout of an unknown port", err: `spec.portBreakouts[E1/99]: Invalid value: "4x25G": port not found in switch profile`,
+			sw: swGen(func(sw *wiringapi.Switch) { sw.Spec.PortBreakouts = map[string]string{"E1/99": "4x25G"} }),
+		},
+		{
+			name: "auto negotiation on an unknown port", err: `spec.portAutoNegs[E1/99]: Invalid value: true: port does not support configuring auto negotiation`,
+			sw: swGen(func(sw *wiringapi.Switch) { sw.Spec.PortAutoNegs = map[string]bool{"E1/99": true} }),
+		},
+		{
+			name: "FEC on an unknown port", err: `spec.portFECs[E1/99]: Invalid value: "rs": port does not support configuring FEC`,
+			sw: swGen(func(sw *wiringapi.Switch) { sw.Spec.PortFECs = map[string]wiringapi.PortFECMode{"E1/99": "rs"} }),
+		},
+		{
+			name: "port locator on an unknown port", err: "spec.portLocators[E1/99]: Invalid value:",
+			sw: swGen(func(sw *wiringapi.Switch) { sw.Spec.PortLocators = map[string]string{"E1/99": "2099-01-01 00:00:00"} }),
 		},
 		{
 			name: "speed of a port in a group", err: `spec.portSpeeds[E1/1]: Invalid value: "10G": port is in port group 1, set the speed in portGroupSpeeds`,

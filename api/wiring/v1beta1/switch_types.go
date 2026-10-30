@@ -567,7 +567,7 @@ func (sw *Switch) hydrationValidation(ctx context.Context, kube kclient.Reader, 
 		domainName := sw.Spec.Topology.Domains[0]
 		domain, exists := fabric.Domains[domainName]
 		if !exists {
-			return field.Invalid(spec.Child("topology", "domains"), domainName, "domain not found in fabric")
+			return field.Invalid(spec.Child("topology", "domains"), domainName, fmt.Sprintf("domain %s not found in fabric %s", domainName, sw.Spec.Topology.Fabric))
 		}
 		if sw.Spec.ASN != domain.SpineASN {
 			return field.Invalid(spec.Child("asn"), sw.Spec.ASN, fmt.Sprintf("not the spine ASN %d of domain %s", domain.SpineASN, domainName))
@@ -763,7 +763,7 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 			path := spec.Child("portGroupSpeeds").Key(name)
 			group, exists := sp.Spec.PortGroups[name]
 			if !exists {
-				return nil, field.Invalid(spec.Child("portGroupSpeeds"), name, "port group not found in switch profile")
+				return nil, field.Invalid(path, speed, "port group not found in switch profile")
 			}
 
 			profile, exists := sp.Spec.PortProfiles[group.Profile]
@@ -784,7 +784,7 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 			path := spec.Child("portSpeeds").Key(name)
 			port, exists := sp.Spec.Ports[name]
 			if !exists {
-				return nil, field.Invalid(spec.Child("portSpeeds"), name, "port not found in switch profile")
+				return nil, field.Invalid(path, speed, "port not found in switch profile")
 			}
 			if port.Group != "" {
 				return nil, field.Invalid(path, speed, fmt.Sprintf("port is in port group %s, set the speed in portGroupSpeeds", port.Group))
@@ -808,7 +808,7 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 			path := spec.Child("portBreakouts").Key(name)
 			port, exists := sp.Spec.Ports[name]
 			if !exists {
-				return nil, field.Invalid(spec.Child("portBreakouts"), name, "port not found in switch profile")
+				return nil, field.Invalid(path, breakout, "port not found in switch profile")
 			}
 
 			profile, exists := sp.Spec.PortProfiles[port.Profile]
@@ -830,9 +830,9 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 			return nil, fmt.Errorf("failed to get auto negotiation defaults: %w", err)
 		}
 
-		for name := range sw.Spec.PortAutoNegs {
+		for name, autoNeg := range sw.Spec.PortAutoNegs {
 			if !autoNegAllowed[name] {
-				return nil, field.Invalid(spec.Child("portAutoNegs"), name, "port does not support configuring auto negotiation")
+				return nil, field.Invalid(spec.Child("portAutoNegs").Key(name), autoNeg, "port does not support configuring auto negotiation")
 			}
 		}
 
@@ -841,9 +841,9 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 			return nil, fmt.Errorf("failed to get FEC-configurable ports: %w", err)
 		}
 
-		for name := range sw.Spec.PortFECs {
+		for name, fec := range sw.Spec.PortFECs {
 			if !fecPorts[name] {
-				return nil, field.Invalid(spec.Child("portFECs"), name, "port does not support configuring FEC "+
+				return nil, field.Invalid(spec.Child("portFECs").Key(name), fec, "port does not support configuring FEC "+
 					"(a broken-out port must be configured per sub-port, e.g. E1/53/1)")
 			}
 		}
@@ -858,12 +858,13 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 		}
 
 		for name, expire := range sw.Spec.PortLocators {
+			path := spec.Child("portLocators").Key(name)
 			if name != PortLocatorAllPorts && !apiPorts[name] {
-				return nil, field.Invalid(spec.Child("portLocators"), name, "not a valid port for port locators")
+				return nil, field.Invalid(path, expire, "not a valid port for port locators")
 			}
 
 			if _, _, err := NormalizePortLocator(expire); err != nil {
-				return nil, field.Invalid(spec.Child("portLocators").Key(name), expire, err.Error())
+				return nil, field.Invalid(path, expire, err.Error())
 			}
 		}
 

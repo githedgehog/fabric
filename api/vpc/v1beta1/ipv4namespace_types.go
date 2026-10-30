@@ -16,7 +16,6 @@ package v1beta1
 
 import (
 	"context"
-	"fmt"
 	"maps"
 	"net/netip"
 	"slices"
@@ -177,24 +176,20 @@ func (ns *IPv4Namespace) Validate(ctx context.Context, kube kclient.Reader, fabr
 	return nil, nil
 }
 
-// CheckOutside checks that none of the prefixes is inside a subnet of the namespace, as an External drops the routes
-// within them silently. A prefix around the namespace, such as a default route, is fine
-func (ns *IPv4Namespace) CheckOutside(what string, prefixes []string) error {
-	for _, s := range ns.Spec.Subnets {
-		subnet, err := netip.ParsePrefix(s)
-		if err != nil {
-			return fmt.Errorf("invalid subnet %s in IPv4Namespace %s: %w", s, ns.Name, err)
-		}
-		for _, p := range prefixes {
-			prefix, err := netip.ParsePrefix(p)
-			if err != nil {
-				return fmt.Errorf("invalid %s %s: %w", what, p, err)
-			}
-			if iputil.IsSubset(prefix, subnet) {
-				return fmt.Errorf("%s %s is inside subnet %s of IPv4Namespace %s", what, prefix, subnet, ns.Name) //nolint:err113
-			}
+// SubnetContaining returns the index of the namespace subnet the prefix is inside of, or -1, also for a prefix that
+// doesn't parse. An External drops the routes within the namespace subnets silently, while a prefix around one, such
+// as a default route, is fine
+func (ns *IPv4Namespace) SubnetContaining(prefixStr string) int {
+	prefix, err := netip.ParsePrefix(prefixStr)
+	if err != nil {
+		return -1
+	}
+
+	for idx, s := range ns.Spec.Subnets {
+		if subnet, err := netip.ParsePrefix(s); err == nil && iputil.IsSubset(prefix, subnet) {
+			return idx
 		}
 	}
 
-	return nil
+	return -1
 }
