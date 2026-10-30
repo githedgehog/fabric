@@ -282,7 +282,8 @@ func TestVPCValidation(t *testing.T) {
 			vpc: vpcGen("vpc-01", func(vpc *v1beta1.VPC) {
 				vpc.Spec.Permit = [][]string{{"default", "nonexistent"}}
 			}),
-			err: true,
+			err:    true,
+			errMsg: `spec.permit[0][1]: Not found: "nonexistent"`,
 		},
 		{
 			name: "dhcp relay and server both enabled",
@@ -384,9 +385,10 @@ func TestVPCValidation(t *testing.T) {
 			err:  true,
 		},
 		{
-			name: "host bgp extra prefix is not in canonical form",
-			vpc:  vpcGen("vpc-01", hostBGPSubnet("10.100.1.5/24")),
-			err:  true,
+			name:   "host bgp extra prefix is not in canonical form",
+			vpc:    vpcGen("vpc-01", hostBGPSubnet("10.100.1.5/24")),
+			err:    true,
+			errMsg: `spec.subnets[bgp].hostBGPExtraPrefixes[10.100.1.5/24]: Invalid value: "10.100.1.5/24": prefix is not in canonical form`,
 		},
 		{
 			name: "host bgp extra prefixes at the limit",
@@ -424,6 +426,7 @@ func TestVPCValidation(t *testing.T) {
 			vpc:       vpcGen("vpc-01", hostBGPSubnet("192.168.5.0/24")),
 			fabricCfg: reservedRailCfg,
 			err:       true,
+			errMsg:    `spec.subnets[bgp].hostBGPExtraPrefixes[192.168.5.0/24]: Invalid value: "192.168.5.0/24": overlaps with reserved subnet`,
 		},
 		{
 			name:      "host bgp extra prefix outside of the reserved subnets",
@@ -436,6 +439,7 @@ func TestVPCValidation(t *testing.T) {
 			vpc:     vpcGen("vpc-01", hostBGPSubnet("172.16.5.0/24")),
 			objects: baseKubeObjs,
 			err:     true,
+			errMsg:  `spec.subnets[bgp].hostBGPExtraPrefixes[172.16.5.0/24]: Invalid value: "172.16.5.0/24": doesn't belong to IPv4Namespace`,
 		},
 		{
 			name: "host bgp extra prefix overlaps other vpc subnet",
