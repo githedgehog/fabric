@@ -56,14 +56,21 @@ import (
 )
 
 const (
-	ConfigFile         = "agent-config.yaml"
-	KubeconfigFile     = "agent-kubeconfig"
-	RebootRequiredFile = "reboot-required"
-	InstallIDFile      = "install-id"
-	HeartbeatPeriod    = 15 * time.Second
-	EnforcePeriod      = 2 * time.Minute
-	shadowPath         = "/etc/shadow"
+	ConfigFile               = "agent-config.yaml"
+	KubeconfigFile           = "agent-kubeconfig"
+	RebootRequiredFile       = "reboot-required"
+	InstallIDFile            = "install-id"
+	DefaultHeartbeatInterval = 15 * time.Second
+	DefaultEnforceInterval   = 2 * time.Minute
+	shadowPath               = "/etc/shadow"
 )
+
+func intervals(agent *agentapi.Agent) (time.Duration, time.Duration) {
+	heartbeat := max(DefaultHeartbeatInterval, time.Duration(agent.Spec.Config.HeartbeatInterval)*time.Second)
+	enforce := max(DefaultEnforceInterval, time.Duration(agent.Spec.Config.EnforceInterval)*time.Second)
+
+	return heartbeat, enforce
+}
 
 //go:embed motd.txt
 var motd []byte
@@ -301,10 +308,13 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 	}
 	defer watcher.Stop()
 
-	enforceTicker := time.NewTicker(EnforcePeriod)
+	heartbeatInterval, enforceInterval := intervals(agent)
+	slog.Info("Intervals", "heartbeat", heartbeatInterval, "enforce", enforceInterval)
+
+	enforceTicker := time.NewTicker(enforceInterval)
 	defer enforceTicker.Stop()
 
-	heartbeatTicker := time.NewTicker(HeartbeatPeriod)
+	heartbeatTicker := time.NewTicker(heartbeatInterval)
 	defer heartbeatTicker.Stop()
 
 	for {
@@ -314,7 +324,7 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 
 			return nil
 		case <-enforceTicker.C:
-			if time.Since(svc.lastApplied) < EnforcePeriod/2 {
+			if time.Since(svc.lastApplied) < enforceInterval/2 {
 				slog.Debug("Skipping config enforcement, already applied recently", "name", agent.Name)
 
 				continue
@@ -326,7 +336,7 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 
 			svc.lastApplied = time.Now()
 		case <-heartbeatTicker.C:
-			if time.Since(svc.lastHeartbeat) < HeartbeatPeriod/2 {
+			if time.Since(svc.lastHeartbeat) < heartbeatInterval/2 {
 				slog.Debug("Skipping heartbeat, already sent recently", "name", agent.Name)
 
 				continue
@@ -425,6 +435,18 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 			err = svc.processAgentFromKube(ctx, kube, agent, &currentGen)
 			if err != nil {
 				return errors.Wrap(err, "failed to process agent config from k8s")
+			}
+
+			newHeartbeat, newEnforce := intervals(agent)
+			if newHeartbeat != heartbeatInterval {
+				heartbeatInterval = newHeartbeat
+				heartbeatTicker.Reset(heartbeatInterval)
+				slog.Info("Heartbeat interval changed", "interval", heartbeatInterval)
+			}
+			if newEnforce != enforceInterval {
+				enforceInterval = newEnforce
+				enforceTicker.Reset(enforceInterval)
+				slog.Info("Enforce interval changed", "interval", enforceInterval)
 			}
 		}
 	}
