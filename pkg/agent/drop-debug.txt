@@ -1,0 +1,11 @@
+## File is managed by Hedgehog 
+# Drop all debug-level (severity 7) messages before the in-memory capture
+# that /etc/rsyslog.d/20-sonic.conf includes at line 35
+if ($syslogseverity == 7) then {
+    stop
+}
+
+# Drop the noisy skip_reason_update line from the info stream (severity 6)
+if ($syslogseverity == 6 and $msg contains '"skip_reason_update": "false"') then {
+    stop
+}

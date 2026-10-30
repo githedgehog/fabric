@@ -15,6 +15,7 @@
 package agent
 
 import (
+	"bytes"
 	"context"
 	_ "embed"
 	"fmt"
@@ -56,17 +57,21 @@ import (
 )
 
 const (
-	ConfigFile         = "agent-config.yaml"
-	KubeconfigFile     = "agent-kubeconfig"
-	RebootRequiredFile = "reboot-required"
-	InstallIDFile      = "install-id"
-	HeartbeatPeriod    = 15 * time.Second
-	EnforcePeriod      = 2 * time.Minute
-	shadowPath         = "/etc/shadow"
+	ConfigFile           = "agent-config.yaml"
+	KubeconfigFile       = "agent-kubeconfig"
+	RebootRequiredFile   = "reboot-required"
+	InstallIDFile        = "install-id"
+	HeartbeatPeriod      = 15 * time.Second
+	EnforcePeriod        = 2 * time.Minute
+	shadowPath           = "/etc/shadow"
+	rsyslogDropDebugPath = "/etc/rsyslog.d/18-drop-debug.conf"
 )
 
 //go:embed motd.txt
 var motd []byte
+
+//go:embed drop-debug.txt
+var dropDebug []byte
 
 type Service struct {
 	Basedir string
@@ -1171,6 +1176,10 @@ func prepareSONiC(ctx context.Context) error {
 		}
 	}
 
+	if err := disableSyslogDebug(ctx); err != nil {
+		return fmt.Errorf("ensuring rsyslog drop-debug config: %w", err)
+	}
+
 	return nil
 }
 
@@ -1226,4 +1235,31 @@ func virtualSwitchPorts(sysClassNet string) ([]string, error) {
 	}
 
 	return ports, nil
+}
+
+// disableSyslogDebug installs the rsyslog filter dropping debug and noisy info messages, restarting rsyslog only if it
+// changed as rsyslog reads its config only at startup
+func disableSyslogDebug(ctx context.Context) error {
+	cur, err := os.ReadFile(rsyslogDropDebugPath)
+	if err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("reading %s: %w", rsyslogDropDebugPath, err)
+	}
+	if err == nil && bytes.Equal(cur, dropDebug) {
+		return nil
+	}
+
+	if err := os.WriteFile(rsyslogDropDebugPath, dropDebug, 0o644); err != nil { //nolint:gosec
+		return fmt.Errorf("writing %s: %w", rsyslogDropDebugPath, err)
+	}
+
+	cmd := exec.CommandContext(ctx, "systemctl", "restart", "rsyslog")
+	cmd.Stdout = logutil.NewSink(ctx, slog.Debug, "rsyslog: ")
+	cmd.Stderr = logutil.NewSink(ctx, slog.Debug, "rsyslog: ")
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("restarting rsyslog: %w", err)
+	}
+
+	slog.Info("Installed rsyslog drop-debug config", "path", rsyslogDropDebugPath)
+
+	return nil
 }
