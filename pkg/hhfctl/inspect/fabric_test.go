@@ -4,6 +4,7 @@
 package inspect
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -13,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 )
 
 func TestFabricFilter(t *testing.T) {
@@ -31,7 +33,16 @@ func TestFabricFilter(t *testing.T) {
 		return sw
 	}
 
-	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+	profileGets := 0
+	kube := fake.NewClientBuilder().WithScheme(scheme).WithInterceptorFuncs(interceptor.Funcs{
+		Get: func(ctx context.Context, kube kclient.WithWatch, key kclient.ObjectKey, obj kclient.Object, opts ...kclient.GetOption) error {
+			if _, ok := obj.(*wiringapi.SwitchProfile); ok {
+				profileGets++
+			}
+
+			return kube.Get(ctx, key, obj, opts...)
+		},
+	}).WithObjects(
 		&wiringapi.SwitchProfile{ObjectMeta: meta("vs")},
 		&wiringapi.Fabric{ObjectMeta: meta("default")},
 		&wiringapi.Fabric{ObjectMeta: meta("backend")},
@@ -57,6 +68,7 @@ func TestFabricFilter(t *testing.T) {
 	fabrics, switches := names(out)
 	require.Equal(t, []string{"backend", "default"}, fabrics)
 	require.Equal(t, []string{"leaf-01@default", "leaf-02@backend"}, switches)
+	require.Equal(t, 1, profileGets, "shared switch profile should be fetched once")
 
 	out, err = Fabric(t.Context(), kube, FabricIn{Name: "default"})
 	require.NoError(t, err)
