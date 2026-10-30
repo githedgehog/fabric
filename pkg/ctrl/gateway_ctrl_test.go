@@ -249,6 +249,36 @@ func TestBuildGatewayAgentGivenGateway(t *testing.T) {
 	require.Equal(t, map[string][]string{"g1": {"gw-2", "gw-1"}, "g4": {"gw-1"}}, members(updated))
 }
 
+func TestBuildGatewayAgentForPeeringSkipsDeleted(t *testing.T) {
+	deleted := func(name, group string) *gwapi.Gateway {
+		gw := &gwapi.Gateway{
+			Name: name, Namespace: kmetav1.NamespaceDefault,
+			DeletionTimestamp: new(kmetav1.Now()),
+			Finalizers:        []string{CleanupFinalizer},
+			Spec:              gwapi.GatewaySpec{Groups: []gwapi.GatewayGroupMembership{{Name: group}}},
+		}
+		gw.Default()
+
+		return gw
+	}
+
+	// sorted before the other members of g1
+	kube := gatewayTestKube(t, deleted("gw-0", "g1"), deleted("gw-6", "g5"))
+	cfg := &meta.FabricConfig{}
+
+	peering := &gwapi.GatewayPeering{}
+	require.NoError(t, kube.Get(t.Context(), kclient.ObjectKey{Name: "vpc-1--vpc-2", Namespace: kmetav1.NamespaceDefault}, peering))
+
+	peering.Spec.GatewayGroup = "g1"
+	ag, err := BuildGatewayAgentForPeering(t.Context(), kube, cfg, peering)
+	require.NoError(t, err)
+	require.Equal(t, "gw-1", ag.Name)
+
+	peering.Spec.GatewayGroup = "g5"
+	_, err = BuildGatewayAgentForPeering(t.Context(), kube, cfg, peering)
+	require.ErrorContains(t, err, "gateway not found for gateway group: g5")
+}
+
 func TestGatewayEnqueue(t *testing.T) {
 	kube := gatewayTestKube(t)
 	r := &GatewayReconciler{Client: kube, lock: unlockedLock()}
