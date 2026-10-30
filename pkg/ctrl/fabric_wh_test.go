@@ -17,7 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-func TestFabricChanged(t *testing.T) {
+func TestCheckFabricUnchanged(t *testing.T) {
 	for _, tt := range []struct {
 		old, new string
 		changed  bool
@@ -34,12 +34,12 @@ func TestFabricChanged(t *testing.T) {
 		{old: "backend", new: "frontend", changed: true},
 	} {
 		t.Run(tt.old+"->"+tt.new, func(t *testing.T) {
-			require.Equal(t, tt.changed, fabricChanged(tt.old, tt.new))
+			require.Equal(t, tt.changed, checkFabricUnchanged(tt.old, tt.new) != nil)
 		})
 	}
 }
 
-func TestDomainChanged(t *testing.T) {
+func TestCheckDomainUnchanged(t *testing.T) {
 	for _, tt := range []struct {
 		old, new string
 		changed  bool
@@ -54,12 +54,12 @@ func TestDomainChanged(t *testing.T) {
 		{old: "plane-a", new: "plane-b", changed: true},
 	} {
 		t.Run(tt.old+"->"+tt.new, func(t *testing.T) {
-			require.Equal(t, tt.changed, domainChanged(tt.old, tt.new))
+			require.Equal(t, tt.changed, checkDomainUnchanged(tt.old, tt.new) != nil)
 		})
 	}
 }
 
-func TestDomainsChanged(t *testing.T) {
+func TestCheckDomainsUnchanged(t *testing.T) {
 	for _, tt := range []struct {
 		name     string
 		old, new []string
@@ -77,7 +77,7 @@ func TestDomainsChanged(t *testing.T) {
 		{name: "one more", old: []string{"plane-a"}, new: []string{"plane-a", "plane-b"}, changed: true},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			require.Equal(t, tt.changed, domainsChanged(tt.old, tt.new))
+			require.Equal(t, tt.changed, checkDomainsUnchanged(tt.old, tt.new) != nil)
 		})
 	}
 }

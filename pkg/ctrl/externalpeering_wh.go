@@ -20,9 +20,7 @@ import (
 
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
-	kapivalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/validation/field"
 	kctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -74,8 +72,8 @@ func (w *ExternalPeeringWebhook) ValidateCreate(ctx context.Context, peer *vpcap
 }
 
 func (w *ExternalPeeringWebhook) ValidateUpdate(ctx context.Context, oldPeer *vpcapi.ExternalPeering, newPeer *vpcapi.ExternalPeering) (admission.Warnings, error) {
-	if fabricChanged(oldPeer.Spec.Topology.Fabric, newPeer.Spec.Topology.Fabric) {
-		return nil, field.Invalid(field.NewPath("spec", "topology", "fabric"), newPeer.Spec.Topology.Fabric, kapivalidation.FieldImmutableErrorMsg)
+	if err := checkFabricUnchanged(oldPeer.Spec.Topology.Fabric, newPeer.Spec.Topology.Fabric); err != nil {
+		return nil, err
 	}
 
 	// if !equality.Semantic.DeepEqual(oldPeer.Spec, newPeer.Spec) {
