@@ -208,7 +208,7 @@ func (fabric *Fabric) Validate(ctx context.Context, kube kclient.Reader, _ *meta
 			return nil, field.Invalid(domainPath, name, strings.Join(errs, ", "))
 		}
 		if len(name) > meta.MaxNameLength {
-			return nil, field.TooLong(domainPath, name, meta.MaxNameLength)
+			return nil, field.TooLongCharacters(domainPath, name, meta.MaxNameLength)
 		}
 	}
 
