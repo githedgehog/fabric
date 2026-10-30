@@ -456,7 +456,8 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 	spec := field.NewPath("spec")
 	topology := spec.Child("topology")
 
-	if err := wiringapi.CheckFabricExists(ctx, kube, vpc.Namespace, vpc.Spec.Topology.Fabric); err != nil {
+	fabric, err := wiringapi.CheckFabricExists(ctx, kube, vpc.Namespace, vpc.Spec.Topology.Fabric)
+	if err != nil {
 		return nil, err //nolint:wrapcheck
 	}
 
@@ -777,10 +778,6 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 			return nil, field.Invalid(spec.Child("ipv4Namespace"), vpc.Spec.IPv4Namespace, fmt.Sprintf("vpc is in fabric %s but the IPv4Namespace is in fabric %s", vpcFabric, nsFabric))
 		}
 
-		fabric, err := wiringapi.GetFabricSpec(ctx, kube, vpc.Namespace, vpc.Spec.Topology.Fabric)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get fabric: %w", err)
-		}
 		for _, domain := range domains {
 			if _, exists := fabric.Domains[domain]; !exists {
 				return nil, field.Invalid(topology.Child("domains"), domain, fmt.Sprintf("domain %s not found in fabric %s", domain, vpcFabric))

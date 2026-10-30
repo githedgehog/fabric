@@ -128,9 +128,28 @@ func TestFabricValidation(t *testing.T) {
 
 func TestFabricReferenceRequired(t *testing.T) {
 	// with or without a client to look it up
-	require.EqualError(t, wiringapi.CheckFabricExists(t.Context(), nil, "default", ""), "spec.topology.fabric: Required value")
-	require.EqualError(t, wiringapi.CheckFabricExists(t.Context(), fake.NewClientBuilder().Build(), "default", ""), "spec.topology.fabric: Required value")
+	_, err := wiringapi.CheckFabricExists(t.Context(), nil, "default", "")
+	require.EqualError(t, err, "spec.topology.fabric: Required value")
+	_, err = wiringapi.CheckFabricExists(t.Context(), fake.NewClientBuilder().Build(), "default", "")
+	require.EqualError(t, err, "spec.topology.fabric: Required value")
 
-	_, err := wiringapi.GetFabricSpec(t.Context(), fake.NewClientBuilder().Build(), "default", "")
+	_, err = wiringapi.GetFabricSpec(t.Context(), fake.NewClientBuilder().Build(), "default", "")
 	require.ErrorIs(t, err, wiringapi.ErrFabricNotSet)
+}
+
+func TestCheckFabricExists(t *testing.T) {
+	spec, err := wiringapi.CheckFabricExists(t.Context(), nil, "default", "default")
+	require.NoError(t, err)
+	require.Nil(t, spec, "no spec without a client")
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, wiringapi.AddToScheme(scheme))
+	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(withName("default", &wiringapi.Fabric{Spec: wiringapi.FabricSpec{LeafASNStart: 65101}})).Build()
+
+	spec, err = wiringapi.CheckFabricExists(t.Context(), kube, "default", "default")
+	require.NoError(t, err)
+	require.Equal(t, uint32(65101), spec.LeafASNStart)
+
+	_, err = wiringapi.CheckFabricExists(t.Context(), kube, "default", "nope")
+	require.EqualError(t, err, `spec.topology.fabric: Not found: "nope"`)
 }
