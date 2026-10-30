@@ -447,7 +447,8 @@ func TestVPCValidation(t *testing.T) {
 					VLAN:    200,
 				},
 			})),
-			err: true,
+			err:    true,
+			errMsg: `spec.subnets[bgp].hostBGPExtraPrefixes[10.0.9.0/24]: Invalid value: "10.0.9.0/24": overlaps with subnet 10.0.9.0/24 of VPC`,
 		},
 		{
 			name: "subnet overlaps other vpc host bgp extra prefix",
@@ -459,7 +460,8 @@ func TestVPCValidation(t *testing.T) {
 					HostBGPExtraPrefixes: map[string]v1beta1.VPCSubnetHostBGPPrefix{"10.0.1.0/24": {}},
 				},
 			})),
-			err: true,
+			err:    true,
+			errMsg: `spec.subnets[default].subnet: Invalid value: "10.0.1.0/24": overlaps with hostBGP extra prefix 10.0.1.0/24 of VPC`,
 		},
 		{
 			name: "host bgp extra prefix overlaps other vpc host bgp extra prefix",

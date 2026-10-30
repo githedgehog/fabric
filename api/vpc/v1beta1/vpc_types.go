@@ -493,13 +493,14 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 	}
 
 	subnets := []netip.Prefix{}
+	subnetPaths := map[netip.Prefix]*field.Path{}
 	vlans := map[uint16]bool{}
 	hostBGPSubnets := 0
 	for subnetName, subnetCfg := range vpc.Spec.Subnets {
 		subnetPath := spec.Child("subnets").Key(subnetName)
 
 		// the name is used in labels and in the name of the subnet's DHCPSubnet, as <vpc>--<subnet>
-		if err := meta.ValidateName(spec.Child("subnets").Key(subnetName), subnetName); err != nil {
+		if err := meta.ValidateName(subnetPath, subnetName); err != nil {
 			return nil, err //nolint:wrapcheck
 		}
 		if subnetCfg.Subnet == "" {
@@ -560,6 +561,7 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 				}
 
 				subnets = append(subnets, p)
+				subnetPaths[p] = extraPrefixesPath.Key(prefixStr)
 			}
 		} else {
 			if len(subnetCfg.HostBGPExtraPrefixes) > 0 {
@@ -587,6 +589,7 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 		}
 
 		subnets = append(subnets, ipNet)
+		subnetPaths[ipNet] = subnetPath.Child("subnet")
 
 		dhcpPath := subnetPath.Child("dhcp")
 		if subnetCfg.DHCP.Relay != "" && subnetCfg.DHCP.Enable {
@@ -879,7 +882,7 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 
 				for _, subnet := range subnets {
 					if subnet.Overlaps(otherNet) {
-						return nil, field.Invalid(spec.Child("subnets"), subnet.String(), fmt.Sprintf("overlaps with subnet %s of VPC %s", otherSubnet.Subnet, other.Name))
+						return nil, field.Invalid(subnetPaths[subnet], subnet.String(), fmt.Sprintf("overlaps with subnet %s of VPC %s", otherSubnet.Subnet, other.Name))
 					}
 					for otherHBGPPrefixStr := range otherSubnet.HostBGPExtraPrefixes {
 						op, err := netip.ParsePrefix(otherHBGPPrefixStr)
@@ -887,7 +890,7 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 							return nil, fmt.Errorf("failed to parse hostBGP extra prefix %s: %w", otherHBGPPrefixStr, err)
 						}
 						if subnet.Overlaps(op) {
-							return nil, field.Invalid(spec.Child("subnets"), subnet.String(), fmt.Sprintf("overlaps with hostBGP extra prefix %s of VPC %s", otherHBGPPrefixStr, other.Name))
+							return nil, field.Invalid(subnetPaths[subnet], subnet.String(), fmt.Sprintf("overlaps with hostBGP extra prefix %s of VPC %s", otherHBGPPrefixStr, other.Name))
 						}
 					}
 				}
