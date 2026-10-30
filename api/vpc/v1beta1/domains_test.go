@@ -152,7 +152,7 @@ func TestVPCDomains(t *testing.T) {
 		err     string
 	}{
 		{name: "two domains", domains: []string{"plane-b", "plane-a"}},
-		{name: "one domain not in the fabric", domains: []string{"plane-a", "plane-c"}, err: "domain plane-c not found in fabric default"},
+		{name: "one domain not in the fabric", domains: []string{"plane-a", "plane-c"}, err: `spec.topology.domains: Invalid value: "plane-c": domain plane-c not found in fabric default`},
 		{name: "duplicate", domains: []string{"plane-a", "plane-a"}, err: "domains must be unique"},
 		{name: "empty name", domains: []string{"plane-a", ""}, err: "domain name cannot be empty"},
 	} {

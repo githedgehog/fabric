@@ -196,7 +196,7 @@ func TestExternalInboundPrefixes(t *testing.T) {
 			"10.1.0.0/16": {MaxPrefixLen: 24}, "172.16.0.0/12": {MinPrefixLen: 16, MaxPrefixLen: 32}, "192.168.0.0/16": {MinPrefixLen: 24},
 		}},
 		{name: "around the namespace", prefixes: map[string]v1beta1.ExternalInboundPrefix{"10.0.0.0/8": {MaxPrefixLen: 32}}},
-		{name: "inside the namespace", prefixes: map[string]v1beta1.ExternalInboundPrefix{"10.0.1.0/24": {}}, err: "inbound prefix 10.0.1.0/24 is inside subnet 10.0.0.0/16"},
+		{name: "inside the namespace", prefixes: map[string]v1beta1.ExternalInboundPrefix{"10.0.1.0/24": {}}, err: `spec.inboundPrefixes[10.0.1.0/24]: Invalid value: "10.0.1.0/24": inside subnet 10.0.0.0/16`},
 		{name: "invalid", prefixes: map[string]v1beta1.ExternalInboundPrefix{"10.1.1.0/33": {}}, err: `spec.inboundPrefixes[10.1.1.0/33]: Invalid value: "10.1.1.0/33": invalid inbound prefix`},
 		{name: "IPv6", prefixes: map[string]v1beta1.ExternalInboundPrefix{"fd00::/64": {}}, err: "is not IPv4"},
 		{name: "host bits", prefixes: map[string]v1beta1.ExternalInboundPrefix{"10.1.1.1/24": {}}, err: "has host bits set"},
