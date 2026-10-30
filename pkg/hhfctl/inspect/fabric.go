@@ -25,6 +25,7 @@ import (
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	"go.githedgehog.com/fabric/pkg/util/apiutil"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -144,13 +145,16 @@ func Fabric(ctx context.Context, kube kclient.Reader, in FabricIn) (*FabricOut, 
 	totalSwitches := 0
 	readySwitches := 0
 
+	// agents carry the labels of their switches
+	fabricSel := kclient.MatchingLabels(apiutil.SwitchFilter{Fabric: in.Name}.FabricLabels(false))
+
 	swList := &wiringapi.SwitchList{}
-	if err := kube.List(ctx, swList); err != nil {
-		return nil, errors.Wrap(err, "cannot list switches")
+	if err := kube.List(ctx, swList, fabricSel); err != nil {
+		return nil, fmt.Errorf("cannot list switches: %w", err)
 	}
 
 	agList := &agentapi.AgentList{}
-	if err := kube.List(ctx, agList); err != nil {
+	if err := kube.List(ctx, agList, fabricSel); err != nil {
 		return nil, fmt.Errorf("cannot list agents: %w", err)
 	}
 	agents := map[string]*agentapi.Agent{}
@@ -162,9 +166,6 @@ func Fabric(ctx context.Context, kube kclient.Reader, in FabricIn) (*FabricOut, 
 	for _, sw := range swList.Items {
 		swName := sw.Name
 		fabricName := sw.Spec.Topology.Fabric
-		if in.Name != "" && fabricName != in.Name {
-			continue
-		}
 
 		totalSwitches++
 

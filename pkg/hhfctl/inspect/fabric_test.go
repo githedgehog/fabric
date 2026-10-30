@@ -26,12 +26,17 @@ func TestFabricFilter(t *testing.T) {
 		return kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault}
 	}
 	// stored switches are always defaulted
-	switchGen := func(name, fabricName string) kclient.Object {
+	switchGen := func(name, fabricName string) *wiringapi.Switch {
 		sw := &wiringapi.Switch{ObjectMeta: meta(name), Spec: wiringapi.SwitchSpec{Topology: wiringapi.SwitchTopology{Fabric: fabricName}, Profile: "vs"}}
 		sw.Default()
 
 		return sw
 	}
+	// created without a fabric, so defaulted to the default one
+	leaf01 := switchGen("leaf-01", "")
+	// the agent ctrl copies the switch labels to the agent
+	agent01 := &agentapi.Agent{ObjectMeta: meta("leaf-01")}
+	agent01.Labels = leaf01.Labels
 
 	profileGets, agentGets := 0, 0
 	kube := fake.NewClientBuilder().WithScheme(scheme).WithInterceptorFuncs(interceptor.Funcs{
@@ -49,11 +54,10 @@ func TestFabricFilter(t *testing.T) {
 		&wiringapi.SwitchProfile{ObjectMeta: meta("vs")},
 		&wiringapi.Fabric{ObjectMeta: meta("default")},
 		&wiringapi.Fabric{ObjectMeta: meta("backend")},
-		// created without a fabric, so defaulted to the default one
-		switchGen("leaf-01", ""),
+		leaf01,
 		switchGen("leaf-02", "backend"),
 		// leaf-02 has no agent yet
-		&agentapi.Agent{ObjectMeta: meta("leaf-01")},
+		agent01,
 	).Build()
 
 	names := func(out *FabricOut) ([]string, []string) {
@@ -82,6 +86,13 @@ func TestFabricFilter(t *testing.T) {
 	fabrics, switches = names(out)
 	require.Equal(t, []string{"default"}, fabrics)
 	require.Equal(t, []string{"leaf-01@default"}, switches)
+	require.Equal(t, "Ready: 1/1 switches", out.Summary)
+
+	out, err = Fabric(t.Context(), kube, FabricIn{Name: "backend"})
+	require.NoError(t, err)
+	_, switches = names(out)
+	require.Equal(t, []string{"leaf-02@backend"}, switches)
+	require.Equal(t, "Ready: 0/1 switches", out.Summary)
 
 	_, err = Fabric(t.Context(), kube, FabricIn{Name: "frontend"})
 	require.ErrorContains(t, err, "fabric frontend not found")
