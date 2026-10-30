@@ -20,6 +20,7 @@ import (
 	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
 	gwintapi "go.githedgehog.com/fabric/api/gwint/v1alpha1"
 	"go.githedgehog.com/fabric/api/meta"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"oras.land/oras-go/v2"
 	"oras.land/oras-go/v2/content/file"
 	"oras.land/oras-go/v2/registry/remote"
@@ -212,7 +213,7 @@ func (v *GatewayValidator) Validate(ctx context.Context, gwAg *gwintapi.GatewayA
 			}
 		}
 
-		return fmt.Errorf("dp-validator: %s", strings.Join(msgs, ", ")) //nolint:err113
+		return field.Invalid(field.NewPath("spec"), field.OmitValueType{}, "dp-validator: "+strings.Join(msgs, ", "))
 	}
 
 	return nil

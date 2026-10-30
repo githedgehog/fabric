@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	"go.githedgehog.com/fabric/pkg/util/testutil"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -81,19 +82,19 @@ func TestVPCAttachmentValidation(t *testing.T) {
 			name:    "vpc not found",
 			attach:  onUnbundled,
 			objects: []kclient.Object{unbundled, sw("leaf-01")},
-			err:     "vpc vpc-01 not found",
+			err:     `spec.subnet: Invalid value: "vpc-01/default": vpc vpc-01 not found`,
 		},
 		{
 			name:    "subnet not found",
 			attach:  attach("vpc-01--other", "vpc-01/other", unbundled.Name),
 			objects: []kclient.Object{vpcIn(wiringapi.DefaultFabricDomain), unbundled, sw("leaf-01")},
-			err:     "subnet other not found in vpc vpc-01",
+			err:     `spec.subnet: Invalid value: "vpc-01/other": subnet other not found in vpc vpc-01`,
 		},
 		{
 			name:    "connection not found",
 			attach:  onUnbundled,
 			objects: []kclient.Object{vpcIn(wiringapi.DefaultFabricDomain)},
-			err:     "connection server-01--unbundled--leaf-01 not found",
+			err:     `spec.connection: Not found: "server-01--unbundled--leaf-01"`,
 		},
 		{
 			name:   "subnet already attached to the connection",
@@ -102,7 +103,7 @@ func TestVPCAttachmentValidation(t *testing.T) {
 				vpcIn(wiringapi.DefaultFabricDomain), unbundled, sw("leaf-01"),
 				attach("vpc-01--unbundled-again", "vpc-01/default", unbundled.Name),
 			},
-			err: "connection server-01--unbundled--leaf-01 already attached to vpc subnet vpc-01/default",
+			err: "connection server-01--unbundled--leaf-01 already attached to it by vpc-01--unbundled-again",
 		},
 		{
 			name:    "switch with domains defaulted",
@@ -172,6 +173,7 @@ func TestVPCAttachmentValidation(t *testing.T) {
 				return
 			}
 			require.ErrorContains(t, err, tt.err)
+			testutil.RequireFieldError(t, err, tt.attach)
 		})
 	}
 }

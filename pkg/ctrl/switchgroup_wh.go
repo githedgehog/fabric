@@ -60,8 +60,8 @@ func (w *SwitchGroupWebhook) ValidateCreate(ctx context.Context, sg *wiringapi.S
 }
 
 func (w *SwitchGroupWebhook) ValidateUpdate(ctx context.Context, oldSg *wiringapi.SwitchGroup, newSg *wiringapi.SwitchGroup) (admission.Warnings, error) {
-	if fabricChanged(oldSg.Spec.Topology.Fabric, newSg.Spec.Topology.Fabric) {
-		return nil, fmt.Errorf("topology.fabric is immutable") //nolint:err113
+	if err := checkFabricUnchanged(oldSg.Spec.Topology.Fabric, newSg.Spec.Topology.Fabric); err != nil {
+		return nil, err
 	}
 
 	warns, err := newSg.Validate(ctx, w.KubeClient, w.Cfg)

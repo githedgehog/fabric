@@ -17,13 +17,13 @@ package v1beta1
 import (
 	"context"
 	"fmt"
+	"maps"
 	"net"
 	"net/netip"
 	"slices"
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	ktypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -398,12 +399,22 @@ func (sw *Switch) Default() {
 
 func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) error {
 	if kube == nil {
-		return errors.Errorf("kube client is required for hydration validations")
+		return fmt.Errorf("kube client is required for hydration validations") //nolint:err113
 	}
 
+	fabric, err := CheckFabricExists(ctx, kube, sw.Namespace, sw.Spec.Topology.Fabric)
+	if err != nil {
+		return err
+	}
+
+	return sw.hydrationValidation(ctx, kube, fabricCfg, fabric)
+}
+
+// hydrationValidation is HydrationValidation for Validate, which already has the fabric
+func (sw *Switch) hydrationValidation(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig, fabric *FabricSpec) error {
 	switches := &SwitchList{}
 	if err := kube.List(ctx, switches); err != nil {
-		return errors.Wrapf(err, "failed to list switches for hydration validation")
+		return fmt.Errorf("failed to list switches for hydration validation: %w", err)
 	}
 
 	leafASNs := map[uint32]bool{}
@@ -412,25 +423,27 @@ func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, 
 	mgmtIPs := map[netip.Addr]bool{}
 	vtepSubnet, err := netip.ParsePrefix(fabricCfg.VTEPSubnet)
 	if err != nil {
-		return errors.Wrapf(err, "failed to parse Fabric VTEP subnet %s", fabricCfg.VTEPSubnet)
+		return fmt.Errorf("failed to parse Fabric VTEP subnet %s: %w", fabricCfg.VTEPSubnet, err)
 	}
 	protocolSubnet, err := netip.ParsePrefix(fabricCfg.ProtocolSubnet)
 	if err != nil {
-		return errors.Wrapf(err, "failed to parse Fabric protocol subnet %s", fabricCfg.ProtocolSubnet)
+		return fmt.Errorf("failed to parse Fabric protocol subnet %s: %w", fabricCfg.ProtocolSubnet, err)
 	}
 	controlVIP, err := netip.ParsePrefix(fabricCfg.ControlVIP)
 	if err != nil {
-		return errors.Wrapf(err, "failed to parse Fabric control VIP %s", fabricCfg.ControlVIP)
+		return fmt.Errorf("failed to parse Fabric control VIP %s: %w", fabricCfg.ControlVIP, err)
 	}
 	mgmtSubnet, err := netip.ParsePrefix(fabricCfg.ManagementSubnet)
 	if err != nil {
-		return errors.Wrapf(err, "failed to parse Fabric management subnet %s", fabricCfg.ManagementSubnet)
+		return fmt.Errorf("failed to parse Fabric management subnet %s: %w", fabricCfg.ManagementSubnet, err)
 	}
 	mgmtDHCPStart, err := netip.ParseAddr(fabricCfg.ManagementDHCPStart)
 	if err != nil {
-		return errors.Wrapf(err, "failed to parse Fabric management DHCP start %s", fabricCfg.ManagementDHCPStart)
+		return fmt.Errorf("failed to parse Fabric management DHCP start %s: %w", fabricCfg.ManagementDHCPStart, err)
 	}
 	mgmtIPs[controlVIP.Addr()] = true
+
+	spec := field.NewPath("spec")
 
 	// switches are identified by them during the bootstrap, compared normalized as the stored ones may not be yet
 	bootSerials := map[string]string{}
@@ -470,7 +483,7 @@ func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, 
 			Group: "gateway.githedgehog.com", Version: "v1alpha1", Kind: "GatewayList",
 		})
 		if err := kube.List(ctx, gateways); err != nil {
-			return errors.Wrapf(err, "failed to list gateways for hydration validation")
+			return fmt.Errorf("failed to list gateways for hydration validation: %w", err)
 		}
 
 		for _, gw := range gateways.Items {
@@ -489,49 +502,49 @@ func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, 
 
 	if serial := NormalizeBootSerial(sw.Spec.Boot.Serial); serial != "" {
 		if other, exist := bootSerials[serial]; exist {
-			return fmt.Errorf("switch %s boot serial %s is already used by switch %s", sw.Name, serial, other) //nolint:err113
+			return field.Invalid(spec.Child("boot", "serial"), sw.Spec.Boot.Serial, "already used by switch "+other)
 		}
 	}
 	mac, err := NormalizeBootMAC(sw.Spec.Boot.MAC)
 	if err != nil {
-		return fmt.Errorf("switch %s boot MAC: %w", sw.Name, err)
+		return field.Invalid(spec.Child("boot", "mac"), sw.Spec.Boot.MAC, err.Error())
 	}
 	if other, exist := bootMACs[mac]; exist && mac != "" {
-		return fmt.Errorf("switch %s boot MAC %s is already used by switch %s", sw.Name, mac, other) //nolint:err113
+		return field.Invalid(spec.Child("boot", "mac"), sw.Spec.Boot.MAC, "already used by switch "+other)
 	}
 
 	if sw.Spec.IP != "" {
 		swIP, err := netip.ParsePrefix(sw.Spec.IP)
 		if err != nil {
-			return errors.Wrapf(err, "parsing switch %s IP %s", sw.Name, sw.Spec.IP)
+			return field.Invalid(spec.Child("ip"), sw.Spec.IP, err.Error())
 		}
 
 		if !mgmtSubnet.Contains(swIP.Addr()) {
-			return errors.Errorf("switch %s management IP %s is not in the management subnet %s", sw.Name, swIP, mgmtSubnet)
+			return field.Invalid(spec.Child("ip"), sw.Spec.IP, "not in the management subnet "+mgmtSubnet.String())
 		}
 		if swIP.Addr().Compare(mgmtDHCPStart) >= 0 {
-			return errors.Errorf("switch %s management IP %s is in the management DHCP range starting at %s", sw.Name, swIP, mgmtDHCPStart)
+			return field.Invalid(spec.Child("ip"), sw.Spec.IP, "in the management DHCP range starting at "+mgmtDHCPStart.String())
 		}
 		if _, exist := mgmtIPs[swIP.Addr()]; exist {
-			return errors.Errorf("switch %s (management) IP %s is already in use", sw.Name, swIP)
+			return field.Invalid(spec.Child("ip"), sw.Spec.IP, "already in use")
 		}
 	}
 
 	if sw.Spec.ProtocolIP != "" {
 		swProtoIP, err := netip.ParsePrefix(sw.Spec.ProtocolIP)
 		if err != nil {
-			return errors.Wrapf(err, "parsing switch %s protocol IP %s", sw.Name, sw.Spec.ProtocolIP)
+			return field.Invalid(spec.Child("protocolIP"), sw.Spec.ProtocolIP, err.Error())
 		}
 		if swProtoIP.Bits() != 32 {
-			return errors.Errorf("switch %s protocol IP %s must be a /32", sw.Name, swProtoIP)
+			return field.Invalid(spec.Child("protocolIP"), sw.Spec.ProtocolIP, "must be a /32")
 		}
 
 		if !protocolSubnet.Contains(swProtoIP.Addr()) {
-			return errors.Errorf("switch %s protocol IP %s is not in the protocol subnet %s", sw.Name, swProtoIP, protocolSubnet)
+			return field.Invalid(spec.Child("protocolIP"), sw.Spec.ProtocolIP, "not in the protocol subnet "+protocolSubnet.String())
 		}
 
 		if _, exist := protocolIPs[sw.Spec.ProtocolIP]; exist {
-			return errors.Errorf("switch %s protocol IP %s is already in use", sw.Name, swProtoIP)
+			return field.Invalid(spec.Child("protocolIP"), sw.Spec.ProtocolIP, "already in use")
 		}
 	}
 
@@ -539,29 +552,25 @@ func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, 
 	if sw.Spec.Role.IsLeaf() {
 		// TODO: remove MCLAG exception once we don't need to worry about upgrading systems which still support it
 		if _, exist := leafASNs[sw.Spec.ASN]; exist && sw.Spec.Redundancy.Type != meta.RedundancyTypeMCLAG {
-			return errors.Errorf("leaf %s ASN %d is already in use", sw.Name, sw.Spec.ASN)
+			return field.Invalid(spec.Child("asn"), sw.Spec.ASN, "already in use")
 		}
 	}
 
-	fabric, err := GetFabricSpec(ctx, kube, sw.Namespace, sw.Spec.Topology.Fabric)
-	if err != nil {
-		return err
-	}
 	if sw.Spec.Role.IsLeaf() && (sw.Spec.ASN < fabric.LeafASNStart || sw.Spec.ASN > fabric.LeafASNEnd) {
-		return fmt.Errorf("leaf %s ASN %d is not within the fabric leaf ASN range %d-%d", sw.Name, sw.Spec.ASN, fabric.LeafASNStart, fabric.LeafASNEnd) //nolint:err113
+		return field.Invalid(spec.Child("asn"), sw.Spec.ASN, fmt.Sprintf("not within the fabric leaf ASN range %d-%d", fabric.LeafASNStart, fabric.LeafASNEnd))
 	}
 	if sw.Spec.Role.IsSpine() {
 		// a spine is in exactly one domain, which Validate checks too
 		if len(sw.Spec.Topology.Domains) != 1 {
-			return fmt.Errorf("spine %s must be in exactly one domain, found %d", sw.Name, len(sw.Spec.Topology.Domains)) //nolint:err113
+			return field.Invalid(spec.Child("topology", "domains"), sw.Spec.Topology.Domains, fmt.Sprintf("spine must be in exactly one domain, found %d", len(sw.Spec.Topology.Domains)))
 		}
 		domainName := sw.Spec.Topology.Domains[0]
 		domain, exists := fabric.Domains[domainName]
 		if !exists {
-			return fmt.Errorf("spine %s domain %s not found in fabric", sw.Name, domainName) //nolint:err113
+			return field.Invalid(spec.Child("topology", "domains"), domainName, fmt.Sprintf("domain %s not found in fabric %s", domainName, sw.Spec.Topology.Fabric))
 		}
 		if sw.Spec.ASN != domain.SpineASN {
-			return fmt.Errorf("spine %s ASN %d is not the spine ASN %d of domain %s", sw.Name, sw.Spec.ASN, domain.SpineASN, domainName) //nolint:err113
+			return field.Invalid(spec.Child("asn"), sw.Spec.ASN, fmt.Sprintf("not the spine ASN %d of domain %s", domain.SpineASN, domainName))
 		}
 	}
 
@@ -569,19 +578,19 @@ func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, 
 	if sw.Spec.Role.IsLeaf() {
 		swVTEPIP, err := netip.ParsePrefix(sw.Spec.VTEPIP)
 		if err != nil {
-			return errors.Wrapf(err, "parsing switch %s VTEP IP %s", sw.Name, sw.Spec.VTEPIP)
+			return field.Invalid(spec.Child("vtepIP"), sw.Spec.VTEPIP, err.Error())
 		}
 		if swVTEPIP.Bits() != 32 {
-			return errors.Errorf("switch %s VTEP IP %s must be a /32", sw.Name, swVTEPIP)
+			return field.Invalid(spec.Child("vtepIP"), sw.Spec.VTEPIP, "must be a /32")
 		}
 
 		if !vtepSubnet.Contains(swVTEPIP.Addr()) {
-			return errors.Errorf("switch %s VTEP IP %s is not in the VTEP subnet %s", sw.Name, swVTEPIP, vtepSubnet)
+			return field.Invalid(spec.Child("vtepIP"), sw.Spec.VTEPIP, "not in the VTEP subnet "+vtepSubnet.String())
 		}
 
 		// TODO: remove MCLAG exception once we don't need to worry about upgrading systems which still support it
 		if _, exist := VTEPs[sw.Spec.VTEPIP]; exist && sw.Spec.Redundancy.Type != meta.RedundancyTypeMCLAG {
-			return errors.Errorf("switch %s VTEP IP %s is already in use", sw.Name, swVTEPIP)
+			return field.Invalid(spec.Child("vtepIP"), sw.Spec.VTEPIP, "already in use")
 		}
 	}
 
@@ -592,72 +601,78 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 	var warnings admission.Warnings
 
 	if err := meta.ValidateObjectMetadata(sw); err != nil {
-		return nil, errors.Wrapf(err, "failed to validate metadata")
+		return nil, err //nolint:wrapcheck
 	}
 
+	spec := field.NewPath("spec")
+	domainsPath, profilePath := spec.Child("topology", "domains"), spec.Child("profile")
+
 	if len(sw.Spec.VLANNamespaces) == 0 {
-		return nil, errors.Errorf("at least one VLAN namespace required")
+		return nil, field.Required(spec.Child("vlanNamespaces"), "at least one VLAN namespace required")
 	}
 	domains := slices.Sorted(slices.Values(sw.Spec.Topology.Domains))
 	if len(domains) == 0 {
-		return nil, fmt.Errorf("at least one domain is required") //nolint:err113
+		return nil, field.Required(domainsPath, "at least one domain is required")
 	}
 	if sw.Spec.Role.IsSpine() && len(domains) != 1 {
-		return nil, fmt.Errorf("spine must be in exactly one domain, found %d", len(domains)) //nolint:err113
+		return nil, field.Invalid(domainsPath, sw.Spec.Topology.Domains, fmt.Sprintf("spine must be in exactly one domain, found %d", len(domains)))
 	}
 	if slices.Contains(domains, "") {
-		return nil, fmt.Errorf("domain name cannot be empty") //nolint:err113
+		return nil, field.Invalid(domainsPath, sw.Spec.Topology.Domains, "domain name cannot be empty")
 	}
 	if len(slices.Compact(slices.Clone(domains))) != len(domains) {
-		return nil, fmt.Errorf("domains must be unique") //nolint:err113
+		return nil, field.Invalid(domainsPath, sw.Spec.Topology.Domains, "domains must be unique")
 	}
 
-	if err := CheckFabricExists(ctx, kube, sw.Namespace, sw.Spec.Topology.Fabric); err != nil {
+	fabric, err := CheckFabricExists(ctx, kube, sw.Namespace, sw.Spec.Topology.Fabric)
+	if err != nil {
 		return nil, err
 	}
 	if sw.Spec.ASN == 0 {
-		return nil, errors.Errorf("ASN is required")
+		return nil, field.Required(spec.Child("asn"), "")
 	}
 	if sw.Spec.IP == "" {
-		return nil, errors.Errorf("IP is required")
+		return nil, field.Required(spec.Child("ip"), "")
 	}
 	if sw.Spec.ProtocolIP == "" {
-		return nil, errors.Errorf("protocol IP is required")
+		return nil, field.Required(spec.Child("protocolIP"), "")
 	}
 	if sw.Spec.Role.IsLeaf() && fabricCfg != nil && fabricCfg.FabricMode == meta.FabricModeSpineLeaf && sw.Spec.VTEPIP == "" {
-		return nil, errors.Errorf("VTEP IP is required for leaf switches in spine-leaf mode")
+		return nil, field.Required(spec.Child("vtepIP"), "required for leaf switches in spine-leaf mode")
 	}
 	if sw.Spec.Role.IsSpine() && sw.Spec.VTEPIP != "" {
-		return nil, errors.Errorf("VTEP IP is not allowed for spine switches")
+		return nil, field.Forbidden(spec.Child("vtepIP"), "not allowed for spine switches")
 	}
 
 	if sw.Spec.Profile == "" {
-		return nil, errors.Errorf("profile is required")
+		return nil, field.Required(profilePath, "")
 	}
 
 	if _, err := NormalizeBootMAC(sw.Spec.Boot.MAC); err != nil {
-		return nil, fmt.Errorf("invalid boot MAC: %w", err)
+		return nil, field.Invalid(spec.Child("boot", "mac"), sw.Spec.Boot.MAC, err.Error())
 	}
 
+	redundancyPath := spec.Child("redundancy")
 	if !slices.Contains(meta.RedundancyTypes, sw.Spec.Redundancy.Type) {
-		return nil, errors.Errorf("invalid redundancy type")
+		return nil, field.NotSupported(redundancyPath.Child("type"), sw.Spec.Redundancy.Type, meta.RedundancyTypes)
 	}
 	if sw.Spec.Redundancy.Group != "" && sw.Spec.Redundancy.Type == meta.RedundancyTypeNone {
-		return nil, errors.Errorf("redundancy group specified without type")
+		return nil, field.Required(redundancyPath.Child("type"), "redundancy group specified without type")
 	}
 	if sw.Spec.Redundancy.Group == "" && sw.Spec.Redundancy.Type != meta.RedundancyTypeNone {
-		return nil, errors.Errorf("redundancy type specified without group")
+		return nil, field.Required(redundancyPath.Child("group"), "redundancy type specified without group")
 	}
 
 	if sw.Spec.LinkFlapErrDisable != nil {
+		flapPath := spec.Child("linkFlapErrDisable")
 		if sw.Spec.LinkFlapErrDisable.FlapThreshold == nil {
-			return nil, errors.Errorf("link-flap error-disable is enabled but no flap threshold provided")
+			return nil, field.Required(flapPath.Child("flapThreshold"), "")
 		}
 		if sw.Spec.LinkFlapErrDisable.SamplingInterval == nil {
-			return nil, errors.Errorf("link-flap error-disable is enabled but no sampling interval provided")
+			return nil, field.Required(flapPath.Child("samplingInterval"), "")
 		}
 		if sw.Spec.LinkFlapErrDisable.RecoveryInterval == nil {
-			return nil, errors.Errorf("link-flap error-disable is enabled but no recovery interval provided")
+			return nil, field.Required(flapPath.Child("recoveryInterval"), "")
 		}
 	}
 
@@ -665,12 +680,12 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 		namespaces := &VLANNamespaceList{}
 		err := kube.List(ctx, namespaces)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get VLAN namespaces") // TODO replace with some internal error to not expose to the user
+			return nil, fmt.Errorf("failed to get VLAN namespaces: %w", err) // TODO replace with some internal error to not expose to the user
 		}
 
 		ranges := []meta.VLANRange{}
 
-		for _, ns := range sw.Spec.VLANNamespaces {
+		for idx, ns := range sw.Spec.VLANNamespaces {
 			found := false
 			for _, other := range namespaces.Items {
 				if ns == other.Name {
@@ -681,22 +696,18 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 				}
 			}
 			if !found {
-				return nil, errors.Errorf("specified VLANNamespace %s does not exist", ns)
+				return nil, field.NotFound(spec.Child("vlanNamespaces").Index(idx), ns)
 			}
 		}
 
 		if err := meta.CheckVLANRangesOverlap(ranges); err != nil {
-			return nil, errors.Wrapf(err, "invalid VLANNamespaces")
+			return nil, field.Invalid(spec.Child("vlanNamespaces"), sw.Spec.VLANNamespaces, err.Error())
 		}
 
-		fabric, err := GetFabricSpec(ctx, kube, sw.Namespace, sw.Spec.Topology.Fabric)
-		if err != nil {
-			return nil, err
-		}
 		swFabric := sw.Spec.Topology.Fabric
 		for _, domain := range domains {
 			if _, exists := fabric.Domains[domain]; !exists {
-				return nil, fmt.Errorf("domain %s not found in fabric %s", domain, swFabric) //nolint:err113
+				return nil, field.Invalid(domainsPath, domain, fmt.Sprintf("domain %s not found in fabric %s", domain, swFabric))
 			}
 		}
 
@@ -712,28 +723,29 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 					continue
 				}
 				if otherDomains := slices.Sorted(slices.Values(other.Spec.Topology.Domains)); !slices.Equal(domains, otherDomains) {
-					return nil, fmt.Errorf("switches of redundancy group %s must be in the same domains, switch %s is in domains %v", group, other.Name, otherDomains) //nolint:err113
+					return nil, field.Invalid(domainsPath, sw.Spec.Topology.Domains, fmt.Sprintf("switches of redundancy group %s must be in the same domains, switch %s is in domains %v", group, other.Name, otherDomains))
 				}
 			}
 		}
 
-		for _, group := range sw.Spec.Groups {
+		for idx, group := range sw.Spec.Groups {
+			groupPath := spec.Child("groups").Index(idx)
 			if group == "" {
-				return nil, errors.Errorf("group name cannot be empty")
+				return nil, field.Required(groupPath, "")
 			}
 
 			sg := &SwitchGroup{}
 			err = kube.Get(ctx, ktypes.NamespacedName{Name: group, Namespace: sw.Namespace}, sg)
 			if err != nil {
 				if kapierrors.IsNotFound(err) {
-					return nil, errors.Errorf("switch group %s does not exist", group)
+					return nil, field.NotFound(groupPath, group)
 				}
 
-				return nil, errors.Wrapf(err, "failed to get switch group %s", group) // TODO replace with some internal error to not expose to the user
+				return nil, fmt.Errorf("failed to get switch group %s: %w", group, err) // TODO replace with some internal error to not expose to the user
 			}
 
 			if sgFabric := sg.Spec.Topology.Fabric; sgFabric != swFabric {
-				return nil, fmt.Errorf("switch is in fabric %s but switch group %s is in fabric %s", swFabric, group, sgFabric) //nolint:err113
+				return nil, field.Invalid(groupPath, group, fmt.Sprintf("switch is in fabric %s but the switch group is in fabric %s", swFabric, sgFabric))
 			}
 		}
 
@@ -741,120 +753,127 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 		err = kube.Get(ctx, ktypes.NamespacedName{Name: sw.Spec.Profile, Namespace: sw.Namespace}, sp)
 		if err != nil {
 			if kapierrors.IsNotFound(err) {
-				return nil, errors.Errorf("switch profile %s does not exist", sw.Spec.Profile)
+				return nil, field.NotFound(profilePath, sw.Spec.Profile)
 			}
 
-			return nil, errors.Wrapf(err, "failed to get switch profile %s", sw.Spec.Profile) // TODO replace with some internal error to not expose to the user
+			return nil, fmt.Errorf("failed to get switch profile %s: %w", sw.Spec.Profile, err) // TODO replace with some internal error to not expose to the user
 		}
 
 		for name, speed := range sw.Spec.PortGroupSpeeds {
+			path := spec.Child("portGroupSpeeds").Key(name)
 			group, exists := sp.Spec.PortGroups[name]
 			if !exists {
-				return nil, errors.Errorf("port group %s not found in switch profile", name)
+				return nil, field.Invalid(path, speed, "port group not found in switch profile")
 			}
 
 			profile, exists := sp.Spec.PortProfiles[group.Profile]
 			if !exists {
-				return nil, errors.Errorf("port profile %s for group %s not found in switch profile", group.Profile, name)
+				return nil, field.Invalid(path, speed, fmt.Sprintf("port profile %s not found in switch profile", group.Profile))
 			}
 
 			if profile.Speed == nil {
-				return nil, errors.Errorf("port profile %s for group %s has no supported speeds", group.Profile, name)
+				return nil, field.Invalid(path, speed, fmt.Sprintf("port profile %s has no supported speeds", group.Profile))
 			}
 
 			if !slices.Contains(profile.Speed.Supported, speed) {
-				return nil, errors.Errorf("port group %s does not support specified speed %s", name, speed)
+				return nil, field.NotSupported(path, speed, profile.Speed.Supported)
 			}
 		}
 
 		for name, speed := range sw.Spec.PortSpeeds {
+			path := spec.Child("portSpeeds").Key(name)
 			port, exists := sp.Spec.Ports[name]
 			if !exists {
-				return nil, errors.Errorf("port %s not found in switch profile", name)
+				return nil, field.Invalid(path, speed, "port not found in switch profile")
+			}
+			if port.Group != "" {
+				return nil, field.Invalid(path, speed, fmt.Sprintf("port is in port group %s, set the speed in portGroupSpeeds", port.Group))
 			}
 
 			profile, exists := sp.Spec.PortProfiles[port.Profile]
 			if !exists {
-				return nil, errors.Errorf("port profile %s for port %s not found in switch profile", port.Profile, name)
+				return nil, field.Invalid(path, speed, fmt.Sprintf("port profile %s not found in switch profile", port.Profile))
 			}
 
 			if profile.Speed == nil {
-				return nil, errors.Errorf("port profile %s for port %s has no supported speeds", port.Profile, name)
+				return nil, field.Invalid(path, speed, fmt.Sprintf("port profile %s has no supported speeds", port.Profile))
 			}
 
 			if !slices.Contains(profile.Speed.Supported, speed) {
-				return nil, errors.Errorf("port %s does not support specified speed %s", name, speed)
+				return nil, field.NotSupported(path, speed, profile.Speed.Supported)
 			}
 		}
 
 		for name, breakout := range sw.Spec.PortBreakouts {
+			path := spec.Child("portBreakouts").Key(name)
 			port, exists := sp.Spec.Ports[name]
 			if !exists {
-				return nil, errors.Errorf("port %s not found in switch profile", name)
+				return nil, field.Invalid(path, breakout, "port not found in switch profile")
 			}
 
 			profile, exists := sp.Spec.PortProfiles[port.Profile]
 			if !exists {
-				return nil, errors.Errorf("port profile %s for port %s not found in switch profile", port.Profile, name)
+				return nil, field.Invalid(path, breakout, fmt.Sprintf("port profile %s not found in switch profile", port.Profile))
 			}
 
 			if profile.Breakout == nil {
-				return nil, errors.Errorf("port profile %s for port %s has no supported breakouts", port.Profile, name)
+				return nil, field.Invalid(path, breakout, fmt.Sprintf("port profile %s has no supported breakouts", port.Profile))
 			}
 
 			if _, exists := profile.Breakout.Supported[breakout]; !exists {
-				return nil, errors.Errorf("port %s does not support specified breakout %s", name, breakout)
+				return nil, field.NotSupported(path, breakout, slices.Sorted(maps.Keys(profile.Breakout.Supported)))
 			}
 		}
 
 		autoNegAllowed, _, err := sp.Spec.GetAutoNegsDefaultsFor(&sw.Spec)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get auto negotiation defaults")
+			return nil, fmt.Errorf("failed to get auto negotiation defaults: %w", err)
 		}
 
-		for name := range sw.Spec.PortAutoNegs {
+		for name, autoNeg := range sw.Spec.PortAutoNegs {
 			if !autoNegAllowed[name] {
-				return nil, errors.Errorf("port %s does not support configuring auto negotiation", name)
+				return nil, field.Invalid(spec.Child("portAutoNegs").Key(name), autoNeg, "port does not support configuring auto negotiation")
 			}
 		}
 
 		fecPorts, err := sp.Spec.GetFECConfigurablePorts(&sw.Spec)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get FEC-configurable ports")
+			return nil, fmt.Errorf("failed to get FEC-configurable ports: %w", err)
 		}
 
-		for name := range sw.Spec.PortFECs {
+		for name, fec := range sw.Spec.PortFECs {
 			if !fecPorts[name] {
-				return nil, errors.Errorf("port %s does not support configuring FEC "+
-					"(a broken-out port must be configured per sub-port, e.g. E1/53/1)", name)
+				return nil, field.Invalid(spec.Child("portFECs").Key(name), fec, "port does not support configuring FEC "+
+					"(a broken-out port must be configured per sub-port, e.g. E1/53/1)")
 			}
 		}
 
 		apiPorts, err := sp.Spec.GetAvailableAPIPorts(&sw.Spec)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get available API ports")
+			return nil, fmt.Errorf("failed to get available API ports: %w", err)
 		}
 
 		if len(sw.Spec.PortLocators) > 0 && !sp.Spec.Features.PortLocator {
-			return nil, errors.Errorf("port locators are not supported on switch profile %s", sw.Spec.Profile)
+			return nil, field.Forbidden(spec.Child("portLocators"), "not supported on switch profile "+sw.Spec.Profile)
 		}
 
 		for name, expire := range sw.Spec.PortLocators {
+			path := spec.Child("portLocators").Key(name)
 			if name != PortLocatorAllPorts && !apiPorts[name] {
-				return nil, errors.Errorf("port %s is not a valid port for port locators", name)
+				return nil, field.Invalid(path, expire, "not a valid port for port locators")
 			}
 
 			if _, _, err := NormalizePortLocator(expire); err != nil {
-				return nil, errors.Wrapf(err, "invalid port locator expire %q for port %s", expire, name)
+				return nil, field.Invalid(path, expire, err.Error())
 			}
 		}
 
 		if sw.Spec.RoCE && !sp.Spec.Features.RoCE {
-			return nil, errors.Errorf("RoCEv2 is not supported on switch profile %s", sw.Spec.Profile)
+			return nil, field.Forbidden(spec.Child("roce"), "RoCEv2 is not supported on switch profile "+sw.Spec.Profile)
 		}
 
 		if sw.Spec.ECMP.RoCEQPN && !sp.Spec.Features.ECMPRoCEQPN {
-			return nil, errors.Errorf("ECMP RoCE QPN hashing is not supported on switch profile %s", sw.Spec.Profile)
+			return nil, field.Forbidden(spec.Child("ecmp", "roceQPN"), "ECMP RoCE QPN hashing is not supported on switch profile "+sw.Spec.Profile)
 		}
 
 		switch sw.Spec.Redundancy.Type {
@@ -864,7 +883,7 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 			warnings = append(warnings, "MCLAG is deprecated and no longer supported")
 		case meta.RedundancyTypeESLAG:
 			if !sp.Spec.Features.ESLAG {
-				return nil, errors.Errorf("ESLAG is not supported on switch profile %s", sw.Spec.Profile)
+				return nil, field.Invalid(redundancyPath.Child("type"), sw.Spec.Redundancy.Type, "ESLAG is not supported on switch profile "+sw.Spec.Profile)
 			}
 		}
 
@@ -879,11 +898,11 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 			ports := uint16(1)
 			if port.Group == "" {
 				if port.Profile == "" {
-					return warnings, errors.Errorf("port %s has no group or profile", name)
+					return warnings, field.Invalid(profilePath, sw.Spec.Profile, fmt.Sprintf("port %s has no group or profile", name))
 				}
 				profile, ok := sp.Spec.PortProfiles[port.Profile]
 				if !ok {
-					return warnings, errors.Errorf("port %s has invalid profile %s", name, port.Profile)
+					return warnings, field.Invalid(profilePath, sw.Spec.Profile, fmt.Sprintf("port %s has invalid profile %s", name, port.Profile))
 				}
 
 				if profile.Breakout != nil {
@@ -897,7 +916,7 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 					if breakout, ok := profile.Breakout.Supported[mode]; ok {
 						ports = uint16(len(breakout.Offsets)) //nolint:gosec
 					} else {
-						return warnings, errors.Errorf("port %s has invalid breakout mode %s", name, mode)
+						return warnings, field.Invalid(spec.Child("portBreakouts"), field.OmitValueType{}, fmt.Sprintf("port %s has invalid breakout mode %s", name, mode))
 					}
 				}
 			}
@@ -914,24 +933,24 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 		}
 
 		if sp.Spec.MaxPorts > 0 && totalPorts > sp.Spec.MaxPorts {
-			return warnings, errors.Errorf("switch %s has exceeded maximum ports: %d > %d", sp.Name, totalPorts, sp.Spec.MaxPorts)
+			return warnings, field.Invalid(spec.Child("portBreakouts"), field.OmitValueType{}, fmt.Sprintf("switch profile %s maximum ports exceeded: %d > %d", sp.Name, totalPorts, sp.Spec.MaxPorts))
 		}
 
 		if sp.Spec.Pipelines != nil {
 			for pipeline, ports := range pipelinePorts {
 				if portPipeline, ok := sp.Spec.Pipelines[pipeline]; ok {
 					if ports > portPipeline.MaxPorts {
-						return nil, errors.Errorf("pipeline %s (ports %s) has exceeded maximum ports: %d > %d",
-							pipeline, strings.Join(pipelinePortNames[pipeline], ", "), ports, portPipeline.MaxPorts)
+						return nil, field.Invalid(spec.Child("portBreakouts"), field.OmitValueType{}, fmt.Sprintf("pipeline %s (ports %s) has exceeded maximum ports: %d > %d",
+							pipeline, strings.Join(pipelinePortNames[pipeline], ", "), ports, portPipeline.MaxPorts))
 					}
 				} else {
-					return warnings, errors.Errorf("unknown port pipeline %s reference", pipeline)
+					return warnings, field.Invalid(profilePath, sw.Spec.Profile, fmt.Sprintf("unknown port pipeline %s reference", pipeline))
 				}
 			}
 		}
 
-		if err := sw.HydrationValidation(ctx, kube, fabricCfg); err != nil {
-			return warnings, errors.Wrapf(err, "failed hydration validation")
+		if err := sw.hydrationValidation(ctx, kube, fabricCfg, fabric); err != nil {
+			return warnings, err
 		}
 	}
 

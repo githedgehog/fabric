@@ -82,12 +82,12 @@ func (w *GatewayWebhook) ValidateUpdate(ctx context.Context, oldGw *gwapi.Gatewa
 		return nil, nil
 	}
 
-	if fabricChanged(oldGw.Spec.Topology.Fabric, newGw.Spec.Topology.Fabric) {
-		return nil, fmt.Errorf("topology.fabric is immutable") //nolint:err113
+	if err := checkFabricUnchanged(oldGw.Spec.Topology.Fabric, newGw.Spec.Topology.Fabric); err != nil {
+		return nil, err
 	}
 	// so that a Gateway update never has to re-check its connections
-	if domainChanged(oldGw.Spec.Topology.Domain, newGw.Spec.Topology.Domain) {
-		return nil, fmt.Errorf("topology.domain is immutable") //nolint:err113
+	if err := checkDomainUnchanged(oldGw.Spec.Topology.Domain, newGw.Spec.Topology.Domain); err != nil {
+		return nil, err
 	}
 
 	// TODO validate diff between oldObj and newObj if needed

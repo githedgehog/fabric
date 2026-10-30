@@ -17,7 +17,6 @@ package v1beta1
 import (
 	"context"
 
-	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -109,10 +108,10 @@ func (sg *SwitchGroup) Default() {
 
 func (sg *SwitchGroup) Validate(ctx context.Context, kube kclient.Reader, _ *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(sg); err != nil {
-		return nil, errors.Wrapf(err, "failed to validate metadata")
+		return nil, err //nolint:wrapcheck
 	}
 
-	if err := CheckFabricExists(ctx, kube, sg.Namespace, sg.Spec.Topology.Fabric); err != nil {
+	if _, err := CheckFabricExists(ctx, kube, sg.Namespace, sg.Spec.Topology.Fabric); err != nil {
 		return nil, err
 	}
 

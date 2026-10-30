@@ -18,11 +18,12 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	kapivalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	kctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -43,10 +44,14 @@ func SetupConnectionWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, lock 
 		Cfg:        cfg,
 	}
 
-	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr, &wiringapi.Connection{}).
+	if err := kctrl.NewWebhookManagedBy(mgr, &wiringapi.Connection{}).
 		WithDefaulter(w).
 		WithValidator(newLockedValidator[*wiringapi.Connection](w, lock)).
-		Complete(), "failed to setup connection webhook")
+		Complete(); err != nil {
+		return fmt.Errorf("failed to setup connection webhook: %w", err)
+	}
+
+	return nil
 }
 
 // +kubebuilder:webhook:path=/mutate-wiring-githedgehog-com-v1beta1-connection,mutating=true,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=connections,verbs=create;update,versions=v1beta1,name=mconnection.kb.io,admissionReviewVersions=v1
@@ -63,32 +68,32 @@ func (w *ConnectionWebhook) Default(_ context.Context, conn *wiringapi.Connectio
 func (w *ConnectionWebhook) ValidateCreate(ctx context.Context, conn *wiringapi.Connection) (admission.Warnings, error) {
 	warns, err := conn.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
-		return warns, errors.Wrapf(err, "error validating connection")
+		return warns, fmt.Errorf("error validating connection: %w", err)
 	}
 
 	return warns, nil
 }
 
 func (w *ConnectionWebhook) ValidateUpdate(ctx context.Context, oldConn *wiringapi.Connection, newConn *wiringapi.Connection) (admission.Warnings, error) {
-	if fabricChanged(oldConn.Spec.Topology.Fabric, newConn.Spec.Topology.Fabric) {
-		return nil, fmt.Errorf("topology.fabric is immutable") //nolint:err113
+	if err := checkFabricUnchanged(oldConn.Spec.Topology.Fabric, newConn.Spec.Topology.Fabric); err != nil {
+		return nil, err
 	}
 
 	// TODO some connections or their parts should be immutable
 
 	if oldConn.Spec.Type() != newConn.Spec.Type() {
-		return nil, errors.Errorf("connection type is immutable")
+		return nil, field.Forbidden(field.NewPath("spec"), "connection type is immutable")
 	}
 
 	if newConn.Spec.StaticExternal != nil && oldConn.Spec.StaticExternal != nil {
 		if newConn.Spec.StaticExternal.WithinVPC != oldConn.Spec.StaticExternal.WithinVPC {
-			return nil, errors.Errorf("StaticExternal.WithinVPC is immutable")
+			return nil, field.Invalid(field.NewPath("spec", "staticExternal", "withinVPC"), newConn.Spec.StaticExternal.WithinVPC, kapivalidation.FieldImmutableErrorMsg)
 		}
 	}
 
 	warns, err := newConn.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
-		return warns, errors.Wrapf(err, "error validating connection")
+		return warns, fmt.Errorf("error validating connection: %w", err)
 	}
 
 	// if newConn.Spec.Unbundled != nil || newConn.Spec.Bundled != nil || newConn.Spec.MCLAG != nil || newConn.Spec.ESLAG != nil {
@@ -105,20 +110,20 @@ func (w *ConnectionWebhook) ValidateDelete(ctx context.Context, conn *wiringapi.
 	if err := w.Client.List(ctx, vpcAttachments, kclient.MatchingLabels{
 		wiringapi.LabelConnection: conn.Name,
 	}); err != nil {
-		return nil, errors.Wrapf(err, "error listing vpc attachments") // TODO hide internal error
+		return nil, fmt.Errorf("error listing vpc attachments: %w", err) // TODO hide internal error
 	}
 	if len(vpcAttachments.Items) > 0 {
-		return nil, errors.Errorf("connection has attachments")
+		return nil, fmt.Errorf("connection has attachments") //nolint:err113
 	}
 
 	extAttachments := &vpcapi.ExternalAttachmentList{}
 	if err := w.Client.List(ctx, extAttachments, kclient.MatchingLabels{
 		wiringapi.LabelConnection: conn.Name,
 	}); err != nil {
-		return nil, errors.Wrapf(err, "error listing external attachments") // TODO hide internal error
+		return nil, fmt.Errorf("error listing external attachments: %w", err) // TODO hide internal error
 	}
 	if len(extAttachments.Items) > 0 {
-		return nil, errors.Errorf("connection has external attachments")
+		return nil, fmt.Errorf("connection has external attachments") //nolint:err113
 	}
 
 	return nil, nil

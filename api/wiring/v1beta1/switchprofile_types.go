@@ -22,11 +22,11 @@ import (
 	"strings"
 
 	"github.com/maruel/natural"
-	"github.com/pkg/errors"
 	"github.com/samber/lo"
 	"go.githedgehog.com/fabric/api/meta"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -239,39 +239,41 @@ func (sp *SwitchProfile) Default() {
 
 func (sp *SwitchProfile) Validate(_ context.Context, _ kclient.Reader, _ *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(sp); err != nil {
-		return nil, errors.Wrapf(err, "failed to validate metadata")
+		return nil, err //nolint:wrapcheck
 	}
 
+	spec := field.NewPath("spec")
+
 	if sp.Spec.DisplayName == "" {
-		return nil, errors.Errorf("displayName is required")
+		return nil, field.Required(spec.Child("displayName"), "")
 	}
 
 	if len(sp.Spec.OtherNames) > 5 {
-		return nil, errors.Errorf("otherNames must not exceed 5 items")
+		return nil, field.TooMany(spec.Child("otherNames"), len(sp.Spec.OtherNames), 5)
 	}
 	for curr, name := range sp.Spec.OtherNames {
 		if name == "" {
-			return nil, errors.Errorf("otherNames must not contain empty strings")
+			return nil, field.Required(spec.Child("otherNames").Index(curr), "")
 		}
 
 		if idx := slices.Index(sp.Spec.OtherNames, name); idx != curr {
-			return nil, errors.Errorf("otherNames must not contain duplicates")
+			return nil, field.Duplicate(spec.Child("otherNames").Index(curr), name)
 		}
 	}
 
 	if sp.Spec.SwitchSilicon == "" {
-		return nil, errors.Errorf("switchSilicon is required")
+		return nil, field.Required(spec.Child("switchSilicon"), "")
 	}
 
 	if sp.Spec.NOSType == "" {
-		return nil, errors.Errorf("nosType is required")
+		return nil, field.Required(spec.Child("nosType"), "")
 	}
 	if !slices.Contains(meta.NOSTypes, sp.Spec.NOSType) {
-		return nil, errors.Errorf("nosType %q is invalid", sp.Spec.NOSType)
+		return nil, field.NotSupported(spec.Child("nosType"), sp.Spec.NOSType, meta.NOSTypes)
 	}
 
 	if sp.Spec.Platform == "" {
-		return nil, errors.Errorf("platform is required")
+		return nil, field.Required(spec.Child("platform"), "")
 	}
 
 	profiles := map[string]bool{}
@@ -282,106 +284,106 @@ func (sp *SwitchProfile) Validate(_ context.Context, _ kclient.Reader, _ *meta.F
 
 	for name, port := range sp.Spec.Ports {
 		if port.NOSName == "" {
-			return nil, errors.Errorf("port %q must have a NOS name", name)
+			return nil, field.Invalid(spec.Child("ports").Key(name).Child("nos"), field.OmitValueType{}, "must have a NOS name")
 		}
 
 		if len(name) < 2 {
-			return nil, errors.Errorf("port %q name must have with at least two characters", name)
+			return nil, field.Invalid(spec.Child("ports").Key(name), field.OmitValueType{}, "name must have with at least two characters")
 		}
 
 		if _, ok := nosPortNames[port.NOSName]; ok {
-			return nil, errors.Errorf("port %q NOS name %q is duplicated", name, port.NOSName)
+			return nil, field.Invalid(spec.Child("ports").Key(name).Child("nos"), field.OmitValueType{}, fmt.Sprintf("NOS name %q is duplicated", port.NOSName))
 		}
 		nosPortNames[port.NOSName] = true
 
 		if port.BaseNOSName != "" {
 			if _, ok := baseNOSPortNames[port.BaseNOSName]; ok {
-				return nil, errors.Errorf("port %q base NOS name %q is duplicated", name, port.BaseNOSName)
+				return nil, field.Invalid(spec.Child("ports").Key(name).Child("baseNOSName"), field.OmitValueType{}, fmt.Sprintf("base NOS name %q is duplicated", port.BaseNOSName))
 			}
 			baseNOSPortNames[port.BaseNOSName] = true
 		}
 
 		if port.Management {
 			if !strings.HasPrefix(name, ManagementPortPrefix) {
-				return nil, errors.Errorf("management port %q name must start with M", name)
+				return nil, field.Invalid(spec.Child("ports").Key(name), field.OmitValueType{}, "management port name must start with M")
 			}
 
 			if port, err := strconv.Atoi(name[1:]); err != nil || port <= 0 {
-				return nil, errors.Errorf("management port %q name must end with a positive integer", name)
+				return nil, field.Invalid(spec.Child("ports").Key(name), field.OmitValueType{}, "management port name must end with a positive integer")
 			}
 
 			if !strings.HasPrefix(port.NOSName, ManagementPortNOSNamePrefix) {
-				return nil, errors.Errorf("management port %q NOS name must start with Management", name)
+				return nil, field.Invalid(spec.Child("ports").Key(name).Child("nos"), field.OmitValueType{}, "management port NOS name must start with Management")
 			}
 
 			if port, err := strconv.Atoi(port.NOSName[len(ManagementPortNOSNamePrefix):]); err != nil || port < 0 {
-				return nil, errors.Errorf("management port %q NOS name must end with a positive integer", name)
+				return nil, field.Invalid(spec.Child("ports").Key(name).Child("nos"), field.OmitValueType{}, "management port NOS name must end with a positive integer")
 			}
 
 			if port.OniePortName == "" {
-				return nil, errors.Errorf("management port %q must have an ONIE port name", name)
+				return nil, field.Invalid(spec.Child("ports").Key(name).Child("oniePortName"), field.OmitValueType{}, "management port must have an ONIE port name")
 			}
 
 			if !strings.HasPrefix(port.OniePortName, ONIEPortNamePrefix) {
-				return nil, errors.Errorf("management port %q ONIE port name must start with eth", name)
+				return nil, field.Invalid(spec.Child("ports").Key(name).Child("oniePortName"), field.OmitValueType{}, "management port ONIE port name must start with eth")
 			}
 
 			if port, err := strconv.Atoi(port.OniePortName[len(ONIEPortNamePrefix):]); err != nil || port < 0 {
-				return nil, errors.Errorf("management port %q ONIE port name must end with a zero or positive integer", name)
+				return nil, field.Invalid(spec.Child("ports").Key(name).Child("oniePortName"), field.OmitValueType{}, "management port ONIE port name must end with a zero or positive integer")
 			}
 
 			if port.Group != "" {
-				return nil, errors.Errorf("management port %q must not have a group", name)
+				return nil, field.Invalid(spec.Child("ports").Key(name).Child("group"), field.OmitValueType{}, "management port must not have a group")
 			}
 
 			if port.Profile != "" {
-				return nil, errors.Errorf("management port %q must not have a profile", name)
+				return nil, field.Invalid(spec.Child("ports").Key(name).Child("profile"), field.OmitValueType{}, "management port must not have a profile")
 			}
 
 			if port.BaseNOSName != "" {
-				return nil, errors.Errorf("management port %q must not have a base NOS name", name)
+				return nil, field.Invalid(spec.Child("ports").Key(name).Child("baseNOSName"), field.OmitValueType{}, "management port must not have a base NOS name")
 			}
 
 			continue
 		}
 
 		if !strings.HasPrefix(name, DataPortPrefix) {
-			return nil, errors.Errorf("data port %q must start with E", name)
+			return nil, field.Invalid(spec.Child("ports").Key(name), field.OmitValueType{}, "data port must start with E")
 		}
 
 		portParts := strings.Split(name[len(DataPortPrefix):], "/")
 		if len(portParts) != 2 {
-			return nil, errors.Errorf("data port %q name must have two segments separated by a slash (e.g. asic/port)", name)
+			return nil, field.Invalid(spec.Child("ports").Key(name), field.OmitValueType{}, "data port name must have two segments separated by a slash (e.g. asic/port)")
 		}
 		if asic, err := strconv.Atoi(portParts[0]); err != nil || portParts[0] == "" || asic <= 0 {
-			return nil, errors.Errorf("data port %q name must contain a positive integer as the first segment (e.g. asic)", name)
+			return nil, field.Invalid(spec.Child("ports").Key(name), field.OmitValueType{}, "data port name must contain a positive integer as the first segment (e.g. asic)")
 		}
 		if port, err := strconv.Atoi(portParts[1]); err != nil || portParts[1] == "" || port <= 0 {
-			return nil, errors.Errorf("data port %q name must contain a positive integer as the second segment (port)", name)
+			return nil, field.Invalid(spec.Child("ports").Key(name), field.OmitValueType{}, "data port name must contain a positive integer as the second segment (port)")
 		}
 
 		if port.Label == "" {
-			return nil, errors.Errorf("port %q must have a label", name)
+			return nil, field.Invalid(spec.Child("ports").Key(name).Child("label"), field.OmitValueType{}, "must have a label")
 		}
 
 		if _, ok := labels[port.Label]; ok {
-			return nil, errors.Errorf("port %q label %q is duplicated", name, port.Label)
+			return nil, field.Invalid(spec.Child("ports").Key(name).Child("label"), field.OmitValueType{}, fmt.Sprintf("label %q is duplicated", port.Label))
 		}
 		labels[port.Label] = true
 
 		if port.Profile == "" && port.Group == "" {
-			return nil, errors.Errorf("port %q must have a profile or group", name)
+			return nil, field.Invalid(spec.Child("ports").Key(name), field.OmitValueType{}, "must have a profile or group")
 		}
 
 		if port.Profile != "" && port.Group != "" {
-			return nil, errors.Errorf("port %q must have either a profile or group, not both", name)
+			return nil, field.Invalid(spec.Child("ports").Key(name), field.OmitValueType{}, "must have either a profile or group, not both")
 		}
 
 		isBreakout := false
 		if port.Profile != "" {
 			profile, exists := sp.Spec.PortProfiles[port.Profile]
 			if !exists {
-				return nil, errors.Errorf("port %q references non-existent profile %q", name, port.Profile)
+				return nil, field.Invalid(spec.Child("ports").Key(name).Child("profile"), field.OmitValueType{}, fmt.Sprintf("references non-existent profile %q", port.Profile))
 			}
 
 			profiles[port.Profile] = true
@@ -390,27 +392,27 @@ func (sp *SwitchProfile) Validate(_ context.Context, _ kclient.Reader, _ *meta.F
 				isBreakout = true
 
 				if port.NOSName == "" {
-					return nil, errors.Errorf("breakout port %q must have a NOS name", name)
+					return nil, field.Invalid(spec.Child("ports").Key(name).Child("nos"), field.OmitValueType{}, "breakout port must have a NOS name")
 				}
 
 				if !strings.HasPrefix(port.NOSName, BreakoutNOSNamePrefix) {
-					return nil, errors.Errorf("breakout port %q NOS name must start with %s", name, BreakoutNOSNamePrefix)
+					return nil, field.Invalid(spec.Child("ports").Key(name).Child("nos"), field.OmitValueType{}, fmt.Sprintf("breakout port NOS name must start with %s", BreakoutNOSNamePrefix))
 				}
 
 				if _, err := strconv.Atoi(port.NOSName[len(BreakoutNOSNamePrefix):]); err != nil {
-					return nil, errors.Errorf("breakout port %q NOS name must end with a positive integer", name)
+					return nil, field.Invalid(spec.Child("ports").Key(name).Child("nos"), field.OmitValueType{}, "breakout port NOS name must end with a positive integer")
 				}
 
 				if port.BaseNOSName == "" {
-					return nil, errors.Errorf("breakout port %q must have a base NOS name", name)
+					return nil, field.Invalid(spec.Child("ports").Key(name).Child("baseNOSName"), field.OmitValueType{}, "breakout port must have a base NOS name")
 				}
 
 				if !strings.HasPrefix(port.BaseNOSName, DataPortNOSNamePrefix) {
-					return nil, errors.Errorf("breakout port %q base NOS name must start with %s", name, DataPortNOSNamePrefix)
+					return nil, field.Invalid(spec.Child("ports").Key(name).Child("baseNOSName"), field.OmitValueType{}, fmt.Sprintf("breakout port base NOS name must start with %s", DataPortNOSNamePrefix))
 				}
 
 				if port, err := strconv.Atoi(port.BaseNOSName[len(DataPortNOSNamePrefix):]); err != nil || port < 0 {
-					return nil, errors.Errorf("breakout port %q base NOS name must end with a zero or positive integer", name)
+					return nil, field.Invalid(spec.Child("ports").Key(name).Child("baseNOSName"), field.OmitValueType{}, "breakout port base NOS name must end with a zero or positive integer")
 				}
 			}
 		}
@@ -418,27 +420,27 @@ func (sp *SwitchProfile) Validate(_ context.Context, _ kclient.Reader, _ *meta.F
 		if port.Pipeline != "" {
 			_, ok := sp.Spec.Pipelines[port.Pipeline]
 			if !ok {
-				return nil, errors.Errorf("port %q references non-existent pipeline %q", name, port.Pipeline)
+				return nil, field.Invalid(spec.Child("ports").Key(name).Child("pipeline"), field.OmitValueType{}, fmt.Sprintf("references non-existent pipeline %q", port.Pipeline))
 			}
 
 			if !isBreakout {
-				return nil, errors.Errorf("port %q must be a breakout port to reference a pipeline", name)
+				return nil, field.Invalid(spec.Child("ports").Key(name).Child("pipeline"), field.OmitValueType{}, "must be a breakout port to reference a pipeline")
 			}
 		}
 
 		if !isBreakout {
 			if !strings.HasPrefix(port.NOSName, DataPortNOSNamePrefix) {
-				return nil, errors.Errorf("data port %q NOS name must start with %s", name, DataPortNOSNamePrefix)
+				return nil, field.Invalid(spec.Child("ports").Key(name).Child("nos"), field.OmitValueType{}, fmt.Sprintf("data port NOS name must start with %s", DataPortNOSNamePrefix))
 			}
 
 			if port, err := strconv.Atoi(port.NOSName[len(DataPortNOSNamePrefix):]); err != nil || port < 0 {
-				return nil, errors.Errorf("data port %q NOS name must end with a zero or positive integer", name)
+				return nil, field.Invalid(spec.Child("ports").Key(name).Child("nos"), field.OmitValueType{}, "data port NOS name must end with a zero or positive integer")
 			}
 		}
 
 		if port.Group != "" {
 			if _, ok := sp.Spec.PortGroups[port.Group]; !ok {
-				return nil, errors.Errorf("port %q references non-existent group %q", name, port.Group)
+				return nil, field.Invalid(spec.Child("ports").Key(name).Child("group"), field.OmitValueType{}, fmt.Sprintf("references non-existent group %q", port.Group))
 			}
 
 			groups[port.Group] = true
@@ -447,101 +449,101 @@ func (sp *SwitchProfile) Validate(_ context.Context, _ kclient.Reader, _ *meta.F
 
 	for name, group := range sp.Spec.PortGroups {
 		if _, ok := groups[name]; !ok {
-			return nil, errors.Errorf("group %q is not referenced by any port", name)
+			return nil, field.Invalid(spec.Child("portGroups").Key(name), field.OmitValueType{}, "is not referenced by any port")
 		}
 
 		if group.NOSName == "" {
-			return nil, errors.Errorf("group %q must have a NOS name", name)
+			return nil, field.Invalid(spec.Child("portGroups").Key(name).Child("nos"), field.OmitValueType{}, "must have a NOS name")
 		}
 
 		if nosName, err := strconv.Atoi(group.NOSName); err != nil || nosName <= 0 {
-			return nil, errors.Errorf("group %q NOS name must be a positive integer", name)
+			return nil, field.Invalid(spec.Child("portGroups").Key(name).Child("nos"), field.OmitValueType{}, "NOS name must be a positive integer")
 		}
 
 		if group.Profile == "" {
-			return nil, errors.Errorf("group %q must have a profile", name)
+			return nil, field.Invalid(spec.Child("portGroups").Key(name).Child("profile"), field.OmitValueType{}, "must have a profile")
 		}
 
 		if _, ok := sp.Spec.PortProfiles[group.Profile]; !ok {
-			return nil, errors.Errorf("group %q references non-existent profile %q", name, group.Profile)
+			return nil, field.Invalid(spec.Child("portGroups").Key(name).Child("profile"), field.OmitValueType{}, fmt.Sprintf("references non-existent profile %q", group.Profile))
 		}
 
 		profiles[group.Profile] = true
 
 		if sp.Spec.PortProfiles[group.Profile].Speed == nil {
-			return nil, errors.Errorf("group %q references non-speed profile %q", name, group.Profile)
+			return nil, field.Invalid(spec.Child("portGroups").Key(name).Child("profile"), field.OmitValueType{}, fmt.Sprintf("references non-speed profile %q", group.Profile))
 		}
 
 		if profile := sp.Spec.PortProfiles[group.Profile]; profile.AutoNegAllowed {
-			return nil, errors.Errorf("group %q profile %q must not have auto-negotiation allowed", name, group.Profile)
+			return nil, field.Invalid(spec.Child("portGroups").Key(name).Child("profile"), field.OmitValueType{}, fmt.Sprintf("profile %q must not have auto-negotiation allowed", group.Profile))
 		}
 	}
 
 	for name, profile := range sp.Spec.PortProfiles {
 		if _, ok := profiles[name]; !ok {
-			return nil, errors.Errorf("profile %q is not referenced by any port or group", name)
+			return nil, field.Invalid(spec.Child("portProfiles").Key(name), field.OmitValueType{}, "is not referenced by any port or group")
 		}
 
 		if profile.Speed == nil && profile.Breakout == nil {
-			return nil, errors.Errorf("profile %q must have a speed or breakout", name)
+			return nil, field.Invalid(spec.Child("portProfiles").Key(name), field.OmitValueType{}, "must have a speed or breakout")
 		}
 
 		if profile.Speed != nil && profile.Breakout != nil {
-			return nil, errors.Errorf("profile %q must have either a speed or breakout, not both", name)
+			return nil, field.Invalid(spec.Child("portProfiles").Key(name), field.OmitValueType{}, "must have either a speed or breakout, not both")
 		}
 
 		if profile.AutoNegDefault && !profile.AutoNegAllowed {
-			return nil, errors.Errorf("profile %q must not have default auto-negotiation enabled if it's not allowed", name)
+			return nil, field.Invalid(spec.Child("portProfiles").Key(name).Child("autoNegDefault"), field.OmitValueType{}, "must not have default auto-negotiation enabled if it's not allowed")
 		}
 
 		if profile.Speed != nil {
 			if profile.Speed.Default == "" {
-				return nil, errors.Errorf("profile %q must have a default speed", name)
+				return nil, field.Invalid(spec.Child("portProfiles").Key(name).Child("speed", "default"), field.OmitValueType{}, "must have a default speed")
 			}
 
 			if len(profile.Speed.Supported) == 0 {
-				return nil, errors.Errorf("profile %q must have supported speeds", name)
+				return nil, field.Invalid(spec.Child("portProfiles").Key(name).Child("speed", "supported"), field.OmitValueType{}, "must have supported speeds")
 			}
 
 			if !slices.Contains(profile.Speed.Supported, profile.Speed.Default) {
-				return nil, errors.Errorf("profile %q must have default speed in supported speeds", name)
+				return nil, field.Invalid(spec.Child("portProfiles").Key(name).Child("speed", "default"), field.OmitValueType{}, "must have default speed in supported speeds")
 			}
 
 			for _, speed := range profile.Speed.Supported {
 				if speed == "" {
-					return nil, errors.Errorf("profile %q must have non-empty speeds", name)
+					return nil, field.Invalid(spec.Child("portProfiles").Key(name).Child("speed", "supported"), field.OmitValueType{}, "must have non-empty speeds")
 				}
 
 				if err := ValidatePortSpeed(speed); err != nil {
-					return nil, errors.Wrapf(err, "profile %q speed %q is invalid", name, speed)
+					return nil, field.Invalid(spec.Child("portProfiles").Key(name).Child("speed", "supported"), speed, err.Error())
 				}
 			}
 		}
 
 		if profile.Breakout != nil {
 			if profile.Breakout.Default == "" {
-				return nil, errors.Errorf("profile %q must have a default breakout", name)
+				return nil, field.Invalid(spec.Child("portProfiles").Key(name).Child("breakout", "default"), field.OmitValueType{}, "must have a default breakout")
 			}
 
 			if len(profile.Breakout.Supported) == 0 {
-				return nil, errors.Errorf("profile %q must have supported breakouts", name)
+				return nil, field.Invalid(spec.Child("portProfiles").Key(name).Child("breakout", "supported"), field.OmitValueType{}, "must have supported breakouts")
 			}
 
 			if _, ok := profile.Breakout.Supported[profile.Breakout.Default]; !ok {
-				return nil, errors.Errorf("profile %q must have default breakout in supported breakouts", name)
+				return nil, field.Invalid(spec.Child("portProfiles").Key(name).Child("breakout", "default"), field.OmitValueType{}, "must have default breakout in supported breakouts")
 			}
 
 			for mode, offsets := range profile.Breakout.Supported {
 				if len(offsets.Offsets) == 0 {
-					return nil, errors.Errorf("profile %q must have non-empty offsets for mode %q", name, mode)
+					return nil, field.Invalid(spec.Child("portProfiles").Key(name).Child("breakout", "supported"), field.OmitValueType{}, fmt.Sprintf("must have non-empty offsets for mode %q", mode))
 				}
 
 				if mode == "" {
-					return nil, errors.Errorf("profile %q must have non-empty modes", name)
+					return nil, field.Invalid(spec.Child("portProfiles").Key(name).Child("breakout", "supported"), field.OmitValueType{}, "must have non-empty modes")
 				}
 
 				if err := ValidatePortBreakoutMode(mode); err != nil {
-					return nil, errors.Wrapf(err, "profile %q breakout %q is invalid", name, mode)
+					return nil, field.Invalid(spec.Child("portProfiles").Key(name).Child("breakout", "supported"), mode, err.Error())
 				}
 			}
 		}
@@ -549,11 +551,11 @@ func (sp *SwitchProfile) Validate(_ context.Context, _ kclient.Reader, _ *meta.F
 
 	for name, pipeline := range sp.Spec.Pipelines {
 		if name == "" {
-			return nil, errors.Errorf("pipeline %q must have a name", name)
+			return nil, field.Invalid(spec.Child("pipelines").Key(name), field.OmitValueType{}, "must have a name")
 		}
 
 		if pipeline.MaxPorts == 0 {
-			return nil, errors.Errorf("pipeline %q must have a non-zero max ports", name)
+			return nil, field.Invalid(spec.Child("pipelines").Key(name).Child("maxPorts"), field.OmitValueType{}, "must have a non-zero max ports")
 		}
 	}
 
@@ -577,11 +579,11 @@ var allowedPortSpeeds = map[string]bool{
 
 func ValidatePortSpeed(speed string) error {
 	if !strings.HasSuffix(speed, "G") {
-		return errors.Errorf("speed %q must have a G suffix", speed)
+		return fmt.Errorf("speed %q must have a G suffix", speed) //nolint:err113
 	}
 
 	if !allowedPortSpeeds[speed] {
-		return errors.Errorf("speed %q is not allowed", speed)
+		return fmt.Errorf("speed %q is not allowed", speed) //nolint:err113
 	}
 
 	return nil
@@ -597,22 +599,22 @@ var allowedPortBreakoutNumbers = map[string]bool{
 func ValidatePortBreakoutMode(mode string) error {
 	parts := strings.Split(mode, "x")
 	if len(parts) != 2 {
-		return errors.Errorf("mode %q must have axactly one 'x' as a separator", mode)
+		return fmt.Errorf("mode %q must have axactly one 'x' as a separator", mode) //nolint:err113
 	}
 
 	number := parts[0]
 	speed := parts[1]
 
 	if number == "" {
-		return errors.Errorf("mode %q must have a number before 'x'", mode)
+		return fmt.Errorf("mode %q must have a number before 'x'", mode) //nolint:err113
 	}
 
 	if speed == "" {
-		return errors.Errorf("mode %q must have a speed after 'x'", mode)
+		return fmt.Errorf("mode %q must have a speed after 'x'", mode) //nolint:err113
 	}
 
 	if !allowedPortBreakoutNumbers[number] {
-		return errors.Errorf("mode %q must have a valid number", mode)
+		return fmt.Errorf("mode %q must have a valid number", mode) //nolint:err113
 	}
 
 	return ValidatePortSpeed(speed)
@@ -620,10 +622,10 @@ func ValidatePortBreakoutMode(mode string) error {
 
 func (sp *SwitchProfileSpec) GetAPI2NOSPortsFor(sw *SwitchSpec) (map[string]string, error) {
 	if sp == nil {
-		return nil, errors.Errorf("switch profile spec is nil")
+		return nil, fmt.Errorf("switch profile spec is nil") //nolint:err113
 	}
 	if sw == nil {
-		return nil, errors.Errorf("switch spec is nil")
+		return nil, fmt.Errorf("switch spec is nil") //nolint:err113
 	}
 
 	ports := map[string]string{}
@@ -646,17 +648,17 @@ func (sp *SwitchProfileSpec) GetAPI2NOSPortsFor(sw *SwitchSpec) (map[string]stri
 			if breakoutMode, ok := breakoutProfile.Supported[swBreakout]; ok {
 				nosNameBaseStr, cut := strings.CutPrefix(port.BaseNOSName, DataPortNOSNamePrefix)
 				if !cut {
-					return nil, errors.Errorf("port %q base NOS name %q is invalid (no expected prefix)", portName, port.NOSName)
+					return nil, fmt.Errorf("port %q base NOS name %q is invalid (no expected prefix)", portName, port.NOSName) //nolint:err113
 				}
 				nosNameBase, err := strconv.Atoi(nosNameBaseStr)
 				if err != nil {
-					return nil, errors.Errorf("port %q base NOS name %q is invalid (suffix isn't a number)", portName, port.NOSName)
+					return nil, fmt.Errorf("port %q base NOS name %q is invalid (suffix isn't a number)", portName, port.NOSName) //nolint:err113
 				}
 
 				for breakoutIdx, offsetStr := range breakoutMode.Offsets {
 					offset, err := strconv.Atoi(offsetStr)
 					if err != nil {
-						return nil, errors.Errorf("port %q NOS name %q breakout mode %q offset %q is invalid (not a number)", portName, port.NOSName, swBreakout, offsetStr)
+						return nil, fmt.Errorf("port %q NOS name %q breakout mode %q offset %q is invalid (not a number)", portName, port.NOSName, swBreakout, offsetStr) //nolint:err113
 					}
 
 					nosName := fmt.Sprintf("%s%d", DataPortNOSNamePrefix, nosNameBase+offset)
@@ -668,7 +670,7 @@ func (sp *SwitchProfileSpec) GetAPI2NOSPortsFor(sw *SwitchSpec) (map[string]stri
 					ports[fmt.Sprintf("%s/%d", portName, breakoutIdx+1)] = nosName
 				}
 			} else {
-				return nil, errors.Errorf("port %q has a breakout %q not supported by profile %q", portName, swBreakout, port.Profile)
+				return nil, fmt.Errorf("port %q has a breakout %q not supported by profile %q", portName, swBreakout, port.Profile) //nolint:err113
 			}
 		} else {
 			ports[portName] = port.NOSName
@@ -680,15 +682,15 @@ func (sp *SwitchProfileSpec) GetAPI2NOSPortsFor(sw *SwitchSpec) (map[string]stri
 
 func (sp *SwitchProfileSpec) GetNOS2APIPortsFor(sw *SwitchSpec) (map[string]string, error) {
 	if sp == nil {
-		return nil, errors.Errorf("switch profile spec is nil")
+		return nil, fmt.Errorf("switch profile spec is nil") //nolint:err113
 	}
 	if sw == nil {
-		return nil, errors.Errorf("switch spec is nil")
+		return nil, fmt.Errorf("switch spec is nil") //nolint:err113
 	}
 
 	api2NOS, err := sp.GetAPI2NOSPortsFor(sw)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get API to NOS ports")
+		return nil, fmt.Errorf("failed to get API to NOS ports: %w", err)
 	}
 
 	ports := map[string]string{}
@@ -702,7 +704,7 @@ func (sp *SwitchProfileSpec) GetNOS2APIPortsFor(sw *SwitchSpec) (map[string]stri
 				continue
 			}
 
-			return nil, errors.Errorf("NOS port %q is duplicated", nosPort)
+			return nil, fmt.Errorf("NOS port %q is duplicated", nosPort) //nolint:err113
 		}
 
 		ports[nosPort] = apiPort
@@ -713,7 +715,7 @@ func (sp *SwitchProfileSpec) GetNOS2APIPortsFor(sw *SwitchSpec) (map[string]stri
 
 func (sp *SwitchProfileSpec) GetNOS2APIBreakouts() (map[string]string, error) {
 	if sp == nil {
-		return nil, errors.Errorf("switch profile spec is nil")
+		return nil, fmt.Errorf("switch profile spec is nil") //nolint:err113
 	}
 
 	ports := map[string]string{}
@@ -724,14 +726,14 @@ func (sp *SwitchProfileSpec) GetNOS2APIBreakouts() (map[string]string, error) {
 
 		profile, exists := sp.PortProfiles[port.Profile]
 		if !exists {
-			return nil, errors.Errorf("port %q references non-existent profile %q", port.NOSName, port.Profile)
+			return nil, fmt.Errorf("port %q references non-existent profile %q", port.NOSName, port.Profile) //nolint:err113
 		}
 		if profile.Breakout == nil {
 			continue
 		}
 
 		if _, exists := ports[port.NOSName]; exists {
-			return nil, errors.Errorf("NOS port %q is duplicated", port.NOSName)
+			return nil, fmt.Errorf("NOS port %q is duplicated", port.NOSName) //nolint:err113
 		}
 
 		ports[port.NOSName] = apiName
@@ -742,7 +744,7 @@ func (sp *SwitchProfileSpec) GetNOS2APIBreakouts() (map[string]string, error) {
 
 func (sp *SwitchProfileSpec) GetAllBreakoutNOSNames() (map[string]bool, error) {
 	if sp == nil {
-		return nil, errors.Errorf("switch profile spec is nil")
+		return nil, fmt.Errorf("switch profile spec is nil") //nolint:err113
 	}
 
 	ports := map[string]bool{}
@@ -754,7 +756,7 @@ func (sp *SwitchProfileSpec) GetAllBreakoutNOSNames() (map[string]bool, error) {
 
 		profile, ok := sp.PortProfiles[port.Profile]
 		if !ok {
-			return nil, errors.Errorf("port %q references non-existent profile %q", port.NOSName, port.Profile)
+			return nil, fmt.Errorf("port %q references non-existent profile %q", port.NOSName, port.Profile) //nolint:err113
 		}
 
 		if profile.Breakout == nil {
@@ -763,18 +765,18 @@ func (sp *SwitchProfileSpec) GetAllBreakoutNOSNames() (map[string]bool, error) {
 
 		nosNameBaseStr, cut := strings.CutPrefix(port.BaseNOSName, DataPortNOSNamePrefix)
 		if !cut {
-			return nil, errors.Errorf("port %q base NOS name %q is invalid (no expected prefix)", portName, port.NOSName)
+			return nil, fmt.Errorf("port %q base NOS name %q is invalid (no expected prefix)", portName, port.NOSName) //nolint:err113
 		}
 		nosNameBase, err := strconv.Atoi(nosNameBaseStr)
 		if err != nil {
-			return nil, errors.Errorf("port %q base NOS name %q is invalid (suffix isn't a number)", portName, port.NOSName)
+			return nil, fmt.Errorf("port %q base NOS name %q is invalid (suffix isn't a number)", portName, port.NOSName) //nolint:err113
 		}
 
 		for _, breakoutMode := range profile.Breakout.Supported {
 			for _, offsetStr := range breakoutMode.Offsets {
 				offset, err := strconv.Atoi(offsetStr)
 				if err != nil {
-					return nil, errors.Errorf("port %q NOS name %q breakout mode %q offset %q is invalid (not a number)", portName, port.NOSName, breakoutMode, offsetStr)
+					return nil, fmt.Errorf("port %q NOS name %q breakout mode %q offset %q is invalid (not a number)", portName, port.NOSName, breakoutMode, offsetStr) //nolint:err113
 				}
 
 				nosName := fmt.Sprintf("%s%d", DataPortNOSNamePrefix, nosNameBase+offset)
@@ -788,7 +790,7 @@ func (sp *SwitchProfileSpec) GetAllBreakoutNOSNames() (map[string]bool, error) {
 
 func (sp *SwitchProfileSpec) NormalizePortName(portName string) (string, error) {
 	if sp == nil {
-		return "", errors.Errorf("switch profile spec is nil")
+		return "", fmt.Errorf("switch profile spec is nil") //nolint:err113
 	}
 
 	if strings.Count(portName, "/") == 2 {
@@ -797,7 +799,7 @@ func (sp *SwitchProfileSpec) NormalizePortName(portName string) (string, error) 
 
 	port, exists := sp.Ports[portName]
 	if !exists {
-		return "", errors.Errorf("port %q does not exist in the switch profile", portName)
+		return "", fmt.Errorf("port %q does not exist in the switch profile", portName) //nolint:err113
 	}
 
 	if port.Profile == "" {
@@ -806,7 +808,7 @@ func (sp *SwitchProfileSpec) NormalizePortName(portName string) (string, error) 
 
 	profile, exists := sp.PortProfiles[port.Profile]
 	if !exists {
-		return "", errors.Errorf("port %q references non-existent port profile %q", portName, port.Profile)
+		return "", fmt.Errorf("port %q references non-existent port profile %q", portName, port.Profile) //nolint:err113
 	}
 
 	if profile.Breakout == nil {
@@ -827,7 +829,7 @@ type SwitchProfilePortSummary struct {
 
 func (sp *SwitchProfileSpec) GetPortsSummary() ([]SwitchProfilePortSummary, error) {
 	if sp == nil {
-		return nil, errors.Errorf("switch profile spec is nil")
+		return nil, fmt.Errorf("switch profile spec is nil") //nolint:err113
 	}
 
 	res := []SwitchProfilePortSummary{}
@@ -848,12 +850,12 @@ func (sp *SwitchProfileSpec) GetPortsSummary() ([]SwitchProfilePortSummary, erro
 			t = "Port Group"
 			gr, exists := sp.PortGroups[port.Group]
 			if !exists {
-				return nil, errors.Errorf("port %q references non-existent group %q", portName, port.Group)
+				return nil, fmt.Errorf("port %q references non-existent group %q", portName, port.Group) //nolint:err113
 			}
 
 			profile, exists := sp.PortProfiles[gr.Profile]
 			if !exists {
-				return nil, errors.Errorf("group %q references non-existent profile %q", port.Group, gr.Profile)
+				return nil, fmt.Errorf("group %q references non-existent profile %q", port.Group, gr.Profile) //nolint:err113
 			}
 
 			if profile.Speed != nil {
@@ -925,10 +927,10 @@ func ComparePortNames(a, b string) int {
 
 func (sp *SwitchProfileSpec) GetAutoNegsDefaultsFor(sw *SwitchSpec) (map[string]bool, map[string]bool, error) {
 	if sp == nil {
-		return nil, nil, errors.Errorf("switch profile spec is nil")
+		return nil, nil, fmt.Errorf("switch profile spec is nil") //nolint:err113
 	}
 	if sw == nil {
-		return nil, nil, errors.Errorf("switch spec is nil")
+		return nil, nil, fmt.Errorf("switch spec is nil") //nolint:err113
 	}
 
 	allowed, def := map[string]bool{}, map[string]bool{}
@@ -941,7 +943,7 @@ func (sp *SwitchProfileSpec) GetAutoNegsDefaultsFor(sw *SwitchSpec) (map[string]
 		if port.Profile != "" { //nolint:gocritic
 			profile, exists := sp.PortProfiles[port.Profile]
 			if !exists {
-				return nil, nil, errors.Errorf("port %q references non-existent profile %q", port.NOSName, port.Profile)
+				return nil, nil, fmt.Errorf("port %q references non-existent profile %q", port.NOSName, port.Profile) //nolint:err113
 			}
 
 			if profile.Speed != nil { //nolint:gocritic
@@ -955,7 +957,7 @@ func (sp *SwitchProfileSpec) GetAutoNegsDefaultsFor(sw *SwitchSpec) (map[string]
 
 				breakoutProfile, ok := profile.Breakout.Supported[breakout]
 				if !ok {
-					return nil, nil, errors.Errorf("port %q has a breakout %q not supported by profile %q", portName, breakout, port.Profile)
+					return nil, nil, fmt.Errorf("port %q has a breakout %q not supported by profile %q", portName, breakout, port.Profile) //nolint:err113
 				}
 
 				for idx := range breakoutProfile.Offsets {
@@ -963,13 +965,13 @@ func (sp *SwitchProfileSpec) GetAutoNegsDefaultsFor(sw *SwitchSpec) (map[string]
 					def[fmt.Sprintf("%s/%d", portName, idx+1)] = profile.AutoNegDefault
 				}
 			} else {
-				return nil, nil, errors.Errorf("port %q profile %q has no speed or breakout", portName, port.Profile)
+				return nil, nil, fmt.Errorf("port %q profile %q has no speed or breakout", portName, port.Profile) //nolint:err113
 			}
 		} else if port.Group != "" {
 			// autoneg is not allowed for groups
 			continue
 		} else {
-			return nil, nil, errors.Errorf("port %q must have a profile or group", portName)
+			return nil, nil, fmt.Errorf("port %q must have a profile or group", portName) //nolint:err113
 		}
 	}
 
@@ -978,10 +980,10 @@ func (sp *SwitchProfileSpec) GetAutoNegsDefaultsFor(sw *SwitchSpec) (map[string]
 
 func (sp *SwitchProfileSpec) GetBreakoutDefaults(sw *SwitchSpec) (map[string]string, error) {
 	if sp == nil {
-		return nil, errors.Errorf("switch profile spec is nil")
+		return nil, fmt.Errorf("switch profile spec is nil") //nolint:err113
 	}
 	if sw == nil {
-		return nil, errors.Errorf("switch spec is nil")
+		return nil, fmt.Errorf("switch spec is nil") //nolint:err113
 	}
 
 	def := map[string]string{}
@@ -993,7 +995,7 @@ func (sp *SwitchProfileSpec) GetBreakoutDefaults(sw *SwitchSpec) (map[string]str
 
 		profile, exists := sp.PortProfiles[port.Profile]
 		if !exists {
-			return nil, errors.Errorf("port %q references non-existent profile %q", port.NOSName, port.Profile)
+			return nil, fmt.Errorf("port %q references non-existent profile %q", port.NOSName, port.Profile) //nolint:err113
 		}
 
 		if profile.Breakout == nil {
@@ -1013,7 +1015,7 @@ func (sp *SwitchProfileSpec) GetBreakoutDefaults(sw *SwitchSpec) (map[string]str
 
 func (sp *SwitchProfileSpec) GetAvailableAPIPorts(sw *SwitchSpec) (map[string]bool, error) {
 	if sp == nil {
-		return nil, errors.Errorf("switch profile spec is nil")
+		return nil, fmt.Errorf("switch profile spec is nil") //nolint:err113
 	}
 	if sw == nil {
 		sw = &SwitchSpec{}
@@ -1029,7 +1031,7 @@ func (sp *SwitchProfileSpec) GetAvailableAPIPorts(sw *SwitchSpec) (map[string]bo
 		if port.Profile != "" { //nolint:gocritic
 			profile, exists := sp.PortProfiles[port.Profile]
 			if !exists {
-				return nil, errors.Errorf("port %q references non-existent profile %q", port.NOSName, port.Profile)
+				return nil, fmt.Errorf("port %q references non-existent profile %q", port.NOSName, port.Profile) //nolint:err113
 			}
 
 			if profile.Breakout != nil { //nolint:gocritic
@@ -1043,17 +1045,17 @@ func (sp *SwitchProfileSpec) GetAvailableAPIPorts(sw *SwitchSpec) (map[string]bo
 						ports[fmt.Sprintf("%s/%d", portName, idx+1)] = true
 					}
 				} else {
-					return nil, errors.Errorf("port %q has a breakout %q not supported by profile %q", portName, b, port.Profile)
+					return nil, fmt.Errorf("port %q has a breakout %q not supported by profile %q", portName, b, port.Profile) //nolint:err113
 				}
 			} else if profile.Speed != nil {
 				ports[portName] = true
 			} else {
-				return nil, errors.Errorf("port %q references profile %q without speed or breakout", port.NOSName, port.Profile)
+				return nil, fmt.Errorf("port %q references profile %q without speed or breakout", port.NOSName, port.Profile) //nolint:err113
 			}
 		} else if port.Group != "" {
 			ports[portName] = true
 		} else {
-			return nil, errors.Errorf("port %q must have a profile or group", port.NOSName)
+			return nil, fmt.Errorf("port %q must have a profile or group", port.NOSName) //nolint:err113
 		}
 	}
 
@@ -1114,14 +1116,14 @@ func (sp *SwitchProfileSpec) GetPortsShortSummary() (string, error) {
 		if port.Group != "" {
 			group, exists := sp.PortGroups[port.Group]
 			if !exists {
-				return "", errors.Errorf("port %q references non-existent group %q", port.NOSName, port.Group)
+				return "", fmt.Errorf("port %q references non-existent group %q", port.NOSName, port.Group) //nolint:err113
 			}
 
 			profile = group.Profile
 		}
 
 		if profile == "" {
-			return "", errors.Errorf("port %q must have a profile or group", port.NOSName)
+			return "", fmt.Errorf("port %q must have a profile or group", port.NOSName) //nolint:err113
 		}
 
 		portCount[strings.TrimSuffix(profile, NonBreakoutPortExceptionSuffix)]++

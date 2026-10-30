@@ -59,7 +59,7 @@ func TestIPv4NamespaceExternalInboundPrefixes(t *testing.T) {
 		err     string
 	}{
 		{name: "subnet added next to the inbound prefixes", subnets: []string{"10.0.0.0/16", "10.2.0.0/16"}},
-		{name: "subnet added around an inbound prefix", subnets: []string{"10.0.0.0/16", "10.1.0.0/16"}, err: "external ext-01: inbound prefix 10.1.1.0/24 is inside subnet 10.1.0.0/16"},
+		{name: "subnet added around an inbound prefix", subnets: []string{"10.0.0.0/16", "10.1.0.0/16"}, err: `spec.subnets[1]: Invalid value: "10.1.0.0/16": contains inbound prefix 10.1.1.0/24 of external ext-01`},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			newNs := ns.DeepCopy()

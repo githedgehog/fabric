@@ -13,7 +13,9 @@ import (
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kmeta "k8s.io/apimachinery/pkg/api/meta"
+	kapivalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	kctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -52,19 +54,28 @@ func SetupFabricWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, lock *Loc
 // refresh had to leave alone (rejected or stale, see the FabricController status) may still hold an empty value: it
 // can be normalized to the default later, while nothing can leave the default fabric or domain by being unset first.
 
-// fabricChanged reports whether an update moves an object to another fabric
-func fabricChanged(oldName, newName string) bool {
-	return fabricOrDefault(oldName) != fabricOrDefault(newName)
+func checkFabricUnchanged(oldName, newName string) *field.Error {
+	if fabricOrDefault(oldName) == fabricOrDefault(newName) {
+		return nil
+	}
+
+	return field.Invalid(field.NewPath("spec", "topology", "fabric"), newName, kapivalidation.FieldImmutableErrorMsg)
 }
 
-// domainChanged reports whether an update moves an object to another domain
-func domainChanged(oldName, newName string) bool {
-	return domainOrDefault(oldName) != domainOrDefault(newName)
+func checkDomainUnchanged(oldName, newName string) *field.Error {
+	if domainOrDefault(oldName) == domainOrDefault(newName) {
+		return nil
+	}
+
+	return field.Invalid(field.NewPath("spec", "topology", "domain"), newName, kapivalidation.FieldImmutableErrorMsg)
 }
 
-// domainsChanged reports whether an update changes the set of domains an object is in
-func domainsChanged(oldNames, newNames []string) bool {
-	return !slices.Equal(sortedDomainsOrDefault(oldNames), sortedDomainsOrDefault(newNames))
+func checkDomainsUnchanged(oldNames, newNames []string) *field.Error {
+	if slices.Equal(sortedDomainsOrDefault(oldNames), sortedDomainsOrDefault(newNames)) {
+		return nil
+	}
+
+	return field.Invalid(field.NewPath("spec", "topology", "domains"), newNames, kapivalidation.FieldImmutableErrorMsg)
 }
 
 func sortedDomainsOrDefault(names []string) []string {
@@ -111,18 +122,19 @@ func (w *FabricWebhook) ValidateUpdate(ctx context.Context, oldFabric *wiringapi
 	// silently invalidate what is already admitted. Unset values can still be filled in
 	if oldFabric.Spec.LeafASNStart != 0 && oldFabric.Spec.LeafASNStart != fabric.Spec.LeafASNStart ||
 		oldFabric.Spec.LeafASNEnd != 0 && oldFabric.Spec.LeafASNEnd != fabric.Spec.LeafASNEnd {
-		return nil, fmt.Errorf("fabric leaf ASN range can not be changed") //nolint:err113
+		return nil, field.Forbidden(field.NewPath("spec"), "fabric leaf ASN range can not be changed")
 	}
+	domainsPath := field.NewPath("spec", "domains")
 	for name, oldDomain := range oldFabric.Spec.Domains {
 		domain, exists := fabric.Spec.Domains[name]
 		if !exists && oldDomain != (wiringapi.FabricDomainSpec{}) {
-			return nil, fmt.Errorf("domain %s can not be removed or renamed", name) //nolint:err113
+			return nil, field.Forbidden(domainsPath.Key(name), "domain can not be removed or renamed")
 		}
 		if oldDomain.SpineASN != 0 && oldDomain.SpineASN != domain.SpineASN {
-			return nil, fmt.Errorf("spineASN of domain %s can not be changed", name) //nolint:err113
+			return nil, field.Invalid(domainsPath.Key(name).Child("spineASN"), domain.SpineASN, kapivalidation.FieldImmutableErrorMsg)
 		}
 		if oldDomain.GatewayASN != 0 && oldDomain.GatewayASN != domain.GatewayASN {
-			return nil, fmt.Errorf("gatewayASN of domain %s can not be changed", name) //nolint:err113
+			return nil, field.Invalid(domainsPath.Key(name).Child("gatewayASN"), domain.GatewayASN, kapivalidation.FieldImmutableErrorMsg)
 		}
 	}
 	// nothing needs to grow a fabric yet, so its domains are fixed like its leaf ASN range. A
@@ -130,7 +142,7 @@ func (w *FabricWebhook) ValidateUpdate(ctx context.Context, oldFabric *wiringapi
 	if len(oldFabric.Spec.Domains) > 0 {
 		for name := range fabric.Spec.Domains {
 			if _, exists := oldFabric.Spec.Domains[name]; !exists {
-				return nil, fmt.Errorf("domain %s can not be added to an existing fabric", name) //nolint:err113
+				return nil, field.Forbidden(domainsPath.Key(name), "domain can not be added to an existing fabric")
 			}
 		}
 	}

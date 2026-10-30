@@ -17,7 +17,6 @@ package v1beta1
 import (
 	"context"
 
-	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -96,7 +95,7 @@ func (sp *ServerProfile) Default() {
 
 func (sp *ServerProfile) Validate(_ context.Context, _ kclient.Reader, _ *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(sp); err != nil {
-		return nil, errors.Wrapf(err, "failed to validate metadata")
+		return nil, err //nolint:wrapcheck
 	}
 
 	return nil, nil

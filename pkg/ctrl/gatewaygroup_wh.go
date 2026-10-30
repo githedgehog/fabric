@@ -50,12 +50,12 @@ func (w *GatewayGroupWebhook) ValidateCreate(ctx context.Context, gwGr *gwapi.Ga
 }
 
 func (w *GatewayGroupWebhook) ValidateUpdate(ctx context.Context, oldGwGr *gwapi.GatewayGroup, newGwGr *gwapi.GatewayGroup) (admission.Warnings, error) {
-	if fabricChanged(oldGwGr.Spec.Topology.Fabric, newGwGr.Spec.Topology.Fabric) {
-		return nil, fmt.Errorf("topology.fabric is immutable") //nolint:err113
+	if err := checkFabricUnchanged(oldGwGr.Spec.Topology.Fabric, newGwGr.Spec.Topology.Fabric); err != nil {
+		return nil, err
 	}
 	// so that a GatewayGroup update never has to re-check its gateways and peerings
-	if domainChanged(oldGwGr.Spec.Topology.Domain, newGwGr.Spec.Topology.Domain) {
-		return nil, fmt.Errorf("topology.domain is immutable") //nolint:err113
+	if err := checkDomainUnchanged(oldGwGr.Spec.Topology.Domain, newGwGr.Spec.Topology.Domain); err != nil {
+		return nil, err
 	}
 
 	// TODO validate diff between oldObj and newObj if needed

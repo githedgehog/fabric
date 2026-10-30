@@ -13,6 +13,7 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
+	"go.githedgehog.com/fabric/pkg/util/testutil"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -424,7 +425,7 @@ func TestHydrationValidation(t *testing.T) {
 
 			err := test.dut.HydrationValidation(ctx, kube, fabricCfg)
 			if test.expectError {
-				require.Error(t, err)
+				testutil.RequireFieldError(t, err, test.dut)
 			} else {
 				require.NoError(t, err)
 			}
@@ -606,7 +607,7 @@ func TestSwitchDomainsValidation(t *testing.T) {
 		{name: "shared leaf", sw: swGen(domains("plane-b", "default"))},
 		{name: "spine", sw: swGen(spine(65099), domains("plane-b"))},
 		{
-			name: "spine with the ASN of another domain", err: "spine leaf-01 ASN 65100 is not the spine ASN 65099 of domain plane-b",
+			name: "spine with the ASN of another domain", err: "spec.asn: Invalid value: 65100: not the spine ASN 65099 of domain plane-b",
 			sw: swGen(spine(65100), domains("plane-b")),
 		},
 		{
@@ -614,7 +615,7 @@ func TestSwitchDomainsValidation(t *testing.T) {
 			sw: swGen(spine(65099), domains("plane-b", "default")),
 		},
 		{
-			name: "domain not in fabric", err: "domain plane-c not found in fabric default",
+			name: "domain not in fabric", err: `spec.topology.domains: Invalid value: "plane-c": domain plane-c not found in fabric default`,
 			sw: swGen(domains("plane-c")),
 		},
 		{
@@ -662,12 +663,43 @@ func TestSwitchDomainsValidation(t *testing.T) {
 			err: "switches of redundancy group eslag-1 must be in the same domains, switch leaf-02 is in domains []",
 		},
 		{
-			name: "invalid boot MAC", err: `invalid boot MAC: parsing MAC "not-a-mac"`,
+			name: "invalid boot MAC", err: `spec.boot.mac: Invalid value: "not-a-mac": parsing MAC "not-a-mac"`,
 			sw: swGen(func(sw *wiringapi.Switch) { sw.Spec.Boot.MAC = "not-a-mac" }),
 		},
 		{
 			name: "boot MAC in another format",
 			sw:   swGen(func(sw *wiringapi.Switch) { sw.Spec.Boot.MAC = "0C-20-12-FE-01-00" }),
+		},
+		{
+			name: "speed of an unknown port", err: `spec.portSpeeds[E1/99]: Invalid value: "100G": port not found in switch profile`,
+			sw: swGen(func(sw *wiringapi.Switch) { sw.Spec.PortSpeeds = map[string]string{"E1/99": "100G"} }),
+		},
+		{
+			name: "speed of an unknown port group", err: `spec.portGroupSpeeds[99]: Invalid value: "10G": port group not found in switch profile`,
+			sw: swGen(func(sw *wiringapi.Switch) { sw.Spec.PortGroupSpeeds = map[string]string{"99": "10G"} }),
+		},
+		{
+			name: "breakout of an unknown port", err: `spec.portBreakouts[E1/99]: Invalid value: "4x25G": port not found in switch profile`,
+			sw: swGen(func(sw *wiringapi.Switch) { sw.Spec.PortBreakouts = map[string]string{"E1/99": "4x25G"} }),
+		},
+		{
+			name: "auto negotiation on an unknown port", err: `spec.portAutoNegs[E1/99]: Invalid value: true: port does not support configuring auto negotiation`,
+			sw: swGen(func(sw *wiringapi.Switch) { sw.Spec.PortAutoNegs = map[string]bool{"E1/99": true} }),
+		},
+		{
+			name: "FEC on an unknown port", err: `spec.portFECs[E1/99]: Invalid value: "rs": port does not support configuring FEC`,
+			sw: swGen(func(sw *wiringapi.Switch) { sw.Spec.PortFECs = map[string]wiringapi.PortFECMode{"E1/99": "rs"} }),
+		},
+		{
+			name: "port locator on an unknown port", err: "spec.portLocators[E1/99]: Invalid value:",
+			sw: swGen(func(sw *wiringapi.Switch) { sw.Spec.PortLocators = map[string]string{"E1/99": "2099-01-01 00:00:00"} }),
+		},
+		{
+			name: "speed of a port in a group", err: `spec.portSpeeds[E1/1]: Invalid value: "10G": port is in port group 1, set the speed in portGroupSpeeds`,
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Spec.Profile = switchprofile.DellS5248FON.Name
+				sw.Spec.PortSpeeds = map[string]string{"E1/1": "10G"}
+			}),
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
@@ -692,6 +724,7 @@ func TestSwitchDomainsValidation(t *testing.T) {
 				return
 			}
 			require.ErrorContains(t, err, tt.err)
+			testutil.RequireFieldError(t, err, tt.sw)
 		})
 	}
 }

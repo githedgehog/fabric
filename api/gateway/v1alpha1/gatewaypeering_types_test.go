@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	vpcv1beta1 "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	"go.githedgehog.com/fabric/pkg/util/testutil"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -27,6 +28,7 @@ func TestPeeringDefaultEmpty(t *testing.T) {
 	}
 	ref.Annotations = map[string]string{}
 	ref.Spec.Topology.Fabric = wiringapi.DefaultFabric
+	ref.Spec.GatewayGroup = DefaultGatewayGroup
 
 	peering := &GatewayPeering{}
 	peering.Default()
@@ -114,7 +116,7 @@ func TestPeeringWithMultipleItemsInIPs(t *testing.T) {
 
 	peering := common.DeepCopy()
 	peering.Default()
-	assert.Error(t, peering.Validate(t.Context(), nil, nil), "multiple selection in the same PeeringEntryIP should be invalid")
+	testutil.RequireFieldError(t, peering.Validate(t.Context(), nil, nil), peering)
 }
 
 func TestPeeringWithMultipleItemsInAs(t *testing.T) {
@@ -160,7 +162,7 @@ func TestPeeringWithMultipleItemsInAs(t *testing.T) {
 
 	peering := common.DeepCopy()
 	peering.Default()
-	assert.Error(t, peering.Validate(t.Context(), nil, nil), "multiple selection in the same PeeringEntryAs should be invalid")
+	testutil.RequireFieldError(t, peering.Validate(t.Context(), nil, nil), peering)
 }
 
 func TestPeeringWithStaticNAT(t *testing.T) {
@@ -450,7 +452,7 @@ func TestValidateDefaultDestination(t *testing.T) {
 			peering.Default()
 			err := peering.Validate(ctx, nil, nil)
 			if tt.error {
-				require.Error(t, err)
+				testutil.RequireFieldError(t, err, peering)
 			} else {
 				require.NoError(t, err)
 			}
@@ -750,7 +752,7 @@ func TestValidateCIDRBelongsToVPC(t *testing.T) {
 			tt.peering.Default()
 			actual := tt.peering.Validate(ctx, kube, nil)
 			if tt.err {
-				require.Error(t, actual)
+				testutil.RequireFieldError(t, actual, tt.peering)
 			} else {
 				require.NoError(t, actual)
 			}
@@ -1113,7 +1115,7 @@ func TestValidateACLNoKube(t *testing.T) {
 			peering.Default()
 			err := peering.Validate(t.Context(), nil, nil)
 			if tt.err {
-				require.Error(t, err)
+				testutil.RequireFieldError(t, err, peering)
 			} else {
 				require.NoError(t, err)
 			}
@@ -1263,7 +1265,7 @@ func TestValidateACLVPCSubnet(t *testing.T) {
 			tt.peering.Default()
 			actual := tt.peering.Validate(ctx, kube, nil)
 			if tt.err {
-				require.Error(t, actual)
+				testutil.RequireFieldError(t, actual, tt.peering)
 			} else {
 				require.NoError(t, actual)
 			}
@@ -1311,20 +1313,28 @@ func TestTopologyDomainRequired(t *testing.T) {
 	gw := withName("gw-1", &Gateway{})
 	gw.Default()
 	gw.Spec.Topology.Domain = ""
-	require.ErrorContains(t, gw.Validate(t.Context(), nil, nil), "topology.domain is required")
+	err := gw.Validate(t.Context(), nil, nil)
+	require.EqualError(t, err, "spec.topology.domain: Required value")
+	testutil.RequireFieldError(t, err, gw)
 
 	gwGroup := withName("gwgr-1", &GatewayGroup{})
 	gwGroup.Default()
 	gwGroup.Spec.Topology.Domain = ""
-	require.ErrorContains(t, gwGroup.Validate(t.Context(), nil, nil), "topology.domain is required")
+	err = gwGroup.Validate(t.Context(), nil, nil)
+	require.EqualError(t, err, "spec.topology.domain: Required value")
+	testutil.RequireFieldError(t, err, gwGroup)
 
 	vpcInfo := withName("vpc-1", &VPCInfo{})
 	vpcInfo.Default()
 	vpcInfo.Spec.Topology.Domains = nil
-	require.ErrorContains(t, vpcInfo.Validate(t.Context(), nil, nil), "vpcinfo must be in at least one domain")
+	err = vpcInfo.Validate(t.Context(), nil, nil)
+	require.EqualError(t, err, "spec.topology.domains: Required value: vpcinfo must be in at least one domain")
+	testutil.RequireFieldError(t, err, vpcInfo)
 
 	fabricNotSet := withName("vpc-1", &VPCInfo{})
-	require.ErrorIs(t, fabricNotSet.Validate(t.Context(), nil, nil), wiringapi.ErrFabricNotSet)
+	err = fabricNotSet.Validate(t.Context(), nil, nil)
+	require.EqualError(t, err, "spec.topology.fabric: Required value")
+	testutil.RequireFieldError(t, err, fabricNotSet)
 }
 
 func TestPeeringGroupWithoutDomain(t *testing.T) {
@@ -1351,5 +1361,7 @@ func TestPeeringGroupWithoutDomain(t *testing.T) {
 
 	peering := generateExternalPeering("ext-group-without-domain")
 	peering.Default()
-	require.ErrorContains(t, peering.Validate(t.Context(), kube, nil), "gateway group default has no domain")
+	err := peering.Validate(t.Context(), kube, nil)
+	require.EqualError(t, err, `spec.gatewayGroup: Invalid value: "default": gateway group has no domain`)
+	testutil.RequireFieldError(t, err, peering)
 }

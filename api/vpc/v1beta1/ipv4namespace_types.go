@@ -16,17 +16,16 @@ package v1beta1
 
 import (
 	"context"
-	"fmt"
 	"maps"
 	"net/netip"
 	"slices"
 
-	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/iputil"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -132,22 +131,24 @@ func (ns *IPv4Namespace) Default() {
 
 func (ns *IPv4Namespace) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(ns); err != nil {
-		return nil, errors.Wrapf(err, "failed to validate metadata")
+		return nil, err //nolint:wrapcheck
 	}
 
-	if err := wiringapi.CheckFabricExists(ctx, kube, ns.Namespace, ns.Spec.Topology.Fabric); err != nil {
-		return nil, fmt.Errorf("failed to validate fabric: %w", err)
+	spec := field.NewPath("spec")
+
+	if _, err := wiringapi.CheckFabricExists(ctx, kube, ns.Namespace, ns.Spec.Topology.Fabric); err != nil {
+		return nil, err //nolint:wrapcheck
 	}
 
 	if len(ns.Name) > 11 {
-		return nil, errors.Errorf("name %s is too long, must be <= 11 characters", ns.Name)
+		return nil, field.TooLongCharacters(field.NewPath("metadata", "name"), ns.Name, 11)
 	}
 
 	subnets := []netip.Prefix{}
-	for _, subnet := range ns.Spec.Subnets {
+	for idx, subnet := range ns.Spec.Subnets {
 		prefix, err := netip.ParsePrefix(subnet)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to parse cidr %s", subnet)
+			return nil, field.Invalid(spec.Child("subnets").Index(idx), subnet, err.Error())
 		}
 
 		subnets = append(subnets, prefix.Masked())
@@ -157,38 +158,38 @@ func (ns *IPv4Namespace) Validate(ctx context.Context, kube kclient.Reader, fabr
 	// to prevent traffic local to it from being peered via the external.
 	// ACLs are limited so let's err on the side of caution
 	if len(subnets) > MaxIPv4NamespaceSubnets {
-		return nil, errors.Errorf("too many subnets defined (%d), maximum is %d", len(subnets), MaxIPv4NamespaceSubnets)
+		return nil, field.TooMany(spec.Child("subnets"), len(subnets), MaxIPv4NamespaceSubnets)
 	}
 
 	if err := iputil.VerifyNoOverlapNetip(subnets); err != nil {
-		return nil, errors.Wrapf(err, "subnets overlap")
+		return nil, field.Invalid(spec.Child("subnets"), field.OmitValueType{}, err.Error())
 	}
 
 	if fabricCfg != nil {
-		subnets = append(subnets, fabricCfg.ParsedReservedSubnets()...)
+		for idx, subnet := range subnets {
+			if reserved, overlaps := fabricCfg.OverlappingReservedSubnet(subnet); overlaps {
+				return nil, field.Invalid(spec.Child("subnets").Index(idx), ns.Spec.Subnets[idx], "overlaps with reserved subnet "+reserved.String())
+			}
+		}
 	}
 
-	return nil, errors.Wrapf(iputil.VerifyNoOverlapNetip(subnets), "subnets overlap with reserved subnets")
+	return nil, nil
 }
 
-// CheckOutside checks that none of the prefixes is inside a subnet of the namespace, as an External drops the routes
-// within them silently. A prefix around the namespace, such as a default route, is fine
-func (ns *IPv4Namespace) CheckOutside(what string, prefixes []string) error {
-	for _, s := range ns.Spec.Subnets {
-		subnet, err := netip.ParsePrefix(s)
-		if err != nil {
-			return fmt.Errorf("invalid subnet %s in IPv4Namespace %s: %w", s, ns.Name, err)
-		}
-		for _, p := range prefixes {
-			prefix, err := netip.ParsePrefix(p)
-			if err != nil {
-				return fmt.Errorf("invalid %s %s: %w", what, p, err)
-			}
-			if iputil.IsSubset(prefix, subnet) {
-				return fmt.Errorf("%s %s is inside subnet %s of IPv4Namespace %s", what, prefix, subnet, ns.Name) //nolint:err113
-			}
+// SubnetContaining returns the index of the namespace subnet the prefix is inside of, or -1, also for a prefix that
+// doesn't parse. An External drops the routes within the namespace subnets silently, while a prefix around one, such
+// as a default route, is fine
+func (ns *IPv4Namespace) SubnetContaining(prefixStr string) int {
+	prefix, err := netip.ParsePrefix(prefixStr)
+	if err != nil {
+		return -1
+	}
+
+	for idx, s := range ns.Spec.Subnets {
+		if subnet, err := netip.ParsePrefix(s); err == nil && iputil.IsSubset(prefix, subnet) {
+			return idx
 		}
 	}
 
-	return nil
+	return -1
 }

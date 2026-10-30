@@ -10,6 +10,7 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	"go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	"go.githedgehog.com/fabric/pkg/util/testutil"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -129,6 +130,16 @@ func TestExternalPeeringValidation(t *testing.T) {
 			err:     true,
 		},
 		{
+			name: "external prefix is not a prefix",
+			peering: extPeeringGen("ext-peer-05", func(peering *v1beta1.ExternalPeering) {
+				peering.Spec.Permit.External.Prefixes = []v1beta1.ExternalPeeringSpecPrefix{
+					{Prefix: "10.10.0.1"},
+				}
+			}),
+			objects: baseObjs,
+			err:     true,
+		},
+		{
 			name: "vpc does not exist",
 			peering: extPeeringGen("ext-peer-06", func(peering *v1beta1.ExternalPeering) {
 				peering.Spec.Permit.VPC.Name = "vpc-456"
@@ -208,7 +219,7 @@ func TestExternalPeeringValidation(t *testing.T) {
 
 			_, err := test.peering.Validate(t.Context(), kube, &meta.FabricConfig{})
 			if test.err {
-				require.Error(t, err, "expected error but got none")
+				testutil.RequireFieldError(t, err, test.peering)
 			} else {
 				require.NoError(t, err, "unexpected error during validation")
 			}

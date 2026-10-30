@@ -22,13 +22,13 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ktypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -170,40 +170,44 @@ func (attach *VPCAttachment) Default() {
 
 func (attach *VPCAttachment) Validate(ctx context.Context, kube kclient.Reader, _ *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(attach); err != nil {
-		return nil, errors.Wrapf(err, "failed to validate metadata")
+		return nil, err //nolint:wrapcheck
 	}
 
-	if err := wiringapi.CheckFabricExists(ctx, kube, attach.Namespace, attach.Spec.Topology.Fabric); err != nil {
-		return nil, fmt.Errorf("failed to validate fabric: %w", err)
+	spec := field.NewPath("spec")
+	subnetPath, connPath := spec.Child("subnet"), spec.Child("connection")
+
+	if _, err := wiringapi.CheckFabricExists(ctx, kube, attach.Namespace, attach.Spec.Topology.Fabric); err != nil {
+		return nil, err //nolint:wrapcheck
 	}
 
 	if attach.Spec.Subnet == "" {
-		return nil, errors.Errorf("subnet is required")
+		return nil, field.Required(subnetPath, "")
 	}
 	parts := strings.SplitN(attach.Spec.Subnet, "/", 2)
 	if len(parts[0]) == 0 {
-		return nil, errors.Errorf("subnet should be in <vpc>/<subnet> format, vpc is missing")
+		return nil, field.Invalid(subnetPath, attach.Spec.Subnet, "should be in <vpc>/<subnet> format, vpc is missing")
 	}
 	if len(parts) == 1 {
-		return nil, errors.Errorf("subnet should be in <vpc>/<subnet> format, subnet is missing")
+		return nil, field.Invalid(subnetPath, attach.Spec.Subnet, "should be in <vpc>/<subnet> format, subnet is missing")
 	}
 	vpcName, subnet := parts[0], parts[1]
 
 	if attach.Spec.Connection == "" {
-		return nil, errors.Errorf("connection is required")
+		return nil, field.Required(connPath, "")
 	}
 
 	if attach.Annotations != nil {
 		if p2pStr, ok := attach.Annotations[AnnotationVPCAttachmentP2PLink]; ok {
+			p2pPath := field.NewPath("metadata", "annotations").Key(AnnotationVPCAttachmentP2PLink)
 			if p2pStr == "" {
-				return nil, fmt.Errorf("empty p2p link annotation subnet") //nolint:err113
+				return nil, field.Required(p2pPath, "")
 			}
 			p2p, err := netip.ParsePrefix(p2pStr)
 			if err != nil {
-				return nil, fmt.Errorf("p2p link annotation subnet should be a valid prefix, got: %q: %w", p2pStr, err)
+				return nil, field.Invalid(p2pPath, p2pStr, err.Error())
 			}
 			if !p2p.IsValid() || !p2p.Addr().Is4() || p2p.Bits() != 31 {
-				return nil, fmt.Errorf("p2p link annotation subnet must be a valid IPv4 /31 prefix, got: %q", p2pStr) //nolint:err113
+				return nil, field.Invalid(p2pPath, p2pStr, "must be a valid IPv4 /31 prefix")
 			}
 		}
 	}
@@ -212,47 +216,47 @@ func (attach *VPCAttachment) Validate(ctx context.Context, kube kclient.Reader, 
 		vpc := &VPC{}
 		err := kube.Get(ctx, ktypes.NamespacedName{Name: vpcName, Namespace: attach.Namespace}, vpc)
 		if kapierrors.IsNotFound(err) {
-			return nil, errors.Errorf("vpc %s not found", vpcName)
+			return nil, field.Invalid(subnetPath, attach.Spec.Subnet, fmt.Sprintf("vpc %s not found", vpcName))
 		}
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get vpc %s", vpcName) // TODO replace with some internal error to not expose to the user
+			return nil, fmt.Errorf("failed to get vpc %s: %w", vpcName, err) // TODO replace with some internal error to not expose to the user
 		}
 		// a stored VPC the refresh on fabric-ctrl initialization had to leave alone may have none, and the switch
 		// domains check below would pass when there's nothing to compare
 		if len(vpc.Spec.Topology.Domains) == 0 {
-			return nil, fmt.Errorf("vpc %s has no domains", vpcName) //nolint:err113
+			return nil, field.Invalid(subnetPath, attach.Spec.Subnet, fmt.Sprintf("vpc %s has no domains", vpcName))
 		}
 		if vpc.Spec.Subnets == nil || vpc.Spec.Subnets[subnet] == nil {
-			return nil, errors.Errorf("subnet %s not found in vpc %s", subnet, vpcName)
+			return nil, field.Invalid(subnetPath, attach.Spec.Subnet, fmt.Sprintf("subnet %s not found in vpc %s", subnet, vpcName))
 		}
 		subnetSpec := vpc.Spec.Subnets[subnet]
 
 		conn := &wiringapi.Connection{}
 		err = kube.Get(ctx, ktypes.NamespacedName{Name: attach.Spec.Connection, Namespace: attach.Namespace}, conn)
 		if kapierrors.IsNotFound(err) {
-			return nil, errors.Errorf("connection %s not found", attach.Spec.Connection)
+			return nil, field.NotFound(connPath, attach.Spec.Connection)
 		}
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to get connection %s", attach.Spec.Connection) // TODO replace with some internal error to not expose to the user
+			return nil, fmt.Errorf("failed to get connection %s: %w", attach.Spec.Connection, err) // TODO replace with some internal error to not expose to the user
 		}
 
 		attachFabric := attach.Spec.Topology.Fabric
 		if vpcFabric := vpc.Spec.Topology.Fabric; vpcFabric != attachFabric {
-			return nil, fmt.Errorf("attachment is in fabric %s but vpc %s is in fabric %s", attachFabric, vpcName, vpcFabric) //nolint:err113
+			return nil, field.Invalid(subnetPath, attach.Spec.Subnet, fmt.Sprintf("attachment is in fabric %s but vpc %s is in fabric %s", attachFabric, vpcName, vpcFabric))
 		}
 		if connFabric := conn.Spec.Topology.Fabric; connFabric != attachFabric {
-			return nil, fmt.Errorf("attachment is in fabric %s but connection %s is in fabric %s", attachFabric, attach.Spec.Connection, connFabric) //nolint:err113
+			return nil, field.Invalid(connPath, attach.Spec.Connection, fmt.Sprintf("attachment is in fabric %s but the connection is in fabric %s", attachFabric, connFabric))
 		}
 
 		if conn.Spec.ESLAG != nil && vpc.Spec.Mode != VPCModeL2VNI {
-			return nil, errors.Errorf("vpc mode %s is not supported for ESLAG connections", vpc.Spec.Mode)
+			return nil, field.Invalid(connPath, attach.Spec.Connection, fmt.Sprintf("vpc mode %s is not supported for ESLAG connections", vpc.Spec.Mode))
 		}
 		if subnetSpec.HostBGP {
 			if conn.Spec.Unbundled == nil {
-				return nil, errors.Errorf("only unbundled links can be used to attach to a hostBGP subnet")
+				return nil, field.Invalid(connPath, attach.Spec.Connection, "only unbundled links can be used to attach to a hostBGP subnet")
 			}
 			if attach.Spec.NativeVLAN {
-				return nil, errors.Errorf("native VLAN is not supported for hostBGP subnets, use vlan=0 in the VPC subnet spec instead")
+				return nil, field.Forbidden(spec.Child("nativeVLAN"), "not supported for hostBGP subnets, use vlan=0 in the VPC subnet spec instead")
 			}
 		}
 
@@ -260,58 +264,58 @@ func (attach *VPCAttachment) Validate(ctx context.Context, kube kclient.Reader, 
 		if conn.Spec.Unbundled != nil || conn.Spec.Bundled != nil || conn.Spec.ESLAG != nil {
 			switchNames, _, _, _, err = conn.Spec.Endpoints()
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to get endpoints for connection %s", attach.Spec.Connection) // TODO replace with some internal error to not expose to the user
+				return nil, fmt.Errorf("failed to get endpoints for connection %s: %w", attach.Spec.Connection, err) // TODO replace with some internal error to not expose to the user
 			}
 		} else {
-			return nil, errors.Errorf("vpc can be attached only to Unbundled, Bundled or ESLAG connections")
+			return nil, field.Invalid(connPath, attach.Spec.Connection, "vpc can be attached only to Unbundled, Bundled or ESLAG connections")
 		}
 
 		if len(switchNames) == 0 {
-			return nil, errors.Errorf("connection %s has no switch endpoints", attach.Spec.Connection)
+			return nil, field.Invalid(connPath, attach.Spec.Connection, "connection has no switch endpoints")
 		}
 
 		for _, switchName := range switchNames {
 			sw := &wiringapi.Switch{}
 			err = kube.Get(ctx, ktypes.NamespacedName{Name: switchName, Namespace: attach.Namespace}, sw)
 			if kapierrors.IsNotFound(err) {
-				return nil, errors.Errorf("switch %s used in connection not found", switchName)
+				return nil, field.Invalid(connPath, attach.Spec.Connection, fmt.Sprintf("switch %s used in connection not found", switchName))
 			}
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to get switch %s used in connection", switchName) // TODO replace with some internal error to not expose to the user
+				return nil, fmt.Errorf("failed to get switch %s used in connection: %w", switchName, err) // TODO replace with some internal error to not expose to the user
 			}
 
 			if !slices.Contains(sw.Spec.VLANNamespaces, vpc.Spec.VLANNamespace) {
-				return nil, errors.Errorf("switch %s used in connection doesn't have vlan namespace %s", switchName, vpc.Spec.VLANNamespace)
+				return nil, field.Invalid(connPath, attach.Spec.Connection, fmt.Sprintf("switch %s used in connection doesn't have vlan namespace %s", switchName, vpc.Spec.VLANNamespace))
 			}
 			// a VPC is reachable from each of its domains only if every switch it is attached to is in all of them
 			vpcDomains, swDomains := vpc.Spec.Topology.Domains, sw.Spec.Topology.Domains
 			if slices.ContainsFunc(vpcDomains, func(domain string) bool { return !slices.Contains(swDomains, domain) }) {
-				return nil, fmt.Errorf("vpc %s is in domains %v but switch %s is in domains %v", vpcName, vpcDomains, switchName, swDomains) //nolint:err113
+				return nil, field.Invalid(connPath, attach.Spec.Connection, fmt.Sprintf("vpc %s is in domains %v but switch %s is in domains %v", vpcName, vpcDomains, switchName, swDomains))
 			}
 
 			sp := &wiringapi.SwitchProfile{}
 			err = kube.Get(ctx, ktypes.NamespacedName{Name: sw.Spec.Profile, Namespace: attach.Namespace}, sp)
 			if kapierrors.IsNotFound(err) {
-				return nil, errors.Errorf("switch profile %s used in switch %s not found", sw.Spec.Profile, switchName)
+				return nil, field.Invalid(connPath, attach.Spec.Connection, fmt.Sprintf("switch profile %s used in switch %s not found", sw.Spec.Profile, switchName))
 			}
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to get switch profile %s used in switch %s", sw.Spec.Profile, switchName) // TODO replace with some internal error to not expose to the user
+				return nil, fmt.Errorf("failed to get switch profile %s used in switch %s: %w", sw.Spec.Profile, switchName, err) // TODO replace with some internal error to not expose to the user
 			}
 			spf := sp.Spec.Features
 
 			switch vpc.Spec.Mode {
 			case VPCModeL2VNI:
 				if !spf.L2VNI || !spf.L3VNI {
-					return nil, errors.Errorf("vpc mode %s is not supported on switch profile %s", vpc.Spec.Mode, sw.Spec.Profile)
+					return nil, field.Invalid(connPath, attach.Spec.Connection, fmt.Sprintf("vpc mode %s is not supported on switch profile %s", vpc.Spec.Mode, sw.Spec.Profile))
 				}
 			case VPCModeL3VNI, VPCModeL3Flat:
 				if !spf.L3VNI {
-					return nil, errors.Errorf("vpc mode %s is not supported on switch profile %s", vpc.Spec.Mode, sw.Spec.Profile)
+					return nil, field.Invalid(connPath, attach.Spec.Connection, fmt.Sprintf("vpc mode %s is not supported on switch profile %s", vpc.Spec.Mode, sw.Spec.Profile))
 				}
 			}
 
 			if subnetSpec.HostBGP && sw.Spec.Redundancy.Group != "" && sw.Spec.Redundancy.Type == meta.RedundancyTypeMCLAG {
-				return nil, errors.Errorf("cannot attach hostBGP subnet to switch %s which is an MCLAG peer", sw.Name)
+				return nil, field.Invalid(connPath, attach.Spec.Connection, fmt.Sprintf("cannot attach hostBGP subnet to switch %s which is an MCLAG peer", sw.Name))
 			}
 		}
 
@@ -320,7 +324,7 @@ func (attach *VPCAttachment) Validate(ctx context.Context, kube kclient.Reader, 
 			wiringapi.LabelConnection: attach.Spec.Connection,
 		})
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to list vpc attachments for connection %s", attach.Spec.Connection) // TODO replace with some internal error to not expose to the user
+			return nil, fmt.Errorf("failed to list vpc attachments for connection %s: %w", attach.Spec.Connection, err) // TODO replace with some internal error to not expose to the user
 		}
 
 		for _, other := range attaches.Items {
@@ -329,11 +333,11 @@ func (attach *VPCAttachment) Validate(ctx context.Context, kube kclient.Reader, 
 			}
 
 			if other.Spec.Subnet == attach.Spec.Subnet {
-				return nil, errors.Errorf("connection %s already attached to vpc subnet %s", attach.Spec.Connection, attach.Spec.Subnet)
+				return nil, field.Invalid(subnetPath, attach.Spec.Subnet, fmt.Sprintf("connection %s already attached to it by %s", attach.Spec.Connection, other.Name))
 			}
 
 			if attach.Spec.NativeVLAN && other.Spec.NativeVLAN {
-				return nil, errors.Errorf("connection %s already attached with native VLAN", attach.Spec.Connection)
+				return nil, field.Invalid(spec.Child("nativeVLAN"), true, fmt.Sprintf("connection %s already attached with native VLAN by %s", attach.Spec.Connection, other.Name))
 			}
 		}
 	}

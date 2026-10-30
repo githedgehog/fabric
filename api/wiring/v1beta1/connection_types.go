@@ -24,7 +24,6 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/pkg/errors"
 	"github.com/samber/lo"
 	"go.githedgehog.com/fabric/api/meta"
 	"go.githedgehog.com/fabric/pkg/util/iputil"
@@ -32,6 +31,7 @@ import (
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ktypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -499,13 +499,13 @@ func (connSpec *ConnectionSpec) Endpoints() ([]string, []string, []string, map[s
 		links[connSpec.Unbundled.Link.Switch.PortName()] = connSpec.Unbundled.Link.Server.PortName()
 
 		if len(switches) != 1 {
-			return nil, nil, nil, nil, errors.Errorf("one switch must be used for unbundled connection")
+			return nil, nil, nil, nil, fmt.Errorf("one switch must be used for unbundled connection") //nolint:err113
 		}
 		if len(servers) != 1 {
-			return nil, nil, nil, nil, errors.Errorf("one server must be used for unbundled connection")
+			return nil, nil, nil, nil, fmt.Errorf("one server must be used for unbundled connection") //nolint:err113
 		}
 		if len(ports) != 2 {
-			return nil, nil, nil, nil, errors.Errorf("two unique ports must be used for unbundled connection")
+			return nil, nil, nil, nil, fmt.Errorf("two unique ports must be used for unbundled connection") //nolint:err113
 		}
 	} else if connSpec.Bundled != nil {
 		nonNills++
@@ -519,13 +519,13 @@ func (connSpec *ConnectionSpec) Endpoints() ([]string, []string, []string, map[s
 		}
 
 		if len(switches) != 1 {
-			return nil, nil, nil, nil, errors.Errorf("one switch must be used for bundled connection")
+			return nil, nil, nil, nil, fmt.Errorf("one switch must be used for bundled connection") //nolint:err113
 		}
 		if len(servers) != 1 {
-			return nil, nil, nil, nil, errors.Errorf("one server must be used for bundled connection")
+			return nil, nil, nil, nil, fmt.Errorf("one server must be used for bundled connection") //nolint:err113
 		}
 		if len(ports) != 2*len(connSpec.Bundled.Links) {
-			return nil, nil, nil, nil, errors.Errorf("unique ports must be used for bundled connection")
+			return nil, nil, nil, nil, fmt.Errorf("unique ports must be used for bundled connection") //nolint:err113
 		}
 	} else if connSpec.ESLAG != nil {
 		nonNills++
@@ -539,16 +539,16 @@ func (connSpec *ConnectionSpec) Endpoints() ([]string, []string, []string, map[s
 		}
 
 		if len(switches) < 1 {
-			return nil, nil, nil, nil, errors.Errorf("at least one switch must be used for eslag connection")
+			return nil, nil, nil, nil, fmt.Errorf("at least one switch must be used for eslag connection") //nolint:err113
 		}
 		if len(switches) > 4 {
-			return nil, nil, nil, nil, errors.Errorf("at most four switches must be used for eslag connection")
+			return nil, nil, nil, nil, fmt.Errorf("at most four switches must be used for eslag connection") //nolint:err113
 		}
 		if len(servers) != 1 {
-			return nil, nil, nil, nil, errors.Errorf("one server must be used for eslag connection")
+			return nil, nil, nil, nil, fmt.Errorf("one server must be used for eslag connection") //nolint:err113
 		}
 		if len(ports) != 2*len(connSpec.ESLAG.Links) {
-			return nil, nil, nil, nil, errors.Errorf("unique ports must be used for eslag connection")
+			return nil, nil, nil, nil, fmt.Errorf("unique ports must be used for eslag connection") //nolint:err113
 		}
 	} else if connSpec.Fabric != nil {
 		nonNills++
@@ -562,10 +562,10 @@ func (connSpec *ConnectionSpec) Endpoints() ([]string, []string, []string, map[s
 		}
 
 		if len(switches) != 2 {
-			return nil, nil, nil, nil, errors.Errorf("two switches must be used for fabric connection")
+			return nil, nil, nil, nil, fmt.Errorf("two switches must be used for fabric connection") //nolint:err113
 		}
 		if len(ports) != 2*len(connSpec.Fabric.Links) {
-			return nil, nil, nil, nil, errors.Errorf("unique ports must be used for fabric connection")
+			return nil, nil, nil, nil, fmt.Errorf("unique ports must be used for fabric connection") //nolint:err113
 		}
 	} else if connSpec.Mesh != nil {
 		nonNills++
@@ -579,10 +579,10 @@ func (connSpec *ConnectionSpec) Endpoints() ([]string, []string, []string, map[s
 		}
 
 		if len(switches) != 2 {
-			return nil, nil, nil, nil, errors.Errorf("two switches must be used for mesh connection")
+			return nil, nil, nil, nil, fmt.Errorf("two switches must be used for mesh connection") //nolint:err113
 		}
 		if len(ports) != 2*len(connSpec.Mesh.Links) {
-			return nil, nil, nil, nil, errors.Errorf("unique ports must be used for mesh connection")
+			return nil, nil, nil, nil, fmt.Errorf("unique ports must be used for mesh connection") //nolint:err113
 		}
 	} else if connSpec.Gateway != nil {
 		nonNills++
@@ -596,10 +596,10 @@ func (connSpec *ConnectionSpec) Endpoints() ([]string, []string, []string, map[s
 		}
 
 		if len(switches) != 1 {
-			return nil, nil, nil, nil, errors.Errorf("one switches must be used for gateway connection")
+			return nil, nil, nil, nil, fmt.Errorf("one switches must be used for gateway connection") //nolint:err113
 		}
 		if len(ports) != 2*len(connSpec.Gateway.Links) {
-			return nil, nil, nil, nil, errors.Errorf("unique ports must be used for gateway connection")
+			return nil, nil, nil, nil, fmt.Errorf("unique ports must be used for gateway connection") //nolint:err113
 		}
 	} else if connSpec.External != nil {
 		nonNills++
@@ -616,18 +616,18 @@ func (connSpec *ConnectionSpec) Endpoints() ([]string, []string, []string, map[s
 	}
 
 	if nonNills != 1 {
-		return nil, nil, nil, nil, errors.Errorf("exactly one connection type must be used")
+		return nil, nil, nil, nil, fmt.Errorf("exactly one connection type must be used") //nolint:err113
 	}
 
 	for port := range ports {
 		parts := SplitPortName(port)
 
 		if len(parts) != 2 {
-			return nil, nil, nil, nil, errors.Errorf("invalid port name %s", port)
+			return nil, nil, nil, nil, fmt.Errorf("invalid port name %s", port) //nolint:err113
 		}
 
 		if len(parts) < 2 || parts[0] == "" || parts[1] == "" {
-			return nil, nil, nil, nil, errors.Errorf("invalid port name %s, should be \"<device>/<port>\" format", port)
+			return nil, nil, nil, nil, fmt.Errorf("invalid port name %s, should be \"<device>/<port>\" format", port) //nolint:err113
 		}
 	}
 
@@ -779,10 +779,10 @@ func (connSpec *ConnectionSpec) ValidateDomains(switches map[string]*Switch) err
 
 func (connSpec *ConnectionSpec) ValidateServerFacingMTU(fabricMTU uint16, serverFacingMTUOffset uint16) error {
 	if connSpec.Unbundled != nil && connSpec.Unbundled.MTU > fabricMTU-serverFacingMTUOffset {
-		return errors.Errorf("unbundled connection mtu %d is greater than fabric mtu %d - server facing mtu offset %d", connSpec.Unbundled.MTU, fabricMTU, serverFacingMTUOffset)
+		return field.Invalid(field.NewPath("spec", "unbundled", "mtu"), connSpec.Unbundled.MTU, fmt.Sprintf("greater than fabric mtu %d - server facing mtu offset %d", fabricMTU, serverFacingMTUOffset))
 	}
 	if connSpec.Bundled != nil && connSpec.Bundled.MTU > fabricMTU-serverFacingMTUOffset {
-		return errors.Errorf("bundled connection mtu %d is greater than fabric mtu %d - server facing mtu offset %d", connSpec.Bundled.MTU, fabricMTU, serverFacingMTUOffset)
+		return field.Invalid(field.NewPath("spec", "bundled", "mtu"), connSpec.Bundled.MTU, fmt.Sprintf("greater than fabric mtu %d - server facing mtu offset %d", fabricMTU, serverFacingMTUOffset))
 	}
 
 	return nil
@@ -790,8 +790,10 @@ func (connSpec *ConnectionSpec) ValidateServerFacingMTU(fabricMTU uint16, server
 
 func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(conn); err != nil {
-		return nil, errors.Wrapf(err, "failed to validate metadata")
+		return nil, err //nolint:wrapcheck
 	}
+
+	spec := field.NewPath("spec")
 
 	if conn.Spec.MCLAG != nil || conn.Spec.MCLAGDomain != nil {
 		return admission.Warnings{"MCLAG is deprecated and no longer supported"}, nil
@@ -805,70 +807,72 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 
 	switches, servers, ports, _, err := conn.Spec.Endpoints()
 	if err != nil {
-		return nil, err
+		return nil, field.Invalid(spec, field.OmitValueType{}, err.Error())
 	}
 
 	if conn.Spec.StaticExternal != nil {
 		se := conn.Spec.StaticExternal.Link.Switch
+		sePath := spec.Child("staticExternal", "link", "switch")
 
 		_, ipNet, err := net.ParseCIDR(se.IP)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to parse cidr %s", se.IP)
+			return nil, field.Invalid(sePath.Child("ip"), se.IP, err.Error())
 		}
 
 		nextHop := net.ParseIP(se.NextHop)
 		if nextHop == nil {
-			return nil, errors.Errorf("failed to parse next hop %s", se.NextHop)
+			return nil, field.Invalid(sePath.Child("nextHop"), se.NextHop, "not a valid IP address")
 		}
 
 		if !ipNet.Contains(nextHop) {
-			return nil, errors.Errorf("next hop %s is not in cidr %s", nextHop, ipNet)
+			return nil, field.Invalid(sePath.Child("nextHop"), se.NextHop, "not in cidr "+ipNet.String())
 		}
 
 		subnets := []netip.Prefix{}
-		for _, subnet := range se.Subnets {
+		for idx, subnet := range se.Subnets {
+			subnetPath := sePath.Child("subnets").Index(idx)
 			prefix, err := netip.ParsePrefix(subnet)
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to parse cidr %s", subnet)
+				return nil, field.Invalid(subnetPath, subnet, err.Error())
 			}
 
 			if subnet == "0.0.0.0/0" {
 				if len(se.Subnets) > 1 {
-					return nil, errors.Errorf("default route should be the only subnet")
+					return nil, field.Invalid(subnetPath, subnet, "default route should be the only subnet")
 				}
 
 				break
 			}
 
 			if prefix.Addr() != prefix.Masked().Addr() {
-				return nil, errors.Errorf("invalid subnet %s: inconsistent IP address and mask", subnet)
+				return nil, field.Invalid(subnetPath, subnet, "inconsistent IP address and mask")
 			}
 
 			subnets = append(subnets, prefix)
 		}
 
 		if err := iputil.VerifyNoOverlapNetip(subnets); err != nil {
-			return nil, errors.Wrapf(err, "subnets overlap")
+			return nil, field.Invalid(sePath.Child("subnets"), field.OmitValueType{}, err.Error())
 		}
 
 		if fabricCfg != nil {
-			subnets = append(subnets, fabricCfg.ParsedReservedSubnets()...)
-		}
-
-		if err := iputil.VerifyNoOverlapNetip(subnets); err != nil {
-			return nil, errors.Wrapf(err, "subnets overlap with reserved subnets")
+			for idx, subnet := range subnets {
+				if reserved, overlaps := fabricCfg.OverlappingReservedSubnet(subnet); overlaps {
+					return nil, field.Invalid(sePath.Child("subnets").Index(idx), se.Subnets[idx], "overlaps with reserved subnet "+reserved.String())
+				}
+			}
 		}
 	}
 
 	if conn.Spec.ESLAG != nil && fabricCfg != nil && fabricCfg.FabricMode != meta.FabricModeSpineLeaf {
-		return nil, errors.Errorf("eslag connection is not allowed in current fabric configuration")
+		return nil, field.Forbidden(spec.Child("eslag"), "eslag connection is not allowed in current fabric configuration")
 	}
 
 	if conn.Spec.Gateway != nil && fabricCfg != nil && fabricCfg.FabricMode != meta.FabricModeSpineLeaf {
-		return nil, errors.Errorf("gateway connection is not allowed in current fabric configuration")
+		return nil, field.Forbidden(spec.Child("gateway"), "gateway connection is not allowed in current fabric configuration")
 	}
 
-	if err := CheckFabricExists(ctx, kube, conn.Namespace, conn.Spec.Topology.Fabric); err != nil {
+	if _, err := CheckFabricExists(ctx, kube, conn.Namespace, conn.Spec.Topology.Fabric); err != nil {
 		return nil, err
 	}
 
@@ -882,27 +886,27 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 			sw := &Switch{}
 			err := kube.Get(ctx, ktypes.NamespacedName{Name: switchName, Namespace: conn.Namespace}, sw) // TODO namespace could be different?
 			if kapierrors.IsNotFound(err) {
-				return nil, errors.Errorf("switch %s not found", switchName)
+				return nil, field.Invalid(spec, field.OmitValueType{}, fmt.Sprintf("switch %s not found", switchName))
 			}
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to get switch %s", switchName) // TODO replace with some internal error to not expose to the user
+				return nil, fmt.Errorf("failed to get switch %s: %w", switchName, err) // TODO replace with some internal error to not expose to the user
 			}
 
 			if swFabric := sw.Spec.Topology.Fabric; swFabric != connFabric {
-				return nil, fmt.Errorf("connection is in fabric %s but switch %s is in fabric %s", connFabric, switchName, swFabric) //nolint:err113
+				return nil, field.Invalid(spec, field.OmitValueType{}, fmt.Sprintf("connection is in fabric %s but switch %s is in fabric %s", connFabric, switchName, swFabric))
 			}
 			switchObjs[switchName] = sw
 
 			if conn.Spec.ESLAG != nil {
 				if sw.Spec.Redundancy.Group != "" {
 					if rGroup != "" && rGroup != sw.Spec.Redundancy.Group {
-						return nil, errors.Errorf("all switches in ESLAG connection should belong to the same redundancy group, found %s in %s", switchName, rGroup)
+						return nil, field.Invalid(spec, field.OmitValueType{}, fmt.Sprintf("all switches in ESLAG connection should belong to the same redundancy group, found %s in %s", switchName, rGroup))
 					}
 					rGroup = sw.Spec.Redundancy.Group
 				}
 				if sw.Spec.Redundancy.Type != "" {
 					if rType != "" && rType != sw.Spec.Redundancy.Type {
-						return nil, errors.Errorf("all switches in ESLAG connection should belong to the same redundancy type, found %s in %s", switchName, rType)
+						return nil, field.Invalid(spec, field.OmitValueType{}, fmt.Sprintf("all switches in ESLAG connection should belong to the same redundancy type, found %s in %s", switchName, rType))
 					}
 					rType = sw.Spec.Redundancy.Type
 				}
@@ -911,15 +915,15 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 			sp := &SwitchProfile{}
 			err = kube.Get(ctx, ktypes.NamespacedName{Name: sw.Spec.Profile, Namespace: conn.Namespace}, sp) // TODO namespace could be different?
 			if kapierrors.IsNotFound(err) {
-				return nil, errors.Errorf("switch profile %s not found", sw.Spec.Profile)
+				return nil, field.Invalid(spec, field.OmitValueType{}, fmt.Sprintf("switch profile %s not found", sw.Spec.Profile))
 			}
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to get switch profile %s", sw.Spec.Profile) // TODO replace with some internal error to not expose to the user
+				return nil, fmt.Errorf("failed to get switch profile %s: %w", sw.Spec.Profile, err) // TODO replace with some internal error to not expose to the user
 			}
 
 			allowedPorts, err := sp.Spec.GetAPI2NOSPortsFor(&sw.Spec)
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to get NOS port mapping for switch %s", switchName)
+				return nil, fmt.Errorf("failed to get NOS port mapping for switch %s: %w", switchName, err)
 			}
 
 			for _, port := range ports {
@@ -930,31 +934,31 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 				portName := strings.TrimPrefix(port, switchName+"/")
 
 				if _, ok := allowedPorts[portName]; !ok {
-					return nil, errors.Errorf("port %s is not allowed for switch %s", port, switchName)
+					return nil, field.Invalid(spec, field.OmitValueType{}, fmt.Sprintf("port %s is not allowed for switch %s", port, switchName))
 				}
 			}
 		}
 
 		if err := conn.Spec.ValidateDomains(switchObjs); err != nil {
-			return nil, err
+			return nil, field.Invalid(spec, field.OmitValueType{}, err.Error())
 		}
 
 		if conn.Spec.ESLAG != nil {
 			if rGroup == "" {
-				return nil, errors.Errorf("all switches in ESLAG connection should have redundancy group")
+				return nil, field.Invalid(spec, field.OmitValueType{}, "all switches in ESLAG connection should have redundancy group")
 			}
 			if rType != meta.RedundancyTypeESLAG {
-				return nil, errors.Errorf("all switches in ESLAG connection should have ESLAG redundancy type, found %s", rType)
+				return nil, field.Invalid(spec, field.OmitValueType{}, fmt.Sprintf("all switches in ESLAG connection should have ESLAG redundancy type, found %s", rType))
 			}
 		}
 
 		for _, serverName := range servers {
 			err := kube.Get(ctx, ktypes.NamespacedName{Name: serverName, Namespace: conn.Namespace}, &Server{}) // TODO namespace could be different?
 			if kapierrors.IsNotFound(err) {
-				return nil, errors.Errorf("server %s not found", serverName)
+				return nil, field.Invalid(spec, field.OmitValueType{}, fmt.Sprintf("server %s not found", serverName))
 			}
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to get server %s", serverName) // TODO replace with some internal error to not expose to the user
+				return nil, fmt.Errorf("failed to get server %s: %w", serverName, err) // TODO replace with some internal error to not expose to the user
 			}
 		}
 
@@ -1005,7 +1009,7 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 
 		fabricSubnet, err := netip.ParsePrefix(fabricCfg.FabricSubnet)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to parse fabric subnet %s", fabricCfg.FabricSubnet)
+			return nil, fmt.Errorf("failed to parse fabric subnet %s: %w", fabricCfg.FabricSubnet, err)
 		}
 		fabricIPs := map[netip.Addr]bool{}
 		for _, name := range slices.Sorted(maps.Keys(others)) {
@@ -1020,7 +1024,7 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 
 			_, _, ports, _, err := other.Spec.Endpoints()
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to get endpoints for connection %s", other.Name)
+				return nil, fmt.Errorf("failed to get endpoints for connection %s: %w", other.Name, err)
 			}
 
 			for _, port := range ports {
@@ -1029,7 +1033,7 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 					alreadyInUse = alreadyInUse || connPorts[port+"/1"]
 				}
 				if alreadyInUse {
-					return nil, errors.Errorf("port %s is already used by other connection %s", port, other.Name)
+					return nil, field.Invalid(spec, field.OmitValueType{}, fmt.Sprintf("port %s is already used by other connection %s", port, other.Name))
 				}
 			}
 			switch {
@@ -1078,9 +1082,12 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 		if conn.Spec.Fabric != nil { //nolint:gocritic
 			cf := conn.Spec.Fabric
 			for idx, link := range cf.Links {
+				linkPath := spec.Child("fabric", "links").Index(idx)
+				spineIPPath, leafIPPath := linkPath.Child("spine", "ip"), linkPath.Child("leaf", "ip")
+
 				// no IPs on either side means BGP unnumbered, but a link with just one IP is broken
 				if (link.Spine.IP == "") != (link.Leaf.IP == "") {
-					return nil, errors.Errorf("fabric connection %s link %d has an IP on only one side, it must be set on both for a numbered link or on neither for an unnumbered one", conn.Name, idx)
+					return nil, field.Invalid(linkPath, field.OmitValueType{}, "has an IP on only one side, it must be set on both for a numbered link or on neither for an unnumbered one")
 				}
 				if link.Spine.IP == "" {
 					continue
@@ -1088,48 +1095,51 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 
 				spinePrefix, err := netip.ParsePrefix(link.Spine.IP)
 				if err != nil {
-					return nil, errors.Wrapf(err, "parsing fabric connection %s link %d spine IP %s", conn.Name, idx, link.Spine.IP)
+					return nil, field.Invalid(spineIPPath, link.Spine.IP, err.Error())
 				}
 				if spinePrefix.Bits() != 31 {
-					return nil, errors.Errorf("fabric connection %s link %d spine IP %s is not a /31", conn.Name, idx, spinePrefix)
+					return nil, field.Invalid(spineIPPath, link.Spine.IP, "not a /31")
 				}
 
 				spineIP := spinePrefix.Addr()
 				if !fabricSubnet.Contains(spineIP) {
-					return nil, errors.Errorf("fabric connection %s link %d spine IP %s is not in the fabric subnet %s", conn.Name, idx, spineIP, fabricSubnet)
+					return nil, field.Invalid(spineIPPath, link.Spine.IP, "not in the fabric subnet "+fabricSubnet.String())
 				}
 				if _, exist := fabricIPs[spineIP]; exist {
-					return nil, errors.Errorf("fabric connection %s link %d spine IP %s is already in use", conn.Name, idx, spineIP)
+					return nil, field.Invalid(spineIPPath, link.Spine.IP, "already in use")
 				}
 				fabricIPs[spineIP] = true
 
 				leafPrefix, err := netip.ParsePrefix(link.Leaf.IP)
 				if err != nil {
-					return nil, errors.Wrapf(err, "parsing fabric connection %s link %d leaf IP %s", conn.Name, idx, link.Leaf.IP)
+					return nil, field.Invalid(leafIPPath, link.Leaf.IP, err.Error())
 				}
 				if leafPrefix.Bits() != 31 {
-					return nil, errors.Errorf("fabric connection %s link %d leaf IP %s is not a /31", conn.Name, idx, leafPrefix)
+					return nil, field.Invalid(leafIPPath, link.Leaf.IP, "not a /31")
 				}
 
 				leafIP := leafPrefix.Addr()
 				if !fabricSubnet.Contains(leafIP) {
-					return nil, errors.Errorf("fabric connection %s link %d leaf IP %s is not in the fabric subnet %s", conn.Name, idx, leafIP, fabricSubnet)
+					return nil, field.Invalid(leafIPPath, link.Leaf.IP, "not in the fabric subnet "+fabricSubnet.String())
 				}
 				if _, exist := fabricIPs[leafIP]; exist {
-					return nil, errors.Errorf("fabric connection %s link %d leaf IP %s is already in use", conn.Name, idx, leafIP)
+					return nil, field.Invalid(leafIPPath, link.Leaf.IP, "already in use")
 				}
 				fabricIPs[leafIP] = true
 
 				if spinePrefix.Masked() != leafPrefix.Masked() {
-					return nil, errors.Errorf("fabric connection %s link %d spine IP %s and leaf IP %s are not in the same subnet", conn.Name, idx, spineIP, leafIP)
+					return nil, field.Invalid(linkPath, field.OmitValueType{}, fmt.Sprintf("spine IP %s and leaf IP %s are not in the same subnet", spineIP, leafIP))
 				}
 			}
 		} else if conn.Spec.Mesh != nil {
 			cm := conn.Spec.Mesh
 			for idx, link := range cm.Links {
+				linkPath := spec.Child("mesh", "links").Index(idx)
+				leaf1IPPath, leaf2IPPath := linkPath.Child("leaf1", "ip"), linkPath.Child("leaf2", "ip")
+
 				// no IPs on either side means BGP unnumbered, but a link with just one IP is broken
 				if (link.Leaf1.IP == "") != (link.Leaf2.IP == "") {
-					return nil, errors.Errorf("mesh connection %s link %d has an IP on only one side, it must be set on both for a numbered link or on neither for an unnumbered one", conn.Name, idx)
+					return nil, field.Invalid(linkPath, field.OmitValueType{}, "has an IP on only one side, it must be set on both for a numbered link or on neither for an unnumbered one")
 				}
 				if link.Leaf1.IP == "" {
 					continue
@@ -1137,86 +1147,89 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 
 				leaf1Prefix, err := netip.ParsePrefix(link.Leaf1.IP)
 				if err != nil {
-					return nil, errors.Wrapf(err, "parsing mesh connection %s link %d leaf1 IP %s", conn.Name, idx, link.Leaf1.IP)
+					return nil, field.Invalid(leaf1IPPath, link.Leaf1.IP, err.Error())
 				}
 				if leaf1Prefix.Bits() != 31 {
-					return nil, errors.Errorf("mesh connection %s link %d leaf1 IP %s is not a /31", conn.Name, idx, leaf1Prefix)
+					return nil, field.Invalid(leaf1IPPath, link.Leaf1.IP, "not a /31")
 				}
 
 				leaf1IP := leaf1Prefix.Addr()
 				if !fabricSubnet.Contains(leaf1IP) {
-					return nil, errors.Errorf("mesh connection %s link %d leaf1 IP %s is not in the fabric subnet %s", conn.Name, idx, leaf1IP, fabricSubnet)
+					return nil, field.Invalid(leaf1IPPath, link.Leaf1.IP, "not in the fabric subnet "+fabricSubnet.String())
 				}
 				if _, exist := fabricIPs[leaf1IP]; exist {
-					return nil, errors.Errorf("mesh connection %s link %d leaf1 IP %s is already in use", conn.Name, idx, leaf1IP)
+					return nil, field.Invalid(leaf1IPPath, link.Leaf1.IP, "already in use")
 				}
 				fabricIPs[leaf1IP] = true
 
 				leaf2Prefix, err := netip.ParsePrefix(link.Leaf2.IP)
 				if err != nil {
-					return nil, errors.Wrapf(err, "parsing mesh connection %s link %d leaf2 IP %s", conn.Name, idx, link.Leaf2.IP)
+					return nil, field.Invalid(leaf2IPPath, link.Leaf2.IP, err.Error())
 				}
 				if leaf2Prefix.Bits() != 31 {
-					return nil, errors.Errorf("mesh connection %s link %d leaf2 IP %s is not a /31", conn.Name, idx, leaf2Prefix)
+					return nil, field.Invalid(leaf2IPPath, link.Leaf2.IP, "not a /31")
 				}
 
 				leaf2IP := leaf2Prefix.Addr()
 				if !fabricSubnet.Contains(leaf2IP) {
-					return nil, errors.Errorf("mesh connection %s link %d leaf2 IP %s is not in the fabric subnet %s", conn.Name, idx, leaf2IP, fabricSubnet)
+					return nil, field.Invalid(leaf2IPPath, link.Leaf2.IP, "not in the fabric subnet "+fabricSubnet.String())
 				}
 				if _, exist := fabricIPs[leaf2IP]; exist {
-					return nil, errors.Errorf("mesh connection %s link %d leaf2 IP %s is already in use", conn.Name, idx, leaf2IP)
+					return nil, field.Invalid(leaf2IPPath, link.Leaf2.IP, "already in use")
 				}
 				fabricIPs[leaf2IP] = true
 
 				if leaf1Prefix.Masked() != leaf2Prefix.Masked() {
-					return nil, errors.Errorf("mesh connection %s link %d leaf1 IP %s and leaf2 IP %s are not in the same subnet", conn.Name, idx, leaf1IP, leaf2IP)
+					return nil, field.Invalid(linkPath, field.OmitValueType{}, fmt.Sprintf("leaf1 IP %s and leaf2 IP %s are not in the same subnet", leaf1IP, leaf2IP))
 				}
 			}
 		} else if conn.Spec.Gateway != nil {
 			cg := conn.Spec.Gateway
 			for idx, link := range cg.Links {
+				linkPath := spec.Child("gateway", "links").Index(idx)
+				switchIPPath, gatewayIPPath := linkPath.Child("switch", "ip"), linkPath.Child("gateway", "ip")
+
 				// unlike fabric and mesh links, gateway links can't be unnumbered yet, so both IPs are required
 				if link.Switch.IP == "" || link.Gateway.IP == "" {
-					return nil, errors.Errorf("gateway connection %s link %d is missing an IP, it must be set on both sides as unnumbered gateway links are not supported yet", conn.Name, idx)
+					return nil, field.Invalid(linkPath, field.OmitValueType{}, "is missing an IP, it must be set on both sides as unnumbered gateway links are not supported yet")
 				}
 
 				switchPrefix, err := netip.ParsePrefix(link.Switch.IP)
 				if err != nil {
-					return nil, errors.Wrapf(err, "parsing gateway connection %s link %d switch IP %s", conn.Name, idx, link.Switch.IP)
+					return nil, field.Invalid(switchIPPath, link.Switch.IP, err.Error())
 				}
 				if switchPrefix.Bits() != 31 {
-					return nil, errors.Errorf("gateway connection %s link %d switch IP %s is not a /31", conn.Name, idx, switchPrefix)
+					return nil, field.Invalid(switchIPPath, link.Switch.IP, "not a /31")
 				}
 
 				switchIP := switchPrefix.Addr()
 				if !fabricSubnet.Contains(switchIP) {
-					return nil, errors.Errorf("gateway connection %s link %d switch IP %s is not in the fabric subnet %s", conn.Name, idx, switchIP, fabricSubnet)
+					return nil, field.Invalid(switchIPPath, link.Switch.IP, "not in the fabric subnet "+fabricSubnet.String())
 				}
 				if _, exist := fabricIPs[switchIP]; exist {
-					return nil, errors.Errorf("gateway connection %s link %d switch IP %s is already in use", conn.Name, idx, switchIP)
+					return nil, field.Invalid(switchIPPath, link.Switch.IP, "already in use")
 				}
 				fabricIPs[switchIP] = true
 
 				gwPrefix, err := netip.ParsePrefix(link.Gateway.IP)
 				if err != nil {
-					return nil, errors.Wrapf(err, "parsing gateway connection %s link %d gateway IP %s", conn.Name, idx, link.Gateway.IP)
+					return nil, field.Invalid(gatewayIPPath, link.Gateway.IP, err.Error())
 				}
 				if gwPrefix.Bits() != 31 {
-					return nil, errors.Errorf("gateway connection %s link %d gateway IP %s is not a /31", conn.Name, idx, gwPrefix)
+					return nil, field.Invalid(gatewayIPPath, link.Gateway.IP, "not a /31")
 				}
 
 				gwIP := gwPrefix.Addr()
 				if !fabricSubnet.Contains(gwIP) {
-					return nil, errors.Errorf("gateway connection %s link %d gateway IP %s is not in the fabric subnet %s", conn.Name, idx, gwIP, fabricSubnet)
+					return nil, field.Invalid(gatewayIPPath, link.Gateway.IP, "not in the fabric subnet "+fabricSubnet.String())
 				}
 				if _, exist := fabricIPs[gwIP]; exist {
-					return nil, errors.Errorf("gateway connection %s link %d gateway IP %s is already in use", conn.Name, idx, gwIP)
+					return nil, field.Invalid(gatewayIPPath, link.Gateway.IP, "already in use")
 				}
 				fabricIPs[gwIP] = true
 
 				if switchPrefix.Masked() != gwPrefix.Masked() {
-					return nil, errors.Errorf("gateway connection %s link %d switch IP %s and gateway IP %s are not in the same subnet", conn.Name, idx, switchIP, gwIP)
+					return nil, field.Invalid(linkPath, field.OmitValueType{}, fmt.Sprintf("switch IP %s and gateway IP %s are not in the same subnet", switchIP, gwIP))
 				}
 			}
 		}

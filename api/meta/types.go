@@ -231,8 +231,15 @@ type PeeringValidator func(ctx context.Context, kube kclient.Reader, peering kcl
 
 type ConnectionValidator func(ctx context.Context, kube kclient.Reader, conn kclient.Object) error
 
-func (cfg *FabricConfig) ParsedReservedSubnets() []netip.Prefix {
-	return cfg.reservedSubnets
+// OverlappingReservedSubnet returns a reserved subnet the prefix overlaps, if any
+func (cfg *FabricConfig) OverlappingReservedSubnet(prefix netip.Prefix) (netip.Prefix, bool) {
+	for _, reserved := range cfg.reservedSubnets {
+		if reserved.Overlaps(prefix) {
+			return reserved, true
+		}
+	}
+
+	return netip.Prefix{}, false
 }
 
 var idChecker = regexp.MustCompile(`^[a-zA-Z0-9][-a-zA-Z0-9]*[a-zA-Z0-9]?$`)

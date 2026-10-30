@@ -16,12 +16,13 @@ package ctrl
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	kctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -42,10 +43,14 @@ func SetupVLANNamespaceWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, lo
 		Cfg:        cfg,
 	}
 
-	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr, &wiringapi.VLANNamespace{}).
+	if err := kctrl.NewWebhookManagedBy(mgr, &wiringapi.VLANNamespace{}).
 		WithDefaulter(w).
 		WithValidator(newLockedValidator[*wiringapi.VLANNamespace](w, lock)).
-		Complete(), "failed to setup vlannamespace webhook")
+		Complete(); err != nil {
+		return fmt.Errorf("failed to setup vlannamespace webhook: %w", err)
+	}
+
+	return nil
 }
 
 // +kubebuilder:webhook:path=/mutate-wiring-githedgehog-com-v1beta1-vlannamespace,mutating=true,failurePolicy=fail,sideEffects=None,groups=wiring.githedgehog.com,resources=vlannamespaces,verbs=create;update,versions=v1beta1,name=mvlannamespace.kb.io,admissionReviewVersions=v1
@@ -62,7 +67,7 @@ func (w *VLANNamespaceWebhook) Default(_ context.Context, ns *wiringapi.VLANName
 func (w *VLANNamespaceWebhook) ValidateCreate(ctx context.Context, ns *wiringapi.VLANNamespace) (admission.Warnings, error) {
 	warns, err := ns.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
-		return warns, errors.Wrapf(err, "failed to validate vlannamespace")
+		return warns, fmt.Errorf("failed to validate vlannamespace: %w", err)
 	}
 
 	return nil, nil
@@ -70,20 +75,20 @@ func (w *VLANNamespaceWebhook) ValidateCreate(ctx context.Context, ns *wiringapi
 
 func (w *VLANNamespaceWebhook) ValidateUpdate(ctx context.Context, _ *wiringapi.VLANNamespace, ns *wiringapi.VLANNamespace) (admission.Warnings, error) {
 	if warn, err := ns.Validate(ctx, w.Client, w.Cfg); err != nil {
-		return warn, errors.Wrapf(err, "failed to validate new vlannamespace")
+		return warn, fmt.Errorf("failed to validate new vlannamespace: %w", err)
 	}
 
 	vpcs := &vpcapi.VPCList{}
 	if err := w.Client.List(ctx, vpcs, kclient.MatchingLabels{
 		vpcapi.LabelVLANNS: ns.Name,
 	}); err != nil {
-		return nil, errors.Wrapf(err, "error listing vpcs") // TODO hide internal error
+		return nil, fmt.Errorf("error listing vpcs: %w", err) // TODO hide internal error
 	}
 
 	for _, vpc := range vpcs.Items {
 		for subnetName, subnetCfg := range vpc.Spec.Subnets {
 			if !subnetCfg.HostBGP && !ns.Spec.Contains(subnetCfg.VLAN) {
-				return nil, errors.Errorf("existing vpc %s subnet %s (vlan %d) doesn't fit updated VLAN namespace", vpc.Name, subnetName, subnetCfg.VLAN)
+				return nil, field.Invalid(field.NewPath("spec", "ranges"), field.OmitValueType{}, fmt.Sprintf("existing vpc %s subnet %s (vlan %d) doesn't fit updated VLAN namespace", vpc.Name, subnetName, subnetCfg.VLAN))
 			}
 		}
 	}
@@ -96,20 +101,20 @@ func (w *VLANNamespaceWebhook) ValidateDelete(ctx context.Context, ns *wiringapi
 	if err := w.Client.List(ctx, switches, kclient.MatchingLabels{
 		wiringapi.ListLabelVLANNamespace(ns.Name): wiringapi.ListLabelValue,
 	}); err != nil {
-		return nil, errors.Wrapf(err, "error listing switches") // TODO hide internal error
+		return nil, fmt.Errorf("error listing switches: %w", err) // TODO hide internal error
 	}
 	if len(switches.Items) > 0 {
-		return nil, errors.Errorf("VLANNamespace has switches")
+		return nil, fmt.Errorf("VLANNamespace has switches") //nolint:err113
 	}
 
 	vpcs := &vpcapi.VPCList{}
 	if err := w.Client.List(ctx, vpcs, kclient.MatchingLabels{
 		vpcapi.LabelVLANNS: ns.Name,
 	}); err != nil {
-		return nil, errors.Wrapf(err, "error listing vpcs") // TODO hide internal error
+		return nil, fmt.Errorf("error listing vpcs: %w", err) // TODO hide internal error
 	}
 	if len(vpcs.Items) > 0 {
-		return nil, errors.Errorf("VLANNamespace has VPCs")
+		return nil, fmt.Errorf("VLANNamespace has VPCs") //nolint:err113
 	}
 
 	return nil, nil

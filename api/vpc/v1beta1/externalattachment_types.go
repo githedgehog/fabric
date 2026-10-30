@@ -21,13 +21,13 @@ import (
 	"net/netip"
 	"slices"
 
-	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ktypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -106,49 +106,51 @@ type ACLSpec struct {
 	Statements []ACLStatement `json:"statements,omitempty"`
 }
 
-func (spec *ACLSpec) Validate() (admission.Warnings, error) {
+func (spec *ACLSpec) Validate(path *field.Path) (admission.Warnings, error) {
 	if spec == nil {
 		return nil, nil
 	}
 
 	seqNos := map[uint16]bool{}
-	for _, stmt := range spec.Statements {
+	for idx, stmt := range spec.Statements {
+		stmtPath := path.Child("statements").Index(idx)
 		if stmt.Seq < ACLUserMinSeq {
-			return nil, errors.Errorf("sequence number %d is reserved for security rules (user-defined rules must use seq >= %d)", stmt.Seq, ACLUserMinSeq)
+			return nil, field.Invalid(stmtPath.Child("seq"), stmt.Seq, fmt.Sprintf("reserved for security rules (user-defined rules must use seq >= %d)", ACLUserMinSeq))
 		}
 		if seqNos[stmt.Seq] {
-			return nil, errors.Errorf("duplicate sequence number %d", stmt.Seq)
+			return nil, field.Duplicate(stmtPath.Child("seq"), stmt.Seq)
 		}
 		seqNos[stmt.Seq] = true
 
 		if !slices.Contains(ACLActions, stmt.Action) {
-			return nil, errors.Errorf("invalid action %q in statement %d", stmt.Action, stmt.Seq)
+			return nil, field.NotSupported(stmtPath.Child("action"), stmt.Action, ACLActions)
 		}
 
 		if !slices.Contains(ACLProtocols, stmt.Protocol) {
-			return nil, errors.Errorf("invalid protocol %q in statement %d", stmt.Protocol, stmt.Seq)
+			return nil, field.NotSupported(stmtPath.Child("protocol"), stmt.Protocol, ACLProtocols)
 		}
 
 		if stmt.SrcPrefix == "" {
-			return nil, errors.Errorf("srcPrefix is required in statement %d", stmt.Seq)
+			return nil, field.Required(stmtPath.Child("srcPrefix"), "")
 		}
 		if stmt.SrcPrefix != ACLAny {
 			if _, _, err := net.ParseCIDR(stmt.SrcPrefix); err != nil {
-				return nil, errors.Errorf("invalid srcPrefix %q in statement %d", stmt.SrcPrefix, stmt.Seq)
+				return nil, field.Invalid(stmtPath.Child("srcPrefix"), stmt.SrcPrefix, err.Error())
 			}
 		}
 		if stmt.DstPrefix == "" {
-			return nil, errors.Errorf("dstPrefix is required in statement %d", stmt.Seq)
+			return nil, field.Required(stmtPath.Child("dstPrefix"), "")
 		}
 		if stmt.DstPrefix != ACLAny {
 			if _, _, err := net.ParseCIDR(stmt.DstPrefix); err != nil {
-				return nil, errors.Errorf("invalid dstPrefix %q in statement %d", stmt.DstPrefix, stmt.Seq)
+				return nil, field.Invalid(stmtPath.Child("dstPrefix"), stmt.DstPrefix, err.Error())
 			}
 		}
 
 		if stmt.TCPFilters != nil {
+			tcpPath := stmtPath.Child("tcpFilters")
 			if stmt.Protocol != ACLProtocolTCP {
-				return nil, errors.Errorf("tcpFilters can only be used with tcp protocol in statement %d", stmt.Seq)
+				return nil, field.Forbidden(tcpPath, "can only be used with tcp protocol")
 			}
 			if stmt.TCPFilters.Established && (stmt.TCPFilters.Ack || stmt.TCPFilters.NotAck ||
 				stmt.TCPFilters.Fin || stmt.TCPFilters.NotFin ||
@@ -156,7 +158,7 @@ func (spec *ACLSpec) Validate() (admission.Warnings, error) {
 				stmt.TCPFilters.Rst || stmt.TCPFilters.NotRst ||
 				stmt.TCPFilters.Psh || stmt.TCPFilters.NotPsh ||
 				stmt.TCPFilters.Urg || stmt.TCPFilters.NotUrg) {
-				return nil, errors.Errorf("established is mutually exclusive with individual TCP flags in statement %d", stmt.Seq)
+				return nil, field.Invalid(tcpPath, field.OmitValueType{}, "established is mutually exclusive with individual TCP flags")
 			}
 			if (stmt.TCPFilters.Fin && stmt.TCPFilters.NotFin) ||
 				(stmt.TCPFilters.Syn && stmt.TCPFilters.NotSyn) ||
@@ -164,21 +166,21 @@ func (spec *ACLSpec) Validate() (admission.Warnings, error) {
 				(stmt.TCPFilters.Psh && stmt.TCPFilters.NotPsh) ||
 				(stmt.TCPFilters.Ack && stmt.TCPFilters.NotAck) ||
 				(stmt.TCPFilters.Urg && stmt.TCPFilters.NotUrg) {
-				return nil, errors.Errorf("contradictory TCP flags (flag and its negation) in statement %d", stmt.Seq)
+				return nil, field.Invalid(tcpPath, field.OmitValueType{}, "contradictory TCP flags (flag and its negation)")
 			}
 		}
 		if (stmt.ICMPType != nil || stmt.ICMPCode != nil) && stmt.Protocol != ACLProtocolICMP {
-			return nil, errors.Errorf("icmpType/icmpCode can only be used with icmp protocol in statement %d", stmt.Seq)
+			return nil, field.Forbidden(stmtPath, "icmpType/icmpCode can only be used with icmp protocol")
 		}
 		if stmt.PortRangeEnd > 0 || stmt.PortRangeBegin > 0 {
 			if stmt.Protocol != ACLProtocolTCP && stmt.Protocol != ACLProtocolUDP {
-				return nil, errors.Errorf("portRange can only be used with tcp or udp protocol in statement %d", stmt.Seq)
+				return nil, field.Forbidden(stmtPath, "portRange can only be used with tcp or udp protocol")
 			}
 			if stmt.PortRangeBegin == 0 {
-				return nil, errors.Errorf("portRangeBegin must be >= 1 in statement %d", stmt.Seq)
+				return nil, field.Invalid(stmtPath.Child("portRangeBegin"), stmt.PortRangeBegin, "must be >= 1")
 			}
 			if stmt.PortRangeBegin > stmt.PortRangeEnd {
-				return nil, errors.Errorf("portRangeBegin must be <= portRangeEnd in statement %d", stmt.Seq)
+				return nil, field.Invalid(stmtPath.Child("portRangeBegin"), stmt.PortRangeBegin, "must be <= portRangeEnd")
 			}
 		}
 	}
@@ -385,55 +387,57 @@ func asnCollision(fabric *wiringapi.FabricSpec, asn uint32) string {
 func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
 	var warns admission.Warnings
 	if err := meta.ValidateObjectMetadata(attach); err != nil {
-		return nil, errors.Wrapf(err, "failed to validate metadata")
+		return nil, err //nolint:wrapcheck
 	}
 
-	if err := wiringapi.CheckFabricExists(ctx, kube, attach.Namespace, attach.Spec.Topology.Fabric); err != nil {
-		return nil, fmt.Errorf("failed to validate fabric: %w", err)
+	spec := field.NewPath("spec")
+	extPath, connPath := spec.Child("external"), spec.Child("connection")
+	neighborPath, staticPath := spec.Child("neighbor"), spec.Child("static")
+
+	fabric, err := wiringapi.CheckFabricExists(ctx, kube, attach.Namespace, attach.Spec.Topology.Fabric)
+	if err != nil {
+		return nil, err //nolint:wrapcheck
 	}
 
 	if attach.Spec.External == "" {
-		return nil, errors.Errorf("external is required")
+		return nil, field.Required(extPath, "")
 	}
 	if attach.Spec.Connection == "" {
-		return nil, errors.Errorf("connection is required")
+		return nil, field.Required(connPath, "")
 	}
 	if attach.Spec.Static == nil {
 		// no IPs on either side means BGP unnumbered
 		if (attach.Spec.Switch.IP == "") != (attach.Spec.Neighbor.IP == "") {
-			return nil, errors.Errorf("switch.ip and neighbor.ip must be either both set or both empty (unnumbered)")
+			return nil, field.Invalid(spec, field.OmitValueType{}, "switch.ip and neighbor.ip must be either both set or both empty (unnumbered)")
 		}
 		if attach.Spec.Switch.IP != "" {
 			if _, _, err := net.ParseCIDR(attach.Spec.Switch.IP); err != nil {
-				return nil, errors.New("switch.ip is not a valid IP CIDR")
+				return nil, field.Invalid(spec.Child("switch", "ip"), attach.Spec.Switch.IP, "not a valid IP CIDR")
 			}
 			if ip := net.ParseIP(attach.Spec.Neighbor.IP); ip == nil {
-				return nil, errors.New("neighbor.ip is not a valid IP address")
+				return nil, field.Invalid(neighborPath.Child("ip"), attach.Spec.Neighbor.IP, "not a valid IP address")
 			}
 		}
 		if limit := attach.Spec.Neighbor.PrefixLimit; limit != nil {
+			limitPath := neighborPath.Child("prefixLimit")
 			if limit.Max == 0 {
-				return nil, fmt.Errorf("neighbor.prefixLimit.max must be at least 1") //nolint:err113
+				return nil, field.Invalid(limitPath.Child("max"), limit.Max, "must be at least 1")
 			}
 			if limit.WarningThresholdPct > 100 {
-				return nil, fmt.Errorf("neighbor.prefixLimit.warningThresholdPct must be at most 100") //nolint:err113
+				return nil, field.Invalid(limitPath.Child("warningThresholdPct"), limit.WarningThresholdPct, "must be at most 100")
 			}
 			// the switch refuses a restart timer on a session it never closes
 			if limit.WarningOnly && limit.RestartMinutes != 0 {
-				return nil, fmt.Errorf("neighbor.prefixLimit.restartMinutes must not be set with warningOnly") //nolint:err113
+				return nil, field.Forbidden(limitPath.Child("restartMinutes"), "must not be set with warningOnly")
 			}
 		}
 
 		// the border leaf drops external routes carrying its fabric's spine or gateway ASN, and a
 		// leaf drops those carrying its own ASN through BGP loop detection. Without an ASN the
 		// session accepts any external one, so there is nothing to check.
-		if attach.Spec.Neighbor.ASN != 0 && fabricCfg != nil && kube != nil {
-			fabric, err := wiringapi.GetFabricSpec(ctx, kube, attach.Namespace, attach.Spec.Topology.Fabric)
-			if err != nil {
-				return nil, fmt.Errorf("failed to get fabric: %w", err)
-			}
+		if attach.Spec.Neighbor.ASN != 0 && fabricCfg != nil && fabric != nil {
 			if what := asnCollision(fabric, attach.Spec.Neighbor.ASN); what != "" {
-				return nil, fmt.Errorf("neighbor.asn %d is %s of its own fabric", attach.Spec.Neighbor.ASN, what) //nolint:err113
+				return nil, field.Invalid(neighborPath.Child("asn"), attach.Spec.Neighbor.ASN, fmt.Sprintf("is %s of its own fabric", what))
 			}
 		}
 		// the same happens in another fabric only if the two exchange routes through externals
@@ -453,103 +457,99 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 		}
 	} else {
 		if attach.Spec.Switch.IP != "" || attach.Spec.Switch.VLAN != 0 {
-			return nil, errors.Errorf("switch parameters must not be set for static external attachment")
+			return nil, field.Forbidden(spec.Child("switch"), "must not be set for static external attachment")
 		}
 		if attach.Spec.Neighbor.ASN != 0 || attach.Spec.Neighbor.IP != "" || attach.Spec.Neighbor.PrefixLimit != nil {
-			return nil, errors.Errorf("neighbor parameters must not be set for static external attachment")
+			return nil, field.Forbidden(neighborPath, "must not be set for static external attachment")
 		}
 		if attach.Spec.Static.RemoteIP == "" {
-			return nil, errors.Errorf("static.remoteIP is required for static external attachment")
+			return nil, field.Required(staticPath.Child("remoteIP"), "")
 		}
 		_, err := netip.ParseAddr(attach.Spec.Static.RemoteIP)
 		if err != nil {
-			return nil, errors.New("static.remoteIP is not a valid IP address")
+			return nil, field.Invalid(staticPath.Child("remoteIP"), attach.Spec.Static.RemoteIP, "not a valid IP address")
 		}
 		if (attach.Spec.Static.IP == "" && !attach.Spec.Static.Proxy) || (attach.Spec.Static.IP != "" && attach.Spec.Static.Proxy) {
-			return nil, errors.Errorf("either static.ip or static.proxy must be set for static external attachment")
+			return nil, field.Invalid(staticPath, field.OmitValueType{}, "either static.ip or static.proxy must be set")
 		}
 		if attach.Spec.Static.IP != "" {
 			if _, _, err := net.ParseCIDR(attach.Spec.Static.IP); err != nil {
-				return nil, errors.New("static.ip is not a valid IP CIDR")
+				return nil, field.Invalid(staticPath.Child("ip"), attach.Spec.Static.IP, "not a valid IP CIDR")
 			}
 		}
 		// SONiC's FRR cannot attach BFD to a static route, only to a BGP session
 		if attach.Spec.BFD != nil {
-			return nil, errors.Errorf("bfd must not be set for static external attachment")
+			return nil, field.Forbidden(spec.Child("bfd"), "must not be set for static external attachment")
 		}
 	}
 
 	if bfd := attach.Spec.BFD; bfd != nil {
 		// disableBFD wins, and nothing downstream reports that it did: without this the session
 		// silently runs on the FRR defaults of 60/180 instead of the sub-second detection asked for
-		if fabricCfg != nil && kube != nil {
-			fabric, err := wiringapi.GetFabricSpec(ctx, kube, attach.Namespace, attach.Spec.Topology.Fabric)
-			if err != nil {
-				return nil, fmt.Errorf("failed to get fabric: %w", err)
-			}
+		if fabricCfg != nil && fabric != nil {
 			if fabric.DisableBFD {
 				warns = append(warns, "bfd is ignored because disableBFD is set for the whole fabric")
 			}
 		}
 		if bfd.MinRX != 0 && (bfd.MinRX < BFDMinIntervalMS || bfd.MinRX > BFDMaxIntervalMS) {
-			return nil, errors.Errorf("bfd.minRX must be between %d and %d ms", BFDMinIntervalMS, BFDMaxIntervalMS)
+			return nil, field.Invalid(spec.Child("bfd", "minRX"), bfd.MinRX, fmt.Sprintf("must be between %d and %d ms", BFDMinIntervalMS, BFDMaxIntervalMS))
 		}
 		if bfd.MinTX != 0 && (bfd.MinTX < BFDMinIntervalMS || bfd.MinTX > BFDMaxIntervalMS) {
-			return nil, errors.Errorf("bfd.minTX must be between %d and %d ms", BFDMinIntervalMS, BFDMaxIntervalMS)
+			return nil, field.Invalid(spec.Child("bfd", "minTX"), bfd.MinTX, fmt.Sprintf("must be between %d and %d ms", BFDMinIntervalMS, BFDMaxIntervalMS))
 		}
 		if bfd.Multiplier != 0 && bfd.Multiplier < BFDMinMultiplier {
-			return nil, errors.Errorf("bfd.multiplier must be at least %d", BFDMinMultiplier)
+			return nil, field.Invalid(spec.Child("bfd", "multiplier"), bfd.Multiplier, fmt.Sprintf("must be at least %d", BFDMinMultiplier))
 		}
 	}
 
-	if _, err := attach.Spec.InboundACL.Validate(); err != nil {
-		return nil, errors.Wrapf(err, "invalid inboundACL")
+	if _, err := attach.Spec.InboundACL.Validate(spec.Child("inboundACL")); err != nil {
+		return nil, err
 	}
 
 	if kube != nil {
 		ext := &External{}
 		if err := kube.Get(ctx, ktypes.NamespacedName{Name: attach.Spec.External, Namespace: attach.Namespace}, ext); err != nil {
 			if kapierrors.IsNotFound(err) {
-				return nil, errors.Errorf("external %s not found", attach.Spec.External)
+				return nil, field.NotFound(extPath, attach.Spec.External)
 			}
 
-			return nil, errors.Wrapf(err, "failed to read external %s", attach.Spec.External) // TODO replace with some internal error to not expose to the user
+			return nil, fmt.Errorf("failed to read external %s: %w", attach.Spec.External, err) // TODO replace with some internal error to not expose to the user
 		}
 		// the reverse is allowed: an external with static prefixes may also have BGP attachments,
 		// which is how a static uplink is migrated to BGP without an outage
 		if attach.Spec.Static != nil && ext.Spec.Static == nil {
-			return nil, errors.Errorf("external attachment is static but external %s has no static prefixes", attach.Spec.External)
+			return nil, field.Invalid(extPath, attach.Spec.External, "external attachment is static but the external has no static prefixes")
 		}
 		if attach.Spec.Static == nil && ext.Spec.LocalASN != 0 {
 			// with remote-as external FRR only refuses a neighbor with the switch's own ASN, not with the
 			// localASN it presents instead, so a neighbor with the localASN would be taken as external
 			if attach.Spec.Neighbor.ASN == 0 {
-				return nil, fmt.Errorf("neighbor.asn is required, external %s has a localASN", attach.Spec.External) //nolint:err113
+				return nil, field.Required(neighborPath.Child("asn"), fmt.Sprintf("external %s has a localASN", attach.Spec.External))
 			}
 			if attach.Spec.Neighbor.ASN == ext.Spec.LocalASN {
-				return nil, fmt.Errorf("neighbor.asn %d is the localASN of external %s", attach.Spec.Neighbor.ASN, attach.Spec.External) //nolint:err113
+				return nil, field.Invalid(neighborPath.Child("asn"), attach.Spec.Neighbor.ASN, "the localASN of external "+attach.Spec.External)
 			}
 		}
 
 		conn := &wiringapi.Connection{}
 		if err := kube.Get(ctx, ktypes.NamespacedName{Name: attach.Spec.Connection, Namespace: attach.Namespace}, conn); err != nil {
 			if kapierrors.IsNotFound(err) {
-				return nil, errors.Errorf("connection %s not found", attach.Spec.Connection)
+				return nil, field.NotFound(connPath, attach.Spec.Connection)
 			}
 
-			return nil, errors.Wrapf(err, "failed to read connection %s", attach.Spec.Connection) // TODO replace with some internal error to not expose to the user
+			return nil, fmt.Errorf("failed to read connection %s: %w", attach.Spec.Connection, err) // TODO replace with some internal error to not expose to the user
 		}
 
 		attachFabric := attach.Spec.Topology.Fabric
 		if extFabric := ext.Spec.Topology.Fabric; extFabric != attachFabric {
-			return nil, fmt.Errorf("attachment is in fabric %s but external %s is in fabric %s", attachFabric, attach.Spec.External, extFabric) //nolint:err113
+			return nil, field.Invalid(extPath, attach.Spec.External, fmt.Sprintf("attachment is in fabric %s but the external is in fabric %s", attachFabric, extFabric))
 		}
 		if connFabric := conn.Spec.Topology.Fabric; connFabric != attachFabric {
-			return nil, fmt.Errorf("attachment is in fabric %s but connection %s is in fabric %s", attachFabric, attach.Spec.Connection, connFabric) //nolint:err113
+			return nil, field.Invalid(connPath, attach.Spec.Connection, fmt.Sprintf("attachment is in fabric %s but the connection is in fabric %s", attachFabric, connFabric))
 		}
 
 		if conn.Spec.External == nil {
-			return nil, errors.Errorf("connection %s is not external", attach.Spec.Connection)
+			return nil, field.Invalid(connPath, attach.Spec.Connection, "connection is not external")
 		}
 
 		// border leaves in different domains attaching one External build the same VRF, so a leaf in
@@ -561,14 +561,14 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 		extDomain := ext.Spec.Topology.Domain
 		for name, sw := range extSwitches {
 			if swDomains := sw.Spec.Topology.Domains; !slices.Contains(swDomains, extDomain) {
-				return nil, fmt.Errorf("external %s is in domain %s but switch %s is in domains %v", attach.Spec.External, extDomain, name, swDomains) //nolint:err113
+				return nil, field.Invalid(connPath, attach.Spec.Connection, fmt.Sprintf("external %s is in domain %s but switch %s is in domains %v", attach.Spec.External, extDomain, name, swDomains))
 			}
 		}
 
 		// validate VLAN collision
 		attaches := &ExternalAttachmentList{}
 		if err := kube.List(ctx, attaches, kclient.MatchingLabels{wiringapi.LabelName("connection"): attach.Spec.Connection}); err != nil {
-			return nil, errors.Wrapf(err, "failed to list external attachments for %s", attach.Spec.Connection) // TODO replace with some internal error to not expose to the user
+			return nil, fmt.Errorf("failed to list external attachments for %s: %w", attach.Spec.Connection, err) // TODO replace with some internal error to not expose to the user
 		}
 		ourVLAN := attach.Spec.Switch.VLAN
 		if attach.Spec.Static != nil {
@@ -583,7 +583,7 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 				otherVLAN = other.Spec.Static.VLAN
 			}
 			if otherVLAN == ourVLAN {
-				return nil, errors.Errorf("connection %s already has an external attachment with VLAN %d", attach.Spec.Connection, ourVLAN)
+				return nil, field.Invalid(connPath, attach.Spec.Connection, fmt.Sprintf("connection already has external attachment %s with VLAN %d", other.Name, ourVLAN))
 			}
 		}
 	}

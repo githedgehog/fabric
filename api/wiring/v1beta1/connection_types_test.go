@@ -24,6 +24,7 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
+	"go.githedgehog.com/fabric/pkg/util/testutil"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -945,7 +946,7 @@ func TestConnectionValidation(t *testing.T) {
 				require.Contains(t, warn, tt.warning)
 			}
 			if tt.err {
-				require.Error(t, err)
+				testutil.RequireFieldError(t, err, tt.conn)
 
 				return
 			}
@@ -959,7 +960,7 @@ func TestConnectionValidation(t *testing.T) {
 func TestConnectionValidationWithoutClient(t *testing.T) {
 	conn := fabricConnGen("spine-01--fabric--leaf-01")
 	_, err := conn.Validate(t.Context(), nil, nil)
-	require.ErrorIs(t, err, wiringapi.ErrFabricNotSet)
+	require.EqualError(t, err, "spec.topology.fabric: Required value")
 
 	conn.Default()
 	_, err = conn.Validate(t.Context(), nil, nil)

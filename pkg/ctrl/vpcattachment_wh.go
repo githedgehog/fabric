@@ -18,7 +18,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -42,10 +41,14 @@ func SetupVPCAttachmentWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, lo
 		Cfg:        cfg,
 	}
 
-	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr, &vpcapi.VPCAttachment{}).
+	if err := kctrl.NewWebhookManagedBy(mgr, &vpcapi.VPCAttachment{}).
 		WithDefaulter(w).
 		WithValidator(newLockedValidator[*vpcapi.VPCAttachment](w, lock)).
-		Complete(), "failed to setup vpc attachment webhook")
+		Complete(); err != nil {
+		return fmt.Errorf("failed to setup vpc attachment webhook: %w", err)
+	}
+
+	return nil
 }
 
 // +kubebuilder:webhook:path=/mutate-vpc-githedgehog-com-v1beta1-vpcattachment,mutating=true,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=vpcattachments,verbs=create;update,versions=v1beta1,name=mvpcattachment.kb.io,admissionReviewVersions=v1
@@ -62,15 +65,15 @@ func (w *VPCAttachmentWebhook) Default(_ context.Context, attach *vpcapi.VPCAtta
 func (w *VPCAttachmentWebhook) ValidateCreate(ctx context.Context, attach *vpcapi.VPCAttachment) (admission.Warnings, error) {
 	warns, err := attach.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
-		return warns, errors.Wrapf(err, "failed to validate vpc attachment")
+		return warns, fmt.Errorf("failed to validate vpc attachment: %w", err)
 	}
 
 	return warns, nil
 }
 
 func (w *VPCAttachmentWebhook) ValidateUpdate(ctx context.Context, oldAttach *vpcapi.VPCAttachment, newAttach *vpcapi.VPCAttachment) (admission.Warnings, error) {
-	if fabricChanged(oldAttach.Spec.Topology.Fabric, newAttach.Spec.Topology.Fabric) {
-		return nil, fmt.Errorf("topology.fabric is immutable") //nolint:err113
+	if err := checkFabricUnchanged(oldAttach.Spec.Topology.Fabric, newAttach.Spec.Topology.Fabric); err != nil {
+		return nil, err
 	}
 
 	// if !equality.Semantic.DeepEqual(oldAttach.Spec, newAttach.Spec) {
@@ -79,7 +82,7 @@ func (w *VPCAttachmentWebhook) ValidateUpdate(ctx context.Context, oldAttach *vp
 
 	warns, err := newAttach.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
-		return warns, errors.Wrapf(err, "failed to validate vpc attachment")
+		return warns, fmt.Errorf("failed to validate vpc attachment: %w", err)
 	}
 
 	return warns, nil

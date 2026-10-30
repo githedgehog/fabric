@@ -17,7 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-func TestFabricChanged(t *testing.T) {
+func TestCheckFabricUnchanged(t *testing.T) {
 	for _, tt := range []struct {
 		old, new string
 		changed  bool
@@ -34,12 +34,12 @@ func TestFabricChanged(t *testing.T) {
 		{old: "backend", new: "frontend", changed: true},
 	} {
 		t.Run(tt.old+"->"+tt.new, func(t *testing.T) {
-			require.Equal(t, tt.changed, fabricChanged(tt.old, tt.new))
+			require.Equal(t, tt.changed, checkFabricUnchanged(tt.old, tt.new) != nil)
 		})
 	}
 }
 
-func TestDomainChanged(t *testing.T) {
+func TestCheckDomainUnchanged(t *testing.T) {
 	for _, tt := range []struct {
 		old, new string
 		changed  bool
@@ -54,12 +54,12 @@ func TestDomainChanged(t *testing.T) {
 		{old: "plane-a", new: "plane-b", changed: true},
 	} {
 		t.Run(tt.old+"->"+tt.new, func(t *testing.T) {
-			require.Equal(t, tt.changed, domainChanged(tt.old, tt.new))
+			require.Equal(t, tt.changed, checkDomainUnchanged(tt.old, tt.new) != nil)
 		})
 	}
 }
 
-func TestDomainsChanged(t *testing.T) {
+func TestCheckDomainsUnchanged(t *testing.T) {
 	for _, tt := range []struct {
 		name     string
 		old, new []string
@@ -77,7 +77,7 @@ func TestDomainsChanged(t *testing.T) {
 		{name: "one more", old: []string{"plane-a"}, new: []string{"plane-a", "plane-b"}, changed: true},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			require.Equal(t, tt.changed, domainsChanged(tt.old, tt.new))
+			require.Equal(t, tt.changed, checkDomainsUnchanged(tt.old, tt.new) != nil)
 		})
 	}
 }
@@ -184,10 +184,10 @@ func TestFabricUpdateASNs(t *testing.T) {
 		{name: "filling in unset ASNs", old: fabricGen(0, 0, 0, 0), new: fabricGen(64101, 64200, 64100, 64201)},
 		{name: "changing leafASNStart", old: fabricGen(64101, 64200, 64100, 64201), new: fabricGen(64102, 64200, 64100, 64201), err: "leaf ASN range can not be changed"},
 		{name: "changing leafASNEnd", old: fabricGen(64101, 64200, 64100, 64201), new: fabricGen(64101, 64199, 64100, 64201), err: "leaf ASN range can not be changed"},
-		{name: "changing spineASN", old: fabricGen(64101, 64200, 64100, 64201), new: fabricGen(64101, 64200, 64099, 64201), err: "spineASN of domain default can not be changed"},
-		{name: "changing gatewayASN", old: fabricGen(64101, 64200, 64100, 64201), new: fabricGen(64101, 64200, 64100, 64202), err: "gatewayASN of domain default can not be changed"},
-		{name: "renaming the domain", old: fabricGen(64101, 64200, 64100, 64201), new: renamed, err: "domain default can not be removed or renamed"},
-		{name: "adding a domain", old: fabricGen(64101, 64200, 64100, 64201), new: added, err: "domain plane-b can not be added to an existing fabric"},
+		{name: "changing spineASN", old: fabricGen(64101, 64200, 64100, 64201), new: fabricGen(64101, 64200, 64099, 64201), err: `spec.domains[default].spineASN: Invalid value: 64099: field is immutable`},
+		{name: "changing gatewayASN", old: fabricGen(64101, 64200, 64100, 64201), new: fabricGen(64101, 64200, 64100, 64202), err: `spec.domains[default].gatewayASN: Invalid value: 64202: field is immutable`},
+		{name: "renaming the domain", old: fabricGen(64101, 64200, 64100, 64201), new: renamed, err: "spec.domains[default]: Forbidden: domain can not be removed or renamed"},
+		{name: "adding a domain", old: fabricGen(64101, 64200, 64100, 64201), new: added, err: "spec.domains[plane-b]: Forbidden: domain can not be added to an existing fabric"},
 		{name: "filling in the domains of a fabric written before they existed", old: noDomains, new: fabricGen(64101, 64200, 64100, 64201)},
 	} {
 		t.Run(tt.name, func(t *testing.T) {

@@ -11,6 +11,7 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	"go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	"go.githedgehog.com/fabric/pkg/util/testutil"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -168,7 +169,7 @@ func TestExternalValidation(t *testing.T) {
 			ctx := t.Context()
 			_, err := test.external.Validate(ctx, nil, nil)
 			if test.err {
-				require.Error(t, err)
+				testutil.RequireFieldError(t, err, test.external)
 			} else {
 				require.NoError(t, err)
 			}
@@ -195,15 +196,15 @@ func TestExternalInboundPrefixes(t *testing.T) {
 			"10.1.0.0/16": {MaxPrefixLen: 24}, "172.16.0.0/12": {MinPrefixLen: 16, MaxPrefixLen: 32}, "192.168.0.0/16": {MinPrefixLen: 24},
 		}},
 		{name: "around the namespace", prefixes: map[string]v1beta1.ExternalInboundPrefix{"10.0.0.0/8": {MaxPrefixLen: 32}}},
-		{name: "inside the namespace", prefixes: map[string]v1beta1.ExternalInboundPrefix{"10.0.1.0/24": {}}, err: "inbound prefix 10.0.1.0/24 is inside subnet 10.0.0.0/16"},
-		{name: "invalid", prefixes: map[string]v1beta1.ExternalInboundPrefix{"10.1.1.0/33": {}}, err: "invalid inbound prefix"},
+		{name: "inside the namespace", prefixes: map[string]v1beta1.ExternalInboundPrefix{"10.0.1.0/24": {}}, err: `spec.inboundPrefixes[10.0.1.0/24]: Invalid value: "10.0.1.0/24": inside subnet 10.0.0.0/16`},
+		{name: "invalid", prefixes: map[string]v1beta1.ExternalInboundPrefix{"10.1.1.0/33": {}}, err: `spec.inboundPrefixes[10.1.1.0/33]: Invalid value: "10.1.1.0/33": invalid inbound prefix`},
 		{name: "IPv6", prefixes: map[string]v1beta1.ExternalInboundPrefix{"fd00::/64": {}}, err: "is not IPv4"},
 		{name: "host bits", prefixes: map[string]v1beta1.ExternalInboundPrefix{"10.1.1.1/24": {}}, err: "has host bits set"},
-		{name: "min shorter than the prefix", prefixes: map[string]v1beta1.ExternalInboundPrefix{"10.1.0.0/16": {MinPrefixLen: 8}}, err: "minPrefixLen 8 is not between 16 and 32"},
-		{name: "min above 32", prefixes: map[string]v1beta1.ExternalInboundPrefix{"10.1.0.0/16": {MinPrefixLen: 33}}, err: "minPrefixLen 33 is not between 16 and 32"},
-		{name: "max below min", prefixes: map[string]v1beta1.ExternalInboundPrefix{"10.1.0.0/16": {MinPrefixLen: 24, MaxPrefixLen: 20}}, err: "maxPrefixLen 20 is not between 24 and 32"},
-		{name: "max below the prefix", prefixes: map[string]v1beta1.ExternalInboundPrefix{"10.1.0.0/16": {MaxPrefixLen: 8}}, err: "maxPrefixLen 8 is not between 16 and 32"},
-		{name: "max above 32", prefixes: map[string]v1beta1.ExternalInboundPrefix{"10.1.0.0/16": {MaxPrefixLen: 33}}, err: "maxPrefixLen 33 is not between 16 and 32"},
+		{name: "min shorter than the prefix", prefixes: map[string]v1beta1.ExternalInboundPrefix{"10.1.0.0/16": {MinPrefixLen: 8}}, err: "spec.inboundPrefixes[10.1.0.0/16].minPrefixLen: Invalid value: 8: not between 16 and 32"},
+		{name: "min above 32", prefixes: map[string]v1beta1.ExternalInboundPrefix{"10.1.0.0/16": {MinPrefixLen: 33}}, err: "spec.inboundPrefixes[10.1.0.0/16].minPrefixLen: Invalid value: 33: not between 16 and 32"},
+		{name: "max below min", prefixes: map[string]v1beta1.ExternalInboundPrefix{"10.1.0.0/16": {MinPrefixLen: 24, MaxPrefixLen: 20}}, err: "spec.inboundPrefixes[10.1.0.0/16].maxPrefixLen: Invalid value: 20: not between 24 and 32"},
+		{name: "max below the prefix", prefixes: map[string]v1beta1.ExternalInboundPrefix{"10.1.0.0/16": {MaxPrefixLen: 8}}, err: "spec.inboundPrefixes[10.1.0.0/16].maxPrefixLen: Invalid value: 8: not between 16 and 32"},
+		{name: "max above 32", prefixes: map[string]v1beta1.ExternalInboundPrefix{"10.1.0.0/16": {MaxPrefixLen: 33}}, err: "spec.inboundPrefixes[10.1.0.0/16].maxPrefixLen: Invalid value: 33: not between 16 and 32"},
 		{name: "static", static: true, prefixes: map[string]v1beta1.ExternalInboundPrefix{"0.0.0.0/0": {}}, err: "inboundPrefixes must be empty"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
@@ -216,6 +217,7 @@ func TestExternalInboundPrefixes(t *testing.T) {
 			_, err := ext.Validate(t.Context(), kube, &meta.FabricConfig{})
 			if tt.err != "" {
 				require.ErrorContains(t, err, tt.err)
+				testutil.RequireFieldError(t, err, ext)
 			} else {
 				require.NoError(t, err)
 			}
@@ -247,6 +249,7 @@ func TestExternalInboundCommunityGateway(t *testing.T) {
 			_, err := ext.Validate(t.Context(), kube, cfg)
 			if tt.err {
 				require.ErrorContains(t, err, "gateway communities")
+				testutil.RequireFieldError(t, err, ext)
 			} else {
 				require.NoError(t, err)
 			}
@@ -379,7 +382,7 @@ func TestExternalLocalASNValidation(t *testing.T) {
 				Build()
 			warns, err := test.external.Validate(t.Context(), kube, cfg)
 			if test.err {
-				require.Error(t, err)
+				testutil.RequireFieldError(t, err, test.external)
 			} else {
 				require.NoError(t, err)
 			}
@@ -400,5 +403,6 @@ func TestExternalDomainRequired(t *testing.T) {
 	ext.Spec.Topology.Domain = ""
 
 	_, err := ext.Validate(t.Context(), nil, nil)
-	require.ErrorContains(t, err, "topology.domain is required")
+	require.ErrorContains(t, err, "spec.topology.domain: Required value")
+	testutil.RequireFieldError(t, err, ext)
 }

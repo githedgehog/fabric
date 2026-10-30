@@ -11,6 +11,7 @@ import (
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -100,28 +101,26 @@ func (gg *GatewayGroup) Default() {
 }
 
 func (gg *GatewayGroup) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) error {
+	spec := field.NewPath("spec")
 	if fabricCfg != nil && !fabricCfg.EnableGateway {
-		return fmt.Errorf("gateway support is not enabled") //nolint:err113
+		return field.Forbidden(spec, "gateway support is not enabled")
 	}
 	if err := meta.ValidateObjectMetadata(gg); err != nil {
-		return fmt.Errorf("invalid gatewaygroup: %w", err)
+		return err //nolint:wrapcheck
 	}
 
-	if err := wiringapi.CheckFabricExists(ctx, kube, gg.Namespace, gg.Spec.Topology.Fabric); err != nil {
-		return fmt.Errorf("invalid gateway group: %w", err)
+	fabric, err := wiringapi.CheckFabricExists(ctx, kube, gg.Namespace, gg.Spec.Topology.Fabric)
+	if err != nil {
+		return err //nolint:wrapcheck
 	}
 	if gg.Spec.Topology.Domain == "" {
-		return fmt.Errorf("invalid gateway group: topology.domain is required") //nolint:err113
+		return field.Required(spec.Child("topology", "domain"), "")
 	}
 
-	if fabricCfg != nil && kube != nil {
-		fabric, err := wiringapi.GetFabricSpec(ctx, kube, gg.Namespace, gg.Spec.Topology.Fabric)
-		if err != nil {
-			return fmt.Errorf("getting fabric: %w", err)
-		}
+	if fabricCfg != nil && fabric != nil {
 		domainName := gg.Spec.Topology.Domain
 		if _, exists := fabric.Domains[domainName]; !exists {
-			return fmt.Errorf("domain %s not found in fabric %s", domainName, gg.Spec.Topology.Fabric) //nolint:err113
+			return field.Invalid(spec.Child("topology", "domain"), domainName, fmt.Sprintf("domain %s not found in fabric %s", domainName, gg.Spec.Topology.Fabric))
 		}
 	}
 

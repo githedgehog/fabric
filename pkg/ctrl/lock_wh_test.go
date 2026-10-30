@@ -5,12 +5,16 @@ package ctrl
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	authnv1 "k8s.io/api/authentication/v1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -88,6 +92,84 @@ func TestLockedValidator(t *testing.T) {
 				require.Equal(t, 3, inner.calls)
 			} else {
 				require.Zero(t, inner.calls)
+			}
+		})
+	}
+}
+
+type failingValidator struct {
+	err error
+}
+
+func (v *failingValidator) ValidateCreate(_ context.Context, _ *wiringapi.Server) (admission.Warnings, error) {
+	return nil, v.err
+}
+
+func (v *failingValidator) ValidateUpdate(_ context.Context, _, _ *wiringapi.Server) (admission.Warnings, error) {
+	return nil, v.err
+}
+
+func (v *failingValidator) ValidateDelete(_ context.Context, _ *wiringapi.Server) (admission.Warnings, error) {
+	return nil, v.err
+}
+
+func TestLockedValidatorStatusErrors(t *testing.T) {
+	for _, tt := range []struct {
+		name    string
+		err     error
+		field   string
+		message string
+		asIs    bool
+	}{
+		{
+			name: "plain error",
+			err:  errors.New("gateway not found for gateway group: default"), //nolint:err113
+			asIs: true,
+		},
+		{
+			name:    "wrapped field error",
+			err:     fmt.Errorf("failed to validate server: %w", field.Invalid(field.NewPath("spec", "profile"), "foo", "not found")),
+			field:   "spec.profile",
+			message: `Server.wiring.githedgehog.com "server-1" is invalid: spec.profile: Invalid value: "foo": not found`,
+		},
+		{
+			name: "api status error",
+			err:  kapierrors.NewServiceUnavailable("try later"),
+			asIs: true,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			lock := NewLock("self")
+			lock.unlocked.Store(true)
+			v := newLockedValidator[*wiringapi.Server](&failingValidator{err: tt.err}, lock)
+
+			// no name in the request, as for a create with generateName
+			ctx := admission.NewContextWithRequest(t.Context(), admission.Request{
+				Kind: kmetav1.GroupVersionKind{Group: "wiring.githedgehog.com", Version: "v1beta1", Kind: "Server"},
+			})
+
+			srv := &wiringapi.Server{}
+			srv.Name = "server-1"
+			_, createErr := v.ValidateCreate(ctx, srv)
+			_, updateErr := v.ValidateUpdate(ctx, srv, srv)
+			_, deleteErr := v.ValidateDelete(ctx, srv)
+
+			require.Equal(t, tt.err, deleteErr, "delete errors are returned as is")
+
+			for _, err := range []error{createErr, updateErr} {
+				if tt.asIs {
+					require.Equal(t, tt.err, err)
+
+					continue
+				}
+
+				require.True(t, kapierrors.IsInvalid(err), "expected invalid, got %v", err)
+				require.EqualError(t, err, tt.message)
+
+				var statusErr *kapierrors.StatusError
+				require.ErrorAs(t, err, &statusErr)
+				require.Len(t, statusErr.ErrStatus.Details.Causes, 1)
+				require.Equal(t, tt.field, statusErr.ErrStatus.Details.Causes[0].Field)
 			}
 		})
 	}
