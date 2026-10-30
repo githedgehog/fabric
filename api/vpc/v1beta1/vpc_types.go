@@ -541,30 +541,31 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 				return nil, field.TooMany(extraPrefixesPath, len(subnetCfg.HostBGPExtraPrefixes), MaxHostBGPExtraPrefixes)
 			}
 			for prefixStr, prefixCfg := range subnetCfg.HostBGPExtraPrefixes {
+				prefixPath := extraPrefixesPath.Key(prefixStr)
 				p, err := netip.ParsePrefix(prefixStr)
 				if err != nil {
-					return nil, field.Invalid(extraPrefixesPath, prefixStr, err.Error())
+					return nil, field.Invalid(prefixPath, prefixStr, err.Error())
 				}
 				if !p.Addr().Is4() {
-					return nil, field.Invalid(extraPrefixesPath, prefixStr, "prefix is not a valid IPv4 prefix")
+					return nil, field.Invalid(prefixPath, prefixStr, "prefix is not a valid IPv4 prefix")
 				}
 				if p.Addr() != p.Masked().Addr() {
-					return nil, field.Invalid(extraPrefixesPath, prefixStr, "prefix is not in canonical form")
+					return nil, field.Invalid(prefixPath, prefixStr, "prefix is not in canonical form")
 				}
 
 				extraMinLen, extraMaxLen := subnetCfg.HostBGPExtraPrefixLens(prefixCfg)
 				if err := validateHostBGPPrefixLens(p, extraMinLen, extraMaxLen); err != nil {
-					return nil, field.Invalid(extraPrefixesPath.Key(prefixStr), field.OmitValueType{}, err.Error())
+					return nil, field.Invalid(prefixPath, field.OmitValueType{}, err.Error())
 				}
 
 				if fabricCfg != nil {
 					if reserved, overlaps := fabricCfg.OverlappingReservedSubnet(p); overlaps {
-						return nil, field.Invalid(extraPrefixesPath, prefixStr, "overlaps with reserved subnet "+reserved.String())
+						return nil, field.Invalid(prefixPath, prefixStr, "overlaps with reserved subnet "+reserved.String())
 					}
 				}
 
 				subnets = append(subnets, p)
-				subnetPaths[p] = extraPrefixesPath.Key(prefixStr)
+				subnetPaths[p] = prefixPath
 			}
 		} else {
 			if len(subnetCfg.HostBGPExtraPrefixes) > 0 {
@@ -730,9 +731,9 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 		}
 
 		subnets := map[string]bool{}
-		for _, subnetName := range permit {
+		for idx, subnetName := range permit {
 			if _, ok := vpc.Spec.Subnets[subnetName]; !ok {
-				return nil, field.NotFound(permitPath, subnetName)
+				return nil, field.NotFound(permitPath.Index(idx), subnetName)
 			}
 
 			subnets[subnetName] = true
@@ -823,7 +824,7 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 					return nil, fmt.Errorf("failed to check if hostBGP extra prefix %s in vpc subnet %s (%s) belongs to IPv4Namespace %s: %w", hbgpPrefixStr, subnetName, subnetCfg.Subnet, ipNs.Name, err)
 				}
 				if !ok {
-					return nil, field.Invalid(subnetPath.Child("hostBGPExtraPrefixes"), hbgpPrefixStr, "doesn't belong to IPv4Namespace "+ipNs.Name)
+					return nil, field.Invalid(subnetPath.Child("hostBGPExtraPrefixes").Key(hbgpPrefixStr), hbgpPrefixStr, "doesn't belong to IPv4Namespace "+ipNs.Name)
 				}
 			}
 

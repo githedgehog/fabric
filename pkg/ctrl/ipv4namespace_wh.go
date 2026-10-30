@@ -102,8 +102,10 @@ func (w *IPv4NamespaceWebhook) ValidateUpdate(ctx context.Context, oldNs *vpcapi
 		return nil, fmt.Errorf("listing externals: %w", err) // TODO hide internal error
 	}
 	for _, ext := range exts.Items {
-		if err := newNs.CheckOutside("inbound prefix", slices.Sorted(maps.Keys(ext.Spec.InboundPrefixes))); err != nil {
-			return nil, field.Invalid(field.NewPath("spec", "subnets"), field.OmitValueType{}, fmt.Sprintf("external %s: %s", ext.Name, err))
+		for _, prefixStr := range slices.Sorted(maps.Keys(ext.Spec.InboundPrefixes)) {
+			if idx := newNs.SubnetContaining(prefixStr); idx >= 0 {
+				return nil, field.Invalid(field.NewPath("spec", "subnets").Index(idx), newNs.Spec.Subnets[idx], fmt.Sprintf("contains inbound prefix %s of external %s", prefixStr, ext.Name))
+			}
 		}
 	}
 
