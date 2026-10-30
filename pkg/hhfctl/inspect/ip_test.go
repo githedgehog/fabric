@@ -4,6 +4,7 @@
 package inspect
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -11,9 +12,11 @@ import (
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 )
 
 func TestIP(t *testing.T) {
@@ -40,7 +43,18 @@ func TestIP(t *testing.T) {
 		return conn
 	}
 
-	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+	var connSelector labels.Selector
+	kube := fake.NewClientBuilder().WithScheme(scheme).WithInterceptorFuncs(interceptor.Funcs{
+		List: func(ctx context.Context, kube kclient.WithWatch, list kclient.ObjectList, opts ...kclient.ListOption) error {
+			if _, ok := list.(*wiringapi.ConnectionList); ok {
+				listOpts := &kclient.ListOptions{}
+				listOpts.ApplyOptions(opts)
+				connSelector = listOpts.LabelSelector
+			}
+
+			return kube.List(ctx, list, opts...)
+		},
+	}).WithObjects(
 		gw,
 		connGen("spine-1--gateway--gw-1", wiringapi.ConnectionSpec{Gateway: &wiringapi.ConnGateway{Links: []wiringapi.GatewayLink{{
 			Switch:  wiringapi.ConnFabricLinkSwitch{BasePortName: wiringapi.NewBasePortName("spine-1/E1/7"), IP: "172.30.128.10/31"},
@@ -85,6 +99,11 @@ func TestIP(t *testing.T) {
 		t.Run(ip, func(t *testing.T) {
 			out, err := IP(t.Context(), kube, IPIn{IP: ip})
 			require.NoError(t, err)
+			require.NotNil(t, connSelector, "connections should be listed by type")
+			for _, connType := range []string{wiringapi.ConnectionTypeFabric, wiringapi.ConnectionTypeMesh, wiringapi.ConnectionTypeGateway, wiringapi.ConnectionTypeStaticExternal} {
+				require.True(t, connSelector.Matches(labels.Set{wiringapi.LabelConnectionType: connType}), connType)
+			}
+			require.False(t, connSelector.Matches(labels.Set{wiringapi.LabelConnectionType: wiringapi.ConnectionTypeUnbundled}))
 			if tt.conn == "" {
 				require.Empty(t, out.Connections)
 			} else {
