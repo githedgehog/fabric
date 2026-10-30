@@ -112,7 +112,8 @@ func run(ctx context.Context) error {
 
 	cfgBasedir := "/etc/hedgehog/fabric"
 	cfg, err := meta.LoadFabricConfig(cfgBasedir, meta.ExtraValidators{
-		Peering: valid.Peering,
+		Peering:    valid.Peering,
+		Connection: valid.Connection,
 	})
 	if err != nil {
 		return fmt.Errorf("loading fabric config: %w", err)

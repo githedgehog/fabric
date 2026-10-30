@@ -223,10 +223,13 @@ type ObservabilityUnix struct {
 }
 
 type ExtraValidators struct {
-	Peering PeeringValidator
+	Peering    PeeringValidator
+	Connection ConnectionValidator
 }
 
 type PeeringValidator func(ctx context.Context, kube kclient.Reader, peering kclient.Object) error
+
+type ConnectionValidator func(ctx context.Context, kube kclient.Reader, conn kclient.Object) error
 
 func (cfg *FabricConfig) ParsedReservedSubnets() []netip.Prefix {
 	return cfg.reservedSubnets
