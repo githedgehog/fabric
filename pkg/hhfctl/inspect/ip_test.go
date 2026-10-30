@@ -97,6 +97,7 @@ func TestIP(t *testing.T) {
 		"172.30.130.1":  {},
 	} {
 		t.Run(ip, func(t *testing.T) {
+			connSelector = nil
 			out, err := IP(t.Context(), kube, IPIn{IP: ip})
 			require.NoError(t, err)
 			require.NotNil(t, connSelector, "connections should be listed by type")
