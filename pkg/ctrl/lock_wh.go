@@ -74,27 +74,19 @@ func (v *lockedValidator[T]) ValidateDelete(ctx context.Context, obj T) (admissi
 	return v.inner.ValidateDelete(ctx, obj) //nolint:wrapcheck
 }
 
-// apiStatusError turns a create or update validation error into an API status: a field error into a 422 Invalid, so
-// that kubectl edit (and so k9s) reopens the editor with it instead of giving up as it does on the 403
-// controller-runtime returns for plain errors, and anything else that isn't already a status into an internal error.
+// apiStatusError turns a field error from create or update validation into a 422 Invalid, so that kubectl edit (and
+// so k9s) reopens the editor with it instead of giving up as it does on the 403 controller-runtime returns for other
+// errors. Other errors are returned as they are.
 func apiStatusError(ctx context.Context, err error) error {
-	if err == nil {
-		return nil
-	}
-
-	if fieldErr, ok := errors.AsType[*field.Error](err); ok {
-		req, reqErr := admission.RequestFromContext(ctx)
-		if reqErr != nil {
-			return err
-		}
-
-		return kapierrors.NewInvalid(schema.GroupKind{Group: req.Kind.Group, Kind: req.Kind.Kind}, req.Name, field.ErrorList{fieldErr}) //nolint:wrapcheck // API status error returned to the client as is
-	}
-
-	var apiStatus kapierrors.APIStatus
-	if errors.As(err, &apiStatus) {
+	fieldErr, ok := errors.AsType[*field.Error](err)
+	if !ok {
 		return err
 	}
 
-	return kapierrors.NewInternalError(err) //nolint:wrapcheck // API status error returned to the client as is
+	req, reqErr := admission.RequestFromContext(ctx)
+	if reqErr != nil {
+		return err
+	}
+
+	return kapierrors.NewInvalid(schema.GroupKind{Group: req.Kind.Group, Kind: req.Kind.Kind}, req.Name, field.ErrorList{fieldErr}) //nolint:wrapcheck // API status error returned to the client as is
 }

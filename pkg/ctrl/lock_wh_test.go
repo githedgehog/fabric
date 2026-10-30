@@ -115,18 +115,16 @@ func (v *failingValidator) ValidateDelete(_ context.Context, _ *wiringapi.Server
 
 func TestLockedValidatorStatusErrors(t *testing.T) {
 	for _, tt := range []struct {
-		name     string
-		err      error
-		field    string
-		message  string
-		status   bool
-		internal bool
+		name    string
+		err     error
+		field   string
+		message string
+		asIs    bool
 	}{
 		{
-			name:     "plain error",
-			err:      errors.New("listing failed"), //nolint:err113
-			internal: true,
-			message:  "Internal error occurred: listing failed",
+			name: "plain error",
+			err:  errors.New("gateway not found for gateway group: default"), //nolint:err113
+			asIs: true,
 		},
 		{
 			name:    "wrapped field error",
@@ -135,9 +133,9 @@ func TestLockedValidatorStatusErrors(t *testing.T) {
 			message: `Server.wiring.githedgehog.com "server-1" is invalid: spec.profile: Invalid value: "foo": not found`,
 		},
 		{
-			name:   "api status error",
-			err:    kapierrors.NewServiceUnavailable("try later"),
-			status: true,
+			name: "api status error",
+			err:  kapierrors.NewServiceUnavailable("try later"),
+			asIs: true,
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
@@ -158,15 +156,8 @@ func TestLockedValidatorStatusErrors(t *testing.T) {
 			require.Equal(t, tt.err, deleteErr, "delete errors are returned as is")
 
 			for _, err := range []error{createErr, updateErr} {
-				if tt.status {
+				if tt.asIs {
 					require.Equal(t, tt.err, err)
-
-					continue
-				}
-
-				if tt.internal {
-					require.True(t, kapierrors.IsInternalError(err), "expected internal error, got %v", err)
-					require.EqualError(t, err, tt.message)
 
 					continue
 				}
