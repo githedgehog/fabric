@@ -10,9 +10,7 @@ import (
 
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
-	kapivalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/validation/field"
 	kctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -62,8 +60,8 @@ func (w *SwitchGroupWebhook) ValidateCreate(ctx context.Context, sg *wiringapi.S
 }
 
 func (w *SwitchGroupWebhook) ValidateUpdate(ctx context.Context, oldSg *wiringapi.SwitchGroup, newSg *wiringapi.SwitchGroup) (admission.Warnings, error) {
-	if fabricChanged(oldSg.Spec.Topology.Fabric, newSg.Spec.Topology.Fabric) {
-		return nil, field.Invalid(field.NewPath("spec", "topology", "fabric"), newSg.Spec.Topology.Fabric, kapivalidation.FieldImmutableErrorMsg)
+	if err := checkFabricUnchanged(oldSg.Spec.Topology.Fabric, newSg.Spec.Topology.Fabric); err != nil {
+		return nil, err
 	}
 
 	warns, err := newSg.Validate(ctx, w.KubeClient, w.Cfg)

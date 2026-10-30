@@ -75,8 +75,8 @@ func (w *ConnectionWebhook) ValidateCreate(ctx context.Context, conn *wiringapi.
 }
 
 func (w *ConnectionWebhook) ValidateUpdate(ctx context.Context, oldConn *wiringapi.Connection, newConn *wiringapi.Connection) (admission.Warnings, error) {
-	if fabricChanged(oldConn.Spec.Topology.Fabric, newConn.Spec.Topology.Fabric) {
-		return nil, field.Invalid(field.NewPath("spec", "topology", "fabric"), newConn.Spec.Topology.Fabric, kapivalidation.FieldImmutableErrorMsg)
+	if err := checkFabricUnchanged(oldConn.Spec.Topology.Fabric, newConn.Spec.Topology.Fabric); err != nil {
+		return nil, err
 	}
 
 	// TODO some connections or their parts should be immutable

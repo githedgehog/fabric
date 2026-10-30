@@ -20,9 +20,7 @@ import (
 
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
-	kapivalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/validation/field"
 	kctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -74,8 +72,8 @@ func (w *ExternalAttachmentWebhook) ValidateCreate(ctx context.Context, attach *
 }
 
 func (w *ExternalAttachmentWebhook) ValidateUpdate(ctx context.Context, oldAttach *vpcapi.ExternalAttachment, newAttach *vpcapi.ExternalAttachment) (admission.Warnings, error) {
-	if fabricChanged(oldAttach.Spec.Topology.Fabric, newAttach.Spec.Topology.Fabric) {
-		return nil, field.Invalid(field.NewPath("spec", "topology", "fabric"), newAttach.Spec.Topology.Fabric, kapivalidation.FieldImmutableErrorMsg)
+	if err := checkFabricUnchanged(oldAttach.Spec.Topology.Fabric, newAttach.Spec.Topology.Fabric); err != nil {
+		return nil, err
 	}
 
 	// if !equality.Semantic.DeepEqual(oldAttach.Spec, newAttach.Spec) {

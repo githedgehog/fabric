@@ -54,19 +54,31 @@ func SetupFabricWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, lock *Loc
 // refresh had to leave alone (rejected or stale, see the FabricController status) may still hold an empty value: it
 // can be normalized to the default later, while nothing can leave the default fabric or domain by being unset first.
 
-// fabricChanged reports whether an update moves an object to another fabric
-func fabricChanged(oldName, newName string) bool {
-	return fabricOrDefault(oldName) != fabricOrDefault(newName)
+// checkFabricUnchanged rejects an update that moves an object to another fabric
+func checkFabricUnchanged(oldName, newName string) *field.Error {
+	if fabricOrDefault(oldName) == fabricOrDefault(newName) {
+		return nil
+	}
+
+	return field.Invalid(field.NewPath("spec", "topology", "fabric"), newName, kapivalidation.FieldImmutableErrorMsg)
 }
 
-// domainChanged reports whether an update moves an object to another domain
-func domainChanged(oldName, newName string) bool {
-	return domainOrDefault(oldName) != domainOrDefault(newName)
+// checkDomainUnchanged rejects an update that moves an object to another domain
+func checkDomainUnchanged(oldName, newName string) *field.Error {
+	if domainOrDefault(oldName) == domainOrDefault(newName) {
+		return nil
+	}
+
+	return field.Invalid(field.NewPath("spec", "topology", "domain"), newName, kapivalidation.FieldImmutableErrorMsg)
 }
 
-// domainsChanged reports whether an update changes the set of domains an object is in
-func domainsChanged(oldNames, newNames []string) bool {
-	return !slices.Equal(sortedDomainsOrDefault(oldNames), sortedDomainsOrDefault(newNames))
+// checkDomainsUnchanged rejects an update that changes the set of domains an object is in
+func checkDomainsUnchanged(oldNames, newNames []string) *field.Error {
+	if slices.Equal(sortedDomainsOrDefault(oldNames), sortedDomainsOrDefault(newNames)) {
+		return nil
+	}
+
+	return field.Invalid(field.NewPath("spec", "topology", "domains"), newNames, kapivalidation.FieldImmutableErrorMsg)
 }
 
 func sortedDomainsOrDefault(names []string) []string {
