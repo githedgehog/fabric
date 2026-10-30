@@ -190,7 +190,8 @@ func VPC(ctx context.Context, kube kclient.Reader, in VPCIn) (*VPCOut, error) {
 		if subnet != "" {
 			found := false
 			for _, permit := range vpcPeering.Spec.Permit {
-				if peer, exist := permit[name]; exist && slices.Contains(peer.Subnets, subnet) {
+				// empty subnets permit all of the vpc's subnets
+				if peer, exist := permit[name]; exist && (len(peer.Subnets) == 0 || slices.Contains(peer.Subnets, subnet)) {
 					found = true
 
 					break
