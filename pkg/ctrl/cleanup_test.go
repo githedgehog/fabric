@@ -324,6 +324,62 @@ func TestSwitchGroupDeleteInUse(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestGatewayGroupDeleteInUse(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, gwapi.AddToScheme(scheme))
+
+	defaulted := func(obj kclient.Object) kclient.Object {
+		obj.(meta.Defaultable).Default()
+
+		return obj
+	}
+	peering := func(name, fabric, group string) kclient.Object {
+		return defaulted(&gwapi.GatewayPeering{
+			Name: name, Namespace: kmetav1.NamespaceDefault,
+			Spec: gwapi.PeeringSpec{
+				Topology:     gwapi.GatewayPeeringTopology{Fabric: fabric},
+				GatewayGroup: group,
+				Peering:      map[string]*gwapi.PeeringEntry{"vpc-1": {}, "vpc-2": {}},
+			},
+		})
+	}
+
+	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+		defaulted(&gwapi.Gateway{
+			Name: "gw-1", Namespace: kmetav1.NamespaceDefault,
+			Spec: gwapi.GatewaySpec{Groups: []gwapi.GatewayGroupMembership{{Name: "gr-gw"}}},
+		}),
+		defaulted(&gwapi.Gateway{
+			Name: "gw-2", Namespace: kmetav1.NamespaceDefault,
+			DeletionTimestamp: new(kmetav1.Now()),
+			Finalizers:        []string{CleanupFinalizer},
+			Spec:              gwapi.GatewaySpec{Groups: []gwapi.GatewayGroupMembership{{Name: "gr-deleted"}}},
+		}),
+		peering("vpc-1--vpc-2", "", "gr-peering"),
+		// can't pass validation with a group of another fabric, only shows that other fabrics aren't checked
+		peering("vpc-3--vpc-4", "other", "gr-other"),
+	).Build()
+	w := &GatewayGroupWebhook{Reader: kube}
+
+	group := func(name string) *gwapi.GatewayGroup {
+		gr := &gwapi.GatewayGroup{Name: name, Namespace: kmetav1.NamespaceDefault}
+		gr.Default()
+
+		return gr
+	}
+
+	_, err := w.ValidateDelete(t.Context(), group("gr-gw"))
+	require.ErrorContains(t, err, "gateway group is used by gateway gw-1")
+	_, err = w.ValidateDelete(t.Context(), group("gr-peering"))
+	require.ErrorContains(t, err, "gateway group is used by peering vpc-1--vpc-2")
+	_, err = w.ValidateDelete(t.Context(), group("gr-deleted"))
+	require.NoError(t, err)
+	_, err = w.ValidateDelete(t.Context(), group("gr-other"))
+	require.NoError(t, err)
+	_, err = w.ValidateDelete(t.Context(), group("unused"))
+	require.NoError(t, err)
+}
+
 func TestConnectionTerminating(t *testing.T) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, wiringapi.AddToScheme(scheme))
