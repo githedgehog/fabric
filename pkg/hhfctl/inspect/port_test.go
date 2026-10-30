@@ -4,6 +4,9 @@
 package inspect
 
 import (
+	"context"
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -14,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 )
 
 func TestPortConnection(t *testing.T) {
@@ -37,7 +41,18 @@ func TestPortConnection(t *testing.T) {
 		}}}
 	}
 
-	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+	connSelector := ""
+	kube := fake.NewClientBuilder().WithScheme(scheme).WithInterceptorFuncs(interceptor.Funcs{
+		List: func(ctx context.Context, kube kclient.WithWatch, list kclient.ObjectList, opts ...kclient.ListOption) error {
+			if _, ok := list.(*wiringapi.ConnectionList); ok {
+				listOpts := &kclient.ListOptions{}
+				listOpts.ApplyOptions(opts)
+				connSelector = fmt.Sprint(listOpts.LabelSelector)
+			}
+
+			return kube.List(ctx, list, opts...)
+		},
+	}).WithObjects(
 		connGen("server-1--unbundled--leaf-1", unbundled("server-1/enp2s1", "leaf-1/E1/1")),
 		connGen("server-2--unbundled--leaf-2", unbundled("server-2/enp2s1", "leaf-2/E1/1")),
 		connGen("spine-1--fabric--leaf-1", wiringapi.ConnectionSpec{Fabric: &wiringapi.ConnFabric{Links: []wiringapi.FabricLink{{
@@ -56,6 +71,8 @@ func TestPortConnection(t *testing.T) {
 		t.Run(port, func(t *testing.T) {
 			out, err := Port(t.Context(), kube, PortIn{Port: port})
 			require.NoError(t, err)
+			swName, _, _ := strings.Cut(port, "/")
+			require.Equal(t, wiringapi.ListLabelSwitch(swName)+"="+wiringapi.ListLabelValue, connSelector, "only the switch's connections should be listed")
 			if conn == "" {
 				require.Nil(t, out.ConnectionName)
 			} else {
