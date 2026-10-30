@@ -2721,7 +2721,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `relay` _string_ | Relay is the DHCP relay IP address, if specified, DHCP server will be disabled |  |  |
-| `relayVPC` _string_ | RelayVPC is the name of the VPC where the selected DHCP relay lives |  |  |
+| `relayVPC` _string_ | RelayVPC (optional) is the name of the VPC where the selected DHCP relay lives, requires Relay. It has to be a VPC<br />this one could peer with: same fabric, at least one shared domain, same IPv4 and VLAN namespaces. |  |  |
 | `enable` _boolean_ | Enable enables DHCP server for the subnet |  |  |
 | `range` _[VPCDHCPRange](#vpcdhcprange)_ | Range (optional) is the DHCP range for the subnet if DHCP server is enabled. The gateway, subnet and broadcast<br />addresses are never handed out, even if the range includes them (all addresses of a /31 or /32 are usable). |  |  |
 | `options` _[VPCDHCPOptions](#vpcdhcpoptions)_ | Options (optional) is the DHCP options for the subnet if DHCP server is enabled |  |  |

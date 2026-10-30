@@ -171,7 +171,8 @@ func (subnet *VPCSubnet) HostBGPExtraPrefixLens(prefixCfg VPCSubnetHostBGPPrefix
 type VPCDHCP struct {
 	// Relay is the DHCP relay IP address, if specified, DHCP server will be disabled
 	Relay string `json:"relay,omitempty"`
-	// RelayVPC is the name of the VPC where the selected DHCP relay lives
+	// RelayVPC (optional) is the name of the VPC where the selected DHCP relay lives, requires Relay. It has to be a VPC
+	// this one could peer with: same fabric, at least one shared domain, same IPv4 and VLAN namespaces.
 	RelayVPC string `json:"relayVPC,omitempty"`
 	// Enable enables DHCP server for the subnet
 	Enable bool `json:"enable,omitempty"`

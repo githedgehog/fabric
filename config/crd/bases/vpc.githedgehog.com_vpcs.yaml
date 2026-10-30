@@ -199,8 +199,9 @@ spec:
                             DHCP server will be disabled
                           type: string
                         relayVPC:
-                          description: RelayVPC is the name of the VPC where the selected
-                            DHCP relay lives
+                          description: |-
+                            RelayVPC (optional) is the name of the VPC where the selected DHCP relay lives, requires Relay. It has to be a VPC
+                            this one could peer with: same fabric, at least one shared domain, same IPv4 and VLAN namespaces.
                           type: string
                         static:
                           additionalProperties:
