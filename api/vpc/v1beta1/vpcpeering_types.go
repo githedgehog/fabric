@@ -174,7 +174,7 @@ func (peering *VPCPeering) Validate(ctx context.Context, kube kclient.Reader, fa
 
 	spec := field.NewPath("spec")
 
-	if err := wiringapi.CheckFabricExists(ctx, kube, peering.Namespace, peering.Spec.Topology.Fabric); err != nil {
+	if _, err := wiringapi.CheckFabricExists(ctx, kube, peering.Namespace, peering.Spec.Topology.Fabric); err != nil {
 		return nil, err //nolint:wrapcheck
 	}
 

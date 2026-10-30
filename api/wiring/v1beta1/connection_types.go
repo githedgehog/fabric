@@ -872,7 +872,7 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 		return nil, field.Forbidden(spec.Child("gateway"), "gateway connection is not allowed in current fabric configuration")
 	}
 
-	if err := CheckFabricExists(ctx, kube, conn.Namespace, conn.Spec.Topology.Fabric); err != nil {
+	if _, err := CheckFabricExists(ctx, kube, conn.Namespace, conn.Spec.Topology.Fabric); err != nil {
 		return nil, err
 	}
 

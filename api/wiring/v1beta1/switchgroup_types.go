@@ -111,7 +111,7 @@ func (sg *SwitchGroup) Validate(ctx context.Context, kube kclient.Reader, _ *met
 		return nil, err //nolint:wrapcheck
 	}
 
-	if err := CheckFabricExists(ctx, kube, sg.Namespace, sg.Spec.Topology.Fabric); err != nil {
+	if _, err := CheckFabricExists(ctx, kube, sg.Namespace, sg.Spec.Topology.Fabric); err != nil {
 		return nil, err
 	}
 

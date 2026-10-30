@@ -193,7 +193,8 @@ func (external *External) Validate(ctx context.Context, kube kclient.Reader, fab
 	spec := field.NewPath("spec")
 	inboundPrefixesPath := spec.Child("inboundPrefixes")
 
-	if err := wiringapi.CheckFabricExists(ctx, kube, external.Namespace, external.Spec.Topology.Fabric); err != nil {
+	fabric, err := wiringapi.CheckFabricExists(ctx, kube, external.Namespace, external.Spec.Topology.Fabric)
+	if err != nil {
 		return nil, err //nolint:wrapcheck
 	}
 	if external.Spec.Topology.Domain == "" {
@@ -293,10 +294,6 @@ func (external *External) Validate(ctx context.Context, kube kclient.Reader, fab
 			return nil, field.Invalid(inboundPrefixesPath, field.OmitValueType{}, err.Error())
 		}
 
-		fabric, err := wiringapi.GetFabricSpec(ctx, kube, external.Namespace, external.Spec.Topology.Fabric)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get fabric: %w", err)
-		}
 		domain := external.Spec.Topology.Domain
 		if _, exists := fabric.Domains[domain]; !exists {
 			return nil, field.Invalid(spec.Child("topology", "domain"), domain, fmt.Sprintf("domain %s not found in fabric %s", domain, extFabric))

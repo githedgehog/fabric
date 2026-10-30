@@ -290,7 +290,8 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg 
 		return field.TooLong(field.NewPath("metadata", "name"), gw.Name, MaxGatewayNameLength)
 	}
 
-	if err := wiringapi.CheckFabricExists(ctx, kube, gw.Namespace, gw.Spec.Topology.Fabric); err != nil {
+	fabric, err := wiringapi.CheckFabricExists(ctx, kube, gw.Namespace, gw.Spec.Topology.Fabric)
+	if err != nil {
 		return err //nolint:wrapcheck
 	}
 	if gw.Spec.Topology.Domain == "" {
@@ -362,10 +363,6 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg 
 	}
 	if fabricCfg != nil && kube != nil {
 		// leaves peer with every gateway of their domain using the domain gateway ASN
-		fabric, err := wiringapi.GetFabricSpec(ctx, kube, gw.Namespace, gw.Spec.Topology.Fabric)
-		if err != nil {
-			return fmt.Errorf("getting fabric: %w", err)
-		}
 		domainName := gw.Spec.Topology.Domain
 		domain, exists := fabric.Domains[domainName]
 		if !exists {

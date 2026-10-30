@@ -394,7 +394,8 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 	extPath, connPath := spec.Child("external"), spec.Child("connection")
 	neighborPath, staticPath := spec.Child("neighbor"), spec.Child("static")
 
-	if err := wiringapi.CheckFabricExists(ctx, kube, attach.Namespace, attach.Spec.Topology.Fabric); err != nil {
+	fabric, err := wiringapi.CheckFabricExists(ctx, kube, attach.Namespace, attach.Spec.Topology.Fabric)
+	if err != nil {
 		return nil, err //nolint:wrapcheck
 	}
 
@@ -435,10 +436,6 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 		// leaf drops those carrying its own ASN through BGP loop detection. Without an ASN the
 		// session accepts any external one, so there is nothing to check.
 		if attach.Spec.Neighbor.ASN != 0 && fabricCfg != nil && kube != nil {
-			fabric, err := wiringapi.GetFabricSpec(ctx, kube, attach.Namespace, attach.Spec.Topology.Fabric)
-			if err != nil {
-				return nil, fmt.Errorf("failed to get fabric: %w", err)
-			}
 			if what := asnCollision(fabric, attach.Spec.Neighbor.ASN); what != "" {
 				return nil, field.Invalid(neighborPath.Child("asn"), attach.Spec.Neighbor.ASN, fmt.Sprintf("is %s of its own fabric", what))
 			}
@@ -490,10 +487,6 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 		// disableBFD wins, and nothing downstream reports that it did: without this the session
 		// silently runs on the FRR defaults of 60/180 instead of the sub-second detection asked for
 		if fabricCfg != nil && kube != nil {
-			fabric, err := wiringapi.GetFabricSpec(ctx, kube, attach.Namespace, attach.Spec.Topology.Fabric)
-			if err != nil {
-				return nil, fmt.Errorf("failed to get fabric: %w", err)
-			}
 			if fabric.DisableBFD {
 				warns = append(warns, "bfd is ignored because disableBFD is set for the whole fabric")
 			}

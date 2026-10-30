@@ -96,30 +96,31 @@ func (fabricList *FabricList) GetItems() []meta.Object {
 	return items
 }
 
-// ErrFabricNotSet is returned for an empty fabric reference: defaulting sets it, so only an object the refresh on
-// fabric-ctrl initialization had to leave alone or one validated without defaulting can have it empty
+// ErrFabricNotSet is returned by GetFabricSpec, which the reconcilers use, for an empty fabric reference: defaulting
+// sets it, so only an object the refresh on fabric-ctrl initialization had to leave alone can have it empty
 var ErrFabricNotSet = errors.New("topology.fabric is required")
 
-// CheckFabricExists checks that a fabric reference is set and, given a client, names a Fabric that exists. It reports
-// spec.topology.fabric, where every object keeps the reference.
-func CheckFabricExists(ctx context.Context, kube kclient.Reader, namespace, name string) error {
+// CheckFabricExists checks that a fabric reference is set and, given a client, names a Fabric that exists, returning
+// its spec (nil without a client). It reports spec.topology.fabric, where every object keeps the reference.
+func CheckFabricExists(ctx context.Context, kube kclient.Reader, namespace, name string) (*FabricSpec, error) {
 	path := field.NewPath("spec", "topology", "fabric")
 	if name == "" {
-		return field.Required(path, "")
+		return nil, field.Required(path, "")
 	}
 	if kube == nil {
-		return nil
+		return nil, nil //nolint:nilnil // nothing to look the spec up with, the callers only use it given a client
 	}
 
-	if err := kube.Get(ctx, ktypes.NamespacedName{Name: name, Namespace: namespace}, &Fabric{}); err != nil {
+	fabric := &Fabric{}
+	if err := kube.Get(ctx, ktypes.NamespacedName{Name: name, Namespace: namespace}, fabric); err != nil {
 		if kapierrors.IsNotFound(err) {
-			return field.NotFound(path, name)
+			return nil, field.NotFound(path, name)
 		}
 
-		return fmt.Errorf("failed to get fabric %s: %w", name, err) // TODO replace with some internal error to not expose to the user
+		return nil, fmt.Errorf("failed to get fabric %s: %w", name, err) // TODO replace with some internal error to not expose to the user
 	}
 
-	return nil
+	return &fabric.Spec, nil
 }
 
 // domainASNs maps each spine and gateway ASN of the fabric to the field it's set in, failing if a

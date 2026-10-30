@@ -367,7 +367,7 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 		return field.Required(spec.Child("gatewayGroup"), "")
 	}
 
-	if err := wiringapi.CheckFabricExists(ctx, kube, p.Namespace, p.Spec.Topology.Fabric); err != nil {
+	if _, err := wiringapi.CheckFabricExists(ctx, kube, p.Namespace, p.Spec.Topology.Fabric); err != nil {
 		return err //nolint:wrapcheck
 	}
 
