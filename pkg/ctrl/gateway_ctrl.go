@@ -352,7 +352,12 @@ func BuildGatewayAgent(ctx context.Context, kube kclient.Reader, cfg *meta.Fabri
 	if err := kube.List(ctx, gws, inDomain); err != nil {
 		return nil, fmt.Errorf("listing gateways: %w", err)
 	}
-	for _, gw := range gws.Items {
+	// the given gateway is newer than its listed copy when validating an update and isn't listed yet on create
+	members := slices.DeleteFunc(gws.Items, func(other gwapi.Gateway) bool {
+		return other.Name == gw.Name
+	})
+	members = append(members, *gw)
+	for _, gw := range members {
 		// a gateway being deleted is no longer a member
 		if gw.DeletionTimestamp != nil {
 			continue
