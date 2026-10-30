@@ -39,8 +39,8 @@ func (f SwitchFilter) Validate() error {
 	return nil
 }
 
-// fabricLabels selects the objects of the filtered fabric, and of its domain if requested and set
-func (f SwitchFilter) fabricLabels(withDomain bool) labels.Set {
+// FabricLabels selects the objects of the filtered fabric, and of its domain if requested and set
+func (f SwitchFilter) FabricLabels(withDomain bool) labels.Set {
 	set := labels.Set{}
 	if f.Fabric != "" {
 		set[wiringapi.ListLabelFabric(f.Fabric)] = wiringapi.ListLabelValue
@@ -52,8 +52,8 @@ func (f SwitchFilter) fabricLabels(withDomain bool) labels.Set {
 	return set
 }
 
-// check validates the filter and makes sure the filtered fabric and domain exist, listing the ones that do otherwise
-func (f SwitchFilter) check(ctx context.Context, kube kclient.Reader) error {
+// Check validates the filter and makes sure the filtered fabric and domain exist, listing the ones that do otherwise
+func (f SwitchFilter) Check(ctx context.Context, kube kclient.Reader) error {
 	if err := f.Validate(); err != nil {
 		return err
 	}
@@ -204,7 +204,7 @@ func forEachSwitch(ctx context.Context, kube kclient.Reader, filter SwitchFilter
 		}
 	} else {
 		// agents carry the labels of their switches
-		swSel := kclient.MatchingLabels(filter.fabricLabels(true))
+		swSel := kclient.MatchingLabels(filter.FabricLabels(true))
 
 		swList := &wiringapi.SwitchList{}
 		if err := kube.List(ctx, swList, kclient.InNamespace(kmetav1.NamespaceDefault), swSel); err != nil {
@@ -224,7 +224,7 @@ func forEachSwitch(ctx context.Context, kube kclient.Reader, filter SwitchFilter
 
 		// connections have no domain label, the switches they're grouped by narrow them down to the domain
 		connList := &wiringapi.ConnectionList{}
-		sel := labels.SelectorFromSet(filter.fabricLabels(false)).Add(connReqs...)
+		sel := labels.SelectorFromSet(filter.FabricLabels(false)).Add(connReqs...)
 		if err := kube.List(ctx, connList, kclient.InNamespace(kmetav1.NamespaceDefault), kclient.MatchingLabelsSelector{Selector: sel}); err != nil {
 			return fmt.Errorf("listing connections: %w", err)
 		}

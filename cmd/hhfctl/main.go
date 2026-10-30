@@ -1544,6 +1544,8 @@ Examples:
 								Usage:    "MAC address",
 								Required: true,
 							},
+							inspectFabricFlag,
+							inspectDomainFlag,
 						},
 						Before: func(_ *cli.Context) error {
 							return setupLogger(verbose)
@@ -1553,7 +1555,9 @@ Examples:
 								Verbose: verbose,
 								Output:  inspect.OutputType(output),
 							}, inspect.MACIn{
-								Value: cCtx.String("address"),
+								Value:  cCtx.String("address"),
+								Fabric: cCtx.String("fabric"),
+								Domain: cCtx.String("domain"),
 							}, os.Stdout), "failed to inspect MAC Address")
 						},
 					},
