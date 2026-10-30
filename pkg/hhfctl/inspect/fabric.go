@@ -150,6 +150,7 @@ func Fabric(ctx context.Context, kube kclient.Reader, in FabricIn) (*FabricOut, 
 		return nil, errors.Wrap(err, "cannot list switches")
 	}
 
+	profiles := map[string]*wiringapi.SwitchProfile{}
 	for _, sw := range swList.Items {
 		swName := sw.Name
 		fabricName := sw.Spec.Topology.Fabric
@@ -159,9 +160,13 @@ func Fabric(ctx context.Context, kube kclient.Reader, in FabricIn) (*FabricOut, 
 
 		totalSwitches++
 
-		sp := &wiringapi.SwitchProfile{}
-		if err := kube.Get(ctx, kclient.ObjectKey{Name: sw.Spec.Profile, Namespace: kmetav1.NamespaceDefault}, sp); err != nil {
-			return nil, errors.Wrapf(err, "cannot get switch profile %s", sw.Spec.Profile)
+		sp, ok := profiles[sw.Spec.Profile]
+		if !ok {
+			sp = &wiringapi.SwitchProfile{}
+			if err := kube.Get(ctx, kclient.ObjectKey{Name: sw.Spec.Profile, Namespace: kmetav1.NamespaceDefault}, sp); err != nil {
+				return nil, fmt.Errorf("cannot get switch profile %s: %w", sw.Spec.Profile, err)
+			}
+			profiles[sw.Spec.Profile] = sp
 		}
 
 		skipActual := false
