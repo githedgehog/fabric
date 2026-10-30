@@ -117,7 +117,7 @@ func (gg *GatewayGroup) Validate(ctx context.Context, kube kclient.Reader, fabri
 		return field.Required(spec.Child("topology", "domain"), "")
 	}
 
-	if fabricCfg != nil && kube != nil {
+	if fabricCfg != nil && fabric != nil {
 		domainName := gg.Spec.Topology.Domain
 		if _, exists := fabric.Domains[domainName]; !exists {
 			return field.Invalid(spec.Child("topology", "domain"), domainName, fmt.Sprintf("domain %s not found in fabric %s", domainName, gg.Spec.Topology.Fabric))

@@ -402,6 +402,16 @@ func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, 
 		return fmt.Errorf("kube client is required for hydration validations") //nolint:err113
 	}
 
+	fabric, err := CheckFabricExists(ctx, kube, sw.Namespace, sw.Spec.Topology.Fabric)
+	if err != nil {
+		return err
+	}
+
+	return sw.hydrationValidation(ctx, kube, fabricCfg, fabric)
+}
+
+// hydrationValidation is HydrationValidation for Validate, which already has the fabric
+func (sw *Switch) hydrationValidation(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig, fabric *FabricSpec) error {
 	switches := &SwitchList{}
 	if err := kube.List(ctx, switches); err != nil {
 		return fmt.Errorf("failed to list switches for hydration validation: %w", err)
@@ -546,10 +556,6 @@ func (sw *Switch) HydrationValidation(ctx context.Context, kube kclient.Reader, 
 		}
 	}
 
-	fabric, err := CheckFabricExists(ctx, kube, sw.Namespace, sw.Spec.Topology.Fabric)
-	if err != nil {
-		return err
-	}
 	if sw.Spec.Role.IsLeaf() && (sw.Spec.ASN < fabric.LeafASNStart || sw.Spec.ASN > fabric.LeafASNEnd) {
 		return field.Invalid(spec.Child("asn"), sw.Spec.ASN, fmt.Sprintf("not within the fabric leaf ASN range %d-%d", fabric.LeafASNStart, fabric.LeafASNEnd))
 	}
@@ -942,7 +948,7 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 			}
 		}
 
-		if err := sw.HydrationValidation(ctx, kube, fabricCfg); err != nil {
+		if err := sw.hydrationValidation(ctx, kube, fabricCfg, fabric); err != nil {
 			return warnings, err
 		}
 	}

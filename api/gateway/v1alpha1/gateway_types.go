@@ -361,7 +361,7 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg 
 	if gw.Spec.ASN == 0 {
 		return field.Required(spec.Child("asn"), "")
 	}
-	if fabricCfg != nil && kube != nil {
+	if fabricCfg != nil && fabric != nil {
 		// leaves peer with every gateway of their domain using the domain gateway ASN
 		domainName := gw.Spec.Topology.Domain
 		domain, exists := fabric.Domains[domainName]
