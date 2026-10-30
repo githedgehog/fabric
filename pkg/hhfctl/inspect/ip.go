@@ -23,6 +23,7 @@ import (
 
 	"github.com/pkg/errors"
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
+	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -41,8 +42,14 @@ type IPOut struct {
 	IPv4Namespace    *string                `json:"ipv4Namespace,omitempty"`
 	VPCSubnet        *IPOutVPCSubnet        `json:"vpcSubnet,omitempty"`
 	Switch           *IPOutSwitch           `json:"switch,omitempty"`
+	Gateway          *IPOutGateway          `json:"gateway,omitempty"`
 	Connections      []IPOutConnection      `json:"connections,omitempty"`
 	ExternalPeerings []IPOutExternalPeering `json:"externalPeerings,omitempty"`
+}
+
+type IPOutGateway struct {
+	Name              string `json:"name,omitempty"`
+	gwapi.GatewaySpec `json:",inline"`
 }
 
 type IPOutVPCSubnet struct {
@@ -106,6 +113,16 @@ func (out *IPOut) MarshalText(_ IPIn, now time.Time) (string, error) {
 		str.WriteString(string(data) + "\n")
 	}
 
+	if out.Gateway != nil {
+		str.WriteString(fmt.Sprintf("From Gateway: %s\n", out.Gateway.Name))
+
+		data, err := kyaml.Marshal(out.Gateway)
+		if err != nil {
+			return "", errors.Wrap(err, "failed to marshal Gateway")
+		}
+		str.WriteString(string(data) + "\n")
+	}
+
 	if len(out.Connections) > 0 {
 		for _, conn := range out.Connections {
 			str.WriteString(fmt.Sprintf("From Connection: %s\n", conn.Name))
@@ -156,6 +173,10 @@ func IP(ctx context.Context, kube kclient.Reader, in IPIn) (*IPOut, error) {
 
 	if err := ipInSwitches(ctx, out, kube, ip); err != nil {
 		return nil, errors.Wrap(err, "failed to inspect IP in Switches")
+	}
+
+	if err := ipInGateways(ctx, out, kube, ip); err != nil {
+		return nil, fmt.Errorf("failed to inspect IP in Gateways: %w", err)
 	}
 
 	if err := ipInConnections(ctx, out, kube, ip); err != nil {
@@ -266,10 +287,39 @@ func ipInSwitches(ctx context.Context, res *IPOut, kube kclient.Reader, ip net.I
 	return nil
 }
 
+func ipInGateways(ctx context.Context, res *IPOut, kube kclient.Reader, ip net.IP) error {
+	gws := &gwapi.GatewayList{}
+	if err := kube.List(ctx, gws); err != nil {
+		return fmt.Errorf("cannot list Gateway: %w", err)
+	}
+
+	for _, gw := range gws.Items {
+		ips := []string{gw.Spec.ProtocolIP, gw.Spec.VTEPIP}
+		for _, iface := range gw.Spec.Interfaces {
+			ips = append(ips, iface.IPs...)
+		}
+
+		for _, ipStr := range ips {
+			if strings.SplitN(ipStr, "/", 2)[0] == ip.String() {
+				res.found = true
+				res.Gateway = &IPOutGateway{
+					Name:        gw.Name,
+					GatewaySpec: gw.Spec,
+				}
+
+				return nil
+			}
+		}
+	}
+
+	return nil
+}
+
 func ipInConnections(ctx context.Context, res *IPOut, kube kclient.Reader, ip net.IP) error {
 	connTypes, err := labels.NewRequirement(wiringapi.LabelConnectionType, selection.In, []string{
 		wiringapi.ConnectionTypeFabric,
 		wiringapi.ConnectionTypeMesh,
+		wiringapi.ConnectionTypeGateway,
 		wiringapi.ConnectionTypeStaticExternal,
 	})
 	if err != nil {
@@ -295,6 +345,10 @@ func ipInConnections(ctx context.Context, res *IPOut, kube kclient.Reader, ip ne
 		} else if conn.Spec.Mesh != nil {
 			for _, link := range conn.Spec.Mesh.Links {
 				ips = append(ips, link.Leaf1.IP, link.Leaf2.IP)
+			}
+		} else if conn.Spec.Gateway != nil {
+			for _, link := range conn.Spec.Gateway.Links {
+				ips = append(ips, link.Switch.IP, link.Gateway.IP)
 			}
 		}
 
