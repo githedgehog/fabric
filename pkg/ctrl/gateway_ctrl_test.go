@@ -217,6 +217,38 @@ func TestBuildGatewayAgentNotReadyElsewhere(t *testing.T) {
 	require.ErrorIs(t, err, ErrRetryLater)
 }
 
+// the gateway webhooks build the agent of a gateway that isn't stored yet or is stored with its old spec
+func TestBuildGatewayAgentGivenGateway(t *testing.T) {
+	kube := gatewayTestKube(t)
+	cfg := &meta.FabricConfig{}
+
+	gw := &gwapi.Gateway{}
+	require.NoError(t, kube.Get(t.Context(), kclient.ObjectKey{Name: "gw-1", Namespace: kmetav1.NamespaceDefault}, gw))
+
+	members := func(gw *gwapi.Gateway) map[string][]string {
+		ag, err := BuildGatewayAgent(t.Context(), kube, cfg, gw)
+		require.NoError(t, err)
+
+		res := map[string][]string{}
+		for name, info := range ag.Spec.Groups {
+			for _, member := range info.Members {
+				res[name] = append(res[name], member.Name)
+			}
+		}
+
+		return res
+	}
+
+	created := gw.DeepCopy()
+	created.Name = "gw-5"
+	created.Spec.Groups = []gwapi.GatewayGroupMembership{{Name: "g1", Priority: 1}, {Name: "g4"}}
+	require.Equal(t, map[string][]string{"g1": {"gw-1", "gw-2", "gw-5"}, "g4": {"gw-5"}}, members(created))
+
+	updated := gw.DeepCopy()
+	updated.Spec.Groups = []gwapi.GatewayGroupMembership{{Name: "g1", Priority: 1}, {Name: "g4"}}
+	require.Equal(t, map[string][]string{"g1": {"gw-2", "gw-1"}, "g4": {"gw-1"}}, members(updated))
+}
+
 func TestGatewayEnqueue(t *testing.T) {
 	kube := gatewayTestKube(t)
 	r := &GatewayReconciler{Client: kube, lock: unlockedLock()}
