@@ -118,7 +118,7 @@ func (out *IPOut) MarshalText(_ IPIn, now time.Time) (string, error) {
 
 		data, err := kyaml.Marshal(out.Gateway)
 		if err != nil {
-			return "", errors.Wrap(err, "failed to marshal Gateway")
+			return "", fmt.Errorf("failed to marshal Gateway: %w", err)
 		}
 		str.WriteString(string(data) + "\n")
 	}
