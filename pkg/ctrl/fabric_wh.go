@@ -54,7 +54,6 @@ func SetupFabricWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, lock *Loc
 // refresh had to leave alone (rejected or stale, see the FabricController status) may still hold an empty value: it
 // can be normalized to the default later, while nothing can leave the default fabric or domain by being unset first.
 
-// checkFabricUnchanged rejects an update that moves an object to another fabric
 func checkFabricUnchanged(oldName, newName string) *field.Error {
 	if fabricOrDefault(oldName) == fabricOrDefault(newName) {
 		return nil
@@ -63,7 +62,6 @@ func checkFabricUnchanged(oldName, newName string) *field.Error {
 	return field.Invalid(field.NewPath("spec", "topology", "fabric"), newName, kapivalidation.FieldImmutableErrorMsg)
 }
 
-// checkDomainUnchanged rejects an update that moves an object to another domain
 func checkDomainUnchanged(oldName, newName string) *field.Error {
 	if domainOrDefault(oldName) == domainOrDefault(newName) {
 		return nil
@@ -72,7 +70,6 @@ func checkDomainUnchanged(oldName, newName string) *field.Error {
 	return field.Invalid(field.NewPath("spec", "topology", "domain"), newName, kapivalidation.FieldImmutableErrorMsg)
 }
 
-// checkDomainsUnchanged rejects an update that changes the set of domains an object is in
 func checkDomainsUnchanged(oldNames, newNames []string) *field.Error {
 	if slices.Equal(sortedDomainsOrDefault(oldNames), sortedDomainsOrDefault(newNames)) {
 		return nil
