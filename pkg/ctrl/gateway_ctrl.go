@@ -480,6 +480,11 @@ func BuildGatewayAgentForPeering(ctx context.Context, kube kclient.Reader, cfg *
 	})
 
 	for _, gw := range gws.Items {
+		// a gateway being deleted is no longer a member of its groups, see BuildGatewayAgent
+		if gw.DeletionTimestamp != nil {
+			continue
+		}
+
 		for _, group := range gw.Spec.Groups {
 			if group.Name == peering.Spec.GatewayGroup {
 				ag, err := BuildGatewayAgent(ctx, kube, cfg, &gw)
