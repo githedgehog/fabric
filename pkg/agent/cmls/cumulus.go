@@ -24,7 +24,6 @@ import (
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
-	"go.githedgehog.com/fabric/pkg/agent/switchstate"
 	"go.githedgehog.com/fabric/pkg/util/logutil"
 )
 
@@ -46,6 +45,7 @@ type ConfigIn struct {
 	ProtocolIP   string
 	VTEPIP       string
 	ASN          uint32
+	FrontPorts   uint16
 	HostSubnet   string
 	RouterID     string
 	VXLANSource  string
@@ -318,6 +318,7 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		ProtocolIP:   agent.Spec.Switch.ProtocolIP,
 		VTEPIP:       agent.Spec.Switch.VTEPIP,
 		ASN:          agent.Spec.Switch.ASN,
+		FrontPorts:   uint16(len(agent.Spec.SwitchProfile.Ports) - 1), //nolint:gosec // disable G115
 		RouterID:     protocolIP.Addr().String(),
 		VXLANSource:  vtepIP.Addr().String(),
 		VPCs:         vpcs,
@@ -347,13 +348,21 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 }
 
 func swp(in string) string {
+	// support breakout parsing
 	if portStr, ok := strings.CutPrefix(in, "E1/"); ok {
-		port, err := strconv.ParseUint(portStr, 10, 16)
-		if err != nil {
-			return "port-invalid-uint"
-		}
+		if strings.Count("/", portStr) > 0 {
+			// we have a breakout
+			brkOutString := portStr[strings.Index("/", portStr):]
+			brkOut, ok := strconv.ParseUint(brkOutString, 10, 16)
+		} else {
+			port, err := strconv.ParseUint(portStr, 10, 16)
+			if err != nil {
+				slog.Warn("invalid ParseUint", "portStr", portStr)
+				return "port-invalid-uint"
+			}
 
-		return fmt.Sprintf("swp%d", port)
+			return fmt.Sprintf("swp%d", port)
+		}
 	}
 
 	return "port-invalid-prefix"
@@ -459,46 +468,6 @@ func run(ctx context.Context, name, command string, arg ...string) error {
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("running %s: %w", name, err)
 	}
-
-	return nil
-}
-
-// TODO proper impl by reading from API
-func (c *CumulusProcessor) UpdateSwitchState(ctx context.Context, agent *agentapi.Agent, reg *switchstate.Registry) error {
-	swState := &agentapi.SwitchState{
-		Interfaces:   map[string]agentapi.SwitchStateInterface{},
-		Breakouts:    map[string]agentapi.SwitchStateBreakout{},
-		Transceivers: map[string]agentapi.SwitchStateTransceiver{},
-		BGPNeighbors: map[string]map[string]agentapi.SwitchStateBGPNeighbor{},
-		Platform: agentapi.SwitchStatePlatform{
-			Fans:         map[string]agentapi.SwitchStatePlatformFan{},
-			PSUs:         map[string]agentapi.SwitchStatePlatformPSU{},
-			Temperatures: map[string]agentapi.SwitchStatePlatformTemperature{},
-		},
-		Firmware: map[string]string{},
-	}
-
-	osReleaseData, err := os.ReadFile("/etc/os-release")
-	if err != nil {
-		return fmt.Errorf("reading os-release: %w", err)
-	}
-	version := ""
-	for line := range strings.Lines(string(osReleaseData)) {
-		if after, ok := strings.CutPrefix(line, "VERSION="); ok {
-			after = strings.TrimSpace(after)
-			if len(after) > 2 {
-				version = after[1 : len(after)-1]
-			}
-
-			break
-		}
-	}
-
-	swState.NOS = agentapi.SwitchStateNOS{
-		SoftwareVersion: version,
-	}
-
-	reg.SaveSwitchState(swState)
 
 	return nil
 }
