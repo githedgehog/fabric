@@ -242,7 +242,7 @@ type SwitchStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:categories=hedgehog;wiring;fabric,shortName=sw
+// +kubebuilder:resource:categories=hedgehog;hh;hhfc,shortName=sw
 // +kubebuilder:printcolumn:name="Fabric",type=string,JSONPath=`.spec.topology.fabric`,priority=0
 // +kubebuilder:printcolumn:name="Domains",type=string,JSONPath=`.spec.topology.domains`,priority=0
 // +kubebuilder:printcolumn:name="Profile",type=string,JSONPath=`.spec.profile`,priority=0

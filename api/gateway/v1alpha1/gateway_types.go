@@ -160,7 +160,7 @@ type GatewayStatus struct{}
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:categories=hedgehog;hedgehog-gateway,shortName=gw
+// +kubebuilder:resource:categories=hedgehog;hh;hhgw,shortName=gw
 // +kubebuilder:printcolumn:name="Fabric",type=string,JSONPath=`.spec.topology.fabric`,priority=0
 // +kubebuilder:printcolumn:name="Domain",type=string,JSONPath=`.spec.topology.domain`,priority=0
 // +kubebuilder:printcolumn:name="VTEPIP",type=string,JSONPath=`.spec.vtepIP`,priority=0

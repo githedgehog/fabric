@@ -10,7 +10,8 @@ spec:
   names:
     categories:
     - hedgehog
-    - hedgehog-gateway
+    - hh
+    - hhgw
     kind: GatewayGroup
     listKind: GatewayGroupList
     plural: gatewaygroups

@@ -10,7 +10,8 @@ spec:
   names:
     categories:
     - hedgehog
-    - hedgehog-gateway
+    - hh
+    - hhgw
     kind: VPCInfo
     listKind: VPCInfoList
     plural: vpcinfos

@@ -10,13 +10,13 @@ spec:
   names:
     categories:
     - hedgehog
-    - wiring
-    - fabric
+    - hh
+    - hhfc
     kind: Fabric
     listKind: FabricList
     plural: fabrics
     shortNames:
-    - fab
+    - fa
     singular: fabric
   scope: Namespaced
   versions:

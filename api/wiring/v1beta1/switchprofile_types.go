@@ -176,7 +176,7 @@ type SwitchProfileStatus struct{}
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:categories=hedgehog;wiring;fabric,shortName=sp
+// +kubebuilder:resource:categories=hedgehog;hh;hhfc,shortName=sp
 // +kubebuilder:printcolumn:name="DisplayName",type=string,JSONPath=`.spec.displayName`,priority=0
 // +kubebuilder:printcolumn:name="OtherNames",type=string,JSONPath=`.spec.otherNames`,priority=0
 // +kubebuilder:printcolumn:name="Silicon",type=string,JSONPath=`.spec.switchSilicon`,priority=0

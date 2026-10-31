@@ -46,7 +46,7 @@ type FabricStatus struct{}
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:categories=hedgehog;wiring;fabric,shortName=fab
+// +kubebuilder:resource:categories=hedgehog;hh;hhfc,shortName=fa
 // +kubebuilder:printcolumn:name="LeafASNStart",type=integer,JSONPath=`.spec.leafASNStart`,priority=0
 // +kubebuilder:printcolumn:name="LeafASNEnd",type=integer,JSONPath=`.spec.leafASNEnd`,priority=0
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0

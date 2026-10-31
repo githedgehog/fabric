@@ -10,8 +10,8 @@ spec:
   names:
     categories:
     - hedgehog
-    - wiring
-    - fabric
+    - hh
+    - hhfc
     kind: VLANNamespace
     listKind: VLANNamespaceList
     plural: vlannamespaces

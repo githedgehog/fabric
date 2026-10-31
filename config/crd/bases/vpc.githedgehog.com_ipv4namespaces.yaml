@@ -10,7 +10,8 @@ spec:
   names:
     categories:
     - hedgehog
-    - fabric
+    - hh
+    - hhfc
     kind: IPv4Namespace
     listKind: IPv4NamespaceList
     plural: ipv4namespaces

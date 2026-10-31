@@ -73,7 +73,7 @@ type FabricControllerRefreshKind struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:categories=hedgehog,shortName=fc
+// +kubebuilder:resource:categories=hhint;hhfcint,shortName=fc
 // +kubebuilder:printcolumn:name="Initialized",type=string,JSONPath=`.status.initializedVersion`,priority=0
 // +kubebuilder:printcolumn:name="Refreshing",type=string,JSONPath=`.status.conditions[?(@.type=="Refreshing")].status`,priority=0
 // +kubebuilder:printcolumn:name="Passes",type=integer,JSONPath=`.status.refresh.passes`,priority=1

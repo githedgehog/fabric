@@ -69,7 +69,7 @@ type SwitchBootStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:categories=hedgehog,shortName=swboot
+// +kubebuilder:resource:categories=hhint;hhfcint,shortName=swboot
 // +kubebuilder:printcolumn:name="Serial",type=string,JSONPath=`.spec.serial`,priority=0
 // +kubebuilder:printcolumn:name="MAC",type=string,JSONPath=`.spec.mac`,priority=0
 // +kubebuilder:printcolumn:name="NOS",type=string,JSONPath=`.spec.nosType`,priority=0

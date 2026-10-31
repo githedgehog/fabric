@@ -10,13 +10,12 @@ spec:
   names:
     categories:
     - hedgehog
-    - fabric
-    - external
+    - hh
+    - hhfc
     kind: ExternalPeering
     listKind: ExternalPeeringList
     plural: externalpeerings
     shortNames:
-    - extpeering
     - extpeer
     singular: externalpeering
   scope: Namespaced
