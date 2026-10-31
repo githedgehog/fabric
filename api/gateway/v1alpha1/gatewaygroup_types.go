@@ -48,6 +48,7 @@ type GatewayGroupStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:categories=hedgehog;hh;hhgw,shortName=gwgr
 // +kubebuilder:printcolumn:name="Topo",type=string,JSONPath=`.metadata.annotations.fabric\.githedgehog\.com/topology`,priority=0
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=10
 // GatewayGroup is the Schema for the gatewaygroups API
 type GatewayGroup struct {
 	kmetav1.TypeMeta   `json:",inline"`

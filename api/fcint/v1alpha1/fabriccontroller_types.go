@@ -78,7 +78,7 @@ type FabricControllerRefreshKind struct {
 // +kubebuilder:printcolumn:name="Refreshing",type=string,JSONPath=`.status.conditions[?(@.type=="Refreshing")].status`,priority=0
 // +kubebuilder:printcolumn:name="Passes",type=integer,JSONPath=`.status.refresh.passes`,priority=1
 // +kubebuilder:printcolumn:name="ForceUnlock",type=boolean,JSONPath=`.spec.forceUnlock`,priority=1
-// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=10
 // FabricController is the Schema for the fabriccontrollers API. It holds the state of the fabric controller itself:
 // the version that completed initialization (including refreshing all stored objects with the current defaults) and
 // the progress of that refresh. The fabric controller only reconciles and accepts user changes once it's initialized.

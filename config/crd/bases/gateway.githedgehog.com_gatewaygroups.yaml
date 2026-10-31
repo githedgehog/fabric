@@ -24,6 +24,10 @@ spec:
     - jsonPath: .metadata.annotations.fabric\.githedgehog\.com/topology
       name: Topo
       type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      priority: 10
+      type: date
     name: v1alpha1
     schema:
       openAPIV3Schema:

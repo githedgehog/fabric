@@ -306,7 +306,7 @@ type ExternalAttachmentStatus struct{}
 // +kubebuilder:printcolumn:name="SwIP",type=string,JSONPath=`.spec.switch.ip`,priority=1
 // +kubebuilder:printcolumn:name="NeighASN",type=string,JSONPath=`.spec.neighbor.asn`,priority=1
 // +kubebuilder:printcolumn:name="NeighIP",type=string,JSONPath=`.spec.neighbor.ip`,priority=1
-// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=10
 // ExternalAttachment is a definition of how specific switch is connected with external system (External object).
 // Effectively it represents BGP peering between the switch and external system including all needed configuration.
 type ExternalAttachment struct {

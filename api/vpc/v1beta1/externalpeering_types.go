@@ -94,7 +94,7 @@ type ExternalPeeringStatus struct{}
 // +kubebuilder:printcolumn:name="VPCSubnets",type=string,JSONPath=`.spec.permit.vpc.subnets`,priority=1
 // +kubebuilder:printcolumn:name="External",type=string,JSONPath=`.spec.permit.external.name`,priority=0
 // +kubebuilder:printcolumn:name="ExtPrefixes",type=string,JSONPath=`.spec.permit.external.prefixes`,priority=1
-// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=10
 // ExternalPeering is the Schema for the externalpeerings API
 type ExternalPeering struct {
 	kmetav1.TypeMeta   `json:",inline"`

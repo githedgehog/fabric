@@ -268,7 +268,7 @@ type VPCStatus struct{}
 // +kubebuilder:printcolumn:name="VLANNS",type=string,JSONPath=`.spec.vlanNamespace`,priority=0
 // +kubebuilder:printcolumn:name="Subnets",type=string,JSONPath=`.spec.subnets`,priority=1
 // +kubebuilder:printcolumn:name="VNI",type=string,JSONPath=`.status.vni`,priority=1
-// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=10
 // VPC is Virtual Private Cloud, similar to the public cloud VPC it provides an isolated private network for the
 // resources with support for multiple subnets each with user-provided VLANs and on-demand DHCP.
 type VPC struct {
