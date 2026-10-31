@@ -357,22 +357,22 @@ func BuildGatewayAgent(ctx context.Context, kube kclient.Reader, cfg *meta.Fabri
 		return other.Name == gw.Name
 	})
 	members = append(members, *gw)
-	for _, gw := range members {
+	for _, member := range members {
 		// a gateway being deleted is no longer a member
-		if gw.DeletionTimestamp != nil {
+		if member.DeletionTimestamp != nil {
 			continue
 		}
 
-		for _, gr := range gw.Spec.Groups {
+		for _, gr := range member.Spec.Groups {
 			if !inGwGroups[gr.Name] {
 				continue
 			}
 
 			info := gwGroups[gr.Name]
 			info.Members = append(info.Members, gwintapi.GatewayGroupMember{
-				Name:     gw.Name,
+				Name:     member.Name,
 				Priority: gr.Priority,
-				VTEPIP:   gw.Spec.VTEPIP,
+				VTEPIP:   member.Spec.VTEPIP,
 			})
 			gwGroups[gr.Name] = info
 		}
