@@ -21,6 +21,9 @@ func Peering(ctx context.Context, kube kclient.Reader, checkPeering kclient.Obje
 	if kube == nil {
 		return fmt.Errorf("kube client is nil") //nolint:err113
 	}
+	if isNil(checkPeering) {
+		return fmt.Errorf("peering is nil") //nolint:err113
+	}
 
 	checkName := checkPeering.GetName()
 	checkNs := checkPeering.GetNamespace()

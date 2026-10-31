@@ -118,6 +118,10 @@ func TestConnectionReferencesFabric(t *testing.T) {
 	}
 }
 
-func TestConnectionWithoutClient(t *testing.T) {
+func TestConnectionWithoutInputs(t *testing.T) {
 	require.ErrorContains(t, Connection(t.Context(), nil, &wiringapi.Connection{}), "kube client is nil")
+
+	kube := fake.NewClientBuilder().Build()
+	require.ErrorContains(t, Connection(t.Context(), kube, nil), "connection is nil")
+	require.ErrorContains(t, Connection(t.Context(), kube, (*wiringapi.Connection)(nil)), "connection is nil")
 }

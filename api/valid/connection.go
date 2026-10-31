@@ -25,6 +25,9 @@ func Connection(ctx context.Context, kube kclient.Reader, checkConn kclient.Obje
 	if kube == nil {
 		return fmt.Errorf("kube client is nil") //nolint:err113
 	}
+	if isNil(checkConn) {
+		return fmt.Errorf("connection is nil") //nolint:err113
+	}
 
 	conn, ok := checkConn.(*wiringapi.Connection)
 	if !ok {
