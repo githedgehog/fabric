@@ -299,7 +299,7 @@ type ExternalAttachmentStatus struct{}
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:categories=hedgehog;hh;hhfc,shortName=extattach
-// +kubebuilder:printcolumn:name="Fabric",type=string,JSONPath=`.spec.topology.fabric`,priority=0
+// +kubebuilder:printcolumn:name="Topo",type=string,JSONPath=`.metadata.annotations.fabric\.githedgehog\.com/topology`,priority=0
 // +kubebuilder:printcolumn:name="External",type=string,JSONPath=`.spec.external`,priority=0
 // +kubebuilder:printcolumn:name="Connection",type=string,JSONPath=`.spec.connection`,priority=0
 // +kubebuilder:printcolumn:name="SwVLAN",type=string,JSONPath=`.spec.switch.vlan`,priority=1
@@ -366,6 +366,7 @@ func (attach *ExternalAttachment) Default() {
 	attach.Labels[wiringapi.LabelConnection] = attach.Spec.Connection
 	attach.Labels[LabelExternal] = attach.Spec.External
 	attach.Labels[wiringapi.ListLabelFabric(attach.Spec.Topology.Fabric)] = ListLabelValue
+	wiringapi.SetTopologyAnnotation(attach, attach.Spec.Topology.Fabric)
 }
 
 // asnCollision returns what asn collides with in a fabric, if anything

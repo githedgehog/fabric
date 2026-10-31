@@ -63,7 +63,7 @@ type VPCPeeringStatus struct{}
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:categories=hedgehog;hh;hhfc,shortName=vpcpeer
-// +kubebuilder:printcolumn:name="Fabric",type=string,JSONPath=`.spec.topology.fabric`,priority=0
+// +kubebuilder:printcolumn:name="Topo",type=string,JSONPath=`.metadata.annotations.fabric\.githedgehog\.com/topology`,priority=0
 // +kubebuilder:printcolumn:name="VPC1",type=string,JSONPath=`.metadata.labels.fabric\.githedgehog\.com/vpc1`,priority=0
 // +kubebuilder:printcolumn:name="VPC2",type=string,JSONPath=`.metadata.labels.fabric\.githedgehog\.com/vpc2`,priority=0
 // +kubebuilder:printcolumn:name="Remote",type=string,JSONPath=`.spec.remote`,priority=0
@@ -155,6 +155,7 @@ func (peering *VPCPeering) Default() {
 	wiringapi.CleanupFabricLabels(peering.Labels)
 
 	peering.Labels[wiringapi.ListLabelFabric(peering.Spec.Topology.Fabric)] = ListLabelValue
+	wiringapi.SetTopologyAnnotation(peering, peering.Spec.Topology.Fabric)
 
 	vpc1, vpc2, err := peering.Spec.VPCs()
 	if err != nil {

@@ -54,8 +54,7 @@ type VPCInfoStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=vpcinfos,categories=hedgehog;hh;hhgw,shortName=gwvpc
-// +kubebuilder:printcolumn:name="Fabric",type=string,JSONPath=`.spec.topology.fabric`,priority=0
-// +kubebuilder:printcolumn:name="Domains",type=string,JSONPath=`.spec.topology.domains`,priority=0
+// +kubebuilder:printcolumn:name="Topo",type=string,JSONPath=`.metadata.annotations.fabric\.githedgehog\.com/topology`,priority=0
 // +kubebuilder:printcolumn:name="InternalID",type=string,JSONPath=`.status.internalID`,priority=0
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
 // VPCInfo is the Schema for the vpcinfos API.
@@ -114,6 +113,7 @@ func (vpc *VPCInfo) Default() {
 			vpc.Labels[wiringapi.ListLabelDomain(domain)] = ListLabelValue
 		}
 	}
+	wiringapi.SetTopologyAnnotation(vpc, vpc.Spec.Topology.Fabric, vpc.Spec.Topology.Domains...)
 }
 
 func (vpc *VPCInfo) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) error {

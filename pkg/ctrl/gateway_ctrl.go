@@ -276,6 +276,7 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 		}
 
 		gwAg.Spec = newGwAg.Spec
+		wiringapi.SetTopologyAnnotation(gwAg, gw.Spec.Topology.Fabric, gw.Spec.Topology.Domain)
 
 		return nil
 	}); err != nil {
