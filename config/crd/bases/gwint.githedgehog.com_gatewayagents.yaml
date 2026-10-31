@@ -26,6 +26,10 @@ spec:
     - jsonPath: .spec.gateway.driver
       name: Driver
       type: string
+    - jsonPath: .spec.gateway.workers
+      name: Workers
+      priority: 1
+      type: integer
     - jsonPath: .status.lastHeartbeat
       name: Heartbeat
       type: date
