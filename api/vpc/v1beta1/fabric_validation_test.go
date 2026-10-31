@@ -4,6 +4,7 @@
 package v1beta1_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -145,7 +146,11 @@ func TestFabricMismatchValidation(t *testing.T) {
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := tt.obj.Validate(t.Context(), kube, &meta.FabricConfig{})
+			_, err := tt.obj.Validate(t.Context(), kube, &meta.FabricConfig{
+				ExtraValidators: meta.ExtraValidators{
+					Peering: func(context.Context, kclient.Reader, kclient.Object) error { return nil },
+				},
+			})
 			require.ErrorContains(t, err, "is in fabric other")
 		})
 	}

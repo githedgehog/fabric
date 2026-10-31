@@ -561,7 +561,10 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 			return fmt.Errorf("gateway group %s has no domain", p.Spec.GatewayGroup) //nolint:err113
 		}
 
-		if fabricCfg != nil && fabricCfg.ExtraValidators.Peering != nil {
+		if fabricCfg != nil {
+			if fabricCfg.ExtraValidators.Peering == nil {
+				return fmt.Errorf("peering extra validator is not set") //nolint:err113
+			}
 			if err := fabricCfg.ExtraValidators.Peering(ctx, kube, p); err != nil {
 				return err //nolint:wrapcheck
 			}

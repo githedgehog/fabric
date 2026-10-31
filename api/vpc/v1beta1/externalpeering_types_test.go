@@ -4,6 +4,8 @@
 package v1beta1_test
 
 import (
+	"context"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -206,7 +208,11 @@ func TestExternalPeeringValidation(t *testing.T) {
 					Build()
 			}
 
-			_, err := test.peering.Validate(t.Context(), kube, &meta.FabricConfig{})
+			_, err := test.peering.Validate(t.Context(), kube, &meta.FabricConfig{
+				ExtraValidators: meta.ExtraValidators{
+					Peering: func(context.Context, kclient.Reader, kclient.Object) error { return nil },
+				},
+			})
 			if test.err {
 				require.Error(t, err, "expected error but got none")
 			} else {
@@ -214,4 +220,37 @@ func TestExternalPeeringValidation(t *testing.T) {
 			}
 		})
 	}
+}
+
+var errExtraValidator = errors.New("extra validator")
+
+func TestPeeringValidationExtraValidator(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, v1beta1.AddToScheme(scheme))
+	require.NoError(t, wiringapi.AddToScheme(scheme))
+	kube := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(fabricObj(wiringapi.DefaultFabric, &meta.FabricConfig{})).
+		Build()
+
+	vpcPeering := vpcPeeringGen("vpc-01--vpc-02", "vpc-01", "vpc-02")
+	extPeering := extPeeringGen("vpc-01--external-01")
+
+	cfg := &meta.FabricConfig{}
+	_, err := vpcPeering.Validate(t.Context(), kube, cfg)
+	require.ErrorContains(t, err, "peering extra validator is not set")
+	_, err = extPeering.Validate(t.Context(), kube, cfg)
+	require.ErrorContains(t, err, "peering extra validator is not set")
+
+	var validated []string
+	cfg.ExtraValidators.Peering = func(_ context.Context, _ kclient.Reader, obj kclient.Object) error {
+		validated = append(validated, obj.GetName())
+
+		return errExtraValidator
+	}
+	_, err = vpcPeering.Validate(t.Context(), kube, cfg)
+	require.ErrorIs(t, err, errExtraValidator)
+	_, err = extPeering.Validate(t.Context(), kube, cfg)
+	require.ErrorIs(t, err, errExtraValidator)
+	require.Equal(t, []string{vpcPeering.Name, extPeering.Name}, validated)
 }

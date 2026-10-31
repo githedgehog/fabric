@@ -4,12 +4,14 @@
 package v1alpha1
 
 import (
+	"context"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.githedgehog.com/fabric/api/meta"
 	vpcv1beta1 "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -753,6 +755,11 @@ func TestValidateCIDRBelongsToVPC(t *testing.T) {
 				require.Error(t, actual)
 			} else {
 				require.NoError(t, actual)
+
+				cfg := &meta.FabricConfig{EnableGateway: true}
+				require.ErrorContains(t, tt.peering.Validate(ctx, kube, cfg), "peering extra validator is not set")
+				cfg.ExtraValidators.Peering = func(context.Context, kclient.Reader, kclient.Object) error { return nil }
+				require.NoError(t, tt.peering.Validate(ctx, kube, cfg))
 			}
 		})
 	}
