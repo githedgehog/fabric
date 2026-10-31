@@ -874,6 +874,10 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 	}
 
 	if kube != nil {
+		if fabricCfg == nil {
+			return nil, fmt.Errorf("fabric config is required to validate connection %s against other objects", conn.Name) //nolint:err113
+		}
+
 		rGroup := ""
 		rType := meta.RedundancyTypeNone
 		connFabric := conn.Spec.Topology.Fabric
@@ -1222,11 +1226,11 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 			}
 		}
 
-		// TODO require it once fabricator sets it as well
-		if fabricCfg.ExtraValidators.Connection != nil {
-			if err := fabricCfg.ExtraValidators.Connection(ctx, kube, conn); err != nil {
-				return nil, err //nolint:wrapcheck
-			}
+		if fabricCfg.ExtraValidators.Connection == nil {
+			return nil, fmt.Errorf("connection extra validator is not set") //nolint:err113
+		}
+		if err := fabricCfg.ExtraValidators.Connection(ctx, kube, conn); err != nil {
+			return nil, err //nolint:wrapcheck
 		}
 	}
 

@@ -908,6 +908,9 @@ func TestConnectionValidation(t *testing.T) {
 				ReservedSubnets: []string{"172.30.1.0/24"},
 				FabricSubnet:    "172.30.128.0/24",
 				FabricMode:      meta.FabricModeSpineLeaf,
+				ExtraValidators: meta.ExtraValidators{
+					Connection: func(context.Context, kclient.Reader, kclient.Object) error { return nil },
+				},
 			}
 			err := cfg.WithReservedSubnets()
 			require.NoError(t, err)
@@ -997,9 +1000,11 @@ func TestConnectionValidationExtraValidator(t *testing.T) {
 	conn := fabricConnGen("spine-01--fabric--leaf-01")
 	conn.Default()
 
-	// not set yet in fabricator
-	_, err := conn.Validate(ctx, kube, cfg)
-	require.NoError(t, err)
+	_, err := conn.Validate(ctx, kube, nil)
+	require.ErrorContains(t, err, "fabric config is required")
+
+	_, err = conn.Validate(ctx, kube, cfg)
+	require.ErrorContains(t, err, "connection extra validator is not set")
 
 	var validated []string
 	cfg.ExtraValidators.Connection = func(_ context.Context, _ kclient.Reader, obj kclient.Object) error {
