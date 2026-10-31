@@ -67,7 +67,7 @@ type VPCAttachmentStatus struct{}
 // +kubebuilder:printcolumn:name="VPCSUBNET",type=string,JSONPath=`.spec.subnet`,priority=0
 // +kubebuilder:printcolumn:name="Connection",type=string,JSONPath=`.spec.connection`,priority=0
 // +kubebuilder:printcolumn:name="NativeVLAN",type=string,JSONPath=`.spec.nativeVLAN`,priority=0
-// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=10
 // VPCAttachment is the Schema for the vpcattachments API
 type VPCAttachment struct {
 	kmetav1.TypeMeta   `json:",inline"`

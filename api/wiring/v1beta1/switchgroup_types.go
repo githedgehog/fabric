@@ -46,7 +46,7 @@ type SwitchGroupStatus struct{}
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:categories=hedgehog;hh;hhfc,shortName=sg
 // +kubebuilder:printcolumn:name="Topo",type=string,JSONPath=`.metadata.annotations.fabric\.githedgehog\.com/topology`,priority=0
-// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=10
 // SwitchGroup is the marker API object to group switches together, switch can belong to multiple groups
 type SwitchGroup struct {
 	kmetav1.TypeMeta   `json:",inline"`

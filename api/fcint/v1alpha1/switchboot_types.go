@@ -77,7 +77,7 @@ type SwitchBootStatus struct {
 // +kubebuilder:printcolumn:name="Attempt",type=string,JSONPath=`.status.lastAttempt.type`,priority=0
 // +kubebuilder:printcolumn:name="Result",type=string,JSONPath=`.status.lastAttempt.result`,priority=0
 // +kubebuilder:printcolumn:name="Attempted",type=date,JSONPath=`.status.lastAttempt.time`,priority=0
-// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=1
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=10
 // SwitchBoot is the Schema for the switchboots API. It's managed by the fabric controller for each switch and holds
 // everything needed to bootstrap it (ONIE NOS install or ZTP): how to identify the switch and what to install on it.
 type SwitchBoot struct {

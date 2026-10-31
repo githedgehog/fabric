@@ -287,7 +287,7 @@ type ConnectionStatus struct{}
 // +kubebuilder:printcolumn:name="Type",type=string,JSONPath=`.metadata.labels.fabric\.githedgehog\.com/connection-type`,priority=0
 // +kubebuilder:printcolumn:name="Switches",type=string,JSONPath=`.metadata.annotations.fabric\.githedgehog\.com/switches`,priority=1
 // +kubebuilder:printcolumn:name="Servers",type=string,JSONPath=`.metadata.annotations.fabric\.githedgehog\.com/servers`,priority=1
-// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=10
 // Connection object represents a logical and physical connections between any devices in the Fabric (Switch, Server
 // and External objects). It's needed to define all physical and logical connections between the devices in the Wiring
 // Diagram. Connection type is defined by the top-level field in the ConnectionSpec. Exactly one of them could be used

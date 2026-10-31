@@ -117,7 +117,7 @@ type DHCPAllocated struct {
 // +kubebuilder:printcolumn:name="DNSServers",type=string,JSONPath=`.spec.dnsServers`,priority=1
 // +kubebuilder:printcolumn:name="TimeServers",type=string,JSONPath=`.spec.timeServers`,priority=1
 // +kubebuilder:printcolumn:name="InterfaceMTU",type=integer,JSONPath=`.spec.interfaceMTU`,priority=1
-// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=10
 // DHCPSubnet is the configuration (spec) for the Hedgehog DHCP server and storage for the leases (status). It's
 // primary internal API group, but it makes allocated IPs / leases information available to the end user through API.
 // Not intended to be modified by the user.

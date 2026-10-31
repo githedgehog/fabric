@@ -114,7 +114,7 @@ type ExternalStatus struct{}
 // +kubebuilder:printcolumn:name="InComm",type=string,JSONPath=`.spec.inboundCommunity`,priority=0
 // +kubebuilder:printcolumn:name="OutComm",type=string,JSONPath=`.spec.outboundCommunity`,priority=0
 // +kubebuilder:printcolumn:name="LocalASN",type=string,JSONPath=`.spec.localASN`,priority=1
-// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=10
 // External object represents an external system connected to the Fabric and available to the specific IPv4Namespace.
 // Users can do external peering with the external system by specifying the name of the External Object without need to
 // worry about the details of how external system is attached to the Fabric.

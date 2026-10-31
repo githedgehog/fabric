@@ -67,7 +67,7 @@ type VPCPeeringStatus struct{}
 // +kubebuilder:printcolumn:name="VPC1",type=string,JSONPath=`.metadata.labels.fabric\.githedgehog\.com/vpc1`,priority=0
 // +kubebuilder:printcolumn:name="VPC2",type=string,JSONPath=`.metadata.labels.fabric\.githedgehog\.com/vpc2`,priority=0
 // +kubebuilder:printcolumn:name="Remote",type=string,JSONPath=`.spec.remote`,priority=0
-// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=10
 // VPCPeering represents a peering between two VPCs with corresponding filtering rules.
 // Minimal example of the VPC peering showing vpc-1 to vpc-2 peering with all subnets allowed:
 //

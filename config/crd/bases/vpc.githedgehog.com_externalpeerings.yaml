@@ -40,6 +40,7 @@ spec:
       type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
+      priority: 10
       type: date
     name: v1beta1
     schema:

@@ -36,6 +36,7 @@ spec:
       type: boolean
     - jsonPath: .metadata.creationTimestamp
       name: Age
+      priority: 10
       type: date
     name: v1alpha1
     schema:
