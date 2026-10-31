@@ -17,7 +17,7 @@ installation fails half way. A check that only lives in a webhook isn't run by h
 - If it needs objects from a package the API package can't import (e.g. the wiring API can't import the VPC or Gateway
   ones), as an extra validator: a field in `meta.ExtraValidators`, implemented in `api/valid`, called from `Validate()`
   and set by every `FabricConfig.Init` caller, both fabric-ctrl (`cmd/main.go`) and hhfab in fabricator. See
-  `valid.Peering` and `valid.Connection`.
+  `valid.Peering` and `valid.Connection`, and `api/valid/README.md` for how they behave.
 
 `Validate()` may look up other objects, but it must not require objects of a kind the installer creates later, or of
 the same kind, as the installer creates them one by one in a fixed order of kinds.
