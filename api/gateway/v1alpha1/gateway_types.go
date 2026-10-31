@@ -163,9 +163,9 @@ type GatewayStatus struct{}
 // +kubebuilder:resource:categories=hedgehog;hh;hhgw,shortName=gw
 // +kubebuilder:printcolumn:name="Topo",type=string,JSONPath=`.metadata.annotations.fabric\.githedgehog\.com/topology`,priority=0
 // +kubebuilder:printcolumn:name="Driver",type=string,JSONPath=`.spec.driver`,priority=0
+// +kubebuilder:printcolumn:name="Workers",type=integer,JSONPath=`.spec.workers`,priority=1
 // +kubebuilder:printcolumn:name="VTEPIP",type=string,JSONPath=`.spec.vtepIP`,priority=0
 // +kubebuilder:printcolumn:name="Groups",type=string,JSONPath=`.spec.groups`,priority=0
-// +kubebuilder:printcolumn:name="Workers",type=integer,JSONPath=`.spec.workers`,priority=1
 // +kubebuilder:printcolumn:name="ProtoIP",type=string,JSONPath=`.spec.protocolIP`,priority=1
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=10
 // Gateway is the Schema for the gateways API.

@@ -179,6 +179,7 @@ type BGPNeighborPrefixes struct {
 // +kubebuilder:resource:categories=hhint;hhfcint,shortName=gwag
 // +kubebuilder:printcolumn:name="Topo",type=string,JSONPath=`.metadata.annotations.fabric\.githedgehog\.com/topology`,priority=0
 // +kubebuilder:printcolumn:name="Driver",type=string,JSONPath=`.spec.gateway.driver`,priority=0
+// +kubebuilder:printcolumn:name="Workers",type=integer,JSONPath=`.spec.gateway.workers`,priority=1
 // +kubebuilder:printcolumn:name="Heartbeat",type=date,JSONPath=`.status.lastHeartbeat`,priority=0
 // +kubebuilder:printcolumn:name="Applied",type=date,JSONPath=`.status.lastAppliedTime`,priority=0
 // +kubebuilder:printcolumn:name="AppliedG",type=integer,JSONPath=`.status.lastAppliedGen`,priority=0
