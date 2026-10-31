@@ -622,6 +622,7 @@ type SwitchStateCRMStats struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:categories=hhint;hhfcint,shortName=ag
+// +kubebuilder:printcolumn:name="Topo",type=string,JSONPath=`.metadata.annotations.fabric\.githedgehog\.com/topology`,priority=0
 // +kubebuilder:printcolumn:name="Profile",type=string,JSONPath=`.spec.switch.profile`,priority=0
 // +kubebuilder:printcolumn:name="Role",type=string,JSONPath=`.spec.role`,priority=0
 // +kubebuilder:printcolumn:name="Descr",type=string,JSONPath=`.spec.description`,priority=1

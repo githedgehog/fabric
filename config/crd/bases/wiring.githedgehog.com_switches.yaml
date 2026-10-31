@@ -21,11 +21,8 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .spec.topology.fabric
-      name: Fabric
-      type: string
-    - jsonPath: .spec.topology.domains
-      name: Domains
+    - jsonPath: .metadata.annotations.fabric\.githedgehog\.com/topology
+      name: Topo
       type: string
     - jsonPath: .spec.profile
       name: Profile

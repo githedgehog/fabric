@@ -243,8 +243,7 @@ type SwitchStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:categories=hedgehog;hh;hhfc,shortName=sw
-// +kubebuilder:printcolumn:name="Fabric",type=string,JSONPath=`.spec.topology.fabric`,priority=0
-// +kubebuilder:printcolumn:name="Domains",type=string,JSONPath=`.spec.topology.domains`,priority=0
+// +kubebuilder:printcolumn:name="Topo",type=string,JSONPath=`.metadata.annotations.fabric\.githedgehog\.com/topology`,priority=0
 // +kubebuilder:printcolumn:name="Profile",type=string,JSONPath=`.spec.profile`,priority=0
 // +kubebuilder:printcolumn:name="Role",type=string,JSONPath=`.spec.role`,priority=0
 // +kubebuilder:printcolumn:name="Descr",type=string,JSONPath=`.spec.description`,priority=0
@@ -394,6 +393,7 @@ func (sw *Switch) Default() {
 	slices.Sort(sw.Spec.Groups)
 	slices.Sort(sw.Spec.VLANNamespaces)
 	slices.Sort(sw.Spec.Topology.Domains)
+	SetTopologyAnnotation(sw, sw.Spec.Topology.Fabric, sw.Spec.Topology.Domains...)
 
 	sw.Labels[LabelProfile] = sw.Spec.Profile
 }

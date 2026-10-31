@@ -283,7 +283,7 @@ type ConnectionStatus struct{}
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:categories=hedgehog;hh;hhfc,shortName=conn
-// +kubebuilder:printcolumn:name="Fabric",type=string,JSONPath=`.spec.topology.fabric`,priority=0
+// +kubebuilder:printcolumn:name="Topo",type=string,JSONPath=`.metadata.annotations.fabric\.githedgehog\.com/topology`,priority=0
 // +kubebuilder:printcolumn:name="Type",type=string,JSONPath=`.metadata.labels.fabric\.githedgehog\.com/connection-type`,priority=0
 // +kubebuilder:printcolumn:name="Switches",type=string,JSONPath=`.metadata.annotations.fabric\.githedgehog\.com/switches`,priority=1
 // +kubebuilder:printcolumn:name="Servers",type=string,JSONPath=`.metadata.annotations.fabric\.githedgehog\.com/servers`,priority=1
@@ -702,6 +702,7 @@ func (conn *Connection) Default() {
 	maps.Copy(conn.Annotations, anns)
 
 	conn.Labels[ListLabelFabric(conn.Spec.Topology.Fabric)] = ListLabelValue
+	SetTopologyAnnotation(conn, conn.Spec.Topology.Fabric)
 }
 
 // ValidateDomains checks the connection does not cross domains where it must not, given its switches by name

@@ -45,7 +45,7 @@ type SwitchGroupStatus struct{}
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:categories=hedgehog;hh;hhfc,shortName=sg
-// +kubebuilder:printcolumn:name="Fabric",type=string,JSONPath=`.spec.topology.fabric`,priority=0
+// +kubebuilder:printcolumn:name="Topo",type=string,JSONPath=`.metadata.annotations.fabric\.githedgehog\.com/topology`,priority=0
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
 // SwitchGroup is the marker API object to group switches together, switch can belong to multiple groups
 type SwitchGroup struct {
@@ -105,6 +105,7 @@ func (sg *SwitchGroup) Default() {
 	CleanupFabricLabels(sg.Labels)
 
 	sg.Labels[ListLabelFabric(sg.Spec.Topology.Fabric)] = ListLabelValue
+	SetTopologyAnnotation(sg, sg.Spec.Topology.Fabric)
 }
 
 func (sg *SwitchGroup) Validate(ctx context.Context, kube kclient.Reader, _ *meta.FabricConfig) (admission.Warnings, error) {

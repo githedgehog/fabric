@@ -242,7 +242,7 @@ type PeeringStatus struct{}
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:categories=hedgehog;hh;hhgw,shortName=gwpeer
-// +kubebuilder:printcolumn:name="Fabric",type=string,JSONPath=`.spec.topology.fabric`,priority=0
+// +kubebuilder:printcolumn:name="Topo",type=string,JSONPath=`.metadata.annotations.fabric\.githedgehog\.com/topology`,priority=0
 // +kubebuilder:printcolumn:name="Group",type=string,JSONPath=`.spec.gatewayGroup`,priority=0
 // +kubebuilder:printcolumn:name="VPCs",type=string,JSONPath=`.metadata.annotations.gateway\.githedgehog\.com/vpcs`,priority=0
 // +kubebuilder:printcolumn:name="NAT",type=string,JSONPath=`.metadata.annotations.gateway\.githedgehog\.com/nat`,priority=0
@@ -291,6 +291,7 @@ func (p *GatewayPeering) Default() {
 	wiringapi.CleanupFabricLabels(p.Labels)
 
 	p.Labels[wiringapi.ListLabelFabric(p.Spec.Topology.Fabric)] = ListLabelValue
+	wiringapi.SetTopologyAnnotation(p, p.Spec.Topology.Fabric)
 
 	vpcs := slices.Sorted(maps.Keys(p.Spec.Peering))
 	if len(vpcs) != 2 {

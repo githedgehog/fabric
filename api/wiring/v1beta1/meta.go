@@ -44,6 +44,7 @@ var (
 	ConnectionLabelTypeServer = "server"
 	ConnectionLabelTypeSwitch = "switch"
 	AnnotationPorts           = LabelName("ports")
+	AnnotationTopology        = LabelName("topology")
 )
 
 func LabelName(name string) string {
@@ -80,6 +81,32 @@ func ListLabelFabric(fabricName string) string {
 
 func ListLabelDomain(domainName string) string {
 	return ListLabel("fabricdomain", domainName)
+}
+
+// TopologySummary is empty for the default fabric and domain, so the print column only stands out for the rest
+func TopologySummary(fabric string, domains ...string) string {
+	if fabric == DefaultFabric && (len(domains) == 0 || len(domains) == 1 && domains[0] == DefaultFabricDomain) {
+		return ""
+	}
+	if len(domains) == 0 {
+		return fabric
+	}
+
+	return fabric + "/" + strings.Join(domains, ",")
+}
+
+func SetTopologyAnnotation(obj kmetav1.Object, fabric string, domains ...string) {
+	anns := obj.GetAnnotations()
+	summary := TopologySummary(fabric, domains...)
+	if summary == "" {
+		delete(anns, AnnotationTopology)
+	} else {
+		if anns == nil {
+			anns = map[string]string{}
+		}
+		anns[AnnotationTopology] = summary
+	}
+	obj.SetAnnotations(anns)
 }
 
 func MatchingLabelsForListLabelServer(serverName string) kclient.MatchingLabels {
