@@ -10,8 +10,8 @@ spec:
   names:
     categories:
     - hedgehog
-    - wiring
-    - fabric
+    - hh
+    - hhfc
     kind: SwitchProfile
     listKind: SwitchProfileList
     plural: switchprofiles

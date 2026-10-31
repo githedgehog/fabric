@@ -59,7 +59,7 @@ type CatalogStatus struct{}
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:categories=hedgehog
+// +kubebuilder:resource:categories=hhint;hhfcint,shortName=cat
 // Catalog is the Schema for the catalogs API
 type Catalog struct {
 	kmetav1.TypeMeta   `json:",inline"`

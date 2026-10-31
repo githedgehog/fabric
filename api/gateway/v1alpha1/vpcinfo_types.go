@@ -53,7 +53,7 @@ type VPCInfoStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:path=vpcinfos,categories=hedgehog;hedgehog-gateway,shortName=gwvpc
+// +kubebuilder:resource:path=vpcinfos,categories=hedgehog;hh;hhgw,shortName=gwvpc
 // +kubebuilder:printcolumn:name="Fabric",type=string,JSONPath=`.spec.topology.fabric`,priority=0
 // +kubebuilder:printcolumn:name="Domains",type=string,JSONPath=`.spec.topology.domains`,priority=0
 // +kubebuilder:printcolumn:name="InternalID",type=string,JSONPath=`.status.internalID`,priority=0

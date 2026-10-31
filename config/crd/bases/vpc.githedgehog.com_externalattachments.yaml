@@ -10,8 +10,8 @@ spec:
   names:
     categories:
     - hedgehog
-    - fabric
-    - external
+    - hh
+    - hhfc
     kind: ExternalAttachment
     listKind: ExternalAttachmentList
     plural: externalattachments

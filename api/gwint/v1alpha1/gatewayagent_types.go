@@ -176,7 +176,7 @@ type BGPNeighborPrefixes struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:categories=hedgehog;hedgehog-gateway,shortName=gwag
+// +kubebuilder:resource:categories=hhint;hhfcint,shortName=gwag
 // +kubebuilder:printcolumn:name="Heartbeat",type=date,JSONPath=`.status.lastHeartbeat`,priority=0
 // +kubebuilder:printcolumn:name="Applied",type=date,JSONPath=`.status.lastAppliedTime`,priority=0
 // +kubebuilder:printcolumn:name="AppliedG",type=integer,JSONPath=`.status.lastAppliedGen`,priority=0

@@ -9,8 +9,8 @@ spec:
   group: gwint.githedgehog.com
   names:
     categories:
-    - hedgehog
-    - hedgehog-gateway
+    - hhint
+    - hhfcint
     kind: GatewayAgent
     listKind: GatewayAgentList
     plural: gatewayagents

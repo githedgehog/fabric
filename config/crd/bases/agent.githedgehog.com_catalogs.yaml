@@ -9,10 +9,13 @@ spec:
   group: agent.githedgehog.com
   names:
     categories:
-    - hedgehog
+    - hhint
+    - hhfcint
     kind: Catalog
     listKind: CatalogList
     plural: catalogs
+    shortNames:
+    - cat
     singular: catalog
   scope: Namespaced
   versions:

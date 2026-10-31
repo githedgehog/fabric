@@ -62,7 +62,7 @@ type VPCAttachmentStatus struct{}
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:categories=hedgehog;fabric,shortName=vpcattach
+// +kubebuilder:resource:categories=hedgehog;hh;hhfc,shortName=vpcattach
 // +kubebuilder:printcolumn:name="Fabric",type=string,JSONPath=`.spec.topology.fabric`,priority=0
 // +kubebuilder:printcolumn:name="VPCSUBNET",type=string,JSONPath=`.spec.subnet`,priority=0
 // +kubebuilder:printcolumn:name="Connection",type=string,JSONPath=`.spec.connection`,priority=0

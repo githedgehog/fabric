@@ -9,7 +9,8 @@ spec:
   group: fcint.githedgehog.com
   names:
     categories:
-    - hedgehog
+    - hhint
+    - hhfcint
     kind: FabricController
     listKind: FabricControllerList
     plural: fabriccontrollers

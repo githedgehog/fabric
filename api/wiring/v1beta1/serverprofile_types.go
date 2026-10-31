@@ -46,7 +46,7 @@ type ServerProfileStatus struct{}
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:categories=hedgehog;wiring;fabric
+// +kubebuilder:resource:categories=hedgehog;hh;hhfc
 
 // ServerProfile is currently not used/implemented in the Fabric API
 type ServerProfile struct {

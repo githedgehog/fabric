@@ -241,7 +241,7 @@ type PeeringStatus struct{}
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:categories=hedgehog;hedgehog-gateway,shortName=gwpeer
+// +kubebuilder:resource:categories=hedgehog;hh;hhgw,shortName=gwpeer
 // +kubebuilder:printcolumn:name="Fabric",type=string,JSONPath=`.spec.topology.fabric`,priority=0
 // +kubebuilder:printcolumn:name="Group",type=string,JSONPath=`.spec.gatewayGroup`,priority=0
 // +kubebuilder:printcolumn:name="VPCs",type=string,JSONPath=`.metadata.annotations.gateway\.githedgehog\.com/vpcs`,priority=0

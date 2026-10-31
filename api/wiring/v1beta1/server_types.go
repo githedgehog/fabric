@@ -49,7 +49,7 @@ type ServerStatus struct{}
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:categories=hedgehog;wiring;fabric,shortName=srv
+// +kubebuilder:resource:categories=hedgehog;hh;hhfc,shortName=srv
 // +kubebuilder:printcolumn:name="Type",type=string,JSONPath=`.spec.type`,priority=0
 // +kubebuilder:printcolumn:name="Descr",type=string,JSONPath=`.spec.description`,priority=0
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0

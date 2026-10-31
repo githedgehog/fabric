@@ -10,8 +10,8 @@ spec:
   names:
     categories:
     - hedgehog
-    - wiring
-    - fabric
+    - hh
+    - hhfc
     kind: Connection
     listKind: ConnectionList
     plural: connections

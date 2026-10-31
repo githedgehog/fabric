@@ -10,8 +10,8 @@ spec:
   names:
     categories:
     - hedgehog
-    - wiring
-    - fabric
+    - hh
+    - hhfc
     kind: ServerProfile
     listKind: ServerProfileList
     plural: serverprofiles

@@ -42,7 +42,7 @@ type VLANNamespaceStatus struct{}
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:categories=hedgehog;wiring;fabric,shortName=vlanns
+// +kubebuilder:resource:categories=hedgehog;hh;hhfc,shortName=vlanns
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0
 // VLANNamespace is the Schema for the vlannamespaces API
 type VLANNamespace struct {

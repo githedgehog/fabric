@@ -10,7 +10,8 @@ spec:
   names:
     categories:
     - hedgehog
-    - fabric
+    - hh
+    - hhfc
     kind: VPCAttachment
     listKind: VPCAttachmentList
     plural: vpcattachments

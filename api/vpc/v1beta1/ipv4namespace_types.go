@@ -56,7 +56,7 @@ type IPv4NamespaceStatus struct{}
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:categories=hedgehog;fabric,shortName=ipns
+// +kubebuilder:resource:categories=hedgehog;hh;hhfc,shortName=ipns
 // +kubebuilder:printcolumn:name="Fabric",type=string,JSONPath=`.spec.topology.fabric`,priority=0
 // +kubebuilder:printcolumn:name="Subnets",type=string,JSONPath=`.spec.subnets`,priority=0
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=0

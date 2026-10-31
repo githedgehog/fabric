@@ -298,7 +298,7 @@ type ExternalAttachmentStatus struct{}
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:categories=hedgehog;fabric;external,shortName=extattach
+// +kubebuilder:resource:categories=hedgehog;hh;hhfc,shortName=extattach
 // +kubebuilder:printcolumn:name="Fabric",type=string,JSONPath=`.spec.topology.fabric`,priority=0
 // +kubebuilder:printcolumn:name="External",type=string,JSONPath=`.spec.external`,priority=0
 // +kubebuilder:printcolumn:name="Connection",type=string,JSONPath=`.spec.connection`,priority=0
