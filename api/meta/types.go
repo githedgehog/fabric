@@ -431,6 +431,9 @@ func (cfg *FabricConfig) Init(extraValidators ExtraValidators) (*FabricConfig, e
 	if cfg.ExtraValidators.Peering == nil {
 		return nil, errors.Errorf("config: ExtraValidators.Peering is required")
 	}
+	if cfg.ExtraValidators.Connection == nil {
+		return nil, fmt.Errorf("config: ExtraValidators.Connection is required") //nolint:err113
+	}
 
 	// TODO enable in future releases
 	// if cfg.ControlProxyURL == "" {

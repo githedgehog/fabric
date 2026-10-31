@@ -24,7 +24,8 @@ import (
 )
 
 var testValidators = meta.ExtraValidators{
-	Peering: func(context.Context, kclient.Reader, kclient.Object) error { return nil },
+	Peering:    func(context.Context, kclient.Reader, kclient.Object) error { return nil },
+	Connection: func(context.Context, kclient.Reader, kclient.Object) error { return nil },
 }
 
 func testFabricConfig(base string, gateway ...string) *meta.FabricConfig {
@@ -58,6 +59,17 @@ func testFabricConfig(base string, gateway ...string) *meta.FabricConfig {
 	}
 
 	return cfg
+}
+
+func TestFabricConfigExtraValidators(t *testing.T) {
+	_, err := testFabricConfig("50000:50000").Init(meta.ExtraValidators{Connection: testValidators.Connection})
+	require.ErrorContains(t, err, "ExtraValidators.Peering is required")
+
+	_, err = testFabricConfig("50000:50000").Init(meta.ExtraValidators{Peering: testValidators.Peering})
+	require.ErrorContains(t, err, "ExtraValidators.Connection is required")
+
+	_, err = testFabricConfig("50000:50000").Init(testValidators)
+	require.NoError(t, err)
 }
 
 func TestFabricConfigHugePages(t *testing.T) {
