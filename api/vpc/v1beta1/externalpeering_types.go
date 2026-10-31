@@ -186,7 +186,10 @@ func (peering *ExternalPeering) Validate(ctx context.Context, kube kclient.Reade
 	}
 
 	if kube != nil {
-		if fabricCfg != nil && fabricCfg.ExtraValidators.Peering != nil {
+		if fabricCfg != nil {
+			if fabricCfg.ExtraValidators.Peering == nil {
+				return nil, fmt.Errorf("peering extra validator is not set") //nolint:err113
+			}
 			if err := fabricCfg.ExtraValidators.Peering(ctx, kube, peering); err != nil {
 				return nil, err //nolint:wrapcheck
 			}
