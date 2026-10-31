@@ -23,6 +23,9 @@ spec:
     - jsonPath: .metadata.annotations.fabric\.githedgehog\.com/topology
       name: Topo
       type: string
+    - jsonPath: .spec.gateway.driver
+      name: Driver
+      type: string
     - jsonPath: .status.lastHeartbeat
       name: Heartbeat
       type: date
