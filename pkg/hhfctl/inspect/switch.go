@@ -63,6 +63,7 @@ type AgentState struct {
 	LastAttemptGen  int64        `json:"lastAttemptGen,omitempty"`
 	LastAppliedTime kmetav1.Time `json:"lastAppliedTime,omitempty"`
 	LastAppliedGen  int64        `json:"lastAppliedGen,omitempty"`
+	Notes           string       `json:"notes,omitempty"`
 }
 
 type SwitchOutPort struct {
@@ -88,7 +89,7 @@ func (out *SwitchOut) MarshalText(in SwitchIn, now time.Time) (string, error) {
 	}
 
 	str.WriteString(RenderTable(
-		[]string{"Name", "Fabric", "Profile", "Role", "Groups", "Serial", "State", "Gen", "Applied", "Heartbeat"},
+		[]string{"Name", "Fabric", "Profile", "Role", "Groups", "Serial", "State", "Gen", "Applied", "Heartbeat", "Notes"},
 		[][]string{
 			{
 				out.Name,
@@ -101,6 +102,7 @@ func (out *SwitchOut) MarshalText(in SwitchIn, now time.Time) (string, error) {
 				fmt.Sprintf("%d/%d", out.State.LastAppliedGen, out.State.DesiredGen),
 				applied,
 				heartbeat,
+				out.State.Notes,
 			},
 		},
 	))
@@ -465,6 +467,7 @@ func switchStateSummary(agent *agentapi.Agent) *AgentState {
 	res.LastAttemptGen = agent.Status.LastAttemptGen
 	res.LastAppliedTime = agent.Status.LastAppliedTime
 	res.LastAppliedGen = agent.Status.LastAppliedGen
+	res.Notes = agent.Status.Notes
 
 	return res
 }

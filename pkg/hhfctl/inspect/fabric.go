@@ -110,10 +110,11 @@ func (out *FabricOut) MarshalText(_ FabricIn, now time.Time) (string, error) {
 			fmt.Sprintf("%d/%d", sw.State.LastAppliedGen, sw.State.DesiredGen),
 			applied,
 			heartbeat,
+			sw.State.Notes,
 		})
 	}
 	str.WriteString(RenderTable(
-		[]string{"Name", "Fabric", "Profile", "Role", "Groups", "Serial", "State", "Gen", "Applied", "Heartbeat"},
+		[]string{"Name", "Fabric", "Profile", "Role", "Groups", "Serial", "State", "Gen", "Applied", "Heartbeat", "Notes"},
 		swData,
 	))
 
