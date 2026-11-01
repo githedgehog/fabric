@@ -198,11 +198,17 @@ func validateBCMMutateElement(rule BCMMutateRule) error {
 			if !ok {
 				return fmt.Errorf("community must be ASN:value") //nolint:err113
 			}
-			if _, err := strconv.ParseUint(asn, 10, 16); err != nil {
+			asnNum, err := strconv.ParseUint(asn, 10, 16)
+			if err != nil {
 				return fmt.Errorf("parsing community ASN: %w", err)
 			}
-			if _, err := strconv.ParseUint(value, 10, 16); err != nil {
+			valueNum, err := strconv.ParseUint(value, 10, 16)
+			if err != nil {
 				return fmt.Errorf("parsing community value: %w", err)
+			}
+			// members are compared as strings with the ones on the switch
+			if canonical := fmt.Sprintf("%d:%d", asnNum, valueNum); canonical != rule.Element {
+				return fmt.Errorf("community must be %s", canonical) //nolint:err113
 			}
 		}
 	case BCMMutateKindASPathList:

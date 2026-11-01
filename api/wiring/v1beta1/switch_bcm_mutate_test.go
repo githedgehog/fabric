@@ -49,6 +49,8 @@ func TestParseBCMMutateRule(t *testing.T) {
 		{rule: "add@communityList/x/65000", err: "community must be ASN:value"},
 		{rule: "add@communityList/x/70000:1", err: "parsing community ASN"},
 		{rule: "add@communityList/x/1:70000", err: "parsing community value"},
+		{rule: "add@communityList/x/65000:0100", err: "community must be 65000:100"},
+		{rule: "remove@communityList/x/065000:100", err: "community must be 65000:100"},
 		{rule: "add@asPathList/x/_1 2_", err: "as-path member can't have spaces"},
 	} {
 		t.Run(tt.rule, func(t *testing.T) {
