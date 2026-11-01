@@ -12,6 +12,7 @@ import (
 	"strings"
 	"unicode"
 
+	"go.githedgehog.com/fabric/api/meta"
 	kyaml "sigs.k8s.io/yaml"
 )
 
@@ -194,20 +195,12 @@ func validateBCMMutateElement(rule BCMMutateRule) error {
 		}
 	case BCMMutateKindCommunityList:
 		if rule.Element != "" {
-			asn, value, ok := strings.Cut(rule.Element, ":")
-			if !ok {
-				return fmt.Errorf("community must be ASN:value") //nolint:err113
-			}
-			asnNum, err := strconv.ParseUint(asn, 10, 16)
+			canonical, err := meta.CanonicalCommunity(rule.Element)
 			if err != nil {
-				return fmt.Errorf("parsing community ASN: %w", err)
-			}
-			valueNum, err := strconv.ParseUint(value, 10, 16)
-			if err != nil {
-				return fmt.Errorf("parsing community value: %w", err)
+				return fmt.Errorf("parsing community: %w", err)
 			}
 			// members are compared as strings with the ones on the switch
-			if canonical := fmt.Sprintf("%d:%d", asnNum, valueNum); canonical != rule.Element {
+			if canonical != rule.Element {
 				return fmt.Errorf("community must be %s", canonical) //nolint:err113
 			}
 		}

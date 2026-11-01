@@ -326,7 +326,7 @@ func (cfg *FabricConfig) Init(extraValidators ExtraValidators) (*FabricConfig, e
 		return nil, errors.Errorf("config: baseVPCCommunity is required")
 	}
 	// set as-is on switches, which would refuse an invalid one
-	baseComm, err := canonicalCommunity(cfg.BaseVPCCommunity)
+	baseComm, err := CanonicalCommunity(cfg.BaseVPCCommunity)
 	if err != nil {
 		return nil, fmt.Errorf("config: baseVPCCommunity: %w", err)
 	}
@@ -416,7 +416,7 @@ func (cfg *FabricConfig) Init(extraValidators ExtraValidators) (*FabricConfig, e
 	}
 
 	for idx, commStr := range cfg.GatewayCommunities {
-		commStr, err := canonicalCommunity(commStr)
+		commStr, err := CanonicalCommunity(commStr)
 		if err != nil {
 			return nil, fmt.Errorf("config: gatewayCommunity: %w", err)
 		}
@@ -447,8 +447,8 @@ func (cfg *FabricConfig) Init(extraValidators ExtraValidators) (*FabricConfig, e
 	return cfg, nil
 }
 
-// canonicalCommunity drops any leading zeros, as communities are compared as strings
-func canonicalCommunity(comm string) (string, error) {
+// CanonicalCommunity drops any leading zeros, as communities are compared as strings
+func CanonicalCommunity(comm string) (string, error) {
 	asn, id, ok := strings.Cut(comm, ":")
 	if !ok {
 		return "", fmt.Errorf("community %s format is invalid", comm) //nolint:err113
