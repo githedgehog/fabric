@@ -52,6 +52,7 @@ import (
 	"go.githedgehog.com/fabric/pkg/version"
 	kmeta "k8s.io/apimachinery/pkg/api/meta"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ktypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/util/retry"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -272,6 +273,7 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 	}
 
 	currentGen := agent.Generation
+	currentUID := agent.UID
 
 	err = kube.Get(ctx, kclient.ObjectKey{Name: agent.Name, Namespace: kmetav1.NamespaceDefault}, agent)
 	if err != nil {
@@ -295,8 +297,8 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 	}
 
 	// config from the file is already applied, replace the condition left by the previous run or install,
-	// a newer generation is handled by the first watch event
-	if agent.Generation == currentGen {
+	// a newer generation, a recreated agent or changed annotations are handled by the first watch event
+	if agent.UID == currentUID && agent.Generation == currentGen && maps.Equal(knownAnnotations(agent), svc.appliedAnnotations) {
 		kmeta.SetStatusCondition(&agent.Status.Conditions, kmetav1.Condition{
 			Type:               "Applied",
 			Status:             kmetav1.ConditionTrue,
@@ -455,7 +457,7 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 				agent.Status = *svc.lastStatus
 			}
 
-			err = svc.processAgentFromKube(ctx, kube, agent, &currentGen)
+			err = svc.processAgentFromKube(ctx, kube, agent, &currentGen, &currentUID)
 			if err != nil {
 				return errors.Wrap(err, "failed to process agent config from k8s")
 			}
@@ -702,17 +704,24 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, rea
 	return nil
 }
 
-func (svc *Service) processAgentFromKube(ctx context.Context, kube kclient.Client, agent *agentapi.Agent, currentGen *int64) error {
+func (svc *Service) processAgentFromKube(ctx context.Context, kube kclient.Client, agent *agentapi.Agent, currentGen *int64, currentUID *ktypes.UID) error {
 	// changing annotations doesn't bump the generation, but the ones the agent uses are a config change as well
 	annotations := knownAnnotations(agent)
 	annotationsChanged := !maps.Equal(annotations, svc.appliedAnnotations)
-	if agent.Generation == *currentGen && !annotationsChanged {
+	if agent.UID == *currentUID && agent.Generation == *currentGen && !annotationsChanged {
 		return nil
 	}
 
 	start := time.Now()
 
-	slog.Info("Agent config changed", "current", *currentGen, "new", agent.Generation, "annotationsChanged", annotationsChanged)
+	logArgs := []any{"current", *currentGen, "new", agent.Generation}
+	if agent.UID != *currentUID {
+		logArgs = append(logArgs, "currentUID", *currentUID, "newUID", agent.UID)
+	}
+	if annotationsChanged {
+		logArgs = append(logArgs, "annotationsChanged", true)
+	}
+	slog.Info("Agent config changed", logArgs...)
 
 	if agent.Status.Conditions == nil {
 		agent.Status.Conditions = []kmetav1.Condition{}
@@ -807,6 +816,7 @@ func (svc *Service) processAgentFromKube(ctx context.Context, kube kclient.Clien
 	}
 
 	*currentGen = agent.Generation
+	*currentUID = agent.UID
 	svc.appliedAnnotations = annotations
 
 	return nil
