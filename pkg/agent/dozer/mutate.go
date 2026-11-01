@@ -6,6 +6,7 @@ package dozer
 import (
 	"slices"
 	"strconv"
+	"strings"
 
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 )
@@ -102,6 +103,11 @@ func (m *mutator) copyACLInterface(rule wiringapi.BCMMutateRule) {
 		return &iface.Egress
 	}
 
+	// a binding of an interface Fabric deletes would make the switch refuse the deletion
+	if !m.planned(rule, m.interfacePlanned(rule.Name)) {
+		return
+	}
+
 	actual := m.actual.ACLInterfaces[rule.Name]
 	if !m.onSwitch(rule, actual != nil && *direction(actual) != nil) {
 		return
@@ -123,6 +129,22 @@ func (m *mutator) copyACLInterface(rule wiringapi.BCMMutateRule) {
 
 	*direction(desired) = *direction(actual)
 	m.applied = append(m.applied, rule.String())
+}
+
+// interfacePlanned checks the interface or subinterface (<port>.<vlan>) is planned by Fabric
+func (m *mutator) interfacePlanned(name string) bool {
+	port, vlan, isSub := strings.Cut(name, ".")
+	iface := m.desired.Interfaces[port]
+	if iface == nil {
+		return false
+	}
+	if !isSub {
+		return true
+	}
+
+	id, err := strconv.ParseUint(vlan, 10, 32)
+
+	return err == nil && iface.Subinterfaces[uint32(id)] != nil
 }
 
 func (m *mutator) members(rule wiringapi.BCMMutateRule) {
