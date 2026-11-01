@@ -157,7 +157,7 @@ func TestApplyMutateRules(t *testing.T) {
 			rules: []string{
 				"add@communityList/x/65000:100", "add@communityList/x/50000:0", "remove@communityList/x/50000:1",
 				"add@communityList/y/1:1", "override@asPathList/manual", "add@asPathList/manual/_65000_",
-				"remove@asPathList/fabric/_65100_",
+				"remove@asPathList/fabric/_65100_", "remove@asPathList/fabric/_65099_",
 			},
 			actual: &dozer.Spec{
 				CommunityLists: map[string]*dozer.SpecCommunityList{"x": {Members: []string{"65000:100", "50000:1", "50000:0"}}},
@@ -175,10 +175,13 @@ func TestApplyMutateRules(t *testing.T) {
 				},
 			},
 			applied: []string{
-				"add@asPathList/manual/_65000_", "add@communityList/x/50000:0", "add@communityList/x/65000:100",
+				"add@asPathList/manual/_65000_", "add@communityList/x/65000:100",
 				"override@asPathList/manual", "remove@asPathList/fabric/_65100_", "remove@communityList/x/50000:1",
 			},
-			warnings: []string{"add@communityList/y/1:1: not planned by the fabric"},
+			warnings: []string{
+				"add@communityList/x/50000:0: member already in the list", "add@communityList/y/1:1: not planned by the fabric",
+				"remove@asPathList/fabric/_65099_: member not in the list",
+			},
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {

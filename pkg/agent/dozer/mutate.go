@@ -167,10 +167,20 @@ func (m *mutator) members(rule wiringapi.BCMMutateRule) {
 		return
 	}
 
-	// the members may still be shared with the actual list
-	if rule.Mode == wiringapi.BCMMutateAdd {
+	// rules that wouldn't change the list are skipped, and the members are cloned as they may be shared with the actual list
+	inList := slices.Contains(*list, rule.Element)
+	switch {
+	case rule.Mode == wiringapi.BCMMutateAdd && inList:
+		m.warn(rule, "member already in the list")
+
+		return
+	case rule.Mode == wiringapi.BCMMutateAdd:
 		*list = append(slices.Clone(*list), rule.Element)
-	} else {
+	case rule.Mode == wiringapi.BCMMutateRemove && !inList:
+		m.warn(rule, "member not in the list")
+
+		return
+	case rule.Mode == wiringapi.BCMMutateRemove:
 		*list = slices.DeleteFunc(slices.Clone(*list), func(member string) bool { return member == rule.Element })
 	}
 	m.applied = append(m.applied, rule.String())
