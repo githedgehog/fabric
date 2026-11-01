@@ -105,8 +105,8 @@ A rule is `<mode>@<kind>/<name>[/<element>]`:
 - Interfaces use the names on the switch: `Ethernet0` for a port, `Ethernet0.10` for a subinterface with VLAN 10,
   `Vlan1000` for a VLAN interface.
 - Static route prefixes must be in canonical form, e.g. `10.0.0.0/8`, not `10.0.0.1/8`.
-- The same object or element can only have one rule. A whole ACL, route map or prefix list can't be combined with
-  rules for its elements.
+- The same object or element can only have one rule. A whole ACL, route map, prefix list, community list or AS-path
+  list can't be combined with rules for its elements or members.
 
 ## How rules work
 
@@ -120,7 +120,7 @@ then applies the rules before comparing the two:
 - For both, if the object or element isn't on the switch, the rule is skipped with a warning and Fabric's plan applies.
   So deleting your manual version on the switch restores Fabric's on the next run.
 - **add** and **remove** change the members of a community or AS-path list planned by Fabric, regardless of what's on
-  the switch. They are applied after keep and override, and remove after add. Members are sorted and de-duplicated.
+  the switch. Members are sorted and de-duplicated.
   An add of a member that is already in the list, or a remove of a member that isn't, is skipped with a warning.
 - Rules for an element (an ACL rule, a statement, an entry, a static route, an ACL binding, a list member) are
   skipped with a warning if Fabric doesn't plan the ACL, route map, prefix list, VRF, interface or list that contains

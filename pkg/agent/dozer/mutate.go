@@ -41,7 +41,7 @@ func ApplyMutateRules(actual, desired *Spec, rules []wiringapi.BCMMutateRule) ([
 		}
 	}
 
-	// list members are added after keep and override, so they can be added to the lists taken from the switch as well
+	// list members are added to the lists planned by Fabric
 	for _, rule := range rules {
 		if rule.Mode == wiringapi.BCMMutateAdd {
 			m.members(rule)
@@ -222,7 +222,7 @@ func (m *mutator) members(rule wiringapi.BCMMutateRule) {
 		return
 	}
 
-	// rules that wouldn't change the list are skipped, and the members are cloned as they may be shared with the actual list
+	// rules that wouldn't change the list are skipped
 	inList := slices.Contains(*list, rule.Element)
 	switch {
 	case rule.Mode == wiringapi.BCMMutateAdd && inList:
@@ -230,13 +230,13 @@ func (m *mutator) members(rule wiringapi.BCMMutateRule) {
 
 		return
 	case rule.Mode == wiringapi.BCMMutateAdd:
-		*list = append(slices.Clone(*list), rule.Element)
+		*list = append(*list, rule.Element)
 	case rule.Mode == wiringapi.BCMMutateRemove && !inList:
 		m.warn(rule, "member not in the list")
 
 		return
 	case rule.Mode == wiringapi.BCMMutateRemove:
-		*list = slices.DeleteFunc(slices.Clone(*list), func(member string) bool { return member == rule.Element })
+		*list = slices.DeleteFunc(*list, func(member string) bool { return member == rule.Element })
 	}
 	m.applied = append(m.applied, rule.String())
 }
@@ -287,8 +287,8 @@ func copyObject[V any](m *mutator, rule wiringapi.BCMMutateRule, actual map[stri
 		*desired = map[string]*V{}
 	}
 	// a shallow copy: replacing fields of the desired one doesn't change the actual one, but the nested maps, slices and
-	// pointers are shared, so they must not be changed in place (elements of the same object can't have rules of their
-	// own and members are cloned before add and remove)
+	// pointers are shared, so they must not be changed in place (elements and members of the same object can't have
+	// rules of their own)
 	cp := *value
 	(*desired)[rule.Name] = &cp
 	m.applied = append(m.applied, rule.String())

@@ -104,22 +104,21 @@ func ParseBCMMutateRules(rules []string) ([]BCMMutateRule, error) {
 		}
 		paths[path] = str
 
-		// an object rule already takes all of its elements, so elements of the same object can't have rules of their own
-		if rule.Kind == BCMMutateKindACL || rule.Kind == BCMMutateKindRouteMap || rule.Kind == BCMMutateKindPrefixList {
-			object := rule.Kind + "/" + rule.Name
-			other, conflict := elementRules[object]
-			if rule.Element != "" {
-				other, conflict = objectRules[object]
-			}
-			if conflict {
-				return nil, fmt.Errorf("%w: %q conflicts with %q", ErrInvalidBCMMutateRule, str, other)
-			}
+		// an object rule already takes all of its elements, so elements of the same object can't have rules of their own,
+		// and members can't be added to or removed from a list taken from the switch
+		object := rule.Kind + "/" + rule.Name
+		other, conflict := elementRules[object]
+		if rule.Element != "" {
+			other, conflict = objectRules[object]
+		}
+		if conflict {
+			return nil, fmt.Errorf("%w: %q conflicts with %q", ErrInvalidBCMMutateRule, str, other)
+		}
 
-			if rule.Element == "" {
-				objectRules[object] = str
-			} else if _, ok := elementRules[object]; !ok {
-				elementRules[object] = str
-			}
+		if rule.Element == "" {
+			objectRules[object] = str
+		} else if _, ok := elementRules[object]; !ok {
+			elementRules[object] = str
 		}
 
 		res = append(res, rule)
