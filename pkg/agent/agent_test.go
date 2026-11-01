@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 )
 
 func TestVirtualSwitchPorts(t *testing.T) {
@@ -73,4 +75,20 @@ spec:
 `), 0o600))
 	_, err = svc.loadConfigFromFile()
 	require.ErrorContains(t, err, "unknown field")
+}
+
+func TestKnownAnnotations(t *testing.T) {
+	require.Empty(t, knownAnnotations(&agentapi.Agent{}))
+
+	require.Equal(t, map[string]string{
+		wiringapi.AnnotationSwitchSyslogDebug: "true",
+		wiringapi.AnnotationSwitchRouteSumm:   "",
+		wiringapi.AnnotationSwitchBCMMutate:   "rules: []",
+	}, knownAnnotations(&agentapi.Agent{Annotations: map[string]string{
+		wiringapi.AnnotationSwitchSyslogDebug: "true",
+		wiringapi.AnnotationSwitchRouteSumm:   "",
+		wiringapi.AnnotationSwitchBCMMutate:   "rules: []",
+		"fabric.githedgehog.com/topology":     "spine-leaf",
+		"other":                               "value",
+	}}))
 }
