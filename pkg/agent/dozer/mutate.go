@@ -233,6 +233,7 @@ func (m *mutator) members(rule wiringapi.BCMMutateRule) {
 
 	// rules that wouldn't change the list or would leave it empty are skipped
 	inList := slices.Contains(*list, rule.Element)
+	hasOthers := slices.ContainsFunc(*list, func(member string) bool { return member != rule.Element })
 	switch {
 	case rule.Mode == wiringapi.BCMMutateAdd && inList:
 		m.warn(rule, "member already in the list")
@@ -244,7 +245,7 @@ func (m *mutator) members(rule wiringapi.BCMMutateRule) {
 		m.warn(rule, "member not in the list")
 
 		return
-	case rule.Mode == wiringapi.BCMMutateRemove && len(*list) == 1:
+	case rule.Mode == wiringapi.BCMMutateRemove && !hasOthers:
 		m.warn(rule, "last member of the list")
 
 		return
