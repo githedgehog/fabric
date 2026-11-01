@@ -129,11 +129,11 @@ then applies the rules before comparing the two:
 - Rules for whole objects are applied before the rules for elements, so the order of the rules doesn't matter.
 - A kept or overridden ACL binding or route map statement is skipped with a warning if something it references
   wouldn't exist after the configuration run: the bound ACL, or the route map a statement calls or the prefix,
-  community and AS-path lists it matches. That's the case if the object is neither planned by Fabric nor kept by a
-  rule, including when Fabric stops planning an object it created before, e.g. after an external is deleted. The
-  skipped binding or statement is then removed from the switch together with the object it references, as otherwise
-  the switch would refuse to delete an object that is still in use. This check is best effort: it only covers the
-  references the agent reads from the switch.
+  community and AS-path lists and the source VRF it matches. That's the case if the object is neither planned by
+  Fabric nor kept by a rule, including when Fabric stops planning an object it created before, e.g. after an external
+  is deleted. The skipped binding or statement is then removed from the switch together with the object it references,
+  as otherwise the switch would refuse to delete an object that is still in use. This check is best effort: it only
+  covers the references the agent reads from the switch.
 
 Content taken from the switch is identical on both sides of the comparison, so the agent never writes to it. Settings
 the agent doesn't know about are kept as well.
