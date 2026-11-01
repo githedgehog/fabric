@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
+	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -57,6 +58,46 @@ func TestGatewayDeleteGuard(t *testing.T) {
 				return
 			}
 			require.ErrorContains(t, err, tt.err)
+		})
+	}
+}
+
+// the empty reader has no fabric, so anything that isn't skipped fails the validation
+func TestGatewayValidateUpdateSkip(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, wiringapi.AddToScheme(scheme))
+	require.NoError(t, gwapi.AddToScheme(scheme))
+
+	w := &GatewayWebhook{Reader: fake.NewClientBuilder().WithScheme(scheme).Build(), cfg: &meta.FabricConfig{}}
+
+	oldGw := &gwapi.Gateway{
+		Name: "gw-1", Namespace: kmetav1.NamespaceDefault,
+		Spec: gwapi.GatewaySpec{Topology: gwapi.GatewayTopology{Domain: "d2"}},
+	}
+	oldGw.Default()
+
+	for _, tt := range []struct {
+		name   string
+		update func(gw *gwapi.Gateway)
+		err    bool
+	}{
+		{name: "finalizer", update: func(gw *gwapi.Gateway) { gw.Finalizers = []string{CleanupFinalizer} }},
+		{name: "foreign annotation", update: func(gw *gwapi.Gateway) { gw.Annotations["example.com/foo"] = "bar" }},
+		{name: "topology annotation", update: func(gw *gwapi.Gateway) { delete(gw.Annotations, wiringapi.AnnotationTopology) }},
+		{name: "agent annotation", update: func(gw *gwapi.Gateway) { gw.Annotations["gateway.githedgehog.com/foo"] = "bar" }, err: true},
+		{name: "spec", update: func(gw *gwapi.Gateway) { gw.Spec.ProtocolIP = "172.30.8.1/32" }, err: true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			newGw := oldGw.DeepCopy()
+			tt.update(newGw)
+
+			_, err := w.ValidateUpdate(t.Context(), oldGw, newGw)
+			if tt.err {
+				require.Error(t, err)
+
+				return
+			}
+			require.NoError(t, err)
 		})
 	}
 }
