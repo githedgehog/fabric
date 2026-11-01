@@ -222,7 +222,7 @@ func (m *mutator) members(rule wiringapi.BCMMutateRule) {
 		return
 	}
 
-	// rules that wouldn't change the list are skipped
+	// rules that wouldn't change the list or would leave it empty are skipped
 	inList := slices.Contains(*list, rule.Element)
 	switch {
 	case rule.Mode == wiringapi.BCMMutateAdd && inList:
@@ -233,6 +233,10 @@ func (m *mutator) members(rule wiringapi.BCMMutateRule) {
 		*list = append(*list, rule.Element)
 	case rule.Mode == wiringapi.BCMMutateRemove && !inList:
 		m.warn(rule, "member not in the list")
+
+		return
+	case rule.Mode == wiringapi.BCMMutateRemove && len(*list) == 1:
+		m.warn(rule, "last member of the list")
 
 		return
 	case rule.Mode == wiringapi.BCMMutateRemove:
