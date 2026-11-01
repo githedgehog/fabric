@@ -105,8 +105,9 @@ then applies the rules before comparing the two:
   So deleting your manual version on the switch restores Fabric's on the next run.
 - **add** and **remove** change the members of a community or AS-path list planned by Fabric, regardless of what's on
   the switch. They are applied after keep and override, and remove after add. Members are sorted and de-duplicated.
-- Rules for an element (an ACL rule, a statement, an entry, a static route, a list member) are skipped with a warning
-  if Fabric doesn't plan the ACL, route map, prefix list, VRF or list that contains it.
+- Rules for an element (an ACL rule, a statement, an entry, a static route, an ACL binding, a list member) are
+  skipped with a warning if Fabric doesn't plan the ACL, route map, prefix list, VRF, interface or list that contains
+  it.
 
 Content taken from the switch is identical on both sides of the comparison, so the agent never writes to it. Settings
 the agent doesn't know about are kept as well.
