@@ -20,6 +20,7 @@ import (
 	_ "embed"
 	"fmt"
 	"log/slog"
+	"maps"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -103,7 +104,8 @@ type Service struct {
 	lastApplied   time.Time
 	lastStatus    *agentapi.AgentStatus
 
-	mutate agentapi.MutateStatus
+	mutate             agentapi.MutateStatus
+	appliedAnnotations map[string]string
 }
 
 func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, error)) error {
@@ -688,13 +690,16 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, rea
 }
 
 func (svc *Service) processAgentFromKube(ctx context.Context, kube kclient.Client, agent *agentapi.Agent, currentGen *int64) error {
-	if agent.Generation == *currentGen {
+	// changing annotations doesn't bump the generation, but the ones the agent uses are a config change as well
+	annotations := knownAnnotations(agent)
+	annotationsChanged := !maps.Equal(annotations, svc.appliedAnnotations)
+	if agent.Generation == *currentGen && !annotationsChanged {
 		return nil
 	}
 
 	start := time.Now()
 
-	slog.Info("Agent config changed", "current", *currentGen, "new", agent.Generation)
+	slog.Info("Agent config changed", "current", *currentGen, "new", agent.Generation, "annotationsChanged", annotationsChanged)
 
 	if agent.Status.Conditions == nil {
 		agent.Status.Conditions = []kmetav1.Condition{}
@@ -787,6 +792,7 @@ func (svc *Service) processAgentFromKube(ctx context.Context, kube kclient.Clien
 	}
 
 	*currentGen = agent.Generation
+	svc.appliedAnnotations = annotations
 
 	return nil
 }
@@ -972,8 +978,20 @@ func (svc *Service) loadConfigFromFile() (*agentapi.Agent, error) {
 		return nil, errors.Wrapf(err, "failed to unmarshal config file %s", svc.configFilePath())
 	}
 	svc.name = config.Name
+	svc.appliedAnnotations = knownAnnotations(config)
 
 	return config, nil
+}
+
+func knownAnnotations(agent *agentapi.Agent) map[string]string {
+	known := map[string]string{}
+	for _, key := range []string{wiringapi.AnnotationSwitchSyslogDebug, wiringapi.AnnotationSwitchRouteSumm, wiringapi.AnnotationSwitchBCMMutate} {
+		if value, ok := agent.Annotations[key]; ok {
+			known[key] = value
+		}
+	}
+
+	return known
 }
 
 func (svc *Service) saveConfigToFile(agent *agentapi.Agent) error {
