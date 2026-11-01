@@ -154,9 +154,13 @@ func ParseBCMMutateRule(str string) (BCMMutateRule, error) {
 		return BCMMutateRule{}, fmt.Errorf("%w: %q has unknown mode %q", ErrInvalidBCMMutateRule, str, mode)
 	}
 
-	members := rule.Kind == BCMMutateKindCommunityList || rule.Kind == BCMMutateKindASPathList
-	if (mode == BCMMutateAdd || mode == BCMMutateRemove) != (members && rule.Element != "") {
+	member := (rule.Kind == BCMMutateKindCommunityList || rule.Kind == BCMMutateKindASPathList) && rule.Element != ""
+	addRemove := mode == BCMMutateAdd || mode == BCMMutateRemove
+	if addRemove && !member {
 		return BCMMutateRule{}, fmt.Errorf("%w: %q: add and remove are only for community and as-path list members", ErrInvalidBCMMutateRule, str)
+	}
+	if !addRemove && member {
+		return BCMMutateRule{}, fmt.Errorf("%w: %q: keep and override are only for whole community and as-path lists", ErrInvalidBCMMutateRule, str)
 	}
 
 	if err := validateBCMMutateElement(rule); err != nil {
