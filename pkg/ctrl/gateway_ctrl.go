@@ -431,7 +431,7 @@ func BuildGatewayAgent(ctx context.Context, kube kclient.Reader, cfg *meta.Fabri
 			continue
 		}
 
-		peerings[peering.Name] = peeringSpecAnn(&peering)
+		peerings[peering.Name] = gwintapi.PeeringSpecAnn{PeeringSpec: peering.Spec, Annotations: agentAnnotations(peering.Annotations)}
 	}
 
 	comms := map[string]string{}
@@ -443,7 +443,7 @@ func BuildGatewayAgent(ctx context.Context, kube kclient.Reader, cfg *meta.Fabri
 		Namespace: kmetav1.NamespaceDefault, Name: gw.Name,
 		Spec: gwintapi.GatewayAgentSpec{
 			AgentVersion: "",
-			Gateway:      gw.Spec,
+			Gateway:      gwintapi.GatewaySpecAnn{GatewaySpec: gw.Spec, Annotations: agentAnnotations(gw.Annotations)},
 			VPCs:         vpcs,
 			Peerings:     peerings,
 			Groups:       gwGroups,
@@ -494,7 +494,7 @@ func BuildGatewayAgentForPeering(ctx context.Context, kube kclient.Reader, cfg *
 				}
 
 				// make sure the peering that is currently being processed is added to the agent
-				ag.Spec.Peerings[peering.Name] = peeringSpecAnn(peering)
+				ag.Spec.Peerings[peering.Name] = gwintapi.PeeringSpecAnn{PeeringSpec: peering.Spec, Annotations: agentAnnotations(peering.Annotations)}
 
 				return ag, nil
 			}
@@ -504,21 +504,24 @@ func BuildGatewayAgentForPeering(ctx context.Context, kube kclient.Reader, cfg *
 	return nil, fmt.Errorf("gateway not found for gateway group: %s", peering.Spec.GatewayGroup) //nolint:err113
 }
 
-func peeringSpecAnn(peering *gwapi.GatewayPeering) gwintapi.PeeringSpecAnn {
-	res := gwintapi.PeeringSpecAnn{PeeringSpec: peering.Spec}
-	for k, v := range peering.Annotations {
+// agentAnnotations keeps only the githedgehog.com/ ones without the ones set by the defaulting from the spec
+func agentAnnotations(anns map[string]string) map[string]string {
+	var res map[string]string
+	for k, v := range anns {
 		if !strings.Contains(k, "githedgehog.com/") {
 			continue
 		}
-		// set by the peering defaulting from its spec
-		if k == gwapi.LabelVPCs || k == gwapi.LabelNAT {
+		if k == wiringapi.AnnotationTopology || k == gwapi.LabelVPCs || k == gwapi.LabelNAT {
+			continue
+		}
+		if strings.HasPrefix(k, wiringapi.ListLabelFabric("")) || strings.HasPrefix(k, wiringapi.ListLabelDomain("")) {
 			continue
 		}
 
-		if res.Annotations == nil {
-			res.Annotations = map[string]string{}
+		if res == nil {
+			res = map[string]string{}
 		}
-		res.Annotations[k] = v
+		res[k] = v
 	}
 
 	return res

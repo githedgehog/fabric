@@ -513,11 +513,13 @@ func TestBuildGatewayAgentPeeringAnnotations(t *testing.T) {
 	require.NoError(t, kube.Get(t.Context(), kclient.ObjectKey{Name: "vpc-1--vpc-2", Namespace: kmetav1.NamespaceDefault}, peering))
 	peering.Spec.GatewayGroup = "g1"
 	peering.Annotations = map[string]string{
-		"fabric.githedgehog.com/foo":  "bar",
-		"gateway.githedgehog.com/baz": "qux",
-		"example.com/skip":            "me",
-		gwapi.LabelVPCs:               "vpc-1,vpc-2",
-		gwapi.LabelNAT:                "masquerade",
+		"fabric.githedgehog.com/foo":    "bar",
+		"gateway.githedgehog.com/baz":   "qux",
+		"example.com/skip":              "me",
+		gwapi.LabelVPCs:                 "vpc-1,vpc-2",
+		gwapi.LabelNAT:                  "masquerade",
+		wiringapi.AnnotationTopology:    "f1",
+		wiringapi.ListLabelFabric("f1"): wiringapi.ListLabelValue,
 	}
 
 	ag, err := BuildGatewayAgentForPeering(t.Context(), kube, &meta.FabricConfig{}, peering)
@@ -530,4 +532,38 @@ func TestBuildGatewayAgentPeeringAnnotations(t *testing.T) {
 	require.Equal(t, peering.Spec, ag.Spec.Peerings["vpc-1--vpc-2"].PeeringSpec)
 	// only has the ones set by the peering defaulting
 	require.Nil(t, ag.Spec.Peerings["vpc-1--vpc-4"].Annotations)
+}
+
+func TestBuildGatewayAgentGatewayAnnotations(t *testing.T) {
+	kube := gatewayTestKube(t)
+
+	gw := &gwapi.Gateway{}
+	require.NoError(t, kube.Get(t.Context(), kclient.ObjectKey{Name: "gw-1", Namespace: kmetav1.NamespaceDefault}, gw))
+	gw.Annotations = map[string]string{
+		"fabric.githedgehog.com/foo":    "bar",
+		"gateway.githedgehog.com/baz":   "qux",
+		"example.com/skip":              "me",
+		wiringapi.AnnotationTopology:    "f1/d1",
+		wiringapi.ListLabelFabric("f1"): wiringapi.ListLabelValue,
+		wiringapi.ListLabelDomain("d1"): wiringapi.ListLabelValue,
+	}
+
+	ag, err := BuildGatewayAgent(t.Context(), kube, &meta.FabricConfig{}, gw)
+	require.NoError(t, err)
+
+	require.Equal(t, map[string]string{
+		"fabric.githedgehog.com/foo":  "bar",
+		"gateway.githedgehog.com/baz": "qux",
+	}, ag.Spec.Gateway.Annotations)
+	require.Equal(t, gw.Spec, ag.Spec.Gateway.GatewaySpec)
+
+	other := &gwapi.Gateway{}
+	require.NoError(t, kube.Get(t.Context(), kclient.ObjectKey{Name: "gw-3", Namespace: kmetav1.NamespaceDefault}, other))
+	require.Contains(t, other.Annotations, wiringapi.AnnotationTopology)
+
+	ag, err = BuildGatewayAgent(t.Context(), kube, &meta.FabricConfig{}, other)
+	require.NoError(t, err)
+
+	// only has the ones set by the gateway defaulting
+	require.Nil(t, ag.Spec.Gateway.Annotations)
 }

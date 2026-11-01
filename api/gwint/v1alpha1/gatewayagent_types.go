@@ -16,6 +16,11 @@ type VPCInfoData struct {
 	gwapi.VPCInfoStatus `json:",inline"`
 }
 
+type GatewaySpecAnn struct {
+	gwapi.GatewaySpec `json:",inline"`
+	Annotations       map[string]string `json:"annotations,omitempty"`
+}
+
 type PeeringSpecAnn struct {
 	gwapi.PeeringSpec `json:",inline"`
 	Annotations       map[string]string `json:"annotations,omitempty"`
@@ -36,7 +41,7 @@ type GatewayGroupMember struct {
 type GatewayAgentSpec struct {
 	// AgentVersion is the desired version of the gateway agent to trigger generation changes on controller upgrades
 	AgentVersion string                      `json:"agentVersion,omitempty"`
-	Gateway      gwapi.GatewaySpec           `json:"gateway,omitempty"`
+	Gateway      GatewaySpecAnn              `json:"gateway,omitempty"`
 	VPCs         map[string]VPCInfoData      `json:"vpcs,omitempty"`
 	Peerings     map[string]PeeringSpecAnn   `json:"peerings,omitempty"`
 	Groups       map[string]GatewayGroupInfo `json:"groups,omitempty"`
