@@ -22,6 +22,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/pmezard/go-difflib/difflib"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/agent/switchstate"
 	kyaml "sigs.k8s.io/yaml"
 )
@@ -524,6 +525,34 @@ func (s *Spec) CleanupSensetive() {
 		}
 	}
 	s.Users = users
+}
+
+// PruneUnmanaged removes the objects named with the unmanaged prefix and returns them as sorted kind/name
+func (s *Spec) PruneUnmanaged() []string {
+	objs := slices.Concat(
+		pruneUnmanaged("acl", s.ACLs),
+		pruneUnmanaged("asPathList", s.AsPathLists),
+		pruneUnmanaged("bfdProfile", s.BFDProfiles),
+		pruneUnmanaged("communityList", s.CommunityLists),
+		pruneUnmanaged("lstGroup", s.LSTGroups),
+		pruneUnmanaged("prefixList", s.PrefixLists),
+		pruneUnmanaged("routeMap", s.RouteMaps),
+	)
+	slices.Sort(objs)
+
+	return objs
+}
+
+func pruneUnmanaged[V any](kind string, objs map[string]V) []string {
+	pruned := []string{}
+	for name := range objs {
+		if strings.HasPrefix(name, wiringapi.UnmanagedObjectsPrefix) {
+			pruned = append(pruned, kind+"/"+name)
+			delete(objs, name)
+		}
+	}
+
+	return pruned
 }
 
 func (s *Spec) MarshalYAML() ([]byte, error) {
