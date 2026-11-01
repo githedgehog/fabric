@@ -6,6 +6,7 @@ package ctrl
 import (
 	"context"
 	"fmt"
+	"maps"
 
 	"k8s.io/apimachinery/pkg/api/equality"
 	kctrl "sigs.k8s.io/controller-runtime"
@@ -77,8 +78,9 @@ func (w *GatewayWebhook) ValidateUpdate(ctx context.Context, oldGw *gwapi.Gatewa
 	}
 
 	// nothing to validate in a metadata only update, e.g. the controller adding its finalizer, which must not be
-	// refused for a gateway that doesn't pass the current validation anymore
-	if equality.Semantic.DeepEqual(oldGw.Spec, newGw.Spec) {
+	// refused for a gateway that doesn't pass the current validation anymore, the annotations passed to the agent count
+	if equality.Semantic.DeepEqual(oldGw.Spec, newGw.Spec) &&
+		maps.Equal(agentAnnotations(oldGw.Annotations), agentAnnotations(newGw.Annotations)) {
 		return nil, nil
 	}
 
