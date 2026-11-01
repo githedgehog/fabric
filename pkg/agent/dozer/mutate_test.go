@@ -23,6 +23,7 @@ func TestApplyMutateRules(t *testing.T) {
 		"Ethernet0": {Subinterfaces: map[uint32]*dozer.SpecSubinterface{0: {}, 10: {}}},
 		"Vlan1000":  {},
 		"Vlan1001":  {},
+		"Vlan1003":  {},
 	}
 
 	for _, tt := range []struct {
@@ -82,6 +83,39 @@ func TestApplyMutateRules(t *testing.T) {
 			warnings: []string{},
 		},
 		{
+			name:  "route map statement references",
+			rules: []string{"keep@routeMap/ext-in/1", "keep@routeMap/ext-in/2", "keep@routeMap/manual", "keep@prefixList/fabric-pl/1"},
+			actual: &dozer.Spec{
+				RouteMaps: map[string]*dozer.SpecRouteMap{
+					"ext-in": {Statements: map[string]*dozer.SpecRouteMapStatement{
+						"1": {Conditions: dozer.SpecRouteMapConditions{Call: new("manual"), MatchPrefixList: new("fabric-pl")}},
+						"2": {Conditions: dozer.SpecRouteMapConditions{Call: new("other"), MatchCommunityList: new("missing")}},
+					}},
+					"manual": {},
+					"other":  {},
+				},
+				PrefixLists: map[string]*dozer.SpecPrefixList{"fabric-pl": {Prefixes: map[uint32]*dozer.SpecPrefixListEntry{1: permit}}},
+			},
+			desired: &dozer.Spec{
+				RouteMaps:   map[string]*dozer.SpecRouteMap{"ext-in": {Statements: map[string]*dozer.SpecRouteMapStatement{"10": acceptStmt}}},
+				PrefixLists: map[string]*dozer.SpecPrefixList{"fabric-pl": {}},
+			},
+			expected: &dozer.Spec{
+				RouteMaps: map[string]*dozer.SpecRouteMap{
+					"ext-in": {Statements: map[string]*dozer.SpecRouteMapStatement{
+						"1":  {Conditions: dozer.SpecRouteMapConditions{Call: new("manual"), MatchPrefixList: new("fabric-pl")}},
+						"10": acceptStmt,
+					}},
+					"manual": {},
+				},
+				PrefixLists: map[string]*dozer.SpecPrefixList{"fabric-pl": {Prefixes: map[uint32]*dozer.SpecPrefixListEntry{1: permit}}},
+			},
+			applied: []string{"keep@prefixList/fabric-pl/1", "keep@routeMap/ext-in/1", "keep@routeMap/manual"},
+			warnings: []string{
+				"keep@routeMap/ext-in/2: references routeMap/other, communityList/missing, not planned or kept",
+			},
+		},
+		{
 			name:     "prefix list entry into an empty list",
 			rules:    []string{"keep@prefixList/x/16777216"},
 			actual:   &dozer.Spec{PrefixLists: map[string]*dozer.SpecPrefixList{"x": {Prefixes: map[uint32]*dozer.SpecPrefixListEntry{16777216: permit}}}},
@@ -95,17 +129,23 @@ func TestApplyMutateRules(t *testing.T) {
 			rules: []string{
 				"keep@aclInterface/Ethernet0/ingress", "keep@aclInterface/Ethernet0.10/ingress", "keep@aclInterface/Ethernet0.10/egress",
 				"override@aclInterface/Vlan1000/egress", "keep@aclInterface/Vlan1001/ingress",
-				"keep@aclInterface/Ethernet0.20/ingress", "keep@aclInterface/Vlan1002/ingress",
+				"keep@aclInterface/Ethernet0.20/ingress", "keep@aclInterface/Vlan1002/ingress", "keep@aclInterface/Vlan1003/ingress",
+				"keep@acl/manual",
 			},
-			actual: &dozer.Spec{ACLInterfaces: map[string]*dozer.SpecACLInterface{
-				"Ethernet0":    {Ingress: new("manual")},
-				"Ethernet0.10": {Ingress: new("manual"), Egress: new("manual")},
-				"Ethernet0.20": {Ingress: new("manual")},
-				"Vlan1000":     {Egress: new("manual")},
-				"Vlan1002":     {Ingress: new("manual")},
-			}},
+			actual: &dozer.Spec{
+				ACLs: map[string]*dozer.SpecACL{"manual": {}, "other": {}},
+				ACLInterfaces: map[string]*dozer.SpecACLInterface{
+					"Ethernet0":    {Ingress: new("manual")},
+					"Ethernet0.10": {Ingress: new("manual"), Egress: new("manual")},
+					"Ethernet0.20": {Ingress: new("manual")},
+					"Vlan1000":     {Egress: new("manual")},
+					"Vlan1002":     {Ingress: new("manual")},
+					"Vlan1003":     {Ingress: new("other")},
+				},
+			},
 			desired: &dozer.Spec{
 				Interfaces: interfaces,
+				ACLs:       map[string]*dozer.SpecACL{"fabric": {}},
 				ACLInterfaces: map[string]*dozer.SpecACLInterface{
 					"Ethernet0.10": {Egress: new("fabric")},
 					"Vlan1000":     {Ingress: new("fabric"), Egress: new("fabric")},
@@ -113,6 +153,7 @@ func TestApplyMutateRules(t *testing.T) {
 			},
 			expected: &dozer.Spec{
 				Interfaces: interfaces,
+				ACLs:       map[string]*dozer.SpecACL{"fabric": {}, "manual": {}},
 				ACLInterfaces: map[string]*dozer.SpecACLInterface{
 					"Ethernet0":    {Ingress: new("manual")},
 					"Ethernet0.10": {Ingress: new("manual"), Egress: new("fabric")},
@@ -120,11 +161,13 @@ func TestApplyMutateRules(t *testing.T) {
 				},
 			},
 			applied: []string{
-				"keep@aclInterface/Ethernet0.10/ingress", "keep@aclInterface/Ethernet0/ingress", "override@aclInterface/Vlan1000/egress",
+				"keep@acl/manual", "keep@aclInterface/Ethernet0.10/ingress", "keep@aclInterface/Ethernet0/ingress",
+				"override@aclInterface/Vlan1000/egress",
 			},
 			warnings: []string{
 				"keep@aclInterface/Ethernet0.10/egress: planned by the fabric", "keep@aclInterface/Vlan1001/ingress: not on the switch",
 				"keep@aclInterface/Ethernet0.20/ingress: not planned by the fabric", "keep@aclInterface/Vlan1002/ingress: not planned by the fabric",
+				"keep@aclInterface/Vlan1003/ingress: references acl/other, not planned or kept",
 			},
 		},
 		{
