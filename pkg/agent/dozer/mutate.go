@@ -23,16 +23,32 @@ type mutator struct {
 func ApplyMutateRules(actual, desired *Spec, rules []wiringapi.BCMMutateRule) ([]string, []string) {
 	m := &mutator{actual: actual, desired: desired, applied: []string{}, warnings: []string{}}
 
+	copies := func(rule wiringapi.BCMMutateRule) bool {
+		return rule.Mode == wiringapi.BCMMutateKeep || rule.Mode == wiringapi.BCMMutateOverride
+	}
+
+	// whole objects first, so the bindings and statements can reference the objects kept by other rules
 	for _, rule := range rules {
-		if rule.Mode == wiringapi.BCMMutateKeep || rule.Mode == wiringapi.BCMMutateOverride {
+		if copies(rule) && rule.Element == "" {
 			m.copy(rule)
 		}
 	}
+
+	// then elements of the objects: ACL rules, route map statements, prefix list entries, ACL bindings, static routes
+	for _, rule := range rules {
+		if copies(rule) && rule.Element != "" {
+			m.copy(rule)
+		}
+	}
+
+	// list members are added after keep and override, so they can be added to the lists taken from the switch as well
 	for _, rule := range rules {
 		if rule.Mode == wiringapi.BCMMutateAdd {
 			m.members(rule)
 		}
 	}
+
+	// and removed at the end, after all of them are added
 	for _, rule := range rules {
 		if rule.Mode == wiringapi.BCMMutateRemove {
 			m.members(rule)
@@ -68,7 +84,8 @@ func (m *mutator) copy(rule wiringapi.BCMMutateRule) {
 	case wiringapi.BCMMutateKindRouteMap:
 		if rule.Element == "" {
 			copyObject(m, rule, a.RouteMaps, &d.RouteMaps)
-		} else if m.planned(rule, d.RouteMaps[rule.Name] != nil) && m.onSwitch(rule, a.RouteMaps[rule.Name] != nil) {
+		} else if m.planned(rule, d.RouteMaps[rule.Name] != nil) && m.onSwitch(rule, a.RouteMaps[rule.Name] != nil) &&
+			m.statementRefsKept(rule, a.RouteMaps[rule.Name].Statements[rule.Element]) {
 			d.RouteMaps[rule.Name].Statements = copyElement(m, rule, rule.Element, a.RouteMaps[rule.Name].Statements, d.RouteMaps[rule.Name].Statements)
 		}
 	case wiringapi.BCMMutateKindPrefixList:
@@ -112,6 +129,12 @@ func (m *mutator) copyACLInterface(rule wiringapi.BCMMutateRule) {
 	if !m.onSwitch(rule, actual != nil && *direction(actual) != nil) {
 		return
 	}
+	// an ACL Fabric deletes while it's still bound would make the switch refuse the deletion
+	if acl := **direction(actual); m.desired.ACLs[acl] == nil {
+		m.warn(rule, "references acl/"+acl+", not planned or kept")
+
+		return
+	}
 
 	desired := m.desired.ACLInterfaces[rule.Name]
 	if desired != nil && *direction(desired) != nil && rule.Mode == wiringapi.BCMMutateKeep {
@@ -129,6 +152,38 @@ func (m *mutator) copyACLInterface(rule wiringapi.BCMMutateRule) {
 
 	*direction(desired) = *direction(actual)
 	m.applied = append(m.applied, rule.String())
+}
+
+// statementRefsKept checks that everything the statement uses is planned by Fabric or kept by a rule, as Fabric would
+// otherwise delete it while the statement still uses it and the switch would refuse that
+func (m *mutator) statementRefsKept(rule wiringapi.BCMMutateRule, statement *SpecRouteMapStatement) bool {
+	if statement == nil {
+		return true
+	}
+
+	missing := []string{}
+	cond := statement.Conditions
+	if cond.Call != nil && m.desired.RouteMaps[*cond.Call] == nil {
+		missing = append(missing, "routeMap/"+*cond.Call)
+	}
+	if cond.MatchPrefixList != nil && m.desired.PrefixLists[*cond.MatchPrefixList] == nil {
+		missing = append(missing, "prefixList/"+*cond.MatchPrefixList)
+	}
+	if cond.MatchNextHopPrefixList != nil && m.desired.PrefixLists[*cond.MatchNextHopPrefixList] == nil {
+		missing = append(missing, "prefixList/"+*cond.MatchNextHopPrefixList)
+	}
+	if cond.MatchCommunityList != nil && m.desired.CommunityLists[*cond.MatchCommunityList] == nil {
+		missing = append(missing, "communityList/"+*cond.MatchCommunityList)
+	}
+	if cond.MatchAsPathList != nil && m.desired.AsPathLists[*cond.MatchAsPathList] == nil {
+		missing = append(missing, "asPathList/"+*cond.MatchAsPathList)
+	}
+
+	if len(missing) > 0 {
+		m.warn(rule, "references "+strings.Join(missing, ", ")+", not planned or kept")
+	}
+
+	return len(missing) == 0
 }
 
 // interfacePlanned checks the interface or subinterface (<port>.<vlan>) is planned by Fabric
