@@ -333,10 +333,6 @@ func TestPlan(t *testing.T) {
 			require.Equal(t, string(expectedGNMIData), string(actualGNMIData),
 				"gnmi state mismatch, you can compare expected and actual gnmi state files in testdata dir or re-generate expected by running just test-update")
 
-			// incl. the references to the objects, not just their names
-			require.NotContains(t, string(actualSpecData), wiringapi.UnmanagedObjectsPrefix, "spec has the unmanaged objects prefix")
-			require.NotContains(t, string(actualGNMIData), wiringapi.UnmanagedObjectsPrefix, "gnmi state has the unmanaged objects prefix")
-
 			loadedSpec, err := bp.LoadActualState(t.Context(), ag)
 			require.NoError(t, err, "loading actual state from mock gnmi client")
 

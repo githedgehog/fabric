@@ -2411,6 +2411,21 @@ spec:
                 description: Time of the last heartbeat from the agent
                 format: date-time
                 type: string
+              mutate:
+                description: Mutate is the state of the bcm mutate rules applied by
+                  the agent on Broadcom SONiC switches (alpha)
+                properties:
+                  applied:
+                    description: Applied are the sorted bcm mutate rules that took
+                      effect in the last config application
+                    items:
+                      type: string
+                    type: array
+                  enabled:
+                    description: Enabled is true if the last config application had
+                      any bcm mutate rules
+                    type: boolean
+                type: object
               notes:
                 description: Notes is a comma separated summary of the agent state
                   that needs attention
@@ -3134,21 +3149,6 @@ spec:
                       type: string
                   type: object
                 type: array
-              unmanagedObjects:
-                description: UnmanagedObjects is the state of the objects kept by
-                  the agent on Broadcom SONiC switches (alpha)
-                properties:
-                  enabled:
-                    description: Enabled is true if the last config application kept
-                      the unmanaged objects
-                    type: boolean
-                  objects:
-                    description: Objects are the unmanaged objects found on the switch
-                      as sorted kind/name
-                    items:
-                      type: string
-                    type: array
-                type: object
               version:
                 description: Current running agent version
                 type: string

@@ -39,10 +39,9 @@ import (
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 const (
-	AnnotationSwitchRouteSumm           = "fabric.githedgehog.com/route-summ"
-	AnnotationSwitchSyslogDebug         = "fabric.githedgehog.com/syslog-debug"
-	AnnotationSwitchBCMUnmanagedObjects = "fabric.alpha.githedgehog.com/bcm-unmanaged-objects"
-	UnmanagedObjectsPrefix              = "nohh-"
+	AnnotationSwitchRouteSumm   = "fabric.githedgehog.com/route-summ"
+	AnnotationSwitchSyslogDebug = "fabric.githedgehog.com/syslog-debug"
+	AnnotationSwitchBCMMutate   = "fabric.alpha.githedgehog.com/bcm-mutate"
 
 	DefaultLinkFlapThreshold        = 3
 	DefaultLinkFlapSamplingInterval = 30
@@ -611,24 +610,6 @@ func SwitchSyslogDebug(annotations map[string]string) (bool, error) {
 	return debug, nil
 }
 
-func SwitchBCMUnmanagedObjects(annotations map[string]string) (bool, error) {
-	if annotations == nil {
-		return false, nil
-	}
-
-	v, ok := annotations[AnnotationSwitchBCMUnmanagedObjects]
-	if !ok {
-		return false, nil
-	}
-
-	enabled, err := strconv.ParseBool(v)
-	if err != nil {
-		return false, fmt.Errorf("annotation %s must be a boolean: %w", AnnotationSwitchBCMUnmanagedObjects, err)
-	}
-
-	return enabled, nil
-}
-
 func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
 	var warnings admission.Warnings
 
@@ -640,7 +621,7 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 		return nil, err
 	}
 
-	unmanagedObjects, err := SwitchBCMUnmanagedObjects(sw.Annotations)
+	mutateRules, err := SwitchBCMMutateRules(sw.Annotations)
 	if err != nil {
 		return nil, err
 	}
@@ -797,9 +778,9 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 			return nil, errors.Wrapf(err, "failed to get switch profile %s", sw.Spec.Profile) // TODO replace with some internal error to not expose to the user
 		}
 
-		if unmanagedObjects && !slices.Contains(meta.NOSTypesSONiCBCM, sp.Spec.NOSType) {
+		if len(mutateRules) > 0 && !slices.Contains(meta.NOSTypesSONiCBCM, sp.Spec.NOSType) {
 			return nil, fmt.Errorf("annotation %s is only supported for Broadcom SONiC switches, profile %s has NOS type %s", //nolint:err113
-				AnnotationSwitchBCMUnmanagedObjects, sw.Spec.Profile, sp.Spec.NOSType)
+				AnnotationSwitchBCMMutate, sw.Spec.Profile, sp.Spec.NOSType)
 		}
 
 		for name, speed := range sw.Spec.PortGroupSpeeds {

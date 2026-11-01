@@ -253,11 +253,6 @@ func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.
 
 	spec.Normalize()
 
-	// the spec is discarded on error, so it doesn't matter that the objects are pruned
-	if objs := spec.PruneUnmanaged(); len(objs) > 0 {
-		return nil, fmt.Errorf("planned objects with the unmanaged prefix %s: %v", wiringapi.UnmanagedObjectsPrefix, objs) //nolint:err113
-	}
-
 	return spec, nil
 }
 

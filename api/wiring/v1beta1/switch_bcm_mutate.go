@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
+
+	kyaml "sigs.k8s.io/yaml"
 )
 
 const (
@@ -33,6 +35,36 @@ const (
 )
 
 var ErrInvalidBCMMutateRule = errors.New("invalid bcm mutate rule")
+
+// BCMMutate is the value of the AnnotationSwitchBCMMutate annotation (alpha)
+type BCMMutate struct {
+	// Rules are <mode>@<kind>/<name>[/<element>] strings
+	Rules []string `json:"rules,omitempty"`
+}
+
+// SwitchBCMMutateRules parses the AnnotationSwitchBCMMutate annotation, it accepts both YAML and JSON
+func SwitchBCMMutateRules(annotations map[string]string) ([]BCMMutateRule, error) {
+	if annotations == nil {
+		return nil, nil
+	}
+
+	v, ok := annotations[AnnotationSwitchBCMMutate]
+	if !ok {
+		return nil, nil
+	}
+
+	mutate := BCMMutate{}
+	if err := kyaml.UnmarshalStrict([]byte(v), &mutate); err != nil {
+		return nil, fmt.Errorf("parsing annotation %s: %w", AnnotationSwitchBCMMutate, err)
+	}
+
+	rules, err := ParseBCMMutateRules(mutate.Rules)
+	if err != nil {
+		return nil, fmt.Errorf("annotation %s: %w", AnnotationSwitchBCMMutate, err)
+	}
+
+	return rules, nil
+}
 
 // BCMMutateRule is a parsed <mode>@<kind>/<name>[/<element>] rule
 type BCMMutateRule struct {

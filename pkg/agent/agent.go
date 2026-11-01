@@ -103,7 +103,7 @@ type Service struct {
 	lastApplied   time.Time
 	lastStatus    *agentapi.AgentStatus
 
-	unmanagedObjects agentapi.UnmanagedObjects
+	mutate agentapi.MutateStatus
 }
 
 func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, error)) error {
@@ -483,57 +483,61 @@ func (svc *Service) setInstallAndRunIDs() error {
 	return nil
 }
 
-func enforceState(ctx context.Context, processor dozer.Processor, agent *agentapi.Agent, basedir string, dryRun bool) (agentapi.UnmanagedObjects, error) {
+func enforceState(ctx context.Context, processor dozer.Processor, agent *agentapi.Agent, basedir string, dryRun bool) (agentapi.MutateStatus, error) {
 	isBCM := slices.Contains(fmeta.NOSTypesSONiCBCM, agent.Spec.SwitchProfile.NOSType)
 	isClsP := slices.Contains(fmeta.NOSTypesSONiCCLSPlus, agent.Spec.SwitchProfile.NOSType)
 	isCumulus := slices.Contains(fmeta.NOSTypesCumulus, agent.Spec.SwitchProfile.NOSType)
 
-	unmanaged, err := wiringapi.SwitchBCMUnmanagedObjects(agent.Annotations)
+	mutateRules, err := wiringapi.SwitchBCMMutateRules(agent.Annotations)
 	if err != nil {
-		return agentapi.UnmanagedObjects{}, fmt.Errorf("checking unmanaged objects: %w", err)
+		return agentapi.MutateStatus{}, fmt.Errorf("checking bcm mutate rules: %w", err)
 	}
-	if unmanaged && !isBCM {
-		slog.Warn("Unmanaged objects are only supported for Broadcom SONiC, ignoring", "annotation", wiringapi.AnnotationSwitchBCMUnmanagedObjects)
+	if len(mutateRules) > 0 && !isBCM {
+		slog.Warn("BCM mutate rules are only supported for Broadcom SONiC, ignoring", "annotation", wiringapi.AnnotationSwitchBCMMutate)
 	}
 
 	switch {
 	case isBCM:
-		return enforceBroadcomState(ctx, processor, agent, basedir, dryRun, unmanaged)
+		return enforceBroadcomState(ctx, processor, agent, basedir, dryRun, mutateRules)
 	case isClsP:
-		return agentapi.UnmanagedObjects{}, enforceCelesticaState(ctx, processor, agent, basedir, dryRun)
+		return agentapi.MutateStatus{}, enforceCelesticaState(ctx, processor, agent, basedir, dryRun)
 	case isCumulus:
-		return agentapi.UnmanagedObjects{}, cmls.Enforce(ctx, processor, agent, basedir, dryRun) //nolint:wrapcheck
+		return agentapi.MutateStatus{}, cmls.Enforce(ctx, processor, agent, basedir, dryRun) //nolint:wrapcheck
 	}
 
-	return agentapi.UnmanagedObjects{}, fmt.Errorf("NOS type %s not supported", agent.Spec.SwitchProfile.NOSType) //nolint:err113
+	return agentapi.MutateStatus{}, fmt.Errorf("NOS type %s not supported", agent.Spec.SwitchProfile.NOSType) //nolint:err113
 }
 
-func enforceBroadcomState(ctx context.Context, processor dozer.Processor, agent *agentapi.Agent, basedir string, dryRun bool, unmanaged bool) (agentapi.UnmanagedObjects, error) {
-	res := agentapi.UnmanagedObjects{}
+func enforceBroadcomState(ctx context.Context, processor dozer.Processor, agent *agentapi.Agent, basedir string, dryRun bool, mutateRules []wiringapi.BCMMutateRule) (agentapi.MutateStatus, error) {
+	mutate := agentapi.MutateStatus{}
 
 	desired, err := processor.PlanDesiredState(ctx, agent)
 	if err != nil {
-		return res, errors.Wrapf(err, "failed to plan spec")
+		return mutate, errors.Wrapf(err, "failed to plan spec")
 	}
 	slog.Debug("Desired state generated")
 
 	startActual := time.Now()
 	actual, err := processor.LoadActualState(ctx, agent)
 	if err != nil {
-		return res, errors.Wrapf(err, "failed to load actual state")
+		return mutate, errors.Wrapf(err, "failed to load actual state")
 	}
 	slog.Debug("Actual state loaded", "took", time.Since(startActual))
 
-	// before anything compares actual with desired, so the unmanaged objects are invisible to it
-	if unmanaged {
-		res.Enabled = true
-		res.Objects = actual.PruneUnmanaged()
-		slog.Debug("Keeping unmanaged objects", "objects", res.Objects)
+	// before anything compares actual with desired, so the content taken from the switch is the same on both sides
+	if len(mutateRules) > 0 {
+		applied, warnings := dozer.ApplyMutateRules(actual, desired, mutateRules)
+		for _, warning := range warnings {
+			slog.Warn("Skipped bcm mutate rule: " + warning)
+		}
+		mutate.Enabled = true
+		mutate.Applied = applied
+		slog.Debug("Applied bcm mutate rules", "rules", applied)
 	}
 
 	actions, err := processor.CalculateActions(ctx, actual, desired)
 	if err != nil {
-		return res, errors.Wrapf(err, "failed to calculate spec")
+		return mutate, errors.Wrapf(err, "failed to calculate spec")
 	}
 	slog.Debug("Actions calculated", "count", len(actions))
 
@@ -542,27 +546,27 @@ func enforceBroadcomState(ctx context.Context, processor dozer.Processor, agent 
 
 	desiredData, err := desired.MarshalYAML()
 	if err != nil {
-		return res, errors.Wrapf(err, "failed to marshal desired spec")
+		return mutate, errors.Wrapf(err, "failed to marshal desired spec")
 	}
 
 	err = os.WriteFile(filepath.Join(basedir, "last-desired.yaml"), desiredData, 0o644) //nolint:gosec
 	if err != nil {
-		return res, errors.Wrapf(err, "failed to write desired spec")
+		return mutate, errors.Wrapf(err, "failed to write desired spec")
 	}
 
 	actualData, err := actual.MarshalYAML()
 	if err != nil {
-		return res, errors.Wrapf(err, "failed to marshal actual spec")
+		return mutate, errors.Wrapf(err, "failed to marshal actual spec")
 	}
 
 	err = os.WriteFile(filepath.Join(basedir, "last-actual.yaml"), actualData, 0o644) //nolint:gosec
 	if err != nil {
-		return res, errors.Wrapf(err, "failed to write actual spec")
+		return mutate, errors.Wrapf(err, "failed to write actual spec")
 	}
 
 	diff, err := dozer.SpecTextDiff(actualData, desiredData)
 	if err != nil {
-		return res, errors.Wrapf(err, "failed to generate diff")
+		return mutate, errors.Wrapf(err, "failed to generate diff")
 	}
 
 	if slog.Default().Enabled(ctx, slog.LevelDebug) {
@@ -579,20 +583,20 @@ func enforceBroadcomState(ctx context.Context, processor dozer.Processor, agent 
 	if dryRun {
 		slog.Warn("Dry run, exiting")
 
-		return res, nil
+		return mutate, nil
 	}
 
 	slog.Info("Applying actions", "count", len(actions))
 
 	warnings, err := processor.ApplyActions(ctx, actions)
 	if err != nil {
-		return res, errors.Wrapf(err, "failed to apply actions")
+		return mutate, errors.Wrapf(err, "failed to apply actions")
 	}
 	for _, warning := range warnings {
 		slog.Warn("Action warning: " + warning)
 	}
 
-	return res, nil
+	return mutate, nil
 }
 
 func enforceCelesticaState(ctx context.Context, _ /* processor */ dozer.Processor, agent *agentapi.Agent, _ /* basedir */ string, dryRun bool) error {
@@ -657,11 +661,11 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, rea
 		agent.Status.State.RoCE = roce
 	}
 
-	unmanaged, err := enforceState(ctx, svc.processor, agent, svc.Basedir, svc.DryRun)
+	mutate, err := enforceState(ctx, svc.processor, agent, svc.Basedir, svc.DryRun)
 	if err != nil {
 		return err
 	}
-	svc.unmanagedObjects = unmanaged
+	svc.mutate = mutate
 
 	slog.Info("Config applied", "name", agent.Name, "gen", agent.Generation, "res", agent.ResourceVersion, "took", time.Since(start))
 
@@ -802,7 +806,7 @@ func (svc *Service) updateStatus(ctx context.Context, kube kclient.Client, agOri
 
 		ag.Status = agOrig.Status
 		ag.Status.RebootRequired = svc.rebootRequired
-		ag.Status.UnmanagedObjects = svc.unmanagedObjects
+		ag.Status.Mutate = svc.mutate
 		ag.Status.Notes = ag.Status.BuildNotes()
 
 		if err := kube.Status().Update(ctx, ag); err != nil {
