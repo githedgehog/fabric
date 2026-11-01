@@ -298,7 +298,19 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 
 	// config from the file is already applied, replace the condition left by the previous run or install,
 	// a newer generation, a recreated agent or changed annotations are handled by the first watch event
-	if agent.UID == currentUID && agent.Generation == currentGen && maps.Equal(knownAnnotations(agent), svc.appliedAnnotations) {
+	inSync := agent.UID == currentUID && agent.Generation == currentGen && maps.Equal(knownAnnotations(agent), svc.appliedAnnotations)
+	if inSync && isBCM {
+		// RoCE is switched after the config is saved to the file and may have failed or not rebooted the switch
+		roce, err := svc.processor.GetRoCE(ctx)
+		if err != nil {
+			return fmt.Errorf("getting RoCE state: %w", err)
+		}
+		if roce != agent.Spec.Switch.RoCE {
+			slog.Warn("RoCE mode not applied", "actual", roce, "desired", agent.Spec.Switch.RoCE)
+			inSync = false
+		}
+	}
+	if inSync {
 		kmeta.SetStatusCondition(&agent.Status.Conditions, kmetav1.Condition{
 			Type:               "Applied",
 			Status:             kmetav1.ConditionTrue,
