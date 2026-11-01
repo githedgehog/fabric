@@ -195,11 +195,12 @@ func TestApplyMutateRules(t *testing.T) {
 			warnings: []string{"keep@prefixList/fabric: planned by the fabric"},
 		},
 		{
-			name:  "route map statement other references and missing statement",
-			rules: []string{"keep@routeMap/x/1", "keep@routeMap/x/2", "keep@routeMap/x/3"},
+			name:  "route map statement other references, missing and planned statements",
+			rules: []string{"keep@routeMap/x/1", "keep@routeMap/x/2", "keep@routeMap/x/3", "keep@routeMap/x/10"},
 			actual: &dozer.Spec{RouteMaps: map[string]*dozer.SpecRouteMap{"x": {Statements: map[string]*dozer.SpecRouteMapStatement{
-				"1": {Conditions: dozer.SpecRouteMapConditions{MatchNextHopPrefixList: new("gone")}},
-				"2": {Conditions: dozer.SpecRouteMapConditions{MatchAsPathList: new("gone")}},
+				"1":  {Conditions: dozer.SpecRouteMapConditions{MatchNextHopPrefixList: new("gone")}},
+				"2":  {Conditions: dozer.SpecRouteMapConditions{MatchAsPathList: new("gone")}},
+				"10": {Conditions: dozer.SpecRouteMapConditions{MatchPrefixList: new("gone")}},
 			}}}},
 			desired:  &dozer.Spec{RouteMaps: map[string]*dozer.SpecRouteMap{"x": {Statements: map[string]*dozer.SpecRouteMapStatement{"10": acceptStmt}}}},
 			expected: &dozer.Spec{RouteMaps: map[string]*dozer.SpecRouteMap{"x": {Statements: map[string]*dozer.SpecRouteMapStatement{"10": acceptStmt}}}},
@@ -208,6 +209,7 @@ func TestApplyMutateRules(t *testing.T) {
 				"keep@routeMap/x/1: references prefixList/gone, not planned or kept",
 				"keep@routeMap/x/2: references asPathList/gone, not planned or kept",
 				"keep@routeMap/x/3: not on the switch",
+				"keep@routeMap/x/10: planned by the fabric",
 			},
 		},
 		{

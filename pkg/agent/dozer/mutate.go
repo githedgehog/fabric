@@ -157,8 +157,14 @@ func (m *mutator) copyACLInterface(rule wiringapi.BCMMutateRule) {
 // statementRefsKept checks that everything the statement uses is planned by Fabric or kept by a rule, as Fabric would
 // otherwise delete it while the statement still uses it and the switch would refuse that
 func (m *mutator) statementRefsKept(rule wiringapi.BCMMutateRule, statement *SpecRouteMapStatement) bool {
+	// copyElement skips and reports the statements missing on the switch and the kept ones planned by Fabric
 	if statement == nil {
 		return true
+	}
+	if routeMap := m.desired.RouteMaps[rule.Name]; routeMap != nil && rule.Mode == wiringapi.BCMMutateKeep {
+		if _, planned := routeMap.Statements[rule.Element]; planned {
+			return true
+		}
 	}
 
 	missing := []string{}
