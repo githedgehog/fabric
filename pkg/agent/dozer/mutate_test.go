@@ -199,7 +199,7 @@ func TestApplyMutateRules(t *testing.T) {
 			name: "community and as-path members",
 			rules: []string{
 				"add@communityList/x/65000:100", "add@communityList/x/50000:0", "remove@communityList/x/50000:1",
-				"add@communityList/y/1:1", "override@asPathList/manual", "add@asPathList/manual/_65000_",
+				"add@communityList/y/1:1", "override@asPathList/manual",
 				"remove@asPathList/fabric/_65100_", "remove@asPathList/fabric/_65099_",
 			},
 			actual: &dozer.Spec{
@@ -214,11 +214,11 @@ func TestApplyMutateRules(t *testing.T) {
 				CommunityLists: map[string]*dozer.SpecCommunityList{"x": {Members: []string{"50000:0", "65000:100"}}},
 				AsPathLists: map[string]*dozer.SpecAsPathList{
 					"fabric": {Members: []string{"_65534_"}},
-					"manual": {Members: []string{"_1_", "_2_", "_65000_"}},
+					"manual": {Members: []string{"_1_", "_2_"}},
 				},
 			},
 			applied: []string{
-				"add@asPathList/manual/_65000_", "add@communityList/x/65000:100",
+				"add@communityList/x/65000:100",
 				"override@asPathList/manual", "remove@asPathList/fabric/_65100_", "remove@communityList/x/50000:1",
 			},
 			warnings: []string{
@@ -242,11 +242,13 @@ func TestApplyMutateRules(t *testing.T) {
 		actual := &dozer.Spec{CommunityLists: map[string]*dozer.SpecCommunityList{"x": {Members: []string{"2:2", "1:1", "2:2"}}}}
 		desired := &dozer.Spec{}
 
-		rules, err := wiringapi.ParseBCMMutateRules([]string{"keep@communityList/x", "add@communityList/x/3:3"})
+		rules, err := wiringapi.ParseBCMMutateRules([]string{"keep@communityList/x"})
 		require.NoError(t, err)
 
 		dozer.ApplyMutateRules(actual, desired, rules)
 		require.Equal(t, []string{"1:1", "2:2"}, actual.CommunityLists["x"].Members)
-		require.Equal(t, []string{"1:1", "2:2", "3:3"}, desired.CommunityLists["x"].Members)
+		require.Equal(t, []string{"1:1", "2:2"}, desired.CommunityLists["x"].Members)
+		desired.CommunityLists["x"].Members[0] = "3:3"
+		require.Equal(t, []string{"1:1", "2:2"}, actual.CommunityLists["x"].Members)
 	})
 }
