@@ -98,8 +98,11 @@ spec:
                     type: boolean
                 type: object
               gateway:
-                description: GatewaySpec defines the desired state of Gateway.
                 properties:
+                  annotations:
+                    additionalProperties:
+                      type: string
+                    type: object
                   asn:
                     description: ASN is the ASN of the gateway
                     format: int32

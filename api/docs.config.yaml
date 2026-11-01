@@ -10,6 +10,7 @@ processor:
     - "Catalog"
     - "GatewayAgentSpec"
     - "VPCInfoData$"
+    - "GatewaySpecAnn$"
     - "PeeringSpecAnn$"
     - "GatewayGroupInfo$"
     - "GatewayGroupMember$"
