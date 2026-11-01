@@ -17,6 +17,7 @@ package switchstate
 import (
 	"fmt"
 	"net/http"
+	"regexp"
 	"sync"
 	"time"
 
@@ -40,6 +41,8 @@ type Registry struct {
 
 	stateSync sync.RWMutex
 	state     *agentapi.SwitchState
+
+	NOSInfo *prometheus.GaugeVec
 
 	InterfaceMetrics   InterfaceMetrics
 	InterfaceCounters  InterfaceCounters
@@ -194,6 +197,9 @@ type PlatformMetrics struct {
 	Fan         PlatformFanMetrics
 	PSU         PlatformPSUMetrics
 	Temperature PlatformTemperatureMetrics
+
+	// What the switch reports about its hardware, always 1
+	Info *prometheus.GaugeVec
 }
 
 type PlatformFanMetrics struct {
@@ -534,7 +540,21 @@ func NewRegistry() *Registry {
 			TTL:        newLLDPNeighborGaugeVec("lldp_neighbor_ttl_seconds", "TTL advertised by the LLDP neighbor"),
 			Info:       newLLDPNeighborInfoGaugeVec("lldp_neighbor_info", "What the LLDP neighbor reports about itself, always 1"),
 		},
+		NOSInfo: autoreg.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace:   MetricNamespace,
+			Subsystem:   MetricSubsystem,
+			Name:        "nos_info",
+			Help:        "What the NOS reports about itself and its normalized type and version, always 1",
+			ConstLabels: labels,
+		}, []string{"type", "version", "reported_name", "reported_version", "kernel"}),
 		PlatformMetrics: PlatformMetrics{
+			Info: autoreg.NewGaugeVec(prometheus.GaugeOpts{
+				Namespace:   MetricNamespace,
+				Subsystem:   MetricSubsystem,
+				Name:        "platform_info",
+				Help:        "What the switch reports about its hardware, always 1",
+				ConstLabels: labels,
+			}, []string{"platform", "hwsku", "asic", "manufacturer", "hardware_version", "serial"}),
 			Fan: PlatformFanMetrics{
 				Speed:    newPlatformGaugeVec("platform_fan_speed", "Fan speed"),
 				Presence: newPlatformGaugeVec("platform_fan_presence", "Fan presence"),
@@ -666,6 +686,19 @@ func (r *Registry) SaveSwitchState(state *agentapi.SwitchState) {
 	defer r.stateSync.Unlock()
 
 	r.state = state
+}
+
+var nosVersionRe = regexp.MustCompile(`^v?(\d+\.\d+\.\d+)`)
+
+// NormalizeNOSVersion turns the version reported by the NOS into the form used for the fabric NOS versions,
+// e.g. "4.5.2-Enterprise_Base" into "v4.5.2", or returns an empty string if it doesn't start with one
+func NormalizeNOSVersion(ver string) string {
+	m := nosVersionRe.FindStringSubmatch(ver)
+	if m == nil {
+		return ""
+	}
+
+	return "v" + m[1]
 }
 
 func (r *Registry) ServeMetrics(port uint16) error {
