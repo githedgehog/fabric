@@ -102,6 +102,8 @@ type Service struct {
 	lastHeartbeat time.Time
 	lastApplied   time.Time
 	lastStatus    *agentapi.AgentStatus
+
+	unmanagedObjects agentapi.UnmanagedObjects
 }
 
 func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, error)) error {
@@ -481,40 +483,57 @@ func (svc *Service) setInstallAndRunIDs() error {
 	return nil
 }
 
-func enforceState(ctx context.Context, processor dozer.Processor, agent *agentapi.Agent, basedir string, dryRun bool) error {
+func enforceState(ctx context.Context, processor dozer.Processor, agent *agentapi.Agent, basedir string, dryRun bool) (agentapi.UnmanagedObjects, error) {
 	isBCM := slices.Contains(fmeta.NOSTypesSONiCBCM, agent.Spec.SwitchProfile.NOSType)
 	isClsP := slices.Contains(fmeta.NOSTypesSONiCCLSPlus, agent.Spec.SwitchProfile.NOSType)
 	isCumulus := slices.Contains(fmeta.NOSTypesCumulus, agent.Spec.SwitchProfile.NOSType)
 
-	switch {
-	case isBCM:
-		return enforceBroadcomState(ctx, processor, agent, basedir, dryRun)
-	case isClsP:
-		return enforceCelesticaState(ctx, processor, agent, basedir, dryRun)
-	case isCumulus:
-		return cmls.Enforce(ctx, processor, agent, basedir, dryRun) //nolint:wrapcheck
+	unmanaged, err := wiringapi.SwitchBCMUnmanagedObjects(agent.Annotations)
+	if err != nil {
+		return agentapi.UnmanagedObjects{}, fmt.Errorf("checking unmanaged objects: %w", err)
+	}
+	if unmanaged && !isBCM {
+		slog.Warn("Unmanaged objects are only supported for Broadcom SONiC, ignoring", "annotation", wiringapi.AnnotationSwitchBCMUnmanagedObjects)
 	}
 
-	return fmt.Errorf("NOS type %s not supported", agent.Spec.SwitchProfile.NOSType) //nolint:err113
+	switch {
+	case isBCM:
+		return enforceBroadcomState(ctx, processor, agent, basedir, dryRun, unmanaged)
+	case isClsP:
+		return agentapi.UnmanagedObjects{}, enforceCelesticaState(ctx, processor, agent, basedir, dryRun)
+	case isCumulus:
+		return agentapi.UnmanagedObjects{}, cmls.Enforce(ctx, processor, agent, basedir, dryRun) //nolint:wrapcheck
+	}
+
+	return agentapi.UnmanagedObjects{}, fmt.Errorf("NOS type %s not supported", agent.Spec.SwitchProfile.NOSType) //nolint:err113
 }
 
-func enforceBroadcomState(ctx context.Context, processor dozer.Processor, agent *agentapi.Agent, basedir string, dryRun bool) error {
+func enforceBroadcomState(ctx context.Context, processor dozer.Processor, agent *agentapi.Agent, basedir string, dryRun bool, unmanaged bool) (agentapi.UnmanagedObjects, error) {
+	res := agentapi.UnmanagedObjects{}
+
 	desired, err := processor.PlanDesiredState(ctx, agent)
 	if err != nil {
-		return errors.Wrapf(err, "failed to plan spec")
+		return res, errors.Wrapf(err, "failed to plan spec")
 	}
 	slog.Debug("Desired state generated")
 
 	startActual := time.Now()
 	actual, err := processor.LoadActualState(ctx, agent)
 	if err != nil {
-		return errors.Wrapf(err, "failed to load actual state")
+		return res, errors.Wrapf(err, "failed to load actual state")
 	}
 	slog.Debug("Actual state loaded", "took", time.Since(startActual))
 
+	// before anything compares actual with desired, so the unmanaged objects are invisible to it
+	if unmanaged {
+		res.Enabled = true
+		res.Objects = actual.PruneUnmanaged()
+		slog.Debug("Keeping unmanaged objects", "objects", res.Objects)
+	}
+
 	actions, err := processor.CalculateActions(ctx, actual, desired)
 	if err != nil {
-		return errors.Wrapf(err, "failed to calculate spec")
+		return res, errors.Wrapf(err, "failed to calculate spec")
 	}
 	slog.Debug("Actions calculated", "count", len(actions))
 
@@ -523,27 +542,27 @@ func enforceBroadcomState(ctx context.Context, processor dozer.Processor, agent 
 
 	desiredData, err := desired.MarshalYAML()
 	if err != nil {
-		return errors.Wrapf(err, "failed to marshal desired spec")
+		return res, errors.Wrapf(err, "failed to marshal desired spec")
 	}
 
 	err = os.WriteFile(filepath.Join(basedir, "last-desired.yaml"), desiredData, 0o644) //nolint:gosec
 	if err != nil {
-		return errors.Wrapf(err, "failed to write desired spec")
+		return res, errors.Wrapf(err, "failed to write desired spec")
 	}
 
 	actualData, err := actual.MarshalYAML()
 	if err != nil {
-		return errors.Wrapf(err, "failed to marshal actual spec")
+		return res, errors.Wrapf(err, "failed to marshal actual spec")
 	}
 
 	err = os.WriteFile(filepath.Join(basedir, "last-actual.yaml"), actualData, 0o644) //nolint:gosec
 	if err != nil {
-		return errors.Wrapf(err, "failed to write actual spec")
+		return res, errors.Wrapf(err, "failed to write actual spec")
 	}
 
 	diff, err := dozer.SpecTextDiff(actualData, desiredData)
 	if err != nil {
-		return errors.Wrapf(err, "failed to generate diff")
+		return res, errors.Wrapf(err, "failed to generate diff")
 	}
 
 	if slog.Default().Enabled(ctx, slog.LevelDebug) {
@@ -560,20 +579,20 @@ func enforceBroadcomState(ctx context.Context, processor dozer.Processor, agent 
 	if dryRun {
 		slog.Warn("Dry run, exiting")
 
-		return nil
+		return res, nil
 	}
 
 	slog.Info("Applying actions", "count", len(actions))
 
 	warnings, err := processor.ApplyActions(ctx, actions)
 	if err != nil {
-		return errors.Wrapf(err, "failed to apply actions")
+		return res, errors.Wrapf(err, "failed to apply actions")
 	}
 	for _, warning := range warnings {
 		slog.Warn("Action warning: " + warning)
 	}
 
-	return nil
+	return res, nil
 }
 
 func enforceCelesticaState(ctx context.Context, _ /* processor */ dozer.Processor, agent *agentapi.Agent, _ /* basedir */ string, dryRun bool) error {
@@ -638,9 +657,11 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, rea
 		agent.Status.State.RoCE = roce
 	}
 
-	if err := enforceState(ctx, svc.processor, agent, svc.Basedir, svc.DryRun); err != nil {
+	unmanaged, err := enforceState(ctx, svc.processor, agent, svc.Basedir, svc.DryRun)
+	if err != nil {
 		return err
 	}
+	svc.unmanagedObjects = unmanaged
 
 	slog.Info("Config applied", "name", agent.Name, "gen", agent.Generation, "res", agent.ResourceVersion, "took", time.Since(start))
 
@@ -780,6 +801,9 @@ func (svc *Service) updateStatus(ctx context.Context, kube kclient.Client, agOri
 		fetch = true
 
 		ag.Status = agOrig.Status
+		ag.Status.RebootRequired = svc.rebootRequired
+		ag.Status.UnmanagedObjects = svc.unmanagedObjects
+		ag.Status.Notes = ag.Status.BuildNotes()
 
 		if err := kube.Status().Update(ctx, ag); err != nil {
 			return fmt.Errorf("updating agent status: %w", err)
@@ -1107,7 +1131,7 @@ func RunRemotely(ctx context.Context, getClient func() (*gnmi.Client, error), op
 	processor.SetClient(gnmiClient)
 	processor.SetSkipCustomFuncs(true)
 
-	if err := enforceState(ctx, processor, agent, opts.Basedir, opts.DryRun); err != nil {
+	if _, err := enforceState(ctx, processor, agent, opts.Basedir, opts.DryRun); err != nil {
 		return fmt.Errorf("enforcing state: %w", err)
 	}
 
