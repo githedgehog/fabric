@@ -178,6 +178,48 @@ func TestApplyMutateRules(t *testing.T) {
 			warnings: []string{},
 		},
 		{
+			name:  "prefix list objects",
+			rules: []string{"keep@prefixList/manual", "keep@prefixList/fabric", "override@prefixList/tuned"},
+			actual: &dozer.Spec{PrefixLists: map[string]*dozer.SpecPrefixList{
+				"manual": {Prefixes: map[uint32]*dozer.SpecPrefixListEntry{10: permit}},
+				"fabric": {Prefixes: map[uint32]*dozer.SpecPrefixListEntry{10: permit}},
+				"tuned":  {Prefixes: map[uint32]*dozer.SpecPrefixListEntry{10: permit}},
+			}},
+			desired: &dozer.Spec{PrefixLists: map[string]*dozer.SpecPrefixList{"fabric": {}, "tuned": {}}},
+			expected: &dozer.Spec{PrefixLists: map[string]*dozer.SpecPrefixList{
+				"manual": {Prefixes: map[uint32]*dozer.SpecPrefixListEntry{10: permit}},
+				"fabric": {},
+				"tuned":  {Prefixes: map[uint32]*dozer.SpecPrefixListEntry{10: permit}},
+			}},
+			applied:  []string{"keep@prefixList/manual", "override@prefixList/tuned"},
+			warnings: []string{"keep@prefixList/fabric: planned by the fabric"},
+		},
+		{
+			name:  "route map statement other references and missing statement",
+			rules: []string{"keep@routeMap/x/1", "keep@routeMap/x/2", "keep@routeMap/x/3"},
+			actual: &dozer.Spec{RouteMaps: map[string]*dozer.SpecRouteMap{"x": {Statements: map[string]*dozer.SpecRouteMapStatement{
+				"1": {Conditions: dozer.SpecRouteMapConditions{MatchNextHopPrefixList: new("gone")}},
+				"2": {Conditions: dozer.SpecRouteMapConditions{MatchAsPathList: new("gone")}},
+			}}}},
+			desired:  &dozer.Spec{RouteMaps: map[string]*dozer.SpecRouteMap{"x": {Statements: map[string]*dozer.SpecRouteMapStatement{"10": acceptStmt}}}},
+			expected: &dozer.Spec{RouteMaps: map[string]*dozer.SpecRouteMap{"x": {Statements: map[string]*dozer.SpecRouteMapStatement{"10": acceptStmt}}}},
+			applied:  []string{},
+			warnings: []string{
+				"keep@routeMap/x/1: references prefixList/gone, not planned or kept",
+				"keep@routeMap/x/2: references asPathList/gone, not planned or kept",
+				"keep@routeMap/x/3: not on the switch",
+			},
+		},
+		{
+			name:     "acl interface without planned bindings",
+			rules:    []string{"keep@acl/manual", "keep@aclInterface/Ethernet0/ingress"},
+			actual:   &dozer.Spec{ACLs: map[string]*dozer.SpecACL{"manual": {}}, ACLInterfaces: map[string]*dozer.SpecACLInterface{"Ethernet0": {Ingress: new("manual")}}},
+			desired:  &dozer.Spec{Interfaces: interfaces},
+			expected: &dozer.Spec{Interfaces: interfaces, ACLs: map[string]*dozer.SpecACL{"manual": {}}, ACLInterfaces: map[string]*dozer.SpecACLInterface{"Ethernet0": {Ingress: new("manual")}}},
+			applied:  []string{"keep@acl/manual", "keep@aclInterface/Ethernet0/ingress"},
+			warnings: []string{},
+		},
+		{
 			name: "acl interfaces",
 			rules: []string{
 				"keep@aclInterface/Ethernet0/ingress", "keep@aclInterface/Ethernet0.10/ingress", "keep@aclInterface/Ethernet0.10/egress",
@@ -264,7 +306,7 @@ func TestApplyMutateRules(t *testing.T) {
 					"x": {Members: []string{"50000:1", "50000:0"}},
 					"z": {Members: []string{"1:1"}},
 				},
-				AsPathLists: map[string]*dozer.SpecAsPathList{"fabric": {Members: []string{"_65534_", "_65100_"}}},
+				AsPathLists: map[string]*dozer.SpecAsPathList{"fabric": {Members: []string{"_65534_", "_65100_"}}, "empty": {}},
 			},
 			expected: &dozer.Spec{
 				CommunityLists: map[string]*dozer.SpecCommunityList{
@@ -274,6 +316,7 @@ func TestApplyMutateRules(t *testing.T) {
 				AsPathLists: map[string]*dozer.SpecAsPathList{
 					"fabric": {Members: []string{"_65534_"}},
 					"manual": {Members: []string{"_1_", "_2_"}},
+					"empty":  {},
 				},
 			},
 			applied: []string{
