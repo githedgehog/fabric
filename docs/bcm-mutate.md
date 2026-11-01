@@ -1,14 +1,19 @@
 # BCM mutate rules
 
-!!! note
-    Added in the 26.05 release as an alpha feature for switches running Broadcom SONiC. The annotation name, rule
-    format and behavior may change in future releases.
+> [!NOTE]
+> Added in the 26.05 release as an experimental (alpha) feature for switches running Broadcom SONiC.
 
-!!! warning
-    BCM mutate rules make the agent accept configuration that is managed by hand instead of the configuration planned
-    by Fabric. Incorrect or outdated rules can break the switch configuration entirely, compromise tenant isolation
-    between VPCs, and leave the agent unable to apply any configuration. Use them only when there is no other way to
-    achieve the result, review every rule carefully, and verify the switch configuration after each change.
+> [!WARNING]
+> BCM mutate is an experimental feature and will be removed in one of the future releases. Until then, the annotation
+> name, rule format and behavior may change in any future release. It is a temporary escape hatch for urgent
+> situations and is not meant for long-term use. If you use it, we highly recommend opening an issue in the
+> [Fabric repository](https://github.com/githedgehog/fabric/issues) that describes your use case and contacting
+> Hedgehog support, so we are aware of it and can plan a supported way to achieve the same result.
+>
+> BCM mutate rules make the agent accept configuration that is managed by hand instead of the configuration planned
+> by Fabric. Incorrect or outdated rules can break the switch configuration entirely, compromise tenant isolation
+> between VPCs, and leave the agent unable to apply any configuration. Use them only when there is no other way to
+> achieve the result, review every rule carefully, and verify the switch configuration after each change.
 
 By default, the Fabric agent enforces the whole configuration it manages on a switch and removes anything it didn't
 create. BCM mutate rules let you change that for selected parts of the configuration on a switch running Broadcom
@@ -67,6 +72,17 @@ kubectl fabric inspect switch --name leaf-01
 `applied` lists the rules that took effect during the last configuration run. Rules that were skipped are logged by
 the agent on the switch with the reason, e.g. `journalctl -u hedgehog-agent | grep "Skipped bcm mutate rule"`.
 
+> [!NOTE]
+> After changing the rules, wait for at least one agent enforcement run (every 2 minutes by default, logged by the
+> agent as `Config applied`) and check that `status.mutate.applied` lists every rule you expect to be applied. A rule
+> that is missing there was skipped, the agent log shows why. Check it again after Fabric configuration changes that
+> affect the switch, as they can make rules skipped as well.
+
+Annotation changes don't change the generation of the Agent object, so they aren't covered by the applied generation
+tracking: `lastAppliedGen`, the `Ready` state in `kubectl fabric inspect` and anything waiting for the applied
+generation don't show whether a rule change was applied. Check `status.mutate.applied`, the notes and the agent log
+instead.
+
 ## Rule format
 
 A rule is `<mode>@<kind>/<name>[/<element>]`:
@@ -109,9 +125,24 @@ then applies the rules before comparing the two:
 - Rules for an element (an ACL rule, a statement, an entry, a static route, an ACL binding, a list member) are
   skipped with a warning if Fabric doesn't plan the ACL, route map, prefix list, VRF, interface or list that contains
   it.
+- Rules for whole objects are applied before the rules for elements, so the order of the rules doesn't matter.
+- A kept or overridden ACL binding or route map statement is skipped with a warning if something it references
+  wouldn't exist after the configuration run: the bound ACL, or the route map a statement calls or the prefix,
+  community and AS-path lists it matches. That's the case if the object is neither planned by Fabric nor kept by a
+  rule, including when Fabric stops planning an object it created before, e.g. after an external is deleted. The
+  skipped binding or statement is then removed from the switch together with the object it references, as otherwise
+  the switch would refuse to delete an object that is still in use. This check is best effort: it only covers the
+  references the agent reads from the switch.
 
 Content taken from the switch is identical on both sides of the comparison, so the agent never writes to it. Settings
 the agent doesn't know about are kept as well.
+
+Rules only see the configuration the agent reads from the switch. Objects in a state the agent doesn't support aren't
+read at all, so rules for them are skipped as not on the switch and Fabric's plan applies, e.g.:
+
+- disabled BFD profiles,
+- community and AS-path lists with an action other than permit,
+- route map statements with community actions other than adding inline communities, or without an action.
 
 Removing a rule makes the agent enforce the Fabric configuration there again on the next run, which deletes or replaces
 the manual configuration.
@@ -157,32 +188,37 @@ add@asPathList/fabric-gw-aspath/_65099_
 
 ## Choosing sequence numbers
 
-Elements kept with `keep` are lost if Fabric starts planning the same sequence number later. These ranges are not
-used by the current Fabric release and are recommended for manual elements, but they are not reserved:
+Elements kept with `keep` are lost if Fabric starts planning the same sequence number later, and the position of a
+manual element relative to the Fabric ones decides what it does: lower sequence numbers are evaluated first, and a
+matching ACL rule or route map statement usually ends the evaluation.
 
-| Object                               | Free sequence numbers    |
+Fabric doesn't reserve any sequence numbers for manual elements, and the numbers it uses depend on the configuration
+and can change between releases. Pick them carefully for each object: check the current configuration of the ACL or
+route map on the switch, see which Fabric rules or statements come before and after your element and what they match,
+and leave room for Fabric to grow.
+
+The following ranges are only examples of numbers that are often unused by the current Fabric release:
+
+| Object                               | Example sequence numbers |
 |--------------------------------------|--------------------------|
 | ACLs, except `ext-inbound--*`        | `65000`–`65534`          |
 | `ext-inbound--*` ACLs                | `8`–`9`                  |
 | Route maps, except `l2vpn-neighbors` | `1`–`4`, `65000`–`65499` |
 
-Lower sequence numbers are evaluated first:
-
-- In ACLs, `65000`–`65534` comes after the Fabric rules and before the final `65535` accept, so manual rules there can
-  add restrictions but can't allow traffic that Fabric drops. In `ext-inbound--*` ACLs, `8`–`9` comes after the
-  switch protection rules (`1`–`6`) and before the rules from the ExternalAttachment ACL (`10` and higher).
-- In route maps, `1`–`4` comes before all Fabric statements and `65000`–`65499` after them. A statement that matches
-  a route ends the route map for it, so a manual statement at `1`–`4` that permits routes skips the Fabric statements,
-  and one at the end only sees routes that no Fabric statement matched.
+For example, `8`–`9` in an `ext-inbound--*` ACL comes after the switch protection rules (`1`–`6`) and before the rules
+from the ExternalAttachment ACL (`10` and higher), and `1`–`4` in a route map comes before all Fabric statements, so a
+manual statement there that permits routes skips the Fabric statements for them.
 
 ## Caveats
 
 - Your own ACLs, route maps and lists are only used if something refers to them: an ACL through a kept `aclInterface`
   binding, a route map through a `call` from a statement you keep in a Fabric route map, a list through a `match` in
   such a statement. On their own they just stay on the switch.
-- Don't make Fabric objects depend on your objects or the other way around beyond that. If Fabric deletes an ACL that
-  is still bound by hand, or a list that is still used by a manual statement, the switch can refuse the deletion and
-  the agent keeps failing to apply its configuration.
+- Review the dependencies of your manual configuration before adding or removing rules. If Fabric deletes an object
+  that something on the switch still uses, e.g. a bound ACL or a route map or list used by a statement, the switch
+  can refuse the deletion and the agent keeps failing to apply its configuration until the rules or the manual
+  configuration are fixed. The agent only checks the references it reads (see [How rules work](#how-rules-work)), not
+  those of whole manual route maps or of configuration it doesn't read.
 - If Fabric removes a whole ACL, route map or list (e.g. when an external is deleted), the elements kept in it go with
   it.
 - If the description of an existing Fabric ACL changes, the agent replaces the whole ACL, which removes the kept rules
