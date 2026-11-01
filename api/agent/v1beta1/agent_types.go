@@ -17,6 +17,7 @@ package v1beta1
 import (
 	"fmt"
 	"slices"
+	"strings"
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
@@ -175,6 +176,17 @@ type AgentStatus struct {
 	Conditions []kmetav1.Condition `json:"conditions"`
 	// RebootRequired indicates whether a reboot is required
 	RebootRequired bool `json:"rebootRequired,omitempty"`
+	// UnmanagedObjects is the state of the objects kept by the agent on Broadcom SONiC switches (alpha)
+	UnmanagedObjects UnmanagedObjects `json:"unmanagedObjects,omitempty"`
+	// Notes is a comma separated summary of the agent state that needs attention
+	Notes string `json:"notes,omitempty"`
+}
+
+type UnmanagedObjects struct {
+	// Enabled is true if the last config application kept the unmanaged objects
+	Enabled bool `json:"enabled,omitempty"`
+	// Objects are the unmanaged objects found on the switch as sorted kind/name
+	Objects []string `json:"objects,omitempty"`
 }
 
 type SwitchState struct {
@@ -632,7 +644,7 @@ type SwitchStateCRMStats struct {
 // +kubebuilder:printcolumn:name="AppliedG",type=integer,JSONPath=`.status.lastAppliedGen`,priority=0
 // +kubebuilder:printcolumn:name="CurrentG",type=integer,JSONPath=`.metadata.generation`,priority=0
 // +kubebuilder:printcolumn:name="Version",type=string,JSONPath=`.status.version`,priority=0
-// +kubebuilder:printcolumn:name="RebootReq",type=boolean,JSONPath=`.status.rebootRequired`,priority=1
+// +kubebuilder:printcolumn:name="Notes",type=string,JSONPath=`.status.notes`,priority=0
 // +kubebuilder:printcolumn:name="Software",type=string,JSONPath=`.status.state.nos.softwareVersion`,priority=1
 // +kubebuilder:printcolumn:name="Attempt",type=date,JSONPath=`.status.lastAttemptTime`,priority=2
 // +kubebuilder:printcolumn:name="AttemptG",type=integer,JSONPath=`.status.lastAttemptGen`,priority=2
@@ -694,6 +706,18 @@ func (a *Agent) MarshalInstallConfig() ([]byte, error) {
 	}
 
 	return data, nil
+}
+
+func (s *AgentStatus) BuildNotes() string {
+	notes := []string{}
+	if s.UnmanagedObjects.Enabled {
+		notes = append(notes, fmt.Sprintf("unmanaged-objects (%d)", len(s.UnmanagedObjects.Objects)))
+	}
+	if s.RebootRequired {
+		notes = append(notes, "reboot-required")
+	}
+
+	return strings.Join(notes, ", ")
 }
 
 func (s *AgentSpec) IsVS() bool {

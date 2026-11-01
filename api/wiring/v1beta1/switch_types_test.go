@@ -681,6 +681,33 @@ func TestSwitchDomainsValidation(t *testing.T) {
 				sw.Annotations = map[string]string{wiringapi.AnnotationSwitchSyslogDebug: "yes"}
 			}),
 		},
+		{
+			name: "bcm unmanaged objects annotation",
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Annotations = map[string]string{wiringapi.AnnotationSwitchBCMUnmanagedObjects: "true"}
+			}),
+		},
+		{
+			name: "invalid bcm unmanaged objects annotation", err: "annotation fabric.alpha.githedgehog.com/bcm-unmanaged-objects must be a boolean",
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Annotations = map[string]string{wiringapi.AnnotationSwitchBCMUnmanagedObjects: "yes"}
+			}),
+		},
+		{
+			name: "bcm unmanaged objects annotation on non-bcm switch",
+			err:  "annotation fabric.alpha.githedgehog.com/bcm-unmanaged-objects is only supported for Broadcom SONiC switches",
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Spec.Profile = switchprofile.CumulusVX.Name
+				sw.Annotations = map[string]string{wiringapi.AnnotationSwitchBCMUnmanagedObjects: "true"}
+			}),
+		},
+		{
+			name: "disabled bcm unmanaged objects annotation on non-bcm switch",
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Spec.Profile = switchprofile.CumulusVX.Name
+				sw.Annotations = map[string]string{wiringapi.AnnotationSwitchBCMUnmanagedObjects: "false"}
+			}),
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := &meta.FabricConfig{
@@ -689,6 +716,7 @@ func TestSwitchDomainsValidation(t *testing.T) {
 				VTEPSubnet:          "172.30.12.0/22",
 				ManagementSubnet:    "172.30.0.0/21",
 				ManagementDHCPStart: "172.30.4.0",
+				IncludeCumulus:      true,
 			}
 			scheme := runtime.NewScheme()
 			require.NoError(t, wiringapi.AddToScheme(scheme))

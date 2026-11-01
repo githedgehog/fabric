@@ -52,10 +52,9 @@ spec:
     - jsonPath: .status.version
       name: Version
       type: string
-    - jsonPath: .status.rebootRequired
-      name: RebootReq
-      priority: 1
-      type: boolean
+    - jsonPath: .status.notes
+      name: Notes
+      type: string
     - jsonPath: .status.state.nos.softwareVersion
       name: Software
       priority: 1
@@ -2412,6 +2411,10 @@ spec:
                 description: Time of the last heartbeat from the agent
                 format: date-time
                 type: string
+              notes:
+                description: Notes is a comma separated summary of the agent state
+                  that needs attention
+                type: string
               rebootRequired:
                 description: RebootRequired indicates whether a reboot is required
                 type: boolean
@@ -3131,6 +3134,21 @@ spec:
                       type: string
                   type: object
                 type: array
+              unmanagedObjects:
+                description: UnmanagedObjects is the state of the objects kept by
+                  the agent on Broadcom SONiC switches (alpha)
+                properties:
+                  enabled:
+                    description: Enabled is true if the last config application kept
+                      the unmanaged objects
+                    type: boolean
+                  objects:
+                    description: Objects are the unmanaged objects found on the switch
+                      as sorted kind/name
+                    items:
+                      type: string
+                    type: array
+                type: object
               version:
                 description: Current running agent version
                 type: string

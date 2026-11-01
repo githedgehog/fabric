@@ -40,3 +40,39 @@ func TestAgentMarshalInstallConfig(t *testing.T) {
 
 	require.Equal(t, orig, agent, "the agent itself is left as is")
 }
+
+func TestAgentStatusBuildNotes(t *testing.T) {
+	for _, tt := range []struct {
+		name     string
+		status   AgentStatus
+		expected string
+	}{
+		{name: "empty"},
+		{
+			name:     "unmanaged objects without objects",
+			status:   AgentStatus{UnmanagedObjects: UnmanagedObjects{Enabled: true}},
+			expected: "unmanaged-objects (0)",
+		},
+		{
+			name:   "unmanaged objects disabled",
+			status: AgentStatus{UnmanagedObjects: UnmanagedObjects{Objects: []string{"acl/nohh-a"}}},
+		},
+		{
+			name:     "reboot required",
+			status:   AgentStatus{RebootRequired: true},
+			expected: "reboot-required",
+		},
+		{
+			name: "all",
+			status: AgentStatus{
+				UnmanagedObjects: UnmanagedObjects{Enabled: true, Objects: []string{"acl/nohh-a", "routeMap/nohh-b"}},
+				RebootRequired:   true,
+			},
+			expected: "unmanaged-objects (2), reboot-required",
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			require.Equal(t, tt.expected, tt.status.BuildNotes())
+		})
+	}
+}
