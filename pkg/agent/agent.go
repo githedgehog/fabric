@@ -319,6 +319,15 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 			LastTransitionTime: now,
 			Message:            fmt.Sprintf("Config applied, gen=%d", currentGen),
 		})
+	} else {
+		kmeta.SetStatusCondition(&agent.Status.Conditions, kmetav1.Condition{
+			Type:               "Applied",
+			Status:             kmetav1.ConditionFalse,
+			Reason:             "ApplyPending",
+			ObservedGeneration: agent.Generation,
+			LastTransitionTime: now,
+			Message:            fmt.Sprintf("Config will be applied, gen=%d", agent.Generation),
+		})
 	}
 
 	if err := svc.processor.UpdateSwitchState(ctx, agent, svc.reg); err != nil {
