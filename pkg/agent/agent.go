@@ -294,6 +294,19 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 		agent.Status.Conditions = []kmetav1.Condition{}
 	}
 
+	// config from the file is already applied, replace the condition left by the previous run or install,
+	// a newer generation is handled by the first watch event
+	if agent.Generation == currentGen {
+		kmeta.SetStatusCondition(&agent.Status.Conditions, kmetav1.Condition{
+			Type:               "Applied",
+			Status:             kmetav1.ConditionTrue,
+			Reason:             "ApplySucceeded",
+			ObservedGeneration: currentGen,
+			LastTransitionTime: now,
+			Message:            fmt.Sprintf("Config applied, gen=%d", currentGen),
+		})
+	}
+
 	if err := svc.processor.UpdateSwitchState(ctx, agent, svc.reg); err != nil {
 		return errors.Wrapf(err, "failed to update switch state")
 	}
@@ -710,6 +723,7 @@ func (svc *Service) processAgentFromKube(ctx context.Context, kube kclient.Clien
 		Type:               "Applied",
 		Status:             kmetav1.ConditionFalse,
 		Reason:             "ApplyPending",
+		ObservedGeneration: agent.Generation,
 		LastTransitionTime: kmetav1.Time{Time: time.Now()},
 		Message:            fmt.Sprintf("Config will be applied, gen=%d", agent.Generation),
 	})
@@ -771,6 +785,7 @@ func (svc *Service) processAgentFromKube(ctx context.Context, kube kclient.Clien
 		Type:               "Applied",
 		Status:             kmetav1.ConditionTrue,
 		Reason:             "ApplySucceeded",
+		ObservedGeneration: agent.Generation,
 		LastTransitionTime: kmetav1.Time{Time: time.Now()},
 		Message:            fmt.Sprintf("Config applied, gen=%d", agent.Generation),
 	})
