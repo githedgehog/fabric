@@ -178,6 +178,9 @@ func (m *mutator) statementRefsKept(rule wiringapi.BCMMutateRule, statement *Spe
 	if cond.MatchAsPathList != nil && m.desired.AsPathLists[*cond.MatchAsPathList] == nil {
 		missing = append(missing, "asPathList/"+*cond.MatchAsPathList)
 	}
+	if cond.MatchSourceVRF != nil && m.desired.VRFs[*cond.MatchSourceVRF] == nil {
+		missing = append(missing, "vrf/"+*cond.MatchSourceVRF)
+	}
 
 	if len(missing) > 0 {
 		m.warn(rule, "references "+strings.Join(missing, ", ")+", not planned or kept")

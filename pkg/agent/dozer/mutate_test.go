@@ -84,12 +84,13 @@ func TestApplyMutateRules(t *testing.T) {
 		},
 		{
 			name:  "route map statement references",
-			rules: []string{"keep@routeMap/ext-in/1", "keep@routeMap/ext-in/2", "keep@routeMap/manual", "keep@prefixList/fabric-pl/1"},
+			rules: []string{"keep@routeMap/ext-in/1", "keep@routeMap/ext-in/2", "keep@routeMap/ext-in/3", "keep@routeMap/manual", "keep@prefixList/fabric-pl/1"},
 			actual: &dozer.Spec{
 				RouteMaps: map[string]*dozer.SpecRouteMap{
 					"ext-in": {Statements: map[string]*dozer.SpecRouteMapStatement{
-						"1": {Conditions: dozer.SpecRouteMapConditions{Call: new("manual"), MatchPrefixList: new("fabric-pl")}},
+						"1": {Conditions: dozer.SpecRouteMapConditions{Call: new("manual"), MatchPrefixList: new("fabric-pl"), MatchSourceVRF: new("default")}},
 						"2": {Conditions: dozer.SpecRouteMapConditions{Call: new("other"), MatchCommunityList: new("missing")}},
+						"3": {Conditions: dozer.SpecRouteMapConditions{MatchSourceVRF: new("VrfVgone")}},
 					}},
 					"manual": {},
 					"other":  {},
@@ -99,20 +100,23 @@ func TestApplyMutateRules(t *testing.T) {
 			desired: &dozer.Spec{
 				RouteMaps:   map[string]*dozer.SpecRouteMap{"ext-in": {Statements: map[string]*dozer.SpecRouteMapStatement{"10": acceptStmt}}},
 				PrefixLists: map[string]*dozer.SpecPrefixList{"fabric-pl": {}},
+				VRFs:        map[string]*dozer.SpecVRF{"default": {}},
 			},
 			expected: &dozer.Spec{
 				RouteMaps: map[string]*dozer.SpecRouteMap{
 					"ext-in": {Statements: map[string]*dozer.SpecRouteMapStatement{
-						"1":  {Conditions: dozer.SpecRouteMapConditions{Call: new("manual"), MatchPrefixList: new("fabric-pl")}},
+						"1":  {Conditions: dozer.SpecRouteMapConditions{Call: new("manual"), MatchPrefixList: new("fabric-pl"), MatchSourceVRF: new("default")}},
 						"10": acceptStmt,
 					}},
 					"manual": {},
 				},
 				PrefixLists: map[string]*dozer.SpecPrefixList{"fabric-pl": {Prefixes: map[uint32]*dozer.SpecPrefixListEntry{1: permit}}},
+				VRFs:        map[string]*dozer.SpecVRF{"default": {}},
 			},
 			applied: []string{"keep@prefixList/fabric-pl/1", "keep@routeMap/ext-in/1", "keep@routeMap/manual"},
 			warnings: []string{
 				"keep@routeMap/ext-in/2: references routeMap/other, communityList/missing, not planned or kept",
+				"keep@routeMap/ext-in/3: references vrf/VrfVgone, not planned or kept",
 			},
 		},
 		{
