@@ -221,7 +221,9 @@ func copyObject[V any](m *mutator, rule wiringapi.BCMMutateRule, actual map[stri
 	if *desired == nil {
 		*desired = map[string]*V{}
 	}
-	// a copy so that anything changing the desired one doesn't change the actual one as well
+	// a shallow copy: replacing fields of the desired one doesn't change the actual one, but the nested maps, slices and
+	// pointers are shared, so they must not be changed in place (elements of the same object can't have rules of their
+	// own and members are cloned before add and remove)
 	cp := *value
 	(*desired)[rule.Name] = &cp
 	m.applied = append(m.applied, rule.String())
