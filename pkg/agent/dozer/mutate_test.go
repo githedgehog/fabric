@@ -120,6 +120,55 @@ func TestApplyMutateRules(t *testing.T) {
 			},
 		},
 		{
+			name:  "route map statement source vrfs",
+			rules: []string{"override@routeMap/peering/10", "override@routeMap/peering/20", "keep@routeMap/peering/30", "keep@routeMap/manual"},
+			actual: &dozer.Spec{
+				RouteMaps: map[string]*dozer.SpecRouteMap{
+					"peering": {Statements: map[string]*dozer.SpecRouteMapStatement{
+						"10": {Conditions: dozer.SpecRouteMapConditions{MatchSourceVRF: new("VrfVvpc-01")}, Result: dozer.SpecRouteMapResultAccept},
+						"20": {Conditions: dozer.SpecRouteMapConditions{MatchSourceVRF: new("VrfVvpc-02")}, Result: dozer.SpecRouteMapResultAccept},
+						"30": {Conditions: dozer.SpecRouteMapConditions{MatchPrefixList: new("gone"), MatchSourceVRF: new("VrfVvpc-02")}},
+					}},
+					"manual": {Statements: map[string]*dozer.SpecRouteMapStatement{
+						"1": {Conditions: dozer.SpecRouteMapConditions{MatchSourceVRF: new("VrfVvpc-02")}},
+					}},
+				},
+			},
+			desired: &dozer.Spec{
+				RouteMaps: map[string]*dozer.SpecRouteMap{"peering": {Statements: map[string]*dozer.SpecRouteMapStatement{"10": rejectStmt, "20": rejectStmt}}},
+				VRFs:      map[string]*dozer.SpecVRF{"VrfVvpc-01": {}},
+			},
+			expected: &dozer.Spec{
+				RouteMaps: map[string]*dozer.SpecRouteMap{
+					"peering": {Statements: map[string]*dozer.SpecRouteMapStatement{
+						"10": {Conditions: dozer.SpecRouteMapConditions{MatchSourceVRF: new("VrfVvpc-01")}, Result: dozer.SpecRouteMapResultAccept},
+						"20": rejectStmt,
+					}},
+					// statements of whole route maps aren't checked
+					"manual": {Statements: map[string]*dozer.SpecRouteMapStatement{
+						"1": {Conditions: dozer.SpecRouteMapConditions{MatchSourceVRF: new("VrfVvpc-02")}},
+					}},
+				},
+				VRFs: map[string]*dozer.SpecVRF{"VrfVvpc-01": {}},
+			},
+			applied: []string{"keep@routeMap/manual", "override@routeMap/peering/10"},
+			warnings: []string{
+				"override@routeMap/peering/20: references vrf/VrfVvpc-02, not planned or kept",
+				"keep@routeMap/peering/30: references prefixList/gone, vrf/VrfVvpc-02, not planned or kept",
+			},
+		},
+		{
+			name:  "route map statement source vrf without planned vrfs",
+			rules: []string{"keep@routeMap/x/1"},
+			actual: &dozer.Spec{RouteMaps: map[string]*dozer.SpecRouteMap{"x": {Statements: map[string]*dozer.SpecRouteMapStatement{
+				"1": {Conditions: dozer.SpecRouteMapConditions{MatchSourceVRF: new("default")}},
+			}}}},
+			desired:  &dozer.Spec{RouteMaps: map[string]*dozer.SpecRouteMap{"x": {}}},
+			expected: &dozer.Spec{RouteMaps: map[string]*dozer.SpecRouteMap{"x": {}}},
+			applied:  []string{},
+			warnings: []string{"keep@routeMap/x/1: references vrf/default, not planned or kept"},
+		},
+		{
 			name:     "prefix list entry into an empty list",
 			rules:    []string{"keep@prefixList/x/16777216"},
 			actual:   &dozer.Spec{PrefixLists: map[string]*dozer.SpecPrefixList{"x": {Prefixes: map[uint32]*dozer.SpecPrefixListEntry{16777216: permit}}}},
