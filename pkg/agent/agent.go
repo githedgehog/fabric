@@ -515,14 +515,14 @@ func enforceBroadcomState(ctx context.Context, processor dozer.Processor, agent 
 
 	desired, err := processor.PlanDesiredState(ctx, agent)
 	if err != nil {
-		return mutate, errors.Wrapf(err, "failed to plan spec")
+		return mutate, fmt.Errorf("planning spec: %w", err)
 	}
 	slog.Debug("Desired state generated")
 
 	startActual := time.Now()
 	actual, err := processor.LoadActualState(ctx, agent)
 	if err != nil {
-		return mutate, errors.Wrapf(err, "failed to load actual state")
+		return mutate, fmt.Errorf("loading actual state: %w", err)
 	}
 	slog.Debug("Actual state loaded", "took", time.Since(startActual))
 
@@ -539,7 +539,7 @@ func enforceBroadcomState(ctx context.Context, processor dozer.Processor, agent 
 
 	actions, err := processor.CalculateActions(ctx, actual, desired)
 	if err != nil {
-		return mutate, errors.Wrapf(err, "failed to calculate spec")
+		return mutate, fmt.Errorf("calculating actions: %w", err)
 	}
 	slog.Debug("Actions calculated", "count", len(actions))
 
@@ -548,27 +548,27 @@ func enforceBroadcomState(ctx context.Context, processor dozer.Processor, agent 
 
 	desiredData, err := desired.MarshalYAML()
 	if err != nil {
-		return mutate, errors.Wrapf(err, "failed to marshal desired spec")
+		return mutate, fmt.Errorf("marshaling desired spec: %w", err)
 	}
 
 	err = os.WriteFile(filepath.Join(basedir, "last-desired.yaml"), desiredData, 0o644) //nolint:gosec
 	if err != nil {
-		return mutate, errors.Wrapf(err, "failed to write desired spec")
+		return mutate, fmt.Errorf("writing desired spec: %w", err)
 	}
 
 	actualData, err := actual.MarshalYAML()
 	if err != nil {
-		return mutate, errors.Wrapf(err, "failed to marshal actual spec")
+		return mutate, fmt.Errorf("marshaling actual spec: %w", err)
 	}
 
 	err = os.WriteFile(filepath.Join(basedir, "last-actual.yaml"), actualData, 0o644) //nolint:gosec
 	if err != nil {
-		return mutate, errors.Wrapf(err, "failed to write actual spec")
+		return mutate, fmt.Errorf("writing actual spec: %w", err)
 	}
 
 	diff, err := dozer.SpecTextDiff(actualData, desiredData)
 	if err != nil {
-		return mutate, errors.Wrapf(err, "failed to generate diff")
+		return mutate, fmt.Errorf("generating diff: %w", err)
 	}
 
 	if slog.Default().Enabled(ctx, slog.LevelDebug) {
@@ -592,7 +592,7 @@ func enforceBroadcomState(ctx context.Context, processor dozer.Processor, agent 
 
 	warnings, err := processor.ApplyActions(ctx, actions)
 	if err != nil {
-		return mutate, errors.Wrapf(err, "failed to apply actions")
+		return mutate, fmt.Errorf("applying actions: %w", err)
 	}
 	for _, warning := range warnings {
 		slog.Warn("Action warning: " + warning)
