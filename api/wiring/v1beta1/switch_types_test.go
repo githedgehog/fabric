@@ -682,30 +682,48 @@ func TestSwitchDomainsValidation(t *testing.T) {
 			}),
 		},
 		{
-			name: "bcm unmanaged objects annotation",
+			name: "bcm mutate annotation as yaml",
 			sw: swGen(func(sw *wiringapi.Switch) {
-				sw.Annotations = map[string]string{wiringapi.AnnotationSwitchBCMUnmanagedObjects: "true"}
+				sw.Annotations = map[string]string{wiringapi.AnnotationSwitchBCMMutate: "rules:\n  - keep@acl/x/65000\n  - add@communityList/y/65000:100\n"}
 			}),
 		},
 		{
-			name: "invalid bcm unmanaged objects annotation", err: "annotation fabric.alpha.githedgehog.com/bcm-unmanaged-objects must be a boolean",
+			name: "bcm mutate annotation as json",
 			sw: swGen(func(sw *wiringapi.Switch) {
-				sw.Annotations = map[string]string{wiringapi.AnnotationSwitchBCMUnmanagedObjects: "yes"}
+				sw.Annotations = map[string]string{wiringapi.AnnotationSwitchBCMMutate: `{"rules": ["override@staticRoute/default/10.0.0.0/8"]}`}
 			}),
 		},
 		{
-			name: "bcm unmanaged objects annotation on non-bcm switch",
-			err:  "annotation fabric.alpha.githedgehog.com/bcm-unmanaged-objects is only supported for Broadcom SONiC switches",
+			name: "invalid bcm mutate annotation", err: "parsing annotation fabric.alpha.githedgehog.com/bcm-mutate",
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Annotations = map[string]string{wiringapi.AnnotationSwitchBCMMutate: "rules: keep@acl/x"}
+			}),
+		},
+		{
+			name: "bcm mutate annotation with unknown field", err: `unknown field "rule"`,
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Annotations = map[string]string{wiringapi.AnnotationSwitchBCMMutate: `{"rule": ["keep@acl/x"]}`}
+			}),
+		},
+		{
+			name: "bcm mutate annotation with invalid rule", err: "annotation fabric.alpha.githedgehog.com/bcm-mutate: invalid bcm mutate rule",
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Annotations = map[string]string{wiringapi.AnnotationSwitchBCMMutate: `{"rules": ["keep@acl/x/0"]}`}
+			}),
+		},
+		{
+			name: "bcm mutate annotation on non-bcm switch",
+			err:  "annotation fabric.alpha.githedgehog.com/bcm-mutate is only supported for Broadcom SONiC switches",
 			sw: swGen(func(sw *wiringapi.Switch) {
 				sw.Spec.Profile = switchprofile.CumulusVX.Name
-				sw.Annotations = map[string]string{wiringapi.AnnotationSwitchBCMUnmanagedObjects: "true"}
+				sw.Annotations = map[string]string{wiringapi.AnnotationSwitchBCMMutate: `{"rules": ["keep@acl/x"]}`}
 			}),
 		},
 		{
-			name: "disabled bcm unmanaged objects annotation on non-bcm switch",
+			name: "bcm mutate annotation without rules on non-bcm switch",
 			sw: swGen(func(sw *wiringapi.Switch) {
 				sw.Spec.Profile = switchprofile.CumulusVX.Name
-				sw.Annotations = map[string]string{wiringapi.AnnotationSwitchBCMUnmanagedObjects: "false"}
+				sw.Annotations = map[string]string{wiringapi.AnnotationSwitchBCMMutate: `{"rules": []}`}
 			}),
 		},
 	} {

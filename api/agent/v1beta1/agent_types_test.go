@@ -49,13 +49,13 @@ func TestAgentStatusBuildNotes(t *testing.T) {
 	}{
 		{name: "empty"},
 		{
-			name:     "unmanaged objects without objects",
-			status:   AgentStatus{UnmanagedObjects: UnmanagedObjects{Enabled: true}},
-			expected: "unmanaged-objects (0)",
+			name:     "mutated without applied rules",
+			status:   AgentStatus{Mutate: MutateStatus{Enabled: true}},
+			expected: "mutated (0)",
 		},
 		{
-			name:   "unmanaged objects disabled",
-			status: AgentStatus{UnmanagedObjects: UnmanagedObjects{Objects: []string{"acl/nohh-a"}}},
+			name:   "mutate disabled",
+			status: AgentStatus{Mutate: MutateStatus{Applied: []string{"keep@acl/x"}}},
 		},
 		{
 			name:     "reboot required",
@@ -65,10 +65,10 @@ func TestAgentStatusBuildNotes(t *testing.T) {
 		{
 			name: "all",
 			status: AgentStatus{
-				UnmanagedObjects: UnmanagedObjects{Enabled: true, Objects: []string{"acl/nohh-a", "routeMap/nohh-b"}},
-				RebootRequired:   true,
+				Mutate:         MutateStatus{Enabled: true, Applied: []string{"keep@acl/x", "override@routeMap/y/1"}},
+				RebootRequired: true,
 			},
-			expected: "unmanaged-objects (2), reboot-required",
+			expected: "mutated (2), reboot-required",
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {

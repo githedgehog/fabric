@@ -176,17 +176,17 @@ type AgentStatus struct {
 	Conditions []kmetav1.Condition `json:"conditions"`
 	// RebootRequired indicates whether a reboot is required
 	RebootRequired bool `json:"rebootRequired,omitempty"`
-	// UnmanagedObjects is the state of the objects kept by the agent on Broadcom SONiC switches (alpha)
-	UnmanagedObjects UnmanagedObjects `json:"unmanagedObjects,omitempty"`
+	// Mutate is the state of the bcm mutate rules applied by the agent on Broadcom SONiC switches (alpha)
+	Mutate MutateStatus `json:"mutate,omitempty"`
 	// Notes is a comma separated summary of the agent state that needs attention
 	Notes string `json:"notes,omitempty"`
 }
 
-type UnmanagedObjects struct {
-	// Enabled is true if the last config application kept the unmanaged objects
+type MutateStatus struct {
+	// Enabled is true if the last config application had any bcm mutate rules
 	Enabled bool `json:"enabled,omitempty"`
-	// Objects are the unmanaged objects found on the switch as sorted kind/name
-	Objects []string `json:"objects,omitempty"`
+	// Applied are the sorted bcm mutate rules that took effect in the last config application
+	Applied []string `json:"applied,omitempty"`
 }
 
 type SwitchState struct {
@@ -710,8 +710,8 @@ func (a *Agent) MarshalInstallConfig() ([]byte, error) {
 
 func (s *AgentStatus) BuildNotes() string {
 	notes := []string{}
-	if s.UnmanagedObjects.Enabled {
-		notes = append(notes, fmt.Sprintf("unmanaged-objects (%d)", len(s.UnmanagedObjects.Objects)))
+	if s.Mutate.Enabled {
+		notes = append(notes, fmt.Sprintf("mutated (%d)", len(s.Mutate.Applied)))
 	}
 	if s.RebootRequired {
 		notes = append(notes, "reboot-required")

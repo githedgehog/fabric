@@ -88,7 +88,7 @@ _Appears in:_
 | `state` _[SwitchState](#switchstate)_ | Detailed switch state updated with each heartbeat |  |  |
 | `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#condition-v1-meta) array_ | Conditions of the agent, includes readiness marker for use with kubectl wait |  |  |
 | `rebootRequired` _boolean_ | RebootRequired indicates whether a reboot is required |  |  |
-| `unmanagedObjects` _[UnmanagedObjects](#unmanagedobjects)_ | UnmanagedObjects is the state of the objects kept by the agent on Broadcom SONiC switches (alpha) |  |  |
+| `mutate` _[MutateStatus](#mutatestatus)_ | Mutate is the state of the bcm mutate rules applied by the agent on Broadcom SONiC switches (alpha) |  |  |
 | `notes` _string_ | Notes is a comma separated summary of the agent state that needs attention |  |  |
 
 
@@ -188,6 +188,23 @@ _Appears in:_
 | `` |  |
 | `internal` |  |
 | `external` |  |
+
+
+#### MutateStatus
+
+
+
+
+
+
+
+_Appears in:_
+- [AgentStatus](#agentstatus)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `enabled` _boolean_ | Enabled is true if the last config application had any bcm mutate rules |  |  |
+| `applied` _string array_ | Applied are the sorted bcm mutate rules that took effect in the last config application |  |  |
 
 
 #### OperStatus
@@ -709,23 +726,6 @@ _Appears in:_
 | `in` _float_ |  |  |  |
 | `out` _float_ |  |  |  |
 | `bias` _float_ |  |  |  |
-
-
-#### UnmanagedObjects
-
-
-
-
-
-
-
-_Appears in:_
-- [AgentStatus](#agentstatus)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `enabled` _boolean_ | Enabled is true if the last config application kept the unmanaged objects |  |  |
-| `objects` _string array_ | Objects are the unmanaged objects found on the switch as sorted kind/name |  |  |
 
 
 
@@ -3053,6 +3053,8 @@ the underlay definition including Switches, Server, wiring between them and etc.
 - [SwitchGroup](#switchgroup)
 - [SwitchProfile](#switchprofile)
 - [VLANNamespace](#vlannamespace)
+
+
 
 
 
