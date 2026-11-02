@@ -58,13 +58,14 @@ func (l *Lock) set(ctx context.Context, state lockState, reason string, keysAndV
 		return
 	}
 
-	msg := "Fabric controller unlocked"
+	var msg string
 	switch state {
 	case lockLocked:
 		msg = "Fabric controller locked"
 	case lockMaintenance:
 		msg = "Fabric controller in maintenance"
 	case lockUnlocked:
+		msg = "Fabric controller unlocked"
 	}
 	kctrllog.FromContext(ctx).Info(msg, append([]any{"reason", reason}, keysAndValues...)...)
 }
