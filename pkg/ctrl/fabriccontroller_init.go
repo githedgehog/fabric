@@ -283,8 +283,9 @@ var errMaintenance = errors.New("maintenance turned on")
 // checkMaintenance stops the initialization before its next writes once maintenance is turned on, as users may be
 // fixing the same objects meanwhile
 func (i *FabricControllerInitializer) checkMaintenance(ctx context.Context) error {
+	// not in the cache yet right after it's created, it's not in maintenance then
 	fc := &fcintapi.FabricController{}
-	if err := i.Get(ctx, i.key, fc); err != nil {
+	if err := i.Get(ctx, i.key, fc); kclient.IgnoreNotFound(err) != nil {
 		return fmt.Errorf("getting fabric controller: %w", err)
 	}
 	if fc.Spec.Maintenance {
@@ -349,9 +350,11 @@ func (i *FabricControllerInitializer) writeStatus(ctx context.Context, fc *fcint
 	return nil
 }
 
+// getOrCreate reads the FabricController from the API server: the cache may not have the last status written yet,
+// e.g. for the reconcile queued by creating it, which would initialize again otherwise
 func (i *FabricControllerInitializer) getOrCreate(ctx context.Context) (*fcintapi.FabricController, error) {
 	fc := &fcintapi.FabricController{}
-	err := i.Get(ctx, i.key, fc)
+	err := i.apiReader.Get(ctx, i.key, fc)
 	if err == nil {
 		return fc, nil
 	}
@@ -361,14 +364,7 @@ func (i *FabricControllerInitializer) getOrCreate(ctx context.Context) (*fcintap
 
 	fc = &fcintapi.FabricController{Namespace: i.key.Namespace, Name: i.key.Name}
 	if err := i.Create(ctx, fc); err != nil {
-		if !kapierrors.IsAlreadyExists(err) {
-			return nil, fmt.Errorf("creating fabric controller: %w", err)
-		}
-
-		// the cache hasn't caught up with an earlier create yet
-		if err := i.apiReader.Get(ctx, i.key, fc); err != nil {
-			return nil, fmt.Errorf("getting created fabric controller: %w", err)
-		}
+		return nil, fmt.Errorf("creating fabric controller: %w", err)
 	}
 
 	return fc, nil
