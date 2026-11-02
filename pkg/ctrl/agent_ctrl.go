@@ -456,30 +456,7 @@ func (r *AgentReconciler) enqueueByFabric(ctx context.Context, obj kclient.Objec
 }
 
 func (r *AgentReconciler) enqueueAllSwitches(ctx context.Context, obj kclient.Object) []reconcile.Request {
-	// all switches are queued and reconciled once unlocked, see lockedRequeueAfter; the refresh alone would fan out
-	// every write of a refreshed object to every switch otherwise
-	if r.lock.Locked() {
-		return nil
-	}
-
-	res := []reconcile.Request{}
-
-	sws := &wiringapi.SwitchList{}
-	err := r.List(ctx, sws, kclient.InNamespace(obj.GetNamespace()))
-	if err != nil {
-		kctrllog.FromContext(ctx).Error(err, "error listing switches to reconcile all")
-
-		return res
-	}
-
-	for _, sw := range sws.Items {
-		res = append(res, reconcile.Request{
-			Namespace: sw.Namespace,
-			Name:      sw.Name,
-		})
-	}
-
-	return res
+	return enqueueAllSwitches(r, r.lock)(ctx, obj)
 }
 
 // +kubebuilder:rbac:groups=agent.githedgehog.com,resources=agents,verbs=get;list;watch;create;update;patch;delete
