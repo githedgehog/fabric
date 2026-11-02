@@ -138,13 +138,7 @@ func (i *FabricControllerInitializer) refresh(ctx context.Context, fc *fcintapi.
 	l := kctrllog.FromContext(ctx)
 
 	fc.Status.Refresh = fcintapi.FabricControllerRefresh{Version: i.version, StartedAt: kmetav1.Now()}
-	kmeta.SetStatusCondition(&fc.Status.Conditions, kmetav1.Condition{
-		Type:               fcintapi.ConditionRefreshing,
-		Status:             kmetav1.ConditionTrue,
-		ObservedGeneration: fc.Generation,
-		Reason:             "Refreshing",
-		Message:            "Refreshing stored objects with the defaults of version " + i.version,
-	})
+	setReadyMessage(fc, "refreshing")
 	if err := i.writeStatus(ctx, fc); err != nil {
 		return fmt.Errorf("recording refresh start: %w", err)
 	}
@@ -364,6 +358,7 @@ func (i *FabricControllerInitializer) refreshObject(ctx context.Context, kind, k
 func (i *FabricControllerInitializer) reportRefresh(ctx context.Context, fc *fcintapi.FabricController, st *refreshState, passes int) {
 	// the full per-kind list in the refreshKinds order
 	fc.Status.Refresh.Passes = passes
+	setReadyMessage(fc, fmt.Sprintf("refreshing, pass %d", passes))
 	fc.Status.Refresh.Kinds = nil
 	st.update(func() {
 		for _, k := range refreshKinds {
