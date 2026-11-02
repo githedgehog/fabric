@@ -422,6 +422,62 @@ func TestFabricControllerInitializerLifecycle(t *testing.T) {
 	})
 }
 
+// the reconcile queued by creating the FabricController may read it from a cache without the status written since
+func TestFabricControllerInitializerStaleCache(t *testing.T) {
+	const ver = "v1.2.3"
+
+	// refreshes are counted by the Switch lists, with a fabric only the refresh lists them
+	lists := 0
+	kube := fake.NewClientBuilder().
+		WithScheme(initScheme(t)).
+		WithObjects(&wiringapi.Fabric{
+			Namespace: kmetav1.NamespaceDefault, Name: wiringapi.DefaultFabric,
+			Spec: wiringapi.DefaultFabricSpec(initFabricConfig()),
+		}).
+		WithStatusSubresource(&fcintapi.FabricController{}).
+		WithInterceptorFuncs(createLikeAPIServer(interceptor.Funcs{
+			List: func(ctx context.Context, c kclient.WithWatch, list kclient.ObjectList, opts ...kclient.ListOption) error {
+				if _, ok := list.(*wiringapi.SwitchList); ok {
+					lists++
+				}
+
+				return c.List(ctx, list, opts...)
+			},
+		})).
+		Build()
+	cached := interceptor.NewClient(kube, interceptor.Funcs{
+		Get: func(ctx context.Context, c kclient.WithWatch, key kclient.ObjectKey, obj kclient.Object, opts ...kclient.GetOption) error {
+			if err := c.Get(ctx, key, obj, opts...); err != nil {
+				return err //nolint:wrapcheck
+			}
+			if fc, ok := obj.(*fcintapi.FabricController); ok {
+				fc.Status = fcintapi.FabricControllerStatus{}
+			}
+
+			return nil
+		},
+	})
+
+	i := &FabricControllerInitializer{
+		Client:    cached,
+		apiReader: kube,
+		key:       ktypes.NamespacedName{Namespace: "fab", Name: fcintapi.FabricControllerName},
+		version:   ver,
+		cfg:       initFabricConfig(),
+		profiles:  switchprofile.NewDefaultSwitchProfiles(),
+	}
+
+	for range 2 {
+		_, err := reconcileInit(t, i)
+		require.NoError(t, err)
+	}
+	require.Equal(t, 1, lists, "initialized once")
+
+	fc := &fcintapi.FabricController{}
+	require.NoError(t, kube.Get(t.Context(), i.key, fc))
+	require.True(t, fc.IsReady(ver))
+}
+
 // turning maintenance on stops a running initialization before its next writes
 func TestFabricControllerInitializerStopsForMaintenance(t *testing.T) {
 	const ver = "v1.2.3"
