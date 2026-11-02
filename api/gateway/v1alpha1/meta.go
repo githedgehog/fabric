@@ -8,6 +8,9 @@ const (
 	ListLabelValue = "true"
 	LabelVPCs      = LabelPrefix + "vpcs"
 	LabelNAT       = LabelPrefix + "nat"
+
+	AnnotationHugePages1G = LabelPrefix + "hugepages-1g"
+	AnnotationHugePages2M = LabelPrefix + "hugepages-2m"
 )
 
 func ListLabelPrefix(listType string) string {

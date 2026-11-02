@@ -494,6 +494,68 @@ func TestGatewayValidate(t *testing.T) {
 			objs: base,
 			err:  v1alpha1.ErrInvalidGW,
 		},
+		{
+			name: "test-hugepages-max",
+			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Annotations = map[string]string{v1alpha1.AnnotationHugePages1G: "1024", v1alpha1.AnnotationHugePages2M: "524288"}
+			}),
+			objs: base,
+		},
+		{
+			name: "test-hugepages-zero",
+			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Annotations = map[string]string{v1alpha1.AnnotationHugePages1G: "0", v1alpha1.AnnotationHugePages2M: "0"}
+			}),
+			objs: base,
+		},
+		{
+			name: "test-hugepages-1g-not-integer",
+			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Annotations = map[string]string{v1alpha1.AnnotationHugePages1G: "4G"}
+			}),
+			objs: base,
+			err:  v1alpha1.ErrInvalidGW,
+		},
+		{
+			name: "test-hugepages-1g-empty",
+			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Annotations = map[string]string{v1alpha1.AnnotationHugePages1G: ""}
+			}),
+			objs: base,
+			err:  v1alpha1.ErrInvalidGW,
+		},
+		{
+			name: "test-hugepages-1g-negative",
+			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Annotations = map[string]string{v1alpha1.AnnotationHugePages1G: "-1"}
+			}),
+			objs: base,
+			err:  v1alpha1.ErrInvalidGW,
+		},
+		{
+			name: "test-hugepages-1g-too-many",
+			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Annotations = map[string]string{v1alpha1.AnnotationHugePages1G: "1025"}
+			}),
+			objs: base,
+			err:  v1alpha1.ErrInvalidGW,
+		},
+		{
+			name: "test-hugepages-2m-not-integer",
+			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Annotations = map[string]string{v1alpha1.AnnotationHugePages2M: "1.5"}
+			}),
+			objs: base,
+			err:  v1alpha1.ErrInvalidGW,
+		},
+		{
+			name: "test-hugepages-2m-too-many",
+			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Annotations = map[string]string{v1alpha1.AnnotationHugePages2M: "524289"}
+			}),
+			objs: base,
+			err:  v1alpha1.ErrInvalidGW,
+		},
 	}
 
 	scheme := runtime.NewScheme()
