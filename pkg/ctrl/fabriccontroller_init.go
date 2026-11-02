@@ -211,7 +211,7 @@ func (i *FabricControllerInitializer) initialize(ctx context.Context, fc *fcinta
 			return fmt.Errorf("recording failed initialization: %w", err)
 		}
 
-		l.Info("Initialization failed, objects need a fix in maintenance", "failure", failure)
+		l.Info("Initialization failed, locked until a spec change or restart", "failure", failure)
 
 		return nil
 	}
