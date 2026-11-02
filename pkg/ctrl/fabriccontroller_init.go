@@ -217,7 +217,7 @@ func (i *FabricControllerInitializer) initialize(ctx context.Context, fc *fcinta
 	}
 
 	fc.Status.InitializedVersion = i.version
-	setReady(fc, gen, kmetav1.ConditionTrue, fcintapi.ReasonInitialized, i.version)
+	setReady(fc, gen, kmetav1.ConditionTrue, fcintapi.ReasonInitialized, "operational")
 	// this write unlocks fabric-ctrl on every replica; retried by writeStatus so a temporary error or a concurrent
 	// spec change doesn't make the whole initialization, incl. a pass over all stored objects, start over
 	if err := i.writeStatus(ctx, fc); err != nil {
