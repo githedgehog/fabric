@@ -9,9 +9,11 @@ import (
 	"slices"
 
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	ktypes "k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	kctrllog "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -23,6 +25,12 @@ func switchRequests(namespace string, switches map[string]bool) []reconcile.Requ
 	}
 
 	return res
+}
+
+func onlyObject(key ktypes.NamespacedName) predicate.Predicate {
+	return predicate.NewPredicateFuncs(func(obj kclient.Object) bool {
+		return obj.GetNamespace() == key.Namespace && obj.GetName() == key.Name
+	})
 }
 
 // enqueueAllSwitches reconciles all switches in the object's namespace, all of them for an object without one

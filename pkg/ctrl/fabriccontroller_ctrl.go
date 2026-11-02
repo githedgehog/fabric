@@ -15,7 +15,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 // FabricControllerReconciler locks or unlocks the fabric controller depending on whether the FabricController
@@ -40,13 +39,9 @@ func SetupFabricControllerReconcilerWith(mgr kctrl.Manager, namespace string, lo
 		lock:   lock,
 	}
 
-	onlyOwn := predicate.NewPredicateFuncs(func(obj kclient.Object) bool {
-		return obj.GetNamespace() == r.key.Namespace && obj.GetName() == r.key.Name
-	})
-
 	if err := kctrl.NewControllerManagedBy(mgr).
 		Named("FabricController").
-		For(&fcintapi.FabricController{}, builder.WithPredicates(onlyOwn)).
+		For(&fcintapi.FabricController{}, builder.WithPredicates(onlyObject(r.key))).
 		// webhooks are served by every replica and need the lock, not only the leader's reconcilers
 		WithOptions(controller.Options{NeedLeaderElection: new(false)}).
 		Complete(r); err != nil {

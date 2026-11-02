@@ -89,14 +89,10 @@ func SetupFabricControllerInitializerWith(mgr kctrl.Manager, namespace string, c
 		passInterval: refreshPassInterval,
 	}
 
-	onlyOwn := predicate.NewPredicateFuncs(func(obj kclient.Object) bool {
-		return obj.GetNamespace() == i.key.Namespace && obj.GetName() == i.key.Name
-	})
-
 	if err := kctrl.NewControllerManagedBy(mgr).
 		Named("FabricControllerInit").
 		// own status writes don't change the generation, so they don't trigger another initialization
-		For(&fcintapi.FabricController{}, builder.WithPredicates(onlyOwn, predicate.GenerationChangedPredicate{})).
+		For(&fcintapi.FabricController{}, builder.WithPredicates(onlyObject(i.key), predicate.GenerationChangedPredicate{})).
 		// a new deployment has no FabricController to get an event for until the first reconcile creates it
 		WatchesRawSource(source.Func(func(_ context.Context, queue workqueue.TypedRateLimitingInterface[kctrl.Request]) error {
 			queue.Add(kctrl.Request{NamespacedName: i.key})
