@@ -13,7 +13,7 @@ var EdgecoreDCS240 = wiringapi.SwitchProfile{
 	Spec: wiringapi.SwitchProfileSpec{
 		DisplayName:   "Edgecore DCS240",
 		OtherNames:    []string{"Edgecore AS9726"},
-		SwitchSilicon: SiliconBroadcomTD4,
+		SwitchSilicon: SiliconBroadcomTD4_X11,
 		Features: wiringapi.SwitchProfileFeatures{
 			Subinterfaces: true,
 			ACLs:          true,
