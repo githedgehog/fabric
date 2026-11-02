@@ -32,3 +32,44 @@ belongs in `Validate()`.
 
 Gateway and GatewayPeering creates still build the gateway agent config and run the dataplane validator in the webhook,
 until it can run from `Validate()` and so in hhfab as well.
+
+# Initialization and the lock
+
+The fabric controller stays locked until the running version is initialized. Its state is the `FabricController`
+singleton `default` in the fabric controller's namespace (`kubectl get fc -A`).
+
+## Initialization
+
+The initializer (`fabriccontroller_init.go`) is a leader-elected reconciler of the `FabricController`. For a new version
+or spec generation it enforces the built-in switch profiles, runs the one-time migrations, refreshes the stored objects
+(`fabriccontroller_refresh.go`) and records `Ready`. A restart of an initialized version only enforces the profiles.
+
+The refresh writes the current `Default()` to every object that doesn't carry it, in passes over the cache until one
+finds nothing to change, and validates each object on its own. Objects it can't fix (rejected, stale or invalid) fail
+the initialization: it stays locked without retrying until a spec change or a restart, see `status.problems`. Other
+errors are retried with backoff, see `status.error`.
+
+- `Default()` only depends on the object itself and is idempotent.
+- A new kind with a defaulting webhook goes into `refreshKinds`.
+- A new one-time migration goes into the initializer before the refresh and is idempotent.
+
+## Lock
+
+Each replica has its own `Lock`, set by the `FabricController` controller (`fabriccontroller_ctrl.go`).
+
+| | Locked | Maintenance | Unlocked |
+|---|---|---|---|
+| Reconcilers | wait | wait | run |
+| Fabric controller writes | not validated | not validated | validated |
+| Other writes | 503 | validation errors as warnings | validated |
+
+Maintenance (`spec.maintenance`) is turned on by users to fix the objects that keep it locked, leaving it initializes
+again. Objects are only validated on their own then, and it relies on a single replica: a reconcile already running when
+it's turned on may still read an edit admitted right after.
+
+## Reconcilers and mappers
+
+- Reconcilers return `RequeueAfter: lockedRequeueAfter` while locked, so their events stay queued.
+- Fan-out mappers return nothing while locked, as the refresh writes every object.
+- A controller with such a mapper watches `lock.Unlocked()` and enqueues all its objects, as the ones reconciled before
+  a later lock (maintenance, re-initialization) aren't queued anymore: agent, gateway and switch boot today.
