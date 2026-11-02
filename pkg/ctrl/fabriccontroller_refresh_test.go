@@ -99,7 +99,7 @@ func TestFabricControllerRefresh(t *testing.T) {
 			newSwitch("flaky", false),
 		).
 		WithStatusSubresource(&fcintapi.FabricController{}).
-		WithInterceptorFuncs(interceptor.Funcs{
+		WithInterceptorFuncs(createLikeAPIServer(interceptor.Funcs{
 			Update: func(ctx context.Context, c kclient.WithWatch, obj kclient.Object, opts ...kclient.UpdateOption) error {
 				if _, ok := obj.(*wiringapi.Switch); !ok {
 					return c.Update(ctx, obj, opts...)
@@ -124,7 +124,7 @@ func TestFabricControllerRefresh(t *testing.T) {
 
 				return c.Update(ctx, obj, opts...)
 			},
-		}).
+		})).
 		Build()
 
 	profiles := switchprofile.NewDefaultSwitchProfiles()
@@ -247,6 +247,7 @@ func TestFabricControllerRefreshInvalid(t *testing.T) {
 		WithScheme(initScheme(t)).
 		WithObjects(objs...).
 		WithStatusSubresource(&fcintapi.FabricController{}).
+		WithInterceptorFuncs(createLikeAPIServer(interceptor.Funcs{})).
 		Build()
 
 	i := &FabricControllerInitializer{
@@ -292,10 +293,19 @@ func TestFabricControllerRefreshInvalid(t *testing.T) {
 		require.Contains(t, invalid, p.Name)
 	}
 
-	// fixed, e.g. in maintenance
+	// fixed in maintenance
 	for _, name := range invalid {
 		require.NoError(t, kube.Delete(t.Context(), &wiringapi.Server{Namespace: kmetav1.NamespaceDefault, Name: name}))
 	}
+
+	_, err = reconcileInit(t, i)
+	require.NoError(t, err)
+	require.NoError(t, kube.Get(t.Context(), i.key, fc))
+	require.False(t, fc.IsReady("v1.2.3"), "a failed initialization isn't repeated for the same spec")
+
+	// leaving maintenance changes the spec, the fake client doesn't bump the generation
+	fc.Generation++
+	require.NoError(t, kube.Update(t.Context(), fc))
 	_, err = reconcileInit(t, i)
 	require.NoError(t, err)
 

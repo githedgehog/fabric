@@ -62,6 +62,10 @@ type FabricControllerInitializer struct {
 	// reconciles are sequential, so they're plain fields
 	enforced    bool // the built-in switch profiles were enforced by this process
 	initialized bool // this process completed initialization, devel builds initialize once per process
+	// the FabricController this process failed to initialize, it's not repeated for the same spec, e.g. on a check
+	// scheduled while it was initialized, only on a spec change or restart
+	failedUID ktypes.UID
+	failedGen int64
 }
 
 func SetupFabricControllerInitializerWith(mgr kctrl.Manager, namespace string, cfg *meta.FabricConfig, profiles *switchprofile.Default) error {
@@ -153,6 +157,10 @@ func (i *FabricControllerInitializer) Reconcile(ctx context.Context, _ kctrl.Req
 		return kctrl.Result{RequeueAfter: initCheckInterval}, nil
 	}
 
+	if fc.UID == i.failedUID && fc.Generation == i.failedGen {
+		return kctrl.Result{}, nil
+	}
+
 	// the initialization is for the spec it started with, a spec change meanwhile needs another one
 	gen := fc.Generation
 	if err := i.initialize(ctx, fc, gen); errors.Is(err, errMaintenance) {
@@ -173,6 +181,8 @@ func (i *FabricControllerInitializer) Reconcile(ctx context.Context, _ kctrl.Req
 	// failed on objects the refresh couldn't fix: it stays locked until a spec change, e.g. leaving maintenance, or a
 	// restart initializes again, instead of repeating the refresh and its writes
 	if !fc.IsReady(i.version) {
+		i.failedUID, i.failedGen = fc.UID, gen
+
 		return kctrl.Result{}, nil
 	}
 

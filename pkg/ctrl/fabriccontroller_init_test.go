@@ -20,6 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	ktypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	kctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -72,6 +73,18 @@ func reconcileInit(t *testing.T, i *FabricControllerInitializer) (kctrl.Result, 
 	t.Helper()
 
 	return i.Reconcile(t.Context(), kctrl.Request{NamespacedName: i.key})
+}
+
+// createLikeAPIServer sets the UID and generation on create, as the API server does but the fake client doesn't
+func createLikeAPIServer(funcs interceptor.Funcs) interceptor.Funcs {
+	funcs.Create = func(ctx context.Context, c kclient.WithWatch, obj kclient.Object, opts ...kclient.CreateOption) error {
+		obj.SetUID(uuid.NewUUID())
+		obj.SetGeneration(1)
+
+		return c.Create(ctx, obj, opts...)
+	}
+
+	return funcs
 }
 
 func initScheme(t *testing.T) *runtime.Scheme {
@@ -203,6 +216,7 @@ func testFabricControllerInitializer(t *testing.T, ver string) {
 				WithScheme(initScheme(t)).
 				WithObjects(tt.objs...).
 				WithStatusSubresource(&fcintapi.FabricController{}).
+				WithInterceptorFuncs(createLikeAPIServer(interceptor.Funcs{})).
 				Build()
 
 			profiles := switchprofile.NewDefaultSwitchProfiles()
@@ -300,7 +314,7 @@ func TestFabricControllerInitializerLifecycle(t *testing.T) {
 			Spec: wiringapi.DefaultFabricSpec(initFabricConfig()),
 		}).
 		WithStatusSubresource(&fcintapi.FabricController{}).
-		WithInterceptorFuncs(interceptor.Funcs{
+		WithInterceptorFuncs(createLikeAPIServer(interceptor.Funcs{
 			List: func(ctx context.Context, c kclient.WithWatch, list kclient.ObjectList, opts ...kclient.ListOption) error {
 				switch list.(type) {
 				case *wiringapi.SwitchList:
@@ -313,7 +327,7 @@ func TestFabricControllerInitializerLifecycle(t *testing.T) {
 
 				return c.List(ctx, list, opts...)
 			},
-		}).
+		})).
 		Build()
 
 	newInitializer := func() *FabricControllerInitializer {
