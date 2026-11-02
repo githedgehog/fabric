@@ -378,9 +378,11 @@ func TestDataplaneHugePages(t *testing.T) {
 		name   string
 		hp1G   int64
 		hp2M   int64
+		anns   map[string]string
 		driver gwapi.GatewayDriver
 		limits map[string]string
 		args   []string
+		err    bool
 	}{
 		{
 			name:   "none",
@@ -413,12 +415,67 @@ func TestDataplaneHugePages(t *testing.T) {
 			limits: map[string]string{"hugepages-1Gi": "2Gi", "hugepages-2Mi": "16Mi"},
 			args:   []string{"--hugepages-gib", "2"},
 		},
+		{
+			name:   "1G-annotation",
+			hp1G:   4,
+			anns:   map[string]string{gwapi.AnnotationHugePages1G: "16"},
+			driver: gwapi.GatewayDriverDPDK,
+			limits: map[string]string{"hugepages-1Gi": "16Gi"},
+			args:   []string{"--hugepages-gib", "16"},
+		},
+		{
+			name:   "1G-annotation-without-config",
+			anns:   map[string]string{gwapi.AnnotationHugePages1G: "16"},
+			driver: gwapi.GatewayDriverDPDK,
+			limits: map[string]string{"hugepages-1Gi": "16Gi"},
+			args:   []string{"--hugepages-gib", "16"},
+		},
+		{
+			name:   "1G-annotation-zero",
+			hp1G:   4,
+			hp2M:   8,
+			anns:   map[string]string{gwapi.AnnotationHugePages1G: "0"},
+			driver: gwapi.GatewayDriverDPDK,
+			limits: map[string]string{"hugepages-2Mi": "16Mi"},
+		},
+		{
+			name:   "2M-annotation",
+			hp1G:   2,
+			hp2M:   8,
+			anns:   map[string]string{gwapi.AnnotationHugePages2M: "512"},
+			driver: gwapi.GatewayDriverDPDK,
+			limits: map[string]string{"hugepages-1Gi": "2Gi", "hugepages-2Mi": "1Gi"},
+			args:   []string{"--hugepages-gib", "2"},
+		},
+		{
+			name:   "both-annotations-zero",
+			hp1G:   2,
+			hp2M:   8,
+			anns:   map[string]string{gwapi.AnnotationHugePages1G: "0", gwapi.AnnotationHugePages2M: "0"},
+			driver: gwapi.GatewayDriverDPDK,
+		},
+		{
+			name:   "invalid-annotation",
+			hp1G:   4,
+			anns:   map[string]string{gwapi.AnnotationHugePages1G: "many"},
+			driver: gwapi.GatewayDriverDPDK,
+			err:    true,
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := &meta.FabricConfig{GatewayHugePages1G: tt.hp1G, GatewayHugePages2M: tt.hp2M}
 			gw := &gwapi.Gateway{Spec: gwapi.GatewaySpec{Driver: tt.driver}}
+			gw.Annotations = tt.anns
 
-			resources, args := dataplaneHugePages(cfg, gw)
+			hp1G, hp2M, err := gw.HugePages(cfg.GatewayHugePages1G, cfg.GatewayHugePages2M)
+			if tt.err {
+				require.ErrorIs(t, err, gwapi.ErrInvalidGW)
+
+				return
+			}
+			require.NoError(t, err)
+
+			resources, args := dataplaneHugePages(gw, hp1G, hp2M)
 			require.Equal(t, tt.args, args)
 			if tt.limits == nil {
 				require.Equal(t, corev1.ResourceRequirements{}, resources)
@@ -506,6 +563,25 @@ func TestGatewayDeploy(t *testing.T) {
 	}
 }
 
+func TestGatewayReconcileInvalidHugePages(t *testing.T) {
+	kube := gatewayTestKube(t)
+	r := &GatewayReconciler{
+		Client: kube,
+		cfg:    &meta.FabricConfig{GatewayNamespace: "fab", GatewayHugePages1G: 4},
+		lock:   unlockedLock(),
+	}
+
+	gw := &gwapi.Gateway{}
+	require.NoError(t, kube.Get(t.Context(), kclient.ObjectKey{Name: "gw-1", Namespace: kmetav1.NamespaceDefault}, gw))
+	gw.Annotations = map[string]string{gwapi.AnnotationHugePages1G: "16G"}
+	require.NoError(t, kube.Update(t.Context(), gw))
+
+	_, err := r.Reconcile(t.Context(), reconcileReq("gw-1"))
+	require.ErrorIs(t, err, gwapi.ErrInvalidGW)
+	requireNotFound(t, kube, &gwintapi.GatewayAgent{}, kmetav1.NamespaceDefault, "gw-1")
+	requireNotFound(t, kube, &appv1.DaemonSet{}, "fab", gwapi.DaemonSetName("gw-1"))
+}
+
 func TestBuildGatewayAgentPeeringAnnotations(t *testing.T) {
 	kube := gatewayTestKube(t)
 
@@ -546,6 +622,8 @@ func TestBuildGatewayAgentGatewayAnnotations(t *testing.T) {
 		wiringapi.AnnotationTopology:    "f1/d1",
 		wiringapi.ListLabelFabric("f1"): wiringapi.ListLabelValue,
 		wiringapi.ListLabelDomain("d1"): wiringapi.ListLabelValue,
+		gwapi.AnnotationHugePages1G:     "16",
+		gwapi.AnnotationHugePages2M:     "512",
 	}
 
 	ag, err := BuildGatewayAgent(t.Context(), kube, &meta.FabricConfig{}, gw)
