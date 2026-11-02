@@ -11,11 +11,12 @@
 | Dell Z9332F-ON | **spine** | Broadcom TH3 | 32xQSFPDD-400G, 2xSFP28-10G |
 | Edgecore DCS203 (AS7326-56X) | **spine**, **leaf** | Broadcom TD3-X7 2.0T | 48xSFP28-25G, 8xQSFP28-100G, 2xSFP28-10G |
 | Edgecore DCS204 (AS7726-32X) | **spine**, **leaf** | Broadcom TD3-X7 3.2T | 32xQSFP28-100G, 2xSFP28-10G |
-| Edgecore DCS240 (AS9726) | **spine**, **leaf** | Broadcom TD4 | 32xQSFP56DD-400G, 2xSFP28-10G |
+| Edgecore DCS240 (AS9726) | **spine**, **leaf** | Broadcom TD4-X11 | 32xQSFP56DD-400G, 2xSFP28-10G |
 | Edgecore DCS501 (AS7712-32X) | **spine** | Broadcom TH | 32xQSFP28-100G |
 | Edgecore EPS202 (AS4630-54PE) | **spine**, **leaf (limited)** | Broadcom TD3-X3 | 48xRJ45-1G, 4xSFP28-25G, 2xQSFP28-100G |
 | Edgecore EPS203 (AS4630-54NPE) | **leaf (limited)** | Broadcom TD3-X3 | 36xRJ45-2.5G, 12xRJ45-10G, 4xSFP28-25G, 2xQSFP28-100G |
 | Supermicro SSE-C4632SB | **spine**, **leaf** | Broadcom TD3-X7 3.2T | 32xQSFP28-100G, 1xSFP28-10G |
+| UfiSpace S9300 | **spine**, **leaf** | Broadcom TD4-X11 | 32xQSFP56DD-400G, 2xSFP28-10G |
 
 !!! note
     - Switches with **leaf (l3-only)** role only support L3 VPC modes
