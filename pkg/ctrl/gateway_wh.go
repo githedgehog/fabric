@@ -77,10 +77,19 @@ func (w *GatewayWebhook) ValidateUpdate(ctx context.Context, oldGw *gwapi.Gatewa
 		return nil, nil
 	}
 
+	hugePagesEqual := func(key string) bool {
+		oldVal, oldOk := oldGw.Annotations[key]
+		newVal, newOk := newGw.Annotations[key]
+
+		return oldOk == newOk && oldVal == newVal
+	}
+
 	// nothing to validate in a metadata only update, e.g. the controller adding its finalizer, which must not be
-	// refused for a gateway that doesn't pass the current validation anymore, the annotations passed to the agent count
+	// refused for a gateway that doesn't pass the current validation anymore, the annotations passed to the agent and
+	// the hugepages ones passed to the dataplane count
 	if equality.Semantic.DeepEqual(oldGw.Spec, newGw.Spec) &&
-		maps.Equal(agentAnnotations(oldGw.Annotations), agentAnnotations(newGw.Annotations)) {
+		maps.Equal(agentAnnotations(oldGw.Annotations), agentAnnotations(newGw.Annotations)) &&
+		hugePagesEqual(gwapi.AnnotationHugePages1G) && hugePagesEqual(gwapi.AnnotationHugePages2M) {
 		return nil, nil
 	}
 

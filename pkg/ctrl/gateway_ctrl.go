@@ -265,6 +265,12 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 
 	l.Info("Reconciling Gateway")
 
+	// before the agent and dataplane are touched, so an invalid annotation doesn't leave the gateway half-deployed
+	hp1G, hp2M, err := gw.HugePages(r.cfg.GatewayHugePages1G, r.cfg.GatewayHugePages2M)
+	if err != nil {
+		return kctrl.Result{}, fmt.Errorf("getting hugepages: %w", err)
+	}
+
 	newGwAg, err := BuildGatewayAgent(ctx, r.Client, r.cfg, gw)
 	if err != nil {
 		if errors.Is(err, ErrRetryLater) {
@@ -289,7 +295,7 @@ func (r *GatewayReconciler) Reconcile(ctx context.Context, req kctrl.Request) (k
 		return kctrl.Result{}, fmt.Errorf("creating or updating gateway agent: %w", err)
 	}
 
-	if err := r.deployGateway(ctx, gw); err != nil {
+	if err := r.deployGateway(ctx, gw, hp1G, hp2M); err != nil {
 		if errors.Is(err, ErrRetryLater) {
 			l.Info("Deploying gateway later", "reason", err.Error())
 
@@ -520,6 +526,10 @@ func agentAnnotations(anns map[string]string) map[string]string {
 		if k == wiringapi.AnnotationTopology || k == gwapi.LabelVPCs || k == gwapi.LabelNAT {
 			continue
 		}
+		// passed to the dataplane as resources and args, not through the agent
+		if k == gwapi.AnnotationHugePages1G || k == gwapi.AnnotationHugePages2M {
+			continue
+		}
 		if strings.HasPrefix(k, wiringapi.ListLabelFabric("")) || strings.HasPrefix(k, wiringapi.ListLabelDomain("")) {
 			continue
 		}
@@ -554,15 +564,15 @@ func dataplaneIfaceArgs(gw *gwapi.Gateway) []string {
 	return append(args, "--driver", string(gw.Spec.Driver))
 }
 
-// dataplaneHugePages returns the dataplane container resources and args for the configured hugepages, the dataplane
+// dataplaneHugePages returns the dataplane container resources and args for the hugepages of the gateway, the dataplane
 // currently only uses 1G pages and only with the dpdk driver
-func dataplaneHugePages(cfg *meta.FabricConfig, gw *gwapi.Gateway) (corev1.ResourceRequirements, []string) {
+func dataplaneHugePages(gw *gwapi.Gateway, hp1G, hp2M int64) (corev1.ResourceRequirements, []string) {
 	limits := corev1.ResourceList{} //nolint:exhaustive
-	if cfg.GatewayHugePages1G > 0 {
-		limits[corev1.ResourceHugePagesPrefix+"1Gi"] = quantity(cfg.GatewayHugePages1G << 30) // N × 1Gi
+	if hp1G > 0 {
+		limits[corev1.ResourceHugePagesPrefix+"1Gi"] = quantity(hp1G << 30) // N × 1Gi
 	}
-	if cfg.GatewayHugePages2M > 0 {
-		limits[corev1.ResourceHugePagesPrefix+"2Mi"] = quantity(cfg.GatewayHugePages2M << 21) // N × 2Mi
+	if hp2M > 0 {
+		limits[corev1.ResourceHugePagesPrefix+"2Mi"] = quantity(hp2M << 21) // N × 2Mi
 	}
 	if len(limits) == 0 {
 		return corev1.ResourceRequirements{}, nil
@@ -573,8 +583,8 @@ func dataplaneHugePages(cfg *meta.FabricConfig, gw *gwapi.Gateway) (corev1.Resou
 	requests[corev1.ResourceMemory] = quantity(1 << 30) // 1Gi
 
 	var args []string
-	if gw.Spec.Driver == gwapi.GatewayDriverDPDK && cfg.GatewayHugePages1G > 0 {
-		args = []string{"--hugepages-gib", strconv.FormatInt(cfg.GatewayHugePages1G, 10)}
+	if gw.Spec.Driver == gwapi.GatewayDriverDPDK && hp1G > 0 {
+		args = []string{"--hugepages-gib", strconv.FormatInt(hp1G, 10)}
 	}
 
 	return corev1.ResourceRequirements{Limits: limits, Requests: requests}, args
@@ -597,7 +607,7 @@ func entityName(gwName string, t ...string) string {
 	return fmt.Sprintf("gw--%s--%s", gwName, strings.Join(t, "-"))
 }
 
-func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway) error {
+func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway, hp1G, hp2M int64) error {
 	saName := entityName(gw.Name)
 
 	{
@@ -722,7 +732,7 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 
 		args = append(args, dataplaneIfaceArgs(gw)...)
 
-		resources, hugePagesArgs := dataplaneHugePages(r.cfg, gw)
+		resources, hugePagesArgs := dataplaneHugePages(gw, hp1G, hp2M)
 		args = append(args, hugePagesArgs...)
 
 		frrRunMount := corev1.VolumeMount{
