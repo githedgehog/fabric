@@ -150,6 +150,31 @@ spec:
                   InitializedVersion is the fabric controller version that last completed initialization, including the refresh
                   of stored objects. The fabric controller is locked until it matches the running version and it's Ready
                 type: string
+              problems:
+                description: |-
+                  Problems are the objects the last refresh couldn't fix, they keep the fabric controller locked until they're
+                  fixed in maintenance. Only the first ones are listed, refresh.kinds has the counts
+                items:
+                  description: FabricControllerProblem is an object the refresh couldn't
+                    fix
+                  properties:
+                    kind:
+                      type: string
+                    message:
+                      type: string
+                    name:
+                      type: string
+                    namespace:
+                      type: string
+                    reason:
+                      description: Reason is Rejected, Stale or Invalid
+                      type: string
+                  required:
+                  - kind
+                  - name
+                  - reason
+                  type: object
+                type: array
               refresh:
                 description: Refresh is the progress of the last or current refresh
                   of stored objects
@@ -167,18 +192,19 @@ spec:
                         invalid:
                           description: |-
                             Invalid is the number of objects that fail the validation of the current version, checked without looking up
-                            other objects. They still get the current defaults, but any change to them is rejected until they're fixed
+                            other objects. They still get the current defaults
                           type: integer
                         kind:
                           description: Kind is the kind of the refreshed objects
                           type: string
                         rejected:
                           description: Rejected is the number of objects whose update
-                            was rejected
+                            was rejected, e.g. by the CRD schema or missing permissions
                           type: integer
                         stale:
-                          description: Stale is the number of objects that still don't
-                            carry the current defaults after retries
+                          description: |-
+                            Stale is the number of objects that still don't carry the current defaults after retries, e.g. as the CRD
+                            schema drops a defaulted field or something else keeps writing them back
                           type: integer
                         total:
                           description: Total is the number of objects of the kind

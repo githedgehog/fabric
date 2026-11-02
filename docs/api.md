@@ -896,6 +896,26 @@ the progress of that refresh. The fabric controller only reconciles and accepts 
 | `status` _[FabricControllerStatus](#fabriccontrollerstatus)_ |  |  |  |
 
 
+#### FabricControllerProblem
+
+
+
+FabricControllerProblem is an object the refresh couldn't fix
+
+
+
+_Appears in:_
+- [FabricControllerStatus](#fabriccontrollerstatus)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `kind` _string_ |  |  |  |
+| `namespace` _string_ |  |  |  |
+| `name` _string_ |  |  |  |
+| `reason` _string_ | Reason is Rejected, Stale or Invalid |  |  |
+| `message` _string_ |  |  |  |
+
+
 #### FabricControllerRefresh
 
 
@@ -932,9 +952,9 @@ _Appears in:_
 | `kind` _string_ | Kind is the kind of the refreshed objects |  |  |
 | `total` _integer_ | Total is the number of objects of the kind |  |  |
 | `updated` _integer_ | Updated is the number of objects updated with the current defaults |  |  |
-| `rejected` _integer_ | Rejected is the number of objects whose update was rejected |  |  |
-| `stale` _integer_ | Stale is the number of objects that still don't carry the current defaults after retries |  |  |
-| `invalid` _integer_ | Invalid is the number of objects that fail the validation of the current version, checked without looking up<br />other objects. They still get the current defaults, but any change to them is rejected until they're fixed |  |  |
+| `rejected` _integer_ | Rejected is the number of objects whose update was rejected, e.g. by the CRD schema or missing permissions |  |  |
+| `stale` _integer_ | Stale is the number of objects that still don't carry the current defaults after retries, e.g. as the CRD<br />schema drops a defaulted field or something else keeps writing them back |  |  |
+| `invalid` _integer_ | Invalid is the number of objects that fail the validation of the current version, checked without looking up<br />other objects. They still get the current defaults |  |  |
 
 
 #### FabricControllerSpec
@@ -970,6 +990,7 @@ _Appears in:_
 | `initializedVersion` _string_ | InitializedVersion is the fabric controller version that last completed initialization, including the refresh<br />of stored objects. The fabric controller is locked until it matches the running version and it's Ready |  |  |
 | `error` _string_ | Error is why the initialization failed, while it's retried |  |  |
 | `refresh` _[FabricControllerRefresh](#fabriccontrollerrefresh)_ | Refresh is the progress of the last or current refresh of stored objects |  |  |
+| `problems` _[FabricControllerProblem](#fabriccontrollerproblem) array_ | Problems are the objects the last refresh couldn't fix, they keep the fabric controller locked until they're<br />fixed in maintenance. Only the first ones are listed, refresh.kinds has the counts |  |  |
 | `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#condition-v1-meta) array_ | Conditions of the fabric controller: Ready |  |  |
 
 

@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strings"
 	"time"
 
 	fcintapi "go.githedgehog.com/fabric/api/fcint/v1alpha1"
@@ -38,8 +39,8 @@ const develVersion = "(devel)"
 const (
 	initRetryDelay    = 1 * time.Second
 	initRetryMaxDelay = 30 * time.Second
-	// initCheckInterval re-checks an initialized fabric controller, e.g. for a status changed by hand, which doesn't
-	// change the generation and so doesn't trigger a reconcile
+	// initCheckInterval re-checks an initialized or failed fabric controller, e.g. for a status changed by hand, which
+	// doesn't change the generation and so doesn't trigger a reconcile
 	initCheckInterval = 10 * time.Minute
 )
 
@@ -112,8 +113,8 @@ func SetupFabricControllerInitializerWith(mgr kctrl.Manager, namespace string, c
 // +kubebuilder:rbac:groups=wiring.githedgehog.com,resources=fabrics,verbs=get;list;watch;create
 // +kubebuilder:rbac:groups=wiring.githedgehog.com,resources=connections,verbs=delete
 
-// Reconcile returns an error for anything that keeps the running version from being initialized, so it's retried with
-// backoff: giving up would leave the fabric controller locked
+// Reconcile returns an error for anything that keeps the running version from being initialized but objects that need
+// a fix, so it's retried with backoff: giving up would leave the fabric controller locked
 func (i *FabricControllerInitializer) Reconcile(ctx context.Context, _ kctrl.Request) (kctrl.Result, error) {
 	l := kctrllog.FromContext(ctx).WithValues("version", i.version)
 	ctx = kctrllog.IntoContext(ctx, l)
@@ -163,15 +164,20 @@ func (i *FabricControllerInitializer) Reconcile(ctx context.Context, _ kctrl.Req
 		return kctrl.Result{}, err
 	}
 
+	// failed on objects that need a fix in maintenance: leaving it changes the spec, which triggers a reconcile, the
+	// periodic check is for fixes outside of the objects, e.g. permissions
 	return kctrl.Result{RequeueAfter: initCheckInterval}, nil
 }
 
+// initialize returns an error for anything that's retried with backoff, objects the refresh couldn't fix are only
+// recorded as Failed
 func (i *FabricControllerInitializer) initialize(ctx context.Context, fc *fcintapi.FabricController, gen int64) error {
 	l := kctrllog.FromContext(ctx)
 
 	l.Info("Initializing", "initialized", fc.Status.InitializedVersion)
 
 	fc.Status.Error = ""
+	fc.Status.Problems = nil
 	setReady(fc, gen, kmetav1.ConditionFalse, fcintapi.ReasonInitializing, "starting")
 	if err := i.writeStatus(ctx, fc); err != nil {
 		return fmt.Errorf("recording initialization start: %w", err)
@@ -193,9 +199,20 @@ func (i *FabricControllerInitializer) initialize(ctx context.Context, fc *fcinta
 	if err := i.refresh(ctx, fc); err != nil {
 		return fmt.Errorf("refreshing stored objects: %w", err)
 	}
+	fc.Status.Refresh.FinishedAt = kmetav1.Now()
+
+	if failure := refreshFailure(fc.Status.Refresh.Kinds); failure != "" {
+		setReady(fc, gen, kmetav1.ConditionFalse, fcintapi.ReasonFailed, failure)
+		if err := i.writeStatus(ctx, fc); err != nil {
+			return fmt.Errorf("recording failed initialization: %w", err)
+		}
+
+		l.Info("Initialization failed, objects need a fix in maintenance", "failure", failure)
+
+		return nil
+	}
 
 	fc.Status.InitializedVersion = i.version
-	fc.Status.Refresh.FinishedAt = kmetav1.Now()
 	setReady(fc, gen, kmetav1.ConditionTrue, fcintapi.ReasonInitialized, i.version)
 	// this write unlocks fabric-ctrl on every replica; retried by writeStatus so a temporary error or a concurrent
 	// spec change doesn't make the whole initialization, incl. a pass over all stored objects, start over
@@ -207,6 +224,29 @@ func (i *FabricControllerInitializer) initialize(ctx context.Context, fc *fcinta
 	l.Info("Initialized")
 
 	return nil
+}
+
+// refreshFailure summarizes the objects the refresh couldn't fix, it's empty if there are none
+func refreshFailure(kinds []fcintapi.FabricControllerRefreshKind) string {
+	invalid, rejected, stale := 0, 0, 0
+	for _, k := range kinds {
+		invalid += k.Invalid
+		rejected += k.Rejected
+		stale += k.Stale
+	}
+
+	parts := []string{}
+	if invalid > 0 {
+		parts = append(parts, fmt.Sprintf("%d invalid", invalid))
+	}
+	if rejected > 0 {
+		parts = append(parts, fmt.Sprintf("%d rejected", rejected))
+	}
+	if stale > 0 {
+		parts = append(parts, fmt.Sprintf("%d stale", stale))
+	}
+
+	return strings.Join(parts, ", ")
 }
 
 // setReady sets the only condition, ones left by earlier versions are dropped
