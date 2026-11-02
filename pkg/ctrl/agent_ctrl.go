@@ -52,6 +52,7 @@ import (
 	kctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 const (
@@ -133,6 +134,7 @@ func SetupAgentReconsilerWith(mgr kctrl.Manager, cfg *fmeta.FabricConfig, libMng
 		Watches(&vpcapi.IPv4Namespace{}, handler.EnqueueRequestsFromMapFunc(r.enqueueByFabricWide)).
 		Watches(&wiringapi.Fabric{}, handler.EnqueueRequestsFromMapFunc(r.enqueueByFabric)).
 		Watches(&wiringapi.VLANNamespace{}, handler.EnqueueRequestsFromMapFunc(r.enqueueByVLANNamespace)).
+		WatchesRawSource(source.Channel(lock.Unlocked(), handler.EnqueueRequestsFromMapFunc(r.enqueueAllSwitches))).
 		Complete(r), "failed to setup agent controller")
 }
 
