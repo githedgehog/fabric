@@ -408,6 +408,69 @@ func TestFabricControllerInitializerLifecycle(t *testing.T) {
 	})
 }
 
+// turning maintenance on stops a running initialization before its next writes
+func TestFabricControllerInitializerStopsForMaintenance(t *testing.T) {
+	const ver = "v1.2.3"
+
+	key := ktypes.NamespacedName{Namespace: "fab", Name: fcintapi.FabricControllerName}
+	vpcLists := 0
+	kube := fake.NewClientBuilder().
+		WithScheme(initScheme(t)).
+		WithObjects(
+			&fcintapi.FabricController{Namespace: key.Namespace, Name: key.Name, Generation: 1},
+			&wiringapi.Fabric{
+				Namespace: kmetav1.NamespaceDefault, Name: wiringapi.DefaultFabric,
+				Spec: wiringapi.DefaultFabricSpec(initFabricConfig()),
+			},
+		).
+		WithStatusSubresource(&fcintapi.FabricController{}).
+		WithInterceptorFuncs(interceptor.Funcs{
+			List: func(ctx context.Context, c kclient.WithWatch, list kclient.ObjectList, opts ...kclient.ListOption) error {
+				switch list.(type) {
+				case *wiringapi.SwitchList:
+					// as if turned on while the refresh got to the switches
+					fc := &fcintapi.FabricController{}
+					require.NoError(t, c.Get(ctx, key, fc))
+					if !fc.Spec.Maintenance {
+						fc.Spec.Maintenance = true
+						fc.Generation++
+						require.NoError(t, c.Update(ctx, fc))
+					}
+				case *vpcapi.VPCList:
+					vpcLists++
+				}
+
+				return c.List(ctx, list, opts...)
+			},
+		}).
+		Build()
+
+	i := &FabricControllerInitializer{
+		Client:    kube,
+		apiReader: kube,
+		key:       key,
+		version:   ver,
+		cfg:       initFabricConfig(),
+		profiles:  switchprofile.NewDefaultSwitchProfiles(),
+	}
+
+	res, err := reconcileInit(t, i)
+	require.NoError(t, err, "not retried with backoff, the spec change reconciles again")
+	require.Equal(t, kctrl.Result{}, res)
+	require.Zero(t, vpcLists, "kinds after the switches aren't refreshed")
+
+	fc := &fcintapi.FabricController{}
+	require.NoError(t, kube.Get(t.Context(), key, fc))
+	require.Empty(t, fc.Status.Error)
+	require.True(t, fc.Status.Refresh.FinishedAt.IsZero())
+	require.False(t, fc.IsReady(ver))
+
+	_, err = reconcileInit(t, i)
+	require.NoError(t, err)
+	require.NoError(t, kube.Get(t.Context(), key, fc))
+	require.Equal(t, fcintapi.ReasonMaintenance, kmeta.FindStatusCondition(fc.Status.Conditions, fcintapi.ConditionReady).Reason)
+}
+
 // a spec change while initializing, e.g. maintenance turned on and off again, needs another initialization
 func TestFabricControllerInitializerSpecChange(t *testing.T) {
 	const ver = "v1.2.3"

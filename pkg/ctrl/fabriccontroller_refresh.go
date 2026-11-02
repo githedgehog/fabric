@@ -183,6 +183,10 @@ func (i *FabricControllerInitializer) refresh(ctx context.Context, fc *fcintapi.
 		next := []refreshKind{}
 		found := map[string]int{}
 		for _, k := range pending {
+			if err := i.checkMaintenance(ctx); err != nil {
+				return err
+			}
+
 			diffs, err := i.refreshKind(ctx, k, st)
 			if err != nil {
 				return err

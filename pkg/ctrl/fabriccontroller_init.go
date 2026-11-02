@@ -5,6 +5,7 @@ package ctrl
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -154,7 +155,12 @@ func (i *FabricControllerInitializer) Reconcile(ctx context.Context, _ kctrl.Req
 
 	// the initialization is for the spec it started with, a spec change meanwhile needs another one
 	gen := fc.Generation
-	if err := i.initialize(ctx, fc, gen); err != nil {
+	if err := i.initialize(ctx, fc, gen); errors.Is(err, errMaintenance) {
+		// the spec change has already queued the next reconcile, which records it
+		l.Info("Initialization stopped for maintenance")
+
+		return kctrl.Result{}, nil
+	} else if err != nil {
 		fc.Status.Error = err.Error()
 		setReady(fc, gen, kmetav1.ConditionFalse, fcintapi.ReasonInitializing, "retrying, see status.error")
 		if err := i.writeStatus(ctx, fc); err != nil {
@@ -187,15 +193,24 @@ func (i *FabricControllerInitializer) initialize(ctx context.Context, fc *fcinta
 		return fmt.Errorf("recording initialization start: %w", err)
 	}
 
+	if err := i.checkMaintenance(ctx); err != nil {
+		return err
+	}
 	if err := i.profiles.Enforce(ctx, i.Client, i.cfg, true); err != nil {
 		return fmt.Errorf("enforcing switch profiles: %w", err)
 	}
 	i.enforced = true
 
+	if err := i.checkMaintenance(ctx); err != nil {
+		return err
+	}
 	if err := i.ensureFabricForUpgrade(ctx); err != nil {
 		return err
 	}
 
+	if err := i.checkMaintenance(ctx); err != nil {
+		return err
+	}
 	if err := i.deleteVPCLoopbackConnections(ctx); err != nil {
 		return err
 	}
@@ -251,6 +266,22 @@ func refreshFailure(kinds []fcintapi.FabricControllerRefreshKind) string {
 	}
 
 	return strings.Join(parts, ", ")
+}
+
+var errMaintenance = errors.New("maintenance turned on")
+
+// checkMaintenance stops the initialization before its next writes once maintenance is turned on, as users may be
+// fixing the same objects meanwhile
+func (i *FabricControllerInitializer) checkMaintenance(ctx context.Context) error {
+	fc := &fcintapi.FabricController{}
+	if err := i.Get(ctx, i.key, fc); err != nil {
+		return fmt.Errorf("getting fabric controller: %w", err)
+	}
+	if fc.Spec.Maintenance {
+		return errMaintenance
+	}
+
+	return nil
 }
 
 // setReady sets the only condition, ones left by earlier versions are dropped
