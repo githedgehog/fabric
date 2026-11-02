@@ -12,6 +12,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
+const maintenanceWarning = "Fabric controller is in maintenance: validation isn't enforced, nothing is deployed"
+
 // lockedValidator keeps the objects behind a webhook read-only for everyone but the fabric controller itself while
 // it's locked. The fabric controller's own writes skip validation then: reconcilers wait while locked, so they're
 // all from the initialization (refreshing stored objects with the current defaults, the default fabric, built-in
@@ -43,6 +45,7 @@ func (v *lockedValidator[T]) validate(ctx context.Context, inner func() (admissi
 
 	if state == lockMaintenance {
 		warnings, err := inner()
+		warnings = append(warnings, maintenanceWarning)
 		if err != nil {
 			warnings = append(warnings, "Not enforced in maintenance: "+err.Error())
 		}

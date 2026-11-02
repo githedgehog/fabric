@@ -60,10 +60,13 @@ func TestLockedValidator(t *testing.T) {
 		{name: "locked user", state: lockLocked, username: "system:admin", unavailable: true},
 		{name: "locked self", state: lockLocked, username: self},
 		{name: "locked without request", state: lockLocked, noRequest: true, err: true},
-		{name: "maintenance user", state: lockMaintenance, username: "system:admin", validated: true, warnings: admission.Warnings{"inner"}},
+		{
+			name: "maintenance user", state: lockMaintenance, username: "system:admin", validated: true,
+			warnings: admission.Warnings{"inner", maintenanceWarning},
+		},
 		{
 			name: "maintenance invalid", state: lockMaintenance, username: "system:admin", innerErr: invalid, validated: true,
-			warnings: admission.Warnings{"inner", "Not enforced in maintenance: invalid server"},
+			warnings: admission.Warnings{"inner", maintenanceWarning, "Not enforced in maintenance: invalid server"},
 		},
 		{name: "maintenance self", state: lockMaintenance, username: self},
 		{name: "maintenance without request", state: lockMaintenance, noRequest: true, err: true},
