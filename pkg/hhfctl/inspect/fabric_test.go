@@ -6,9 +6,11 @@ package inspect
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
+	fcintapi "go.githedgehog.com/fabric/api/fcint/v1alpha1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -17,10 +19,34 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 )
 
-func TestFabricFilter(t *testing.T) {
+func fabricScheme(t *testing.T) *runtime.Scheme {
+	t.Helper()
+
 	scheme := runtime.NewScheme()
 	require.NoError(t, wiringapi.AddToScheme(scheme))
 	require.NoError(t, agentapi.AddToScheme(scheme))
+	require.NoError(t, fcintapi.AddToScheme(scheme))
+
+	return scheme
+}
+
+func testFabricController(ver string, ready bool) *fcintapi.FabricController {
+	fc := &fcintapi.FabricController{
+		Namespace: "fab", Name: fcintapi.FabricControllerName, Generation: 1,
+		Status: fcintapi.FabricControllerStatus{Version: ver, InitializedVersion: ver},
+	}
+	if ready {
+		fc.Status.Conditions = []kmetav1.Condition{{
+			Type: fcintapi.ConditionReady, Status: kmetav1.ConditionTrue, ObservedGeneration: 1,
+			Reason: fcintapi.ReasonInitialized, Message: ver,
+		}}
+	}
+
+	return fc
+}
+
+func TestFabricFilter(t *testing.T) {
+	scheme := fabricScheme(t)
 
 	meta := func(name string) kmetav1.ObjectMeta {
 		return kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault}
@@ -51,6 +77,7 @@ func TestFabricFilter(t *testing.T) {
 			return kube.Get(ctx, key, obj, opts...)
 		},
 	}).WithObjects(
+		testFabricController("v1.2.3", true),
 		&wiringapi.SwitchProfile{ObjectMeta: meta("vs")},
 		&wiringapi.Fabric{ObjectMeta: meta("default")},
 		&wiringapi.Fabric{ObjectMeta: meta("backend")},
@@ -96,4 +123,79 @@ func TestFabricFilter(t *testing.T) {
 
 	_, err = Fabric(t.Context(), kube, FabricIn{Name: "frontend"})
 	require.ErrorContains(t, err, "fabric frontend not found")
+}
+
+func TestFabricController(t *testing.T) {
+	failed := testFabricController("v1.2.4", false)
+	failed.Status.InitializedVersion = "v1.2.3"
+	failed.Status.Conditions = []kmetav1.Condition{{
+		Type: fcintapi.ConditionReady, Status: kmetav1.ConditionFalse, ObservedGeneration: 1,
+		Reason: fcintapi.ReasonFailed, Message: "1 invalid",
+	}}
+	failed.Status.Problems = []fcintapi.FabricControllerProblem{{
+		Kind: "Switch", Namespace: kmetav1.NamespaceDefault, Name: "leaf-01", Reason: fcintapi.ProblemInvalid, Message: "asn is required",
+	}}
+
+	retrying := testFabricController("v1.2.4", false)
+	retrying.Spec.Maintenance = true
+	retrying.Status.Error = "listing VPC: etcd is down"
+
+	for _, tt := range []struct {
+		name  string
+		objs  []kclient.Object
+		want  *FabricOutController
+		shown []string
+	}{
+		{
+			name: "ready",
+			objs: []kclient.Object{testFabricController("v1.2.3", true)},
+			want: &FabricOutController{Ready: true, Version: "v1.2.3", Initialized: "v1.2.3", State: fcintapi.ReasonInitialized, Message: "v1.2.3"},
+		},
+		{
+			name:  "missing",
+			want:  &FabricOutController{State: "Missing", Message: "not created yet"},
+			shown: []string{"Fabric controller isn't ready", "Missing", "not created yet"},
+		},
+		{
+			name: "failed",
+			objs: []kclient.Object{failed},
+			want: &FabricOutController{
+				Version: "v1.2.4", Initialized: "v1.2.3", State: fcintapi.ReasonFailed, Message: "1 invalid",
+				Problems: failed.Status.Problems,
+			},
+			shown: []string{"Fabric controller isn't ready", "v1.2.4", "v1.2.3", "Failed", "1 invalid", "leaf-01", "Invalid", "asn is required"},
+		},
+		{
+			name:  "error in maintenance",
+			objs:  []kclient.Object{retrying},
+			want:  &FabricOutController{Version: "v1.2.4", Initialized: "v1.2.4", Maintenance: true, Error: "listing VPC: etcd is down"},
+			shown: []string{"Fabric controller isn't ready", "true", "Error: listing VPC: etcd is down"},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			kube := fake.NewClientBuilder().WithScheme(fabricScheme(t)).WithObjects(tt.objs...).Build()
+
+			out, err := Fabric(t.Context(), kube, FabricIn{})
+			require.NoError(t, err)
+			require.Equal(t, tt.want, out.Controller)
+
+			text, err := out.MarshalText(FabricIn{}, time.Now())
+			require.NoError(t, err)
+			if len(tt.shown) == 0 {
+				require.NotContains(t, text, "Fabric controller")
+			}
+			for _, s := range tt.shown {
+				require.Contains(t, text, s)
+			}
+		})
+	}
+
+	t.Run("more than one", func(t *testing.T) {
+		other := testFabricController("v1.2.3", true)
+		other.Namespace = "other"
+		kube := fake.NewClientBuilder().WithScheme(fabricScheme(t)).WithObjects(testFabricController("v1.2.3", true), other).Build()
+
+		_, err := Fabric(t.Context(), kube, FabricIn{})
+		require.ErrorContains(t, err, "fabric controller found in namespaces")
+	})
 }
