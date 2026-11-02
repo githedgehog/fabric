@@ -4,10 +4,13 @@
 package ctrl
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"maps"
 	"reflect"
+	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -37,6 +40,8 @@ const (
 	// another version's webhook, before it's left stale
 	refreshMaxAttempts = 5
 	refreshReportEvery = 5 * time.Second
+	// refreshMaxProblems keeps the status small, the counts per kind are complete
+	refreshMaxProblems = 50
 )
 
 // refreshKinds are all kinds with a defaulting webhook. Their Default() must only depend on the object itself: a kind
@@ -89,6 +94,18 @@ type refreshState struct {
 	excluded map[string]bool
 	// validated are the objects already validated by this refresh, once is enough
 	validated map[string]bool
+	problems  []fcintapi.FabricControllerProblem
+}
+
+// addProblem records an object the refresh couldn't fix, st.mu must be held
+func (st *refreshState) addProblem(kind string, obj kclient.Object, reason, msg string) {
+	if len(st.problems) >= refreshMaxProblems {
+		return
+	}
+
+	st.problems = append(st.problems, fcintapi.FabricControllerProblem{
+		Kind: kind, Namespace: obj.GetNamespace(), Name: obj.GetName(), Reason: reason, Message: msg,
+	})
 }
 
 func (st *refreshState) kind(kind string) *fcintapi.FabricControllerRefreshKind {
@@ -133,7 +150,8 @@ func (st *refreshState) update(f func()) {
 // cache until one finds nothing left to change: informers aren't ordered against each other, so the FabricController
 // update that unlocks reconcilers could otherwise reach them before the last refreshed objects do. Objects whose
 // write is rejected or that keep coming back without the current defaults are left out and recorded in the status,
-// as are the objects that fail the current validation, which are still updated with the current defaults.
+// as are the objects that fail the current validation, which are still updated with the current defaults. Any of
+// them fails the initialization.
 func (i *FabricControllerInitializer) refresh(ctx context.Context, fc *fcintapi.FabricController) error {
 	l := kctrllog.FromContext(ctx)
 
@@ -277,10 +295,13 @@ func (i *FabricControllerInitializer) validateStored(ctx context.Context, kind s
 		return
 	}
 
-	kctrllog.FromContext(ctx).Error(err, "Stored object fails validation, any change to it is rejected until it's fixed",
+	kctrllog.FromContext(ctx).Error(err, "Stored object fails validation, it needs a fix in maintenance",
 		"kind", kind, "ns", obj.GetNamespace(), "name", obj.GetName())
 	progress := st.kind(kind)
-	st.update(func() { progress.Invalid++ })
+	st.update(func() {
+		progress.Invalid++
+		st.addProblem(kind, obj, fcintapi.ProblemInvalid, err.Error())
+	})
 }
 
 // refreshObject writes an object with the current defaults and records the outcome. obj is the refresh's own copy.
@@ -326,6 +347,7 @@ func (i *FabricControllerInitializer) refreshObject(ctx context.Context, kind, k
 		st.update(func() {
 			st.excluded[key] = true
 			progress.Rejected++
+			st.addProblem(kind, obj, fcintapi.ProblemRejected, err.Error())
 		})
 
 		return
@@ -348,6 +370,7 @@ func (i *FabricControllerInitializer) refreshObject(ctx context.Context, kind, k
 			st.excluded[key] = true
 			progress.Updated--
 			progress.Stale++
+			st.addProblem(kind, obj, fcintapi.ProblemStale, "keeps coming back without the current defaults")
 			l.Info("Refreshed object keeps coming back without the current defaults, leaving it stale")
 		}
 	})
@@ -366,6 +389,21 @@ func (i *FabricControllerInitializer) reportRefresh(ctx context.Context, fc *fci
 				fc.Status.Refresh.Kinds = append(fc.Status.Refresh.Kinds, *progress)
 			}
 		}
+
+		// workers record them in any order, sorted they don't change between reports
+		fc.Status.Problems = slices.Clone(st.problems)
+	})
+	slices.SortFunc(fc.Status.Problems, func(a, b fcintapi.FabricControllerProblem) int {
+		kindIdx := func(kind string) int {
+			return slices.IndexFunc(refreshKinds, func(k refreshKind) bool { return k.kind == kind })
+		}
+
+		return cmp.Or(
+			cmp.Compare(kindIdx(a.Kind), kindIdx(b.Kind)),
+			strings.Compare(a.Namespace, b.Namespace),
+			strings.Compare(a.Name, b.Name),
+			strings.Compare(a.Reason, b.Reason),
+		)
 	})
 
 	if err := i.writeStatus(ctx, fc); err != nil {

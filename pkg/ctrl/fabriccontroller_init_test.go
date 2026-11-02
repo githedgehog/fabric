@@ -117,10 +117,12 @@ func testFabricControllerInitializer(t *testing.T, ver string) {
 	// devel builds never count as initialized
 	reinit := ver == develVersion
 
+	// objects without a spec are invalid, so they fail the initialization: it still does all its steps
 	for _, tt := range []struct {
 		name          string
 		objs          []kclient.Object
 		initializes   bool
+		invalid       bool
 		defaultFabric bool
 		deletedConns  []string
 		keptConns     []string
@@ -135,6 +137,7 @@ func testFabricControllerInitializer(t *testing.T, ver string) {
 				&wiringapi.Switch{Namespace: kmetav1.NamespaceDefault, Name: "leaf-01"},
 			},
 			initializes:   true,
+			invalid:       true,
 			defaultFabric: true,
 		},
 		{
@@ -144,6 +147,7 @@ func testFabricControllerInitializer(t *testing.T, ver string) {
 				&wiringapi.Switch{Namespace: kmetav1.NamespaceDefault, Name: "leaf-01"},
 			},
 			initializes: true,
+			invalid:     true,
 		},
 		{
 			name: "upgrade with vpc-loopback connections",
@@ -159,6 +163,7 @@ func testFabricControllerInitializer(t *testing.T, ver string) {
 				},
 			},
 			initializes:  true,
+			invalid:      true,
 			deletedConns: []string{"leaf-01--vpc-loopback"},
 			keptConns:    []string{"spine-01--fabric--leaf-01"},
 		},
@@ -169,6 +174,7 @@ func testFabricControllerInitializer(t *testing.T, ver string) {
 				&wiringapi.Switch{Namespace: kmetav1.NamespaceDefault, Name: "leaf-01"},
 			},
 			initializes:   reinit,
+			invalid:       true,
 			defaultFabric: reinit,
 		},
 		{
@@ -178,6 +184,7 @@ func testFabricControllerInitializer(t *testing.T, ver string) {
 				&wiringapi.Switch{Namespace: kmetav1.NamespaceDefault, Name: "leaf-01"},
 			},
 			initializes:   true,
+			invalid:       true,
 			defaultFabric: true,
 		},
 		{
@@ -187,6 +194,7 @@ func testFabricControllerInitializer(t *testing.T, ver string) {
 				&wiringapi.Switch{Namespace: kmetav1.NamespaceDefault, Name: "leaf-01"},
 			},
 			initializes:   true,
+			invalid:       true,
 			defaultFabric: true,
 		},
 	} {
@@ -215,7 +223,10 @@ func testFabricControllerInitializer(t *testing.T, ver string) {
 
 			fc := &fcintapi.FabricController{}
 			require.NoError(t, kube.Get(t.Context(), i.key, fc))
-			require.True(t, fc.IsReady(ver))
+			failed := tt.initializes && tt.invalid
+			require.Equal(t, !failed, fc.IsReady(ver))
+			require.Equal(t, failed, kmeta.IsStatusConditionPresentAndEqual(fc.Status.Conditions, fcintapi.ConditionReady, kmetav1.ConditionFalse))
+			require.Equal(t, failed, len(fc.Status.Problems) > 0)
 			require.Equal(t, ver, fc.Status.Version)
 			require.Empty(t, fc.Status.Error)
 
@@ -244,7 +255,13 @@ func testFabricControllerInitializer(t *testing.T, ver string) {
 			require.NotEmpty(t, sps.Items)
 			require.Len(t, sps.Items, len(profiles.List()))
 
-			// reconciling again is a no-op
+			if failed {
+				require.Equal(t, fcintapi.ReasonFailed, kmeta.FindStatusCondition(fc.Status.Conditions, fcintapi.ConditionReady).Reason)
+
+				return
+			}
+
+			// reconciling an initialized one again is a no-op
 			startedAt := fc.Status.Refresh.StartedAt
 			_, err = reconcileInit(t, i)
 			require.NoError(t, err)
@@ -273,7 +290,10 @@ func TestFabricControllerInitializerLifecycle(t *testing.T) {
 	failVPCs := false
 	kube := fake.NewClientBuilder().
 		WithScheme(initScheme(t)).
-		WithObjects(&wiringapi.Fabric{Namespace: kmetav1.NamespaceDefault, Name: wiringapi.DefaultFabric}).
+		WithObjects(&wiringapi.Fabric{
+			Namespace: kmetav1.NamespaceDefault, Name: wiringapi.DefaultFabric,
+			Spec: wiringapi.DefaultFabricSpec(initFabricConfig()),
+		}).
 		WithStatusSubresource(&fcintapi.FabricController{}).
 		WithInterceptorFuncs(interceptor.Funcs{
 			List: func(ctx context.Context, c kclient.WithWatch, list kclient.ObjectList, opts ...kclient.ListOption) error {
