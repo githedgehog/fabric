@@ -219,11 +219,16 @@ func testFabricControllerInitializer(t *testing.T, ver string) {
 
 			res, err := reconcileInit(t, i)
 			require.NoError(t, err)
-			require.Equal(t, kctrl.Result{RequeueAfter: initCheckInterval}, res)
+
+			failed := tt.initializes && tt.invalid
+			if failed {
+				require.Equal(t, kctrl.Result{}, res)
+			} else {
+				require.Equal(t, kctrl.Result{RequeueAfter: initCheckInterval}, res)
+			}
 
 			fc := &fcintapi.FabricController{}
 			require.NoError(t, kube.Get(t.Context(), i.key, fc))
-			failed := tt.initializes && tt.invalid
 			require.Equal(t, !failed, fc.IsReady(ver))
 			require.Equal(t, failed, kmeta.IsStatusConditionPresentAndEqual(fc.Status.Conditions, fcintapi.ConditionReady, kmetav1.ConditionFalse))
 			require.Equal(t, failed, len(fc.Status.Problems) > 0)

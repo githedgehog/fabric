@@ -152,8 +152,9 @@ spec:
                 type: string
               problems:
                 description: |-
-                  Problems are the objects the last refresh couldn't fix, they keep the fabric controller locked until they're
-                  fixed in maintenance. Only the first ones are listed, refresh.kinds has the counts
+                  Problems are the objects the last refresh couldn't fix. They keep the fabric controller locked, it initializes
+                  again only on a spec change, e.g. leaving maintenance to fix them, or a restart. Only the first ones are listed,
+                  refresh.kinds has the counts
                 items:
                   description: FabricControllerProblem is an object the refresh couldn't
                     fix
