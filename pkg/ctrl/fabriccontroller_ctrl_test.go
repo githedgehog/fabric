@@ -21,60 +21,76 @@ func TestFabricControllerLock(t *testing.T) {
 	const ns = "fab"
 
 	for _, tt := range []struct {
-		name     string
-		fc       *fcintapi.FabricController
-		unlocked bool // the lock state before reconcile
-		locked   bool
+		name   string
+		fc     *fcintapi.FabricController
+		before lockState
+		after  lockState
 	}{
 		{
-			name:   "not found",
-			locked: true,
+			name:  "not found",
+			after: lockLocked,
 		},
 		{
-			name:     "not found locks an unlocked one",
-			unlocked: true,
-			locked:   true,
+			name:   "not found locks an unlocked one",
+			before: lockUnlocked,
+			after:  lockLocked,
 		},
 		{
 			name: "not initialized",
 			fc: &fcintapi.FabricController{
 				Namespace: ns, Name: fcintapi.FabricControllerName,
 			},
-			locked: true,
+			after: lockLocked,
 		},
 		{
-			name: "initialized",
+			name:  "initialized",
+			fc:    readyFabricController(ns, version.Version, 1),
+			after: lockUnlocked,
+		},
+		{
+			name:   "initialized by another version",
+			fc:     readyFabricController(ns, "v0.0.1", 1),
+			before: lockUnlocked,
+			after:  lockLocked,
+		},
+		{
+			name:   "initialized for an older spec",
+			fc:     readyFabricController(ns, version.Version, 2),
+			before: lockUnlocked,
+			after:  lockLocked,
+		},
+		{
+			name: "initialized version without ready",
 			fc: &fcintapi.FabricController{
 				Namespace: ns, Name: fcintapi.FabricControllerName,
 				Status: fcintapi.FabricControllerStatus{InitializedVersion: version.Version},
 			},
-			locked: false,
+			after: lockLocked,
 		},
 		{
-			name: "initialized by another version",
+			name: "maintenance",
 			fc: &fcintapi.FabricController{
 				Namespace: ns, Name: fcintapi.FabricControllerName,
+				Spec:   fcintapi.FabricControllerSpec{Maintenance: true},
 				Status: fcintapi.FabricControllerStatus{InitializedVersion: "v0.0.1"},
 			},
-			unlocked: true,
-			locked:   true,
+			after: lockMaintenance,
 		},
 		{
-			name: "force unlocked",
-			fc: &fcintapi.FabricController{
-				Namespace: ns, Name: fcintapi.FabricControllerName,
-				Spec:   fcintapi.FabricControllerSpec{ForceUnlock: true},
-				Status: fcintapi.FabricControllerStatus{InitializedVersion: "v0.0.1"},
-			},
-			locked: false,
+			name: "maintenance of an initialized one",
+			fc: func() *fcintapi.FabricController {
+				fc := readyFabricController(ns, version.Version, 1)
+				fc.Spec.Maintenance = true
+
+				return fc
+			}(),
+			before: lockUnlocked,
+			after:  lockMaintenance,
 		},
 		{
-			name: "other namespace",
-			fc: &fcintapi.FabricController{
-				Namespace: kmetav1.NamespaceDefault, Name: fcintapi.FabricControllerName,
-				Status: fcintapi.FabricControllerStatus{InitializedVersion: version.Version},
-			},
-			locked: true,
+			name:  "other namespace",
+			fc:    readyFabricController(kmetav1.NamespaceDefault, version.Version, 1),
+			after: lockLocked,
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
@@ -87,7 +103,7 @@ func TestFabricControllerLock(t *testing.T) {
 			}
 
 			lock := NewLock("system:serviceaccount:fab:fabric-ctrl")
-			lock.unlocked.Store(tt.unlocked)
+			lock.state.Store(int32(tt.before))
 
 			r := &FabricControllerReconciler{
 				Client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(objs...).Build(),
@@ -97,7 +113,7 @@ func TestFabricControllerLock(t *testing.T) {
 
 			_, err := r.Reconcile(t.Context(), kctrl.Request{})
 			require.NoError(t, err)
-			require.Equal(t, tt.locked, lock.Locked())
+			require.Equal(t, tt.after, lock.get())
 		})
 	}
 }

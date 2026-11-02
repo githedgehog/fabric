@@ -24,8 +24,10 @@ import (
 
 	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
+	fcintapi "go.githedgehog.com/fabric/api/fcint/v1alpha1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/apiutil"
+	kmeta "k8s.io/apimachinery/pkg/api/meta"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -37,9 +39,22 @@ type FabricIn struct {
 }
 
 type FabricOut struct {
-	Summary  string             `json:"summary,omitempty"`
-	Fabrics  []*FabricOutFabric `json:"fabrics,omitempty"`
-	Switches []*FabricOutSwitch `json:"switches,omitempty"`
+	Summary    string               `json:"summary,omitempty"`
+	Controller *FabricOutController `json:"controller,omitempty"`
+	Fabrics    []*FabricOutFabric   `json:"fabrics,omitempty"`
+	Switches   []*FabricOutSwitch   `json:"switches,omitempty"`
+}
+
+// FabricOutController is the state of the fabric controller, nothing is deployed while it isn't ready
+type FabricOutController struct {
+	Ready       bool                               `json:"ready"`
+	Version     string                             `json:"version,omitempty"`
+	Initialized string                             `json:"initialized,omitempty"`
+	State       string                             `json:"state,omitempty"`
+	Message     string                             `json:"message,omitempty"`
+	Maintenance bool                               `json:"maintenance,omitempty"`
+	Error       string                             `json:"error,omitempty"`
+	Problems    []fcintapi.FabricControllerProblem `json:"problems,omitempty"`
 }
 
 type FabricOutFabric struct {
@@ -60,6 +75,33 @@ type FabricOutSwitch struct {
 
 func (out *FabricOut) MarshalText(_ FabricIn, now time.Time) (string, error) {
 	str := &strings.Builder{}
+
+	if fc := out.Controller; fc != nil && !fc.Ready {
+		str.WriteString("Fabric controller isn't ready, nothing is deployed:\n")
+		maintenance := ""
+		if fc.Maintenance {
+			maintenance = "true"
+		}
+		str.WriteString(RenderTable(
+			[]string{"Version", "Initialized", "State", "Message", "Maintenance"},
+			[][]string{{fc.Version, fc.Initialized, fc.State, fc.Message, maintenance}},
+		))
+
+		if fc.Error != "" {
+			str.WriteString("\nError: " + fc.Error + "\n")
+		}
+
+		if len(fc.Problems) > 0 {
+			str.WriteString("\nObjects the refresh couldn't fix (only the first ones are listed):\n")
+			problemData := make([][]string, 0, len(fc.Problems))
+			for _, p := range fc.Problems {
+				problemData = append(problemData, []string{p.Kind, p.Namespace, p.Name, p.Reason, p.Message})
+			}
+			str.WriteString(RenderTable([]string{"Kind", "Namespace", "Name", "Reason", "Message"}, problemData))
+		}
+
+		str.WriteString("\n")
+	}
 
 	str.WriteString("Fabrics:\n")
 
@@ -125,6 +167,12 @@ var _ Func[FabricIn, *FabricOut] = Fabric
 
 func Fabric(ctx context.Context, kube kclient.Reader, in FabricIn) (*FabricOut, error) {
 	out := &FabricOut{}
+
+	fc, err := fabricController(ctx, kube)
+	if err != nil {
+		return nil, err
+	}
+	out.Controller = fc
 
 	fabList := &wiringapi.FabricList{}
 	if err := kube.List(ctx, fabList); err != nil {
@@ -213,6 +261,44 @@ func Fabric(ctx context.Context, kube kclient.Reader, in FabricIn) (*FabricOut, 
 	})
 
 	out.Summary = fmt.Sprintf("Ready: %d/%d switches", readySwitches, totalSwitches)
+
+	return out, nil
+}
+
+func fabricController(ctx context.Context, kube kclient.Reader) (*FabricOutController, error) {
+	// it lives in the fabric controller's namespace, which isn't known here
+	fcs := &fcintapi.FabricControllerList{}
+	if err := kube.List(ctx, fcs); err != nil {
+		return nil, fmt.Errorf("listing fabric controllers: %w", err)
+	}
+
+	var fc *fcintapi.FabricController
+	for idx := range fcs.Items {
+		if fcs.Items[idx].Name != fcintapi.FabricControllerName {
+			continue
+		}
+		if fc != nil {
+			return nil, fmt.Errorf("fabric controller found in namespaces %s and %s", fc.Namespace, fcs.Items[idx].Namespace) //nolint:err113
+		}
+		fc = &fcs.Items[idx]
+	}
+	if fc == nil {
+		return &FabricOutController{State: "Missing", Message: "not created yet"}, nil
+	}
+
+	out := &FabricOutController{
+		// the running version is the one it records itself, kubectl-fabric may be another one
+		Ready:       fc.IsReady(fc.Status.Version),
+		Version:     fc.Status.Version,
+		Initialized: fc.Status.InitializedVersion,
+		Maintenance: fc.Spec.Maintenance,
+		Error:       fc.Status.Error,
+		Problems:    fc.Status.Problems,
+	}
+	if ready := kmeta.FindStatusCondition(fc.Status.Conditions, fcintapi.ConditionReady); ready != nil {
+		out.State = ready.Reason
+		out.Message = ready.Message
+	}
 
 	return out, nil
 }

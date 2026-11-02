@@ -19,21 +19,29 @@ import (
 // without the events dropped by the fan-out mappers while locked.
 const lockedRequeueAfter = 15 * time.Second
 
+type lockState int32
+
+const (
+	lockLocked      lockState = iota // reconcilers wait, only the fabric controller itself writes, unvalidated
+	lockMaintenance                  // reconcilers wait, everyone writes, validation errors are only warnings
+	lockUnlocked                     // reconcilers run, every write is validated
+)
+
 // Lock keeps the fabric controller read-only until the running version is initialized: reconcilers wait and only
 // the fabric controller itself may write the objects it serves webhooks for. It starts locked and is set by the
 // FabricController controller, which runs on every replica as webhooks are served by all of them.
 type Lock struct {
-	unlocked atomic.Bool
-	self     string
+	state atomic.Int32
+	self  string
 }
 
 func NewLock(self string) *Lock {
 	return &Lock{self: self}
 }
 
-// Locked is true until the FabricController records the running version as initialized
+// Locked is true until the FabricController records the running version as initialized, and in maintenance
 func (l *Lock) Locked() bool {
-	return !l.unlocked.Load()
+	return l.get() != lockUnlocked
 }
 
 // IsSelf is true for the username the fabric controller itself runs as
@@ -41,14 +49,22 @@ func (l *Lock) IsSelf(username string) bool {
 	return username == l.self
 }
 
-func (l *Lock) set(ctx context.Context, locked bool, reason string, keysAndValues ...any) {
-	if l.unlocked.Swap(!locked) == !locked {
+func (l *Lock) get() lockState {
+	return lockState(l.state.Load())
+}
+
+func (l *Lock) set(ctx context.Context, state lockState, reason string, keysAndValues ...any) {
+	if lockState(l.state.Swap(int32(state))) == state {
 		return
 	}
 
 	msg := "Fabric controller unlocked"
-	if locked {
+	switch state {
+	case lockLocked:
 		msg = "Fabric controller locked"
+	case lockMaintenance:
+		msg = "Fabric controller in maintenance"
+	case lockUnlocked:
 	}
 	kctrllog.FromContext(ctx).Info(msg, append([]any{"reason", reason}, keysAndValues...)...)
 }

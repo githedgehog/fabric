@@ -19,7 +19,7 @@ import (
 )
 
 // FabricControllerReconciler locks or unlocks the fabric controller depending on whether the FabricController
-// records the running version as initialized
+// records the running version as initialized for its current spec, or puts it into maintenance
 type FabricControllerReconciler struct {
 	kclient.Client
 	key  ktypes.NamespacedName
@@ -62,7 +62,7 @@ func (r *FabricControllerReconciler) Reconcile(ctx context.Context, _ kctrl.Requ
 	fc := &fcintapi.FabricController{}
 	if err := r.Get(ctx, r.key, fc); err != nil {
 		if kapierrors.IsNotFound(err) {
-			r.lock.set(ctx, true, "not initialized yet")
+			r.lock.set(ctx, lockLocked, "not initialized yet")
 
 			return kctrl.Result{}, nil
 		}
@@ -72,12 +72,12 @@ func (r *FabricControllerReconciler) Reconcile(ctx context.Context, _ kctrl.Requ
 	}
 
 	switch {
-	case fc.Spec.ForceUnlock:
-		r.lock.set(ctx, false, "force unlocked", "initialized", fc.Status.InitializedVersion, "running", version.Version)
-	case fc.Status.InitializedVersion == version.Version:
-		r.lock.set(ctx, false, "initialized", "version", version.Version)
+	case fc.Spec.Maintenance:
+		r.lock.set(ctx, lockMaintenance, "maintenance", "initialized", fc.Status.InitializedVersion, "running", version.Version)
+	case fc.IsReady(version.Version):
+		r.lock.set(ctx, lockUnlocked, "initialized", "version", version.Version)
 	default:
-		r.lock.set(ctx, true, "running version not initialized yet", "initialized", fc.Status.InitializedVersion, "running", version.Version)
+		r.lock.set(ctx, lockLocked, "not initialized yet", "initialized", fc.Status.InitializedVersion, "running", version.Version)
 	}
 
 	return kctrl.Result{}, nil

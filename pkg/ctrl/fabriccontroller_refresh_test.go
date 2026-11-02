@@ -5,6 +5,8 @@ package ctrl
 
 import (
 	"context"
+	"fmt"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -22,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	ktypes "k8s.io/apimachinery/pkg/types"
+	kctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
@@ -84,7 +87,10 @@ func TestFabricControllerRefresh(t *testing.T) {
 	kube := fake.NewClientBuilder().
 		WithScheme(scheme).
 		WithObjects(
-			&wiringapi.Fabric{Namespace: kmetav1.NamespaceDefault, Name: wiringapi.DefaultFabric},
+			&wiringapi.Fabric{
+				Namespace: kmetav1.NamespaceDefault, Name: wiringapi.DefaultFabric,
+				Spec: wiringapi.DefaultFabricSpec(initFabricConfig()),
+			},
 			newSwitch("old", false),
 			newSwitch("current", true),
 			newSwitch("rejected", false),
@@ -126,11 +132,13 @@ func TestFabricControllerRefresh(t *testing.T) {
 		apiReader: kube,
 		key:       ktypes.NamespacedName{Namespace: ns, Name: fcintapi.FabricControllerName},
 		version:   "v1.2.3",
-		cfg:       &meta.FabricConfig{AllowExtraSwitchProfiles: true},
+		cfg:       initFabricConfig(),
 		profiles:  profiles,
 	}
 
-	require.NoError(t, i.Start(t.Context()))
+	res, err := reconcileInit(t, i)
+	require.NoError(t, err, "objects the refresh couldn't fix aren't retried with backoff")
+	require.Equal(t, kctrl.Result{}, res, "nor periodically, only on a spec change")
 
 	for _, name := range []string{"old", "current", "flaky"} {
 		sw := &wiringapi.Switch{}
@@ -150,9 +158,12 @@ func TestFabricControllerRefresh(t *testing.T) {
 
 	fc := &fcintapi.FabricController{}
 	require.NoError(t, kube.Get(t.Context(), i.key, fc))
-	require.Equal(t, "v1.2.3", fc.Status.InitializedVersion)
-	require.True(t, kmeta.IsStatusConditionTrue(fc.Status.Conditions, fcintapi.ConditionInitialized))
-	require.True(t, kmeta.IsStatusConditionFalse(fc.Status.Conditions, fcintapi.ConditionRefreshing))
+	require.Empty(t, fc.Status.InitializedVersion, "objects the refresh couldn't fix fail the initialization")
+	require.False(t, fc.IsReady("v1.2.3"))
+	ready := kmeta.FindStatusCondition(fc.Status.Conditions, fcintapi.ConditionReady)
+	require.Equal(t, fcintapi.ReasonFailed, ready.Reason)
+	require.Equal(t, "5 invalid, 1 rejected, 1 stale", ready.Message)
+	require.Empty(t, fc.Status.Error)
 	require.Equal(t, "v1.2.3", fc.Status.Refresh.Version)
 	require.False(t, fc.Status.Refresh.FinishedAt.IsZero())
 	require.Greater(t, fc.Status.Refresh.Passes, 1)
@@ -166,6 +177,21 @@ func TestFabricControllerRefresh(t *testing.T) {
 		// none of the switches has an ASN or IPs
 		Invalid: 5,
 	}, refreshKindStatus(t, fc, "Switch"))
+
+	reasons := map[string][]string{}
+	for _, p := range fc.Status.Problems {
+		require.Equal(t, "Switch", p.Kind)
+		require.Equal(t, kmetav1.NamespaceDefault, p.Namespace)
+		require.NotEmpty(t, p.Message)
+		reasons[p.Name] = append(reasons[p.Name], p.Reason)
+	}
+	require.Equal(t, map[string][]string{
+		"current":  {fcintapi.ProblemInvalid},
+		"flaky":    {fcintapi.ProblemInvalid},
+		"old":      {fcintapi.ProblemInvalid},
+		"rejected": {fcintapi.ProblemInvalid, fcintapi.ProblemRejected},
+		"stale":    {fcintapi.ProblemInvalid, fcintapi.ProblemStale},
+	}, reasons)
 }
 
 func refreshKindStatus(t *testing.T, fc *fcintapi.FabricController, kind string) fcintapi.FabricControllerRefreshKind {
@@ -181,15 +207,10 @@ func refreshKindStatus(t *testing.T, fc *fcintapi.FabricController, kind string)
 	return fcintapi.FabricControllerRefreshKind{}
 }
 
-// a stored object that fails the current validation is reported and still gets the current defaults
+// stored objects that fail the current validation still get the current defaults, but fail the initialization until
+// they're fixed, only the first ones are listed
 func TestFabricControllerRefreshInvalid(t *testing.T) {
-	scheme := runtime.NewScheme()
-	require.NoError(t, fcintapi.AddToScheme(scheme))
-	require.NoError(t, wiringapi.AddToScheme(scheme))
-	require.NoError(t, vpcapi.AddToScheme(scheme))
-	require.NoError(t, gwapi.AddToScheme(scheme))
-
-	// the fabric label is an outdated default, it's removed by the refresh
+	// the label is an outdated default, it's removed by the refresh
 	server := func(name string) *wiringapi.Server {
 		return &wiringapi.Server{
 			Namespace: kmetav1.NamespaceDefault,
@@ -197,15 +218,27 @@ func TestFabricControllerRefreshInvalid(t *testing.T) {
 			Labels:    map[string]string{wiringapi.LabelName("outdated"): "true"},
 		}
 	}
-	tooLong := strings.Repeat("s", meta.MaxNameLength+1)
+
+	invalid := make([]string, 0, refreshMaxProblems+1)
+	for idx := range refreshMaxProblems + 1 {
+		invalid = append(invalid, fmt.Sprintf("%s-%02d", strings.Repeat("s", meta.MaxNameLength), idx))
+	}
+
+	objs := make([]kclient.Object, 0, len(invalid)+2)
+	objs = append(objs,
+		&wiringapi.Fabric{
+			Namespace: kmetav1.NamespaceDefault, Name: wiringapi.DefaultFabric,
+			Spec: wiringapi.DefaultFabricSpec(initFabricConfig()),
+		},
+		server("server-1"),
+	)
+	for _, name := range invalid {
+		objs = append(objs, server(name))
+	}
 
 	kube := fake.NewClientBuilder().
-		WithScheme(scheme).
-		WithObjects(
-			&wiringapi.Fabric{Namespace: kmetav1.NamespaceDefault, Name: wiringapi.DefaultFabric},
-			server("server-1"),
-			server(tooLong),
-		).
+		WithScheme(initScheme(t)).
+		WithObjects(objs...).
 		WithStatusSubresource(&fcintapi.FabricController{}).
 		Build()
 
@@ -214,12 +247,13 @@ func TestFabricControllerRefreshInvalid(t *testing.T) {
 		apiReader: kube,
 		key:       ktypes.NamespacedName{Namespace: "fab", Name: fcintapi.FabricControllerName},
 		version:   "v1.2.3",
-		cfg:       &meta.FabricConfig{AllowExtraSwitchProfiles: true},
+		cfg:       initFabricConfig(),
 		profiles:  switchprofile.NewDefaultSwitchProfiles(),
 	}
-	require.NoError(t, i.Start(t.Context()))
+	_, err := reconcileInit(t, i)
+	require.NoError(t, err)
 
-	for _, name := range []string{"server-1", tooLong} {
+	for _, name := range append([]string{"server-1"}, invalid...) {
 		srv := &wiringapi.Server{}
 		require.NoError(t, kube.Get(t.Context(), ktypes.NamespacedName{Namespace: kmetav1.NamespaceDefault, Name: name}, srv))
 		require.Empty(t, srv.Labels, "server %s should carry the current defaults", name)
@@ -227,11 +261,35 @@ func TestFabricControllerRefreshInvalid(t *testing.T) {
 
 	fc := &fcintapi.FabricController{}
 	require.NoError(t, kube.Get(t.Context(), i.key, fc))
-	require.Equal(t, "v1.2.3", fc.Status.InitializedVersion)
+	require.False(t, fc.IsReady("v1.2.3"))
+	ready := kmeta.FindStatusCondition(fc.Status.Conditions, fcintapi.ConditionReady)
+	require.Equal(t, fcintapi.ReasonFailed, ready.Reason)
+	require.Equal(t, fmt.Sprintf("%d invalid", len(invalid)), ready.Message)
 	require.Equal(t, fcintapi.FabricControllerRefreshKind{
 		Kind:    "Server",
-		Total:   2,
-		Updated: 2,
-		Invalid: 1,
+		Total:   len(invalid) + 1,
+		Updated: len(invalid) + 1,
+		Invalid: len(invalid),
 	}, refreshKindStatus(t, fc, "Server"))
+
+	require.Len(t, fc.Status.Problems, refreshMaxProblems)
+	require.True(t, slices.IsSortedFunc(fc.Status.Problems, func(a, b fcintapi.FabricControllerProblem) int {
+		return strings.Compare(a.Name, b.Name)
+	}))
+	for _, p := range fc.Status.Problems {
+		require.Equal(t, "Server", p.Kind)
+		require.Equal(t, fcintapi.ProblemInvalid, p.Reason)
+		require.Contains(t, invalid, p.Name)
+	}
+
+	// fixed, e.g. in maintenance
+	for _, name := range invalid {
+		require.NoError(t, kube.Delete(t.Context(), &wiringapi.Server{Namespace: kmetav1.NamespaceDefault, Name: name}))
+	}
+	_, err = reconcileInit(t, i)
+	require.NoError(t, err)
+
+	require.NoError(t, kube.Get(t.Context(), i.key, fc))
+	require.True(t, fc.IsReady("v1.2.3"))
+	require.Empty(t, fc.Status.Problems)
 }
