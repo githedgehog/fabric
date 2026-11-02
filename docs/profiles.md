@@ -17,11 +17,12 @@ features and port naming scheme.
 | [Dell Z9332F-ON](#dell-z9332f-on) | **spine** | Broadcom TH3 | 32xQSFPDD-400G, 2xSFP28-10G |
 | [Edgecore DCS203 (AS7326-56X)](#edgecore-dcs203) | **spine**, **leaf** | Broadcom TD3-X7 2.0T | 48xSFP28-25G, 8xQSFP28-100G, 2xSFP28-10G |
 | [Edgecore DCS204 (AS7726-32X)](#edgecore-dcs204) | **spine**, **leaf** | Broadcom TD3-X7 3.2T | 32xQSFP28-100G, 2xSFP28-10G |
-| [Edgecore DCS240 (AS9726)](#edgecore-dcs240) | **spine**, **leaf** | Broadcom TD4 | 32xQSFP56DD-400G, 2xSFP28-10G |
+| [Edgecore DCS240 (AS9726)](#edgecore-dcs240) | **spine**, **leaf** | Broadcom TD4-X11 | 32xQSFP56DD-400G, 2xSFP28-10G |
 | [Edgecore DCS501 (AS7712-32X)](#edgecore-dcs501) | **spine** | Broadcom TH | 32xQSFP28-100G |
 | [Edgecore EPS202 (AS4630-54PE)](#edgecore-eps202) | **spine**, **leaf (limited)** | Broadcom TD3-X3 | 48xRJ45-1G, 4xSFP28-25G, 2xQSFP28-100G |
 | [Edgecore EPS203 (AS4630-54NPE)](#edgecore-eps203) | **leaf (limited)** | Broadcom TD3-X3 | 36xRJ45-2.5G, 12xRJ45-10G, 4xSFP28-25G, 2xQSFP28-100G |
 | [Supermicro SSE-C4632SB](#supermicro-sse-c4632sb) | **spine**, **leaf** | Broadcom TD3-X7 3.2T | 32xQSFP28-100G, 1xSFP28-10G |
+| [UfiSpace S9300](#ufispace-s9300) | **spine**, **leaf** | Broadcom TD4-X11 | 32xQSFP56DD-400G, 2xSFP28-10G |
 
 !!! note
     - Switches with **leaf (l3-only)** role only support L3 VPC modes
@@ -49,6 +50,7 @@ The following table shows which features are supported by each switch profile:
 | [Edgecore EPS202 (AS4630-54PE)](#edgecore-eps202) | :material-close: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: | :material-close: | :material-check: |
 | [Edgecore EPS203 (AS4630-54NPE)](#edgecore-eps203) | :material-close: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: | :material-close: | :material-check: |
 | [Supermicro SSE-C4632SB](#supermicro-sse-c4632sb) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: |
+| [UfiSpace S9300](#ufispace-s9300) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: |
 | [Virtual Switch](#virtual-switch) | :material-check: | :material-close: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-close: |
 
 
@@ -914,7 +916,7 @@ Other names: Edgecore AS9726
 
 **Supported roles**: **spine**, **leaf**
 
-Switch Silicon: **Broadcom TD4**
+Switch Silicon: **Broadcom TD4-X11**
 
 Ports Summary: **32xQSFP56DD-400G, 2xSFP28-10G**
 
@@ -1270,6 +1272,71 @@ Label column is a port label on a physical switch.
 | E1/31 | 31 | Breakout |  | 1x100G | 1x100G, 1x40G, 1x50G, 2x50G, 4x10G, 4x25G |
 | E1/32 | 32 | Breakout |  | 1x100G | 1x100G, 1x40G, 1x50G, 2x50G, 4x10G, 4x25G |
 | E1/33 | 33 | Direct |  | 10G | 1G, 10G |
+
+
+## UfiSpace S9300
+
+Profile Name (to use in switch object `.spec.profile`): **ufispace-s9300**
+
+**Supported roles**: **spine**, **leaf**
+
+Switch Silicon: **Broadcom TD4-X11**
+
+Ports Summary: **32xQSFP56DD-400G, 2xSFP28-10G**
+
+Notes: To prevent overheating only 8 ZR transceivers in ports 0,4,8,12,16,20,24,28 and/or only 6 OpenZr+ transceivers in ports 8,12,16,20,24,28. SFP ports are left-most ports, left of ports labeled MGMT
+
+**Supported features:**
+
+- Subinterfaces: true
+- ACLs: true
+- L2VNI: true
+- L3VNI: true
+- RoCE: true
+- ESLAG: true
+- ECMP RoCE QPN hashing: true
+
+**Available Ports:**
+
+Label column is a port label on a physical switch.
+
+| Port | Label | Type | Group | Default | Supported |
+|------|-------|------|-------|---------|-----------|
+| M1 |  | Management |  |  |  |
+| E1/1 | 0 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x40G, 2x50G, 4x100G, 4x10G, 8x10G, 8x25G, 8x50G |
+| E1/2 | 1 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x40G, 2x50G, 4x100G, 4x10G, 8x10G, 8x25G, 8x50G |
+| E1/3 | 2 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x40G, 2x50G, 4x100G, 4x10G, 8x10G, 8x25G, 8x50G |
+| E1/4 | 3 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x40G, 2x50G, 4x100G, 4x10G, 8x10G, 8x25G, 8x50G |
+| E1/5 | 4 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x40G, 2x50G, 4x100G, 4x10G, 8x10G, 8x25G, 8x50G |
+| E1/6 | 5 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x40G, 2x50G, 4x100G, 4x10G, 8x10G, 8x25G, 8x50G |
+| E1/7 | 6 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x40G, 2x50G, 4x100G, 4x10G, 8x10G, 8x25G, 8x50G |
+| E1/8 | 7 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x40G, 2x50G, 4x100G, 4x10G, 8x10G, 8x25G, 8x50G |
+| E1/9 | 8 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x40G, 2x50G, 4x100G, 4x10G, 8x10G, 8x25G, 8x50G |
+| E1/10 | 9 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x40G, 2x50G, 4x100G, 4x10G, 8x10G, 8x25G, 8x50G |
+| E1/11 | 10 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x40G, 2x50G, 4x100G, 4x10G, 8x10G, 8x25G, 8x50G |
+| E1/12 | 11 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x40G, 2x50G, 4x100G, 4x10G, 8x10G, 8x25G, 8x50G |
+| E1/13 | 12 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x40G, 2x50G, 4x100G, 4x10G, 8x10G, 8x25G, 8x50G |
+| E1/14 | 13 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x40G, 2x50G, 4x100G, 4x10G, 8x10G, 8x25G, 8x50G |
+| E1/15 | 14 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x40G, 2x50G, 4x100G, 4x10G, 8x10G, 8x25G, 8x50G |
+| E1/16 | 15 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x40G, 2x50G, 4x100G, 4x10G, 8x10G, 8x25G, 8x50G |
+| E1/17 | 16 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x40G, 2x50G, 4x100G, 4x10G, 8x10G, 8x25G, 8x50G |
+| E1/18 | 17 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x40G, 2x50G, 4x100G, 4x10G, 8x10G, 8x25G, 8x50G |
+| E1/19 | 18 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x40G, 2x50G, 4x100G, 4x10G, 8x10G, 8x25G, 8x50G |
+| E1/20 | 19 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x40G, 2x50G, 4x100G, 4x10G, 8x10G, 8x25G, 8x50G |
+| E1/21 | 20 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x40G, 2x50G, 4x100G, 4x10G, 8x10G, 8x25G, 8x50G |
+| E1/22 | 21 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x40G, 2x50G, 4x100G, 4x10G, 8x10G, 8x25G, 8x50G |
+| E1/23 | 22 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x40G, 2x50G, 4x100G, 4x10G, 8x10G, 8x25G, 8x50G |
+| E1/24 | 23 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x40G, 2x50G, 4x100G, 4x10G, 8x10G, 8x25G, 8x50G |
+| E1/25 | 24 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x40G, 2x50G, 4x100G, 4x10G, 8x10G, 8x25G, 8x50G |
+| E1/26 | 25 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x40G, 2x50G, 4x100G, 4x10G, 8x10G, 8x25G, 8x50G |
+| E1/27 | 26 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x40G, 2x50G, 4x100G, 4x10G, 8x10G, 8x25G, 8x50G |
+| E1/28 | 27 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x40G, 2x50G, 4x100G, 4x10G, 8x10G, 8x25G, 8x50G |
+| E1/29 | 28 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x40G, 2x50G, 4x100G, 4x10G, 8x10G, 8x25G, 8x50G |
+| E1/30 | 29 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x40G, 2x50G, 4x100G, 4x10G, 8x10G, 8x25G, 8x50G |
+| E1/31 | 30 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x40G, 2x50G, 4x100G, 4x10G, 8x10G, 8x25G, 8x50G |
+| E1/32 | 31 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x40G, 2x50G, 4x100G, 4x10G, 8x10G, 8x25G, 8x50G |
+| E1/33 | 32 | Direct |  | 10G | 1G, 10G |
+| E1/34 | 33 | Direct |  | 10G | 1G, 10G |
 
 
 ## Virtual Switch

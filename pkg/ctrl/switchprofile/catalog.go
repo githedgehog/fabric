@@ -44,6 +44,7 @@ var defaultSwitchProfiles = []wiringapi.SwitchProfile{
 	EdgecoreEPS202,
 	EdgecoreEPS203,
 	SupermicroSSEC4632SB,
+	UfiSpaceS9300,
 	VS,
 }
 
