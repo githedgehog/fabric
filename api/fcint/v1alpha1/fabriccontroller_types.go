@@ -20,7 +20,7 @@ const ConditionReady = "Ready"
 
 const (
 	ReasonInitializing = "Initializing" // initialization running or retrying after an error, see status.error
-	ReasonFailed       = "Failed"       // objects need a fix in maintenance, see status.problems
+	ReasonFailed       = "Failed"       // objects the refresh couldn't fix, see status.problems
 	ReasonMaintenance  = "Maintenance"  // see spec.maintenance
 	ReasonInitialized  = "Initialized"  // the only reason Ready is true with
 )
@@ -52,8 +52,9 @@ type FabricControllerStatus struct {
 	Error string `json:"error,omitempty"`
 	// Refresh is the progress of the last or current refresh of stored objects
 	Refresh FabricControllerRefresh `json:"refresh,omitempty"`
-	// Problems are the objects the last refresh couldn't fix, they keep the fabric controller locked until they're
-	// fixed in maintenance. Only the first ones are listed, refresh.kinds has the counts
+	// Problems are the objects the last refresh couldn't fix. They keep the fabric controller locked, it initializes
+	// again only on a spec change, e.g. leaving maintenance to fix them, or a restart. Only the first ones are listed,
+	// refresh.kinds has the counts
 	Problems []FabricControllerProblem `json:"problems,omitempty"`
 	// Conditions of the fabric controller: Ready
 	// +listType=map

@@ -39,8 +39,8 @@ const develVersion = "(devel)"
 const (
 	initRetryDelay    = 1 * time.Second
 	initRetryMaxDelay = 30 * time.Second
-	// initCheckInterval re-checks an initialized or failed fabric controller, e.g. for a status changed by hand, which
-	// doesn't change the generation and so doesn't trigger a reconcile
+	// initCheckInterval re-checks an initialized fabric controller, e.g. for a status changed by hand, which doesn't
+	// change the generation and so doesn't trigger a reconcile
 	initCheckInterval = 10 * time.Minute
 )
 
@@ -164,8 +164,12 @@ func (i *FabricControllerInitializer) Reconcile(ctx context.Context, _ kctrl.Req
 		return kctrl.Result{}, err
 	}
 
-	// failed on objects that need a fix in maintenance: leaving it changes the spec, which triggers a reconcile, the
-	// periodic check is for fixes outside of the objects, e.g. permissions
+	// failed on objects the refresh couldn't fix: it stays locked until a spec change, e.g. leaving maintenance, or a
+	// restart initializes again, instead of repeating the refresh and its writes
+	if !fc.IsReady(i.version) {
+		return kctrl.Result{}, nil
+	}
+
 	return kctrl.Result{RequeueAfter: initCheckInterval}, nil
 }
 

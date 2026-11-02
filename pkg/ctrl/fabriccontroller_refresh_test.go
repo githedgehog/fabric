@@ -138,7 +138,7 @@ func TestFabricControllerRefresh(t *testing.T) {
 
 	res, err := reconcileInit(t, i)
 	require.NoError(t, err, "objects the refresh couldn't fix aren't retried with backoff")
-	require.Equal(t, kctrl.Result{RequeueAfter: initCheckInterval}, res)
+	require.Equal(t, kctrl.Result{}, res, "nor periodically, only on a spec change")
 
 	for _, name := range []string{"old", "current", "flaky"} {
 		sw := &wiringapi.Switch{}

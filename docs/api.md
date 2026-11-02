@@ -990,7 +990,7 @@ _Appears in:_
 | `initializedVersion` _string_ | InitializedVersion is the fabric controller version that last completed initialization, including the refresh<br />of stored objects. The fabric controller is locked until it matches the running version and it's Ready |  |  |
 | `error` _string_ | Error is why the initialization failed, while it's retried |  |  |
 | `refresh` _[FabricControllerRefresh](#fabriccontrollerrefresh)_ | Refresh is the progress of the last or current refresh of stored objects |  |  |
-| `problems` _[FabricControllerProblem](#fabriccontrollerproblem) array_ | Problems are the objects the last refresh couldn't fix, they keep the fabric controller locked until they're<br />fixed in maintenance. Only the first ones are listed, refresh.kinds has the counts |  |  |
+| `problems` _[FabricControllerProblem](#fabriccontrollerproblem) array_ | Problems are the objects the last refresh couldn't fix. They keep the fabric controller locked, it initializes<br />again only on a spec change, e.g. leaving maintenance to fix them, or a restart. Only the first ones are listed,<br />refresh.kinds has the counts |  |  |
 | `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#condition-v1-meta) array_ | Conditions of the fabric controller: Ready |  |  |
 
 
