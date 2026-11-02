@@ -4,6 +4,7 @@
 package v1alpha1
 
 import (
+	kmeta "k8s.io/apimachinery/pkg/api/meta"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -13,11 +14,14 @@ import (
 // FabricControllerName is the name of the only FabricController, it lives in the fabric controller's namespace
 const FabricControllerName = "default"
 
+// ConditionReady is true once the running version completed initialization for the current spec, its reason is the
+// state of the fabric controller and its message a short summary
+const ConditionReady = "Ready"
+
 const (
-	// ConditionInitialized is true once a fabric controller version completed initialization
-	ConditionInitialized = "Initialized"
-	// ConditionRefreshing is true while stored objects are being refreshed with the current defaults
-	ConditionRefreshing = "Refreshing"
+	ReasonInitializing = "Initializing" // initialization running or retrying after an error, see status.error
+	ReasonMaintenance  = "Maintenance"  // see spec.maintenance
+	ReasonInitialized  = "Initialized"  // the only reason Ready is true with
 )
 
 // FabricControllerSpec defines the desired state of FabricController.
@@ -31,12 +35,16 @@ type FabricControllerSpec struct {
 
 // FabricControllerStatus defines the observed state of FabricController.
 type FabricControllerStatus struct {
-	// InitializedVersion is the fabric controller version that completed initialization, including the refresh of
-	// stored objects. The fabric controller is locked until it matches the running version
+	// Version is the running fabric controller version
+	Version string `json:"version,omitempty"`
+	// InitializedVersion is the fabric controller version that last completed initialization, including the refresh
+	// of stored objects. The fabric controller is locked until it matches the running version and it's Ready
 	InitializedVersion string `json:"initializedVersion,omitempty"`
+	// Error is why the initialization failed, while it's retried
+	Error string `json:"error,omitempty"`
 	// Refresh is the progress of the last or current refresh of stored objects
 	Refresh FabricControllerRefresh `json:"refresh,omitempty"`
-	// Conditions of the fabric controller: Initialized and Refreshing
+	// Conditions of the fabric controller: Ready
 	// +listType=map
 	// +listMapKey=type
 	Conditions []kmetav1.Condition `json:"conditions,omitempty"`
@@ -76,8 +84,10 @@ type FabricControllerRefreshKind struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:categories=hhint;hhfcint,shortName=fc
+// +kubebuilder:printcolumn:name="Version",type=string,JSONPath=`.status.version`,priority=0
 // +kubebuilder:printcolumn:name="Initialized",type=string,JSONPath=`.status.initializedVersion`,priority=0
-// +kubebuilder:printcolumn:name="Refreshing",type=string,JSONPath=`.status.conditions[?(@.type=="Refreshing")].status`,priority=0
+// +kubebuilder:printcolumn:name="State",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].reason`,priority=0
+// +kubebuilder:printcolumn:name="Message",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].message`,priority=0
 // +kubebuilder:printcolumn:name="Maintenance",type=boolean,JSONPath=`.spec.maintenance`,priority=0
 // +kubebuilder:printcolumn:name="Passes",type=integer,JSONPath=`.status.refresh.passes`,priority=1
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=10
@@ -107,4 +117,13 @@ func init() {
 
 		return nil
 	})
+}
+
+// IsReady is true if the version completed initialization for the current spec: every spec change, e.g. maintenance
+// turned on and off, keeps the fabric controller locked until it's initialized again
+func (fc *FabricController) IsReady(version string) bool {
+	ready := kmeta.FindStatusCondition(fc.Status.Conditions, ConditionReady)
+
+	return fc.Status.InitializedVersion == version && ready != nil && ready.Status == kmetav1.ConditionTrue &&
+		ready.ObservedGeneration == fc.Generation
 }

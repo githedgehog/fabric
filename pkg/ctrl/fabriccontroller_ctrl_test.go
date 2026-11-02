@@ -43,21 +43,29 @@ func TestFabricControllerLock(t *testing.T) {
 			after: lockLocked,
 		},
 		{
-			name: "initialized",
+			name:  "initialized",
+			fc:    readyFabricController(ns, version.Version, 1),
+			after: lockUnlocked,
+		},
+		{
+			name:   "initialized by another version",
+			fc:     readyFabricController(ns, "v0.0.1", 1),
+			before: lockUnlocked,
+			after:  lockLocked,
+		},
+		{
+			name:   "initialized for an older spec",
+			fc:     readyFabricController(ns, version.Version, 2),
+			before: lockUnlocked,
+			after:  lockLocked,
+		},
+		{
+			name: "initialized version without ready",
 			fc: &fcintapi.FabricController{
 				Namespace: ns, Name: fcintapi.FabricControllerName,
 				Status: fcintapi.FabricControllerStatus{InitializedVersion: version.Version},
 			},
-			after: lockUnlocked,
-		},
-		{
-			name: "initialized by another version",
-			fc: &fcintapi.FabricController{
-				Namespace: ns, Name: fcintapi.FabricControllerName,
-				Status: fcintapi.FabricControllerStatus{InitializedVersion: "v0.0.1"},
-			},
-			before: lockUnlocked,
-			after:  lockLocked,
+			after: lockLocked,
 		},
 		{
 			name: "maintenance",
@@ -70,20 +78,18 @@ func TestFabricControllerLock(t *testing.T) {
 		},
 		{
 			name: "maintenance of an initialized one",
-			fc: &fcintapi.FabricController{
-				Namespace: ns, Name: fcintapi.FabricControllerName,
-				Spec:   fcintapi.FabricControllerSpec{Maintenance: true},
-				Status: fcintapi.FabricControllerStatus{InitializedVersion: version.Version},
-			},
+			fc: func() *fcintapi.FabricController {
+				fc := readyFabricController(ns, version.Version, 1)
+				fc.Spec.Maintenance = true
+
+				return fc
+			}(),
 			before: lockUnlocked,
 			after:  lockMaintenance,
 		},
 		{
-			name: "other namespace",
-			fc: &fcintapi.FabricController{
-				Namespace: kmetav1.NamespaceDefault, Name: fcintapi.FabricControllerName,
-				Status: fcintapi.FabricControllerStatus{InitializedVersion: version.Version},
-			},
+			name:  "other namespace",
+			fc:    readyFabricController(kmetav1.NamespaceDefault, version.Version, 1),
 			after: lockLocked,
 		},
 	} {

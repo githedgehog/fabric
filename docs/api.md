@@ -966,9 +966,11 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `initializedVersion` _string_ | InitializedVersion is the fabric controller version that completed initialization, including the refresh of<br />stored objects. The fabric controller is locked until it matches the running version |  |  |
+| `version` _string_ | Version is the running fabric controller version |  |  |
+| `initializedVersion` _string_ | InitializedVersion is the fabric controller version that last completed initialization, including the refresh<br />of stored objects. The fabric controller is locked until it matches the running version and it's Ready |  |  |
+| `error` _string_ | Error is why the initialization failed, while it's retried |  |  |
 | `refresh` _[FabricControllerRefresh](#fabriccontrollerrefresh)_ | Refresh is the progress of the last or current refresh of stored objects |  |  |
-| `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#condition-v1-meta) array_ | Conditions of the fabric controller: Initialized and Refreshing |  |  |
+| `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#condition-v1-meta) array_ | Conditions of the fabric controller: Ready |  |  |
 
 
 

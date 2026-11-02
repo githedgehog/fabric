@@ -20,11 +20,17 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
+    - jsonPath: .status.version
+      name: Version
+      type: string
     - jsonPath: .status.initializedVersion
       name: Initialized
       type: string
-    - jsonPath: .status.conditions[?(@.type=="Refreshing")].status
-      name: Refreshing
+    - jsonPath: .status.conditions[?(@.type=="Ready")].reason
+      name: State
+      type: string
+    - jsonPath: .status.conditions[?(@.type=="Ready")].message
+      name: Message
       type: string
     - jsonPath: .spec.maintenance
       name: Maintenance
@@ -77,8 +83,7 @@ spec:
             description: FabricControllerStatus defines the observed state of FabricController.
             properties:
               conditions:
-                description: 'Conditions of the fabric controller: Initialized and
-                  Refreshing'
+                description: 'Conditions of the fabric controller: Ready'
                 items:
                   description: Condition contains details for one aspect of the current
                     state of this API Resource.
@@ -137,10 +142,13 @@ spec:
                 x-kubernetes-list-map-keys:
                 - type
                 x-kubernetes-list-type: map
+              error:
+                description: Error is why the initialization failed, while it's retried
+                type: string
               initializedVersion:
                 description: |-
-                  InitializedVersion is the fabric controller version that completed initialization, including the refresh of
-                  stored objects. The fabric controller is locked until it matches the running version
+                  InitializedVersion is the fabric controller version that last completed initialization, including the refresh
+                  of stored objects. The fabric controller is locked until it matches the running version and it's Ready
                 type: string
               refresh:
                 description: Refresh is the progress of the last or current refresh
@@ -197,6 +205,9 @@ spec:
                       the refresh
                     type: string
                 type: object
+              version:
+                description: Version is the running fabric controller version
+                type: string
             type: object
         type: object
     served: true

@@ -17,7 +17,6 @@ import (
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
-	kmeta "k8s.io/apimachinery/pkg/api/meta"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -130,7 +129,8 @@ func TestFabricControllerRefresh(t *testing.T) {
 		profiles:  profiles,
 	}
 
-	require.NoError(t, i.Start(t.Context()))
+	_, err := reconcileInit(t, i)
+	require.NoError(t, err)
 
 	for _, name := range []string{"old", "current", "flaky"} {
 		sw := &wiringapi.Switch{}
@@ -151,8 +151,7 @@ func TestFabricControllerRefresh(t *testing.T) {
 	fc := &fcintapi.FabricController{}
 	require.NoError(t, kube.Get(t.Context(), i.key, fc))
 	require.Equal(t, "v1.2.3", fc.Status.InitializedVersion)
-	require.True(t, kmeta.IsStatusConditionTrue(fc.Status.Conditions, fcintapi.ConditionInitialized))
-	require.True(t, kmeta.IsStatusConditionFalse(fc.Status.Conditions, fcintapi.ConditionRefreshing))
+	require.True(t, fc.IsReady("v1.2.3"))
 	require.Equal(t, "v1.2.3", fc.Status.Refresh.Version)
 	require.False(t, fc.Status.Refresh.FinishedAt.IsZero())
 	require.Greater(t, fc.Status.Refresh.Passes, 1)
@@ -217,7 +216,8 @@ func TestFabricControllerRefreshInvalid(t *testing.T) {
 		cfg:       &meta.FabricConfig{AllowExtraSwitchProfiles: true},
 		profiles:  switchprofile.NewDefaultSwitchProfiles(),
 	}
-	require.NoError(t, i.Start(t.Context()))
+	_, err := reconcileInit(t, i)
+	require.NoError(t, err)
 
 	for _, name := range []string{"server-1", tooLong} {
 		srv := &wiringapi.Server{}
