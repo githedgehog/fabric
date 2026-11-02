@@ -25,6 +25,36 @@ func switchRequests(namespace string, switches map[string]bool) []reconcile.Requ
 	return res
 }
 
+// enqueueAllSwitches reconciles all switches in the object's namespace, all of them for an object without one
+func enqueueAllSwitches(kube kclient.Reader, lock *Lock) handler.MapFunc {
+	return func(ctx context.Context, obj kclient.Object) []reconcile.Request {
+		// all switches are queued and reconciled once unlocked, see lockedRequeueAfter; the refresh alone would fan out
+		// every write of a refreshed object to every switch otherwise
+		if lock.Locked() {
+			return nil
+		}
+
+		res := []reconcile.Request{}
+
+		sws := &wiringapi.SwitchList{}
+		err := kube.List(ctx, sws, kclient.InNamespace(obj.GetNamespace()))
+		if err != nil {
+			kctrllog.FromContext(ctx).Error(err, "error listing switches to reconcile all")
+
+			return res
+		}
+
+		for _, sw := range sws.Items {
+			res = append(res, reconcile.Request{
+				Namespace: sw.Namespace,
+				Name:      sw.Name,
+			})
+		}
+
+		return res
+	}
+}
+
 // enqueueSwitchesByProfile reconciles the switches using the switch profile
 func enqueueSwitchesByProfile(kube kclient.Reader, lock *Lock) handler.MapFunc {
 	return func(ctx context.Context, obj kclient.Object) []reconcile.Request {

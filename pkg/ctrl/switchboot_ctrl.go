@@ -18,6 +18,7 @@ import (
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	kctrllog "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 // +kubebuilder:rbac:groups=fcint.githedgehog.com,resources=switchboots,verbs=get;list;watch;create;update;patch;delete
@@ -47,6 +48,7 @@ func SetupSwitchBootReconcilerWith(mgr kctrl.Manager, lock *Lock) error {
 		// recreated if deleted, garbage collected with the switch otherwise
 		Owns(&fcintapi.SwitchBoot{}, builder.WithPredicates(onlyDeletes)).
 		Watches(&wiringapi.SwitchProfile{}, handler.EnqueueRequestsFromMapFunc(enqueueSwitchesByProfile(r, lock))).
+		WatchesRawSource(source.Channel(lock.Unlocked(), handler.EnqueueRequestsFromMapFunc(enqueueAllSwitches(r, lock)))).
 		Complete(r); err != nil {
 		return fmt.Errorf("setting up controller: %w", err)
 	}
