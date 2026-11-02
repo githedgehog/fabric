@@ -247,6 +247,12 @@ func (i *FabricControllerInitializer) refreshKind(ctx context.Context, k refresh
 			return nil
 		}
 
+		// it's going away, it must not fail the initialization: its finalizers are removed by reconcilers that wait
+		// for the unlock
+		if obj.GetDeletionTimestamp() != nil {
+			return nil
+		}
+
 		// the list shares the cache's objects, so defaulting needs a copy: the only one per object and pass
 		want, _ := obj.DeepCopyObject().(defaultable)
 		want.Default()

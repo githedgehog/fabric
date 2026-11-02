@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	fcintapi "go.githedgehog.com/fabric/api/fcint/v1alpha1"
@@ -224,13 +225,19 @@ func TestFabricControllerRefreshInvalid(t *testing.T) {
 		invalid = append(invalid, fmt.Sprintf("%s-%02d", strings.Repeat("s", meta.MaxNameLength), idx))
 	}
 
-	objs := make([]kclient.Object, 0, len(invalid)+2)
+	// invalid as well, but being deleted: its finalizer is only removed once unlocked
+	deleting := server(strings.Repeat("d", meta.MaxNameLength+1))
+	deleting.Finalizers = []string{"fabric.githedgehog.com/cleanup"}
+	deleting.DeletionTimestamp = &kmetav1.Time{Time: time.Now()}
+
+	objs := make([]kclient.Object, 0, len(invalid)+3)
 	objs = append(objs,
 		&wiringapi.Fabric{
 			Namespace: kmetav1.NamespaceDefault, Name: wiringapi.DefaultFabric,
 			Spec: wiringapi.DefaultFabricSpec(initFabricConfig()),
 		},
 		server("server-1"),
+		deleting,
 	)
 	for _, name := range invalid {
 		objs = append(objs, server(name))
@@ -267,10 +274,13 @@ func TestFabricControllerRefreshInvalid(t *testing.T) {
 	require.Equal(t, fmt.Sprintf("%d invalid", len(invalid)), ready.Message)
 	require.Equal(t, fcintapi.FabricControllerRefreshKind{
 		Kind:    "Server",
-		Total:   len(invalid) + 1,
+		Total:   len(invalid) + 2,
 		Updated: len(invalid) + 1,
 		Invalid: len(invalid),
 	}, refreshKindStatus(t, fc, "Server"))
+
+	require.NoError(t, kube.Get(t.Context(), kclient.ObjectKeyFromObject(deleting), deleting))
+	require.NotEmpty(t, deleting.Labels, "an object being deleted isn't refreshed")
 
 	require.Len(t, fc.Status.Problems, refreshMaxProblems)
 	require.True(t, slices.IsSortedFunc(fc.Status.Problems, func(a, b fcintapi.FabricControllerProblem) int {
