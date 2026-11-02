@@ -27,6 +27,7 @@ import (
 	fcintapi "go.githedgehog.com/fabric/api/fcint/v1alpha1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/apiutil"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kmeta "k8s.io/apimachinery/pkg/api/meta"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -169,10 +170,15 @@ func Fabric(ctx context.Context, kube kclient.Reader, in FabricIn) (*FabricOut, 
 	out := &FabricOut{}
 
 	fc, err := fabricController(ctx, kube)
-	if err != nil {
+	switch {
+	case kmeta.IsNoMatchError(err) || kapierrors.IsForbidden(err):
+		// an older fabric controller or not allowed to see it, the fabrics are shown regardless
+		slog.Warn("Can't get the fabric controller state", "err", err)
+	case err != nil:
 		return nil, err
+	default:
+		out.Controller = fc
 	}
-	out.Controller = fc
 
 	fabList := &wiringapi.FabricList{}
 	if err := kube.List(ctx, fabList); err != nil {

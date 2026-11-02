@@ -12,6 +12,8 @@ import (
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	fcintapi "go.githedgehog.com/fabric/api/fcint/v1alpha1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	kmeta "k8s.io/apimachinery/pkg/api/meta"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -187,6 +189,27 @@ func TestFabricController(t *testing.T) {
 			for _, s := range tt.shown {
 				require.Contains(t, text, s)
 			}
+		})
+	}
+
+	for name, listErr := range map[string]error{
+		"not allowed":             kapierrors.NewForbidden(fcintapi.GroupVersion.WithResource("fabriccontrollers").GroupResource(), "", nil),
+		"older fabric controller": &kmeta.NoKindMatchError{GroupKind: fcintapi.GroupVersion.WithKind("FabricController").GroupKind()},
+	} {
+		t.Run(name, func(t *testing.T) {
+			kube := fake.NewClientBuilder().WithScheme(fabricScheme(t)).WithInterceptorFuncs(interceptor.Funcs{
+				List: func(ctx context.Context, c kclient.WithWatch, list kclient.ObjectList, opts ...kclient.ListOption) error {
+					if _, ok := list.(*fcintapi.FabricControllerList); ok {
+						return listErr
+					}
+
+					return c.List(ctx, list, opts...)
+				},
+			}).Build()
+
+			out, err := Fabric(t.Context(), kube, FabricIn{})
+			require.NoError(t, err, "the fabrics are shown without the fabric controller state")
+			require.Nil(t, out.Controller)
 		})
 	}
 
