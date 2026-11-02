@@ -92,7 +92,7 @@ func (out *FabricOut) MarshalText(_ FabricIn, now time.Time) (string, error) {
 		}
 
 		if len(fc.Problems) > 0 {
-			str.WriteString("\nObjects to fix in maintenance (only the first ones are listed):\n")
+			str.WriteString("\nObjects the refresh couldn't fix (only the first ones are listed):\n")
 			problemData := make([][]string, 0, len(fc.Problems))
 			for _, p := range fc.Problems {
 				problemData = append(problemData, []string{p.Kind, p.Namespace, p.Name, p.Reason, p.Message})
