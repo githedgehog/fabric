@@ -9,14 +9,16 @@ import (
 	"sync/atomic"
 	"time"
 
+	fcintapi "go.githedgehog.com/fabric/api/fcint/v1alpha1"
 	authnv1 "k8s.io/api/authentication/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	kctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // lockedRequeueAfter is how long a reconciler waits before checking again while fabric-ctrl is locked. Every object
-// it got an event for stays queued meanwhile, so all of them are reconciled within that time once it's unlocked,
-// without the events dropped by the fan-out mappers while locked.
+// it got an event for stays queued meanwhile, so all of them are reconciled within that time once it's unlocked. The
+// events the fan-out mappers drop while locked are replayed on unlock, see Lock.Unlocked.
 const lockedRequeueAfter = 15 * time.Second
 
 type lockState int32
@@ -33,6 +35,8 @@ const (
 type Lock struct {
 	state atomic.Int32
 	self  string
+	// subscribed before the manager starts, so never changed while the lock is set
+	unlocked []chan event.GenericEvent
 }
 
 func NewLock(self string) *Lock {
@@ -42,6 +46,17 @@ func NewLock(self string) *Lock {
 // Locked is true until the FabricController records the running version as initialized, and in maintenance
 func (l *Lock) Locked() bool {
 	return l.get() != lockUnlocked
+}
+
+// Unlocked gets an event on every unlock, for a controller to reconcile all its objects: the fan-out mappers drop
+// events while locked, which matters once it's locked again after the start, e.g. in maintenance, as the objects
+// reconciled before aren't queued anymore. The event's object is an empty FabricController, so no namespace.
+// It must be called before the manager starts.
+func (l *Lock) Unlocked() <-chan event.GenericEvent {
+	ch := make(chan event.GenericEvent, 1)
+	l.unlocked = append(l.unlocked, ch)
+
+	return ch
 }
 
 // IsSelf is true for the username the fabric controller itself runs as
@@ -68,6 +83,17 @@ func (l *Lock) set(ctx context.Context, state lockState, reason string, keysAndV
 		msg = "Fabric controller unlocked"
 	}
 	kctrllog.FromContext(ctx).Info(msg, append([]any{"reason", reason}, keysAndValues...)...)
+
+	if state != lockUnlocked {
+		return
+	}
+	for _, ch := range l.unlocked {
+		select {
+		case ch <- event.GenericEvent{Object: &fcintapi.FabricController{}}:
+		default:
+			// the previous unlock isn't processed yet, it reconciles everything anyway
+		}
+	}
 }
 
 // +kubebuilder:rbac:groups=authentication.k8s.io,resources=selfsubjectreviews,verbs=create

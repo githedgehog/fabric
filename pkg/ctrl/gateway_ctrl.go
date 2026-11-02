@@ -35,6 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	kctrllog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 const (
@@ -103,6 +104,7 @@ func SetupGatewayReconcilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig, lock 
 		Watches(&gwapi.GatewayPeering{}, handler.EnqueueRequestsFromMapFunc(r.enqueueForPeering)).
 		Watches(&gwapi.VPCInfo{}, handler.EnqueueRequestsFromMapFunc(r.enqueueForVPCInfo)).
 		Watches(&wiringapi.Fabric{}, handler.EnqueueRequestsFromMapFunc(r.enqueueForFabric)).
+		WatchesRawSource(source.Channel(lock.Unlocked(), handler.EnqueueRequestsFromMapFunc(r.enqueueAll))).
 		Complete(r); err != nil {
 		return fmt.Errorf("setting up controller: %w", err)
 	}
@@ -143,6 +145,10 @@ func (r *GatewayReconciler) enqueueGateways(ctx context.Context, fabric string, 
 	}
 
 	return res
+}
+
+func (r *GatewayReconciler) enqueueAll(ctx context.Context, _ kclient.Object) []reconcile.Request {
+	return r.enqueueGateways(ctx, "", nil)
 }
 
 // a gateway is part of the groups of the other gateways in its fabric and domain

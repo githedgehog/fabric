@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	fcintapi "go.githedgehog.com/fabric/api/fcint/v1alpha1"
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
@@ -68,4 +69,26 @@ func TestLockedReconcilers(t *testing.T) {
 
 	lock.state.Store(int32(lockUnlocked))
 	require.Len(t, agent.enqueueAllSwitches(t.Context(), sw), 1, "fan-out is back once unlocked")
+	require.Len(t, agent.enqueueAllSwitches(t.Context(), &fcintapi.FabricController{}), 1, "all switches on unlock")
+}
+
+func TestLockUnlocked(t *testing.T) {
+	lock := NewLock("system:serviceaccount:fab:fabric-ctrl")
+	unlocked := lock.Unlocked()
+
+	lock.set(t.Context(), lockMaintenance, "test")
+	lock.set(t.Context(), lockLocked, "test")
+	require.Empty(t, unlocked)
+
+	lock.set(t.Context(), lockUnlocked, "test")
+	require.Len(t, unlocked, 1)
+
+	lock.set(t.Context(), lockUnlocked, "test")
+	lock.set(t.Context(), lockMaintenance, "test")
+	lock.set(t.Context(), lockUnlocked, "test")
+	require.Len(t, unlocked, 1, "an unlock pending already is enough, it doesn't block either")
+
+	ev := <-unlocked
+	require.IsType(t, &fcintapi.FabricController{}, ev.Object)
+	require.Empty(t, ev.Object.GetNamespace())
 }
