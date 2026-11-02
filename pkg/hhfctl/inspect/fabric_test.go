@@ -38,7 +38,7 @@ func testFabricController(ver string, ready bool) *fcintapi.FabricController {
 	if ready {
 		fc.Status.Conditions = []kmetav1.Condition{{
 			Type: fcintapi.ConditionReady, Status: kmetav1.ConditionTrue, ObservedGeneration: 1,
-			Reason: fcintapi.ReasonInitialized, Message: ver,
+			Reason: fcintapi.ReasonInitialized, Message: "operational",
 		}}
 	}
 
@@ -149,7 +149,7 @@ func TestFabricController(t *testing.T) {
 		{
 			name: "ready",
 			objs: []kclient.Object{testFabricController("v1.2.3", true)},
-			want: &FabricOutController{Ready: true, Version: "v1.2.3", Initialized: "v1.2.3", State: fcintapi.ReasonInitialized, Message: "v1.2.3"},
+			want: &FabricOutController{Ready: true, Version: "v1.2.3", Initialized: "v1.2.3", State: fcintapi.ReasonInitialized, Message: "operational"},
 		},
 		{
 			name:  "missing",

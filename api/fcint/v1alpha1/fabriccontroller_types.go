@@ -107,6 +107,7 @@ type FabricControllerProblem struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:categories=hhint;hhfcint,shortName=fc
+// +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].status`,priority=0
 // +kubebuilder:printcolumn:name="Version",type=string,JSONPath=`.status.version`,priority=0
 // +kubebuilder:printcolumn:name="Initialized",type=string,JSONPath=`.status.initializedVersion`,priority=0
 // +kubebuilder:printcolumn:name="State",type=string,JSONPath=`.status.conditions[?(@.type=="Ready")].reason`,priority=0

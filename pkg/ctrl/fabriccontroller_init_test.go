@@ -57,7 +57,7 @@ func TestWriteStatusConflict(t *testing.T) {
 	fc := &fcintapi.FabricController{}
 	require.NoError(t, kube.Get(t.Context(), key, fc))
 	fc.Status.InitializedVersion = "v1.2.3"
-	setReady(fc, fc.Generation, kmetav1.ConditionTrue, fcintapi.ReasonInitialized, "v1.2.3")
+	setReady(fc, fc.Generation, kmetav1.ConditionTrue, fcintapi.ReasonInitialized, "operational")
 
 	require.NoError(t, i.writeStatus(t.Context(), fc))
 	require.Equal(t, 2, conflicts)
@@ -282,7 +282,7 @@ func readyFabricController(ns, ver string, gen int64) *fcintapi.FabricController
 		Namespace: ns, Name: fcintapi.FabricControllerName, Generation: gen,
 		Status: fcintapi.FabricControllerStatus{InitializedVersion: ver},
 	}
-	setReady(fc, 1, kmetav1.ConditionTrue, fcintapi.ReasonInitialized, ver)
+	setReady(fc, 1, kmetav1.ConditionTrue, fcintapi.ReasonInitialized, "operational")
 
 	return fc
 }
@@ -359,7 +359,7 @@ func TestFabricControllerInitializerLifecycle(t *testing.T) {
 	t.Run("new deployment", func(t *testing.T) {
 		_, err := reconcileInit(t, i)
 		require.NoError(t, err)
-		require.True(t, requireState(fcintapi.ReasonInitialized, ver).IsReady(ver))
+		require.True(t, requireState(fcintapi.ReasonInitialized, "operational").IsReady(ver))
 		require.Equal(t, 1, lists)
 	})
 
@@ -376,7 +376,7 @@ func TestFabricControllerInitializerLifecycle(t *testing.T) {
 		setMaintenance(false)
 		_, err := reconcileInit(t, i)
 		require.NoError(t, err)
-		require.True(t, requireState(fcintapi.ReasonInitialized, ver).IsReady(ver))
+		require.True(t, requireState(fcintapi.ReasonInitialized, "operational").IsReady(ver))
 		require.Equal(t, 2, lists)
 	})
 
@@ -402,7 +402,7 @@ func TestFabricControllerInitializerLifecycle(t *testing.T) {
 		failVPCs = false
 		_, err = reconcileInit(t, i)
 		require.NoError(t, err)
-		fc = requireState(fcintapi.ReasonInitialized, ver)
+		fc = requireState(fcintapi.ReasonInitialized, "operational")
 		require.Empty(t, fc.Status.Error)
 		require.True(t, fc.IsReady(ver))
 	})
