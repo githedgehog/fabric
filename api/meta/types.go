@@ -148,6 +148,12 @@ type FabricConfig struct {
 	reservedSubnets []netip.Prefix
 }
 
+// up to 1 TiB each, anything above is likely a typo or a size in bytes
+const (
+	MaxGatewayHugePages1G = 1 << 10
+	MaxGatewayHugePages2M = 1 << 19
+)
+
 type FabricMode string
 
 const (
@@ -407,12 +413,11 @@ func (cfg *FabricConfig) Init(extraValidators ExtraValidators) (*FabricConfig, e
 		return nil, errors.Errorf("config: managementDHCPEnd is not a valid IP in managementSubnet")
 	}
 
-	// up to 1 TiB each, anything above is likely a typo or a size in bytes
-	if cfg.GatewayHugePages1G < 0 || cfg.GatewayHugePages1G > 1<<10 {
-		return nil, fmt.Errorf("config: gatewayHugePages1G must be between 0 and %d", 1<<10) //nolint:err113
+	if cfg.GatewayHugePages1G < 0 || cfg.GatewayHugePages1G > MaxGatewayHugePages1G {
+		return nil, fmt.Errorf("config: gatewayHugePages1G must be between 0 and %d", MaxGatewayHugePages1G) //nolint:err113
 	}
-	if cfg.GatewayHugePages2M < 0 || cfg.GatewayHugePages2M > 1<<19 {
-		return nil, fmt.Errorf("config: gatewayHugePages2M must be between 0 and %d", 1<<19) //nolint:err113
+	if cfg.GatewayHugePages2M < 0 || cfg.GatewayHugePages2M > MaxGatewayHugePages2M {
+		return nil, fmt.Errorf("config: gatewayHugePages2M must be between 0 and %d", MaxGatewayHugePages2M) //nolint:err113
 	}
 
 	for idx, commStr := range cfg.GatewayCommunities {

@@ -378,6 +378,10 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg 
 		return fmt.Errorf("driver %q must be one of %v: %w", gw.Spec.Driver, GatewayDrivers, ErrInvalidGW)
 	}
 
+	if _, _, err := gw.HugePages(0, 0); err != nil {
+		return err
+	}
+
 	if len(gw.Spec.Interfaces) == 0 {
 		return fmt.Errorf("at least one interface must be defined: %w", ErrInvalidGW)
 	}
@@ -551,6 +555,38 @@ func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg 
 	}
 
 	return nil
+}
+
+// HugePages returns the 1G and 2M hugepages counts set by the gateway annotations, the given defaults (usually from the
+// fabric config) are used for the ones that aren't set
+func (gw *Gateway) HugePages(default1G, default2M int64) (int64, int64, error) {
+	hp1G, err := hugePagesAnnotation(gw, AnnotationHugePages1G, default1G, meta.MaxGatewayHugePages1G)
+	if err != nil {
+		return 0, 0, err
+	}
+	hp2M, err := hugePagesAnnotation(gw, AnnotationHugePages2M, default2M, meta.MaxGatewayHugePages2M)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	return hp1G, hp2M, nil
+}
+
+func hugePagesAnnotation(gw *Gateway, key string, def, upTo int64) (int64, error) {
+	val, ok := gw.Annotations[key]
+	if !ok {
+		return def, nil
+	}
+
+	count, err := strconv.ParseInt(val, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("annotation %s value %q must be an integer: %w", key, val, errors.Join(err, ErrInvalidGW))
+	}
+	if count < 0 || count > upTo {
+		return 0, fmt.Errorf("annotation %s value %d must be between 0 and %d: %w", key, count, upTo, ErrInvalidGW)
+	}
+
+	return count, nil
 }
 
 func validatePCI(name, pci string) error {
