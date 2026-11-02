@@ -5,6 +5,7 @@ package ctrl
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -16,49 +17,62 @@ import (
 
 type countingValidator struct {
 	calls int
+	err   error
 }
 
 func (v *countingValidator) ValidateCreate(_ context.Context, _ *wiringapi.Server) (admission.Warnings, error) {
 	v.calls++
 
-	return nil, nil
+	return admission.Warnings{"inner"}, v.err
 }
 
 func (v *countingValidator) ValidateUpdate(_ context.Context, _, _ *wiringapi.Server) (admission.Warnings, error) {
 	v.calls++
 
-	return nil, nil
+	return admission.Warnings{"inner"}, v.err
 }
 
 func (v *countingValidator) ValidateDelete(_ context.Context, _ *wiringapi.Server) (admission.Warnings, error) {
 	v.calls++
 
-	return nil, nil
+	return admission.Warnings{"inner"}, v.err
 }
 
 func TestLockedValidator(t *testing.T) {
 	const self = "system:serviceaccount:fab:fabric-ctrl"
 
+	invalid := errors.New("invalid server") //nolint:err113
+
 	for _, tt := range []struct {
 		name        string
-		unlocked    bool
+		state       lockState
 		username    string
 		noRequest   bool
+		innerErr    error
 		validated   bool
 		unavailable bool
 		err         bool
+		warnings    admission.Warnings
 	}{
-		{name: "unlocked user", unlocked: true, username: "system:admin", validated: true},
-		{name: "unlocked self", unlocked: true, username: self, validated: true},
-		{name: "locked user", username: "system:admin", unavailable: true},
-		{name: "locked self", username: self},
-		{name: "locked without request", noRequest: true, err: true},
+		{name: "unlocked user", state: lockUnlocked, username: "system:admin", validated: true, warnings: admission.Warnings{"inner"}},
+		{name: "unlocked self", state: lockUnlocked, username: self, validated: true, warnings: admission.Warnings{"inner"}},
+		{name: "unlocked invalid", state: lockUnlocked, username: "system:admin", innerErr: invalid, validated: true, err: true, warnings: admission.Warnings{"inner"}},
+		{name: "locked user", state: lockLocked, username: "system:admin", unavailable: true},
+		{name: "locked self", state: lockLocked, username: self},
+		{name: "locked without request", state: lockLocked, noRequest: true, err: true},
+		{name: "maintenance user", state: lockMaintenance, username: "system:admin", validated: true, warnings: admission.Warnings{"inner"}},
+		{
+			name: "maintenance invalid", state: lockMaintenance, username: "system:admin", innerErr: invalid, validated: true,
+			warnings: admission.Warnings{"inner", "Not enforced in maintenance: invalid server"},
+		},
+		{name: "maintenance self", state: lockMaintenance, username: self},
+		{name: "maintenance without request", state: lockMaintenance, noRequest: true, err: true},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			lock := NewLock(self)
-			lock.unlocked.Store(tt.unlocked)
+			lock.state.Store(int32(tt.state))
 
-			inner := &countingValidator{}
+			inner := &countingValidator{err: tt.innerErr}
 			v := newLockedValidator[*wiringapi.Server](inner, lock)
 
 			ctx := t.Context()
@@ -69,9 +83,13 @@ func TestLockedValidator(t *testing.T) {
 			}
 
 			srv := &wiringapi.Server{}
-			_, createErr := v.ValidateCreate(ctx, srv)
-			_, updateErr := v.ValidateUpdate(ctx, srv, srv)
-			_, deleteErr := v.ValidateDelete(ctx, srv)
+			createWarnings, createErr := v.ValidateCreate(ctx, srv)
+			updateWarnings, updateErr := v.ValidateUpdate(ctx, srv, srv)
+			deleteWarnings, deleteErr := v.ValidateDelete(ctx, srv)
+
+			for _, warnings := range []admission.Warnings{createWarnings, updateWarnings, deleteWarnings} {
+				require.Equal(t, tt.warnings, warnings)
+			}
 
 			for _, err := range []error{createErr, updateErr, deleteErr} {
 				switch {

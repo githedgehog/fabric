@@ -20,7 +20,7 @@ import (
 // unlockedLock is the lock of an initialized fabric controller, for tests of what's gated by it
 func unlockedLock() *Lock {
 	lock := NewLock("system:serviceaccount:fab:fabric-ctrl")
-	lock.unlocked.Store(true)
+	lock.state.Store(int32(lockUnlocked))
 
 	return lock
 }
@@ -63,6 +63,9 @@ func TestLockedReconcilers(t *testing.T) {
 	require.Empty(t, agent.enqueueByFabric(t.Context(), &wiringapi.Fabric{Namespace: kmetav1.NamespaceDefault, Name: wiringapi.DefaultFabric}))
 	require.Empty(t, enqueueSwitchesByProfile(kube, lock)(t.Context(), &wiringapi.SwitchProfile{Namespace: kmetav1.NamespaceDefault, Name: "any"}))
 
-	lock.unlocked.Store(true)
+	lock.state.Store(int32(lockMaintenance))
+	require.Empty(t, agent.enqueueAllSwitches(t.Context(), sw), "fan-out is dropped in maintenance")
+
+	lock.state.Store(int32(lockUnlocked))
 	require.Len(t, agent.enqueueAllSwitches(t.Context(), sw), 1, "fan-out is back once unlocked")
 }

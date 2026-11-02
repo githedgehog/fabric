@@ -950,7 +950,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `forceUnlock` _boolean_ | ForceUnlock unlocks the fabric controller regardless of the initialized version. It's a last resort for a<br />stuck refresh: objects that weren't refreshed don't carry the current defaults and labels |  |  |
+| `maintenance` _boolean_ | Maintenance is dangerous, it's for fixing the objects that keep the fabric controller locked: all changes are<br />admitted, validation errors only come back as warnings, while reconcilers stay stopped, so nothing is deployed.<br />Clearing it initializes the fabric controller again, which validates every object on its own only: a conflict<br />between objects or a deletion of an object still in use, made in maintenance, goes unnoticed and gets deployed |  |  |
 
 
 #### FabricControllerStatus

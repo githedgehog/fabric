@@ -22,9 +22,11 @@ const (
 
 // FabricControllerSpec defines the desired state of FabricController.
 type FabricControllerSpec struct {
-	// ForceUnlock unlocks the fabric controller regardless of the initialized version. It's a last resort for a
-	// stuck refresh: objects that weren't refreshed don't carry the current defaults and labels
-	ForceUnlock bool `json:"forceUnlock,omitempty"`
+	// Maintenance is dangerous, it's for fixing the objects that keep the fabric controller locked: all changes are
+	// admitted, validation errors only come back as warnings, while reconcilers stay stopped, so nothing is deployed.
+	// Clearing it initializes the fabric controller again, which validates every object on its own only: a conflict
+	// between objects or a deletion of an object still in use, made in maintenance, goes unnoticed and gets deployed
+	Maintenance bool `json:"maintenance,omitempty"`
 }
 
 // FabricControllerStatus defines the observed state of FabricController.
@@ -76,8 +78,8 @@ type FabricControllerRefreshKind struct {
 // +kubebuilder:resource:categories=hhint;hhfcint,shortName=fc
 // +kubebuilder:printcolumn:name="Initialized",type=string,JSONPath=`.status.initializedVersion`,priority=0
 // +kubebuilder:printcolumn:name="Refreshing",type=string,JSONPath=`.status.conditions[?(@.type=="Refreshing")].status`,priority=0
+// +kubebuilder:printcolumn:name="Maintenance",type=boolean,JSONPath=`.spec.maintenance`,priority=0
 // +kubebuilder:printcolumn:name="Passes",type=integer,JSONPath=`.status.refresh.passes`,priority=1
-// +kubebuilder:printcolumn:name="ForceUnlock",type=boolean,JSONPath=`.spec.forceUnlock`,priority=1
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=10
 // FabricController is the Schema for the fabriccontrollers API. It holds the state of the fabric controller itself:
 // the version that completed initialization (including refreshing all stored objects with the current defaults) and

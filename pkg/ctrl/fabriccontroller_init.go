@@ -175,7 +175,7 @@ func (i *FabricControllerInitializer) initialize(ctx context.Context) error {
 }
 
 // writeStatus stores fc's status as a whole. fabric-ctrl's leader is the only status writer, so a conflict can only
-// come from a spec change (e.g. forceUnlock): it re-reads the object from the API server, bypassing the cache, puts
+// come from a spec change (e.g. maintenance): it re-reads the object from the API server, bypassing the cache, puts
 // the same status on top and writes again. Temporary API errors are retried a few times as well.
 func (i *FabricControllerInitializer) writeStatus(ctx context.Context, fc *fcintapi.FabricController) error {
 	status := fc.Status.DeepCopy()
