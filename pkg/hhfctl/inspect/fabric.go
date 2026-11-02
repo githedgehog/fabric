@@ -22,7 +22,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	fcintapi "go.githedgehog.com/fabric/api/fcint/v1alpha1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
@@ -182,7 +181,7 @@ func Fabric(ctx context.Context, kube kclient.Reader, in FabricIn) (*FabricOut, 
 
 	fabList := &wiringapi.FabricList{}
 	if err := kube.List(ctx, fabList); err != nil {
-		return nil, errors.Wrap(err, "cannot list fabrics")
+		return nil, fmt.Errorf("cannot list fabrics: %w", err)
 	}
 	for _, fab := range fabList.Items {
 		if in.Name != "" && fab.Name != in.Name {
@@ -191,7 +190,7 @@ func Fabric(ctx context.Context, kube kclient.Reader, in FabricIn) (*FabricOut, 
 		out.Fabrics = append(out.Fabrics, &FabricOutFabric{Name: fab.Name, Spec: fab.Spec})
 	}
 	if in.Name != "" && len(out.Fabrics) == 0 {
-		return nil, errors.Errorf("fabric %s not found", in.Name)
+		return nil, fmt.Errorf("fabric %s not found", in.Name) //nolint:err113
 	}
 	slices.SortFunc(out.Fabrics, func(a, b *FabricOutFabric) int {
 		return strings.Compare(a.Name, b.Name)
