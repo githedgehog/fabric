@@ -145,7 +145,7 @@ jobs:
           limit-access-to-actor: true
 
   vlab:
-    name: "${{ matrix.hybrid && 'h' || 'v' }}-${{ matrix.upgradefrom && 'up' || '' }}${{ matrix.upgradefrom }}${{ matrix.upgradefrom && '-' || '' }}${{ matrix.mesh && 'mesh-' || '' }}${{ matrix.gateway == 'dpdk' && 'gwd-' || matrix.gateway == 'kernel' && 'gwk-' || '' }}iso-${{ matrix.vpcmode }}${{ contains(github.event.pull_request.labels.*.name, 'ci:+release') && '-rt' || '' }}"
+    name: "${{ matrix.hybrid && 'h' || 'v' }}-${{ matrix.upgradefrom && 'up' || '' }}${{ matrix.upgradefrom }}${{ matrix.upgradefrom && '-' || '' }}${{ matrix.mesh && 'mesh-' || '' }}${{ matrix.numbered && 'num-' || '' }}${{ matrix.gateway == 'dpdk' && 'gwd-' || matrix.gateway == 'kernel' && 'gwk-' || '' }}iso-${{ matrix.vpcmode }}${{ contains(github.event.pull_request.labels.*.name, 'ci:+release') && '-rt' || '' }}"
 
     needs:
       - test-build
@@ -165,6 +165,7 @@ jobs:
       prebuild: "just bump fabric ${{ needs.test-build.outputs.version }} ${{ needs.test-build.outputs.ref }}"
       fabricmode: spine-leaf
       mesh: ${{ !!matrix.mesh }}
+      numbered: ${{ !!matrix.numbered }}
       gateway: ${{ !!matrix.gateway }}
       gatewaydriver: ${{ matrix.gateway }}
       includeonie: false
@@ -185,6 +186,10 @@ jobs:
           - { vpcmode: l3vni,             gateway: dpdk }
           - { vpcmode: l2vni, mesh: true, gateway: kernel }
           - { vpcmode: l2vni, mesh: true, gateway: dpdk }
+
+          # fabric and mesh links are BGP unnumbered by default, keep the numbered ones covered
+          - { vpcmode: l2vni, numbered: true,             gateway: kernel }
+          - { vpcmode: l2vni, numbered: true, mesh: true, gateway: dpdk }
 
           # hlab
           - { hybrid: true, vpcmode: l2vni, gateway: kernel }
