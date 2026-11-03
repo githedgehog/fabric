@@ -285,22 +285,9 @@ func (i *FabricControllerInitializer) refreshKind(ctx context.Context, k refresh
 
 // validateStored reports a stored object that fails the validation of the current version. The object is still
 // updated with the current defaults: the refresh skips validation, as an object left without the current defaults
-// and labels is missed by whatever looks it up by them. It's validated without a client, so without looking up other
-// objects, and on its own copy, as it's only checked. obj is the defaulted object, as the webhooks validate it.
+// and labels is missed by whatever looks it up by them. obj is the defaulted object, as the webhooks validate it.
 func (i *FabricControllerInitializer) validateStored(ctx context.Context, kind string, obj defaultable, st *refreshState) {
-	var err error
-	switch v := obj.DeepCopyObject().(type) {
-	case interface {
-		Validate(ctx context.Context, kube kclient.Reader, cfg *meta.FabricConfig) (admission.Warnings, error)
-	}:
-		_, err = v.Validate(ctx, nil, i.cfg)
-	case interface {
-		Validate(ctx context.Context, kube kclient.Reader, cfg *meta.FabricConfig) error
-	}:
-		err = v.Validate(ctx, nil, i.cfg)
-	default:
-		err = fmt.Errorf("%T can't be validated", obj) //nolint:err113
-	}
+	err := validateLocal(ctx, obj, i.cfg)
 	if err == nil {
 		return
 	}
@@ -312,6 +299,25 @@ func (i *FabricControllerInitializer) validateStored(ctx context.Context, kind s
 		progress.Invalid++
 		st.addProblem(kind, obj, fcintapi.ProblemInvalid, err.Error())
 	})
+}
+
+// validateLocal validates obj without a client, so without looking up other objects, and on its own copy, as it's
+// only checked
+func validateLocal(ctx context.Context, obj kclient.Object, cfg *meta.FabricConfig) error {
+	switch v := obj.DeepCopyObject().(type) {
+	case interface {
+		Validate(ctx context.Context, kube kclient.Reader, cfg *meta.FabricConfig) (admission.Warnings, error)
+	}:
+		_, err := v.Validate(ctx, nil, cfg)
+
+		return err //nolint:wrapcheck
+	case interface {
+		Validate(ctx context.Context, kube kclient.Reader, cfg *meta.FabricConfig) error
+	}:
+		return v.Validate(ctx, nil, cfg) //nolint:wrapcheck
+	default:
+		return fmt.Errorf("%T can't be validated", obj) //nolint:err113
+	}
 }
 
 // refreshObject writes an object with the current defaults and records the outcome. obj is the refresh's own copy.
@@ -403,7 +409,16 @@ func (i *FabricControllerInitializer) reportRefresh(ctx context.Context, fc *fci
 		// workers record them in any order, sorted they don't change between reports
 		fc.Status.Problems = slices.Clone(st.problems)
 	})
-	slices.SortFunc(fc.Status.Problems, func(a, b fcintapi.FabricControllerProblem) int {
+	sortProblems(fc.Status.Problems)
+
+	if err := i.writeStatus(ctx, fc); err != nil {
+		kctrllog.FromContext(ctx).Info("Failed to record refresh progress", "error", err.Error())
+	}
+}
+
+// sortProblems orders problems by kind as in refreshKinds, then by namespace, name and reason
+func sortProblems(problems []fcintapi.FabricControllerProblem) {
+	slices.SortFunc(problems, func(a, b fcintapi.FabricControllerProblem) int {
 		kindIdx := func(kind string) int {
 			return slices.IndexFunc(refreshKinds, func(k refreshKind) bool { return k.kind == kind })
 		}
@@ -415,10 +430,6 @@ func (i *FabricControllerInitializer) reportRefresh(ctx context.Context, fc *fci
 			strings.Compare(a.Reason, b.Reason),
 		)
 	})
-
-	if err := i.writeStatus(ctx, fc); err != nil {
-		kctrllog.FromContext(ctx).Info("Failed to record refresh progress", "error", err.Error())
-	}
 }
 
 // defaultedEqual compares what defaulting may change: labels, annotations and spec. The rest of the metadata differs
