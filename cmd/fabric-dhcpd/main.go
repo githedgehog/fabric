@@ -18,7 +18,6 @@ package main
 
 import (
 	"context"
-	_ "embed"
 	"fmt"
 	"log/slog"
 	"os"
@@ -28,7 +27,6 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/lmittmann/tint"
 	"github.com/mattn/go-isatty"
-	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 	"go.githedgehog.com/fabric/pkg/dhcp"
 	dhcpcfg "go.githedgehog.com/fabric/pkg/dhcp/config"
@@ -41,10 +39,7 @@ const (
 	DefaultBasedir = "/etc/hedgehog/"
 )
 
-//go:embed motd.txt
-var motd []byte
-
-func setupLogger(verbose bool, printMotd bool) error {
+func setupLogger(verbose bool) {
 	logLevel := slog.LevelInfo
 	if verbose {
 		logLevel = slog.LevelDebug
@@ -65,15 +60,6 @@ func setupLogger(verbose bool, printMotd bool) error {
 	})
 	kctrl.SetLogger(logr.FromSlogHandler(kubeHandler))
 	klog.SetSlogLogger(slog.New(kubeHandler))
-
-	if printMotd {
-		_, err := logW.Write(motd)
-		if err != nil {
-			return errors.Wrapf(err, "failed to write motd")
-		}
-	}
-
-	return nil
 }
 
 func main() {
@@ -122,7 +108,9 @@ func main() {
 					healthListenFlag,
 				},
 				Before: func(_ *cli.Context) error {
-					return setupLogger(verbose, true)
+					setupLogger(verbose)
+
+					return nil
 				},
 				Action: func(_ *cli.Context) error {
 					cfg, err := dhcpcfg.Load(dhcpcfg.Path, healthListen)
