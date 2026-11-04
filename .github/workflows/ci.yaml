@@ -194,12 +194,10 @@ jobs:
           # hlab
           - { hybrid: true, vpcmode: l2vni, gateway: kernel }
 
-          # upgrades keep the driver and older releases only have kernel gateways in vlab
-          - { upgradefrom: "26.04", vpcmode: l2vni }
-          - { upgradefrom: "26.03", vpcmode: l3vni,             gateway: kernel }
-          - { upgradefrom: "26.03", vpcmode: l2vni, mesh: true, gateway: kernel }
-          - { upgradefrom: "26.04", vpcmode: l3vni,             gateway: kernel }
-          - { upgradefrom: "26.04", vpcmode: l2vni, mesh: true, gateway: kernel }
+          # upgrades keep the gateway driver
+          - { upgradefrom: "26.05", vpcmode: l2vni }
+          - { upgradefrom: "26.05", vpcmode: l3vni,             gateway: dpdk }
+          - { upgradefrom: "26.05", vpcmode: l2vni, mesh: true, gateway: kernel }
 
   vlabs:
     runs-on: ubuntu-latest
