@@ -60,18 +60,17 @@ import (
 )
 
 const (
-	ConfigFile               = "agent-config.yaml"
-	KubeconfigFile           = "agent-kubeconfig"
-	RebootRequiredFile       = "reboot-required"
-	InstallIDFile            = "install-id"
-	DefaultHeartbeatInterval = 15 * time.Second
-	DefaultEnforceInterval   = 2 * time.Minute
-	shadowPath               = "/etc/shadow"
-	rsyslogDropDebugPath     = "/etc/rsyslog.d/18-hh-drop-debug.conf"
+	ConfigFile             = "agent-config.yaml"
+	KubeconfigFile         = "agent-kubeconfig"
+	RebootRequiredFile     = "reboot-required"
+	InstallIDFile          = "install-id"
+	DefaultEnforceInterval = 2 * time.Minute
+	shadowPath             = "/etc/shadow"
+	rsyslogDropDebugPath   = "/etc/rsyslog.d/18-hh-drop-debug.conf"
 )
 
 func intervals(agent *agentapi.Agent) (time.Duration, time.Duration) {
-	heartbeat := max(DefaultHeartbeatInterval, time.Duration(agent.Spec.Config.HeartbeatInterval)*time.Second)
+	heartbeat := agent.HeartbeatInterval()
 	enforce := max(DefaultEnforceInterval, time.Duration(agent.Spec.Config.EnforceInterval)*time.Second)
 
 	return heartbeat, enforce

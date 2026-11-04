@@ -92,6 +92,12 @@ func availableNames[V any](m map[string]V) string {
 	return strings.Join(slices.Sorted(maps.Keys(m)), ", ")
 }
 
+// Collected is when the agent last collected the switch state, it does so with each heartbeat
+type Collected struct {
+	Time  kmetav1.Time `json:"time"`
+	Stale bool         `json:"stale,omitempty"`
+}
+
 // switchInput is everything about a single switch the per-switch status helpers need. Switches and profiles always
 // come from their own objects through the cache, never from the copies in the agent spec.
 type switchInput struct {

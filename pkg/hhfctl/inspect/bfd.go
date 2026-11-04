@@ -7,13 +7,10 @@ import (
 	"context"
 	"fmt"
 	"maps"
-	"os"
 	"slices"
 	"strings"
 	"time"
 
-	"github.com/fatih/color"
-	"github.com/mattn/go-isatty"
 	"go.githedgehog.com/fabric/api/agent/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/apiutil"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -28,22 +25,16 @@ type BFDIn struct {
 }
 
 type BFDOut struct {
-	Peers map[string]map[string]map[string]apiutil.BFDPeerStatus `json:"peers"`
-	Errs  []error                                                `json:"errors"`
+	Peers     map[string]map[string]map[string]apiutil.BFDPeerStatus `json:"peers"`
+	Collected map[string]apiutil.Collected                           `json:"collected,omitempty"`
+	Errs      []error                                                `json:"errors"`
 }
 
 func (out *BFDOut) MarshalText(_ BFDIn, now time.Time) (string, error) {
-	noColor := !isatty.IsTerminal(os.Stdout.Fd())
-
-	red := color.New(color.FgRed).SprintFunc()
-	if noColor {
-		red = fmt.Sprint
-	}
-
 	str := &strings.Builder{}
 
 	for _, swName := range slices.Sorted(maps.Keys(out.Peers)) {
-		str.WriteString("Switch: " + swName + "\n")
+		str.WriteString(switchHeader(swName, out.Collected[swName], now))
 
 		data := [][]string{}
 
@@ -114,7 +105,8 @@ var (
 
 func BFD(ctx context.Context, kube kclient.Reader, in BFDIn) (*BFDOut, error) {
 	out := &BFDOut{
-		Peers: map[string]map[string]map[string]apiutil.BFDPeerStatus{},
+		Peers:     map[string]map[string]map[string]apiutil.BFDPeerStatus{},
+		Collected: map[string]apiutil.Collected{},
 	}
 
 	status, err := getBGPStatus(ctx, kube, apiutil.SwitchFilter{Names: in.Switches, Fabric: in.Fabric, Domain: in.Domain})
@@ -124,6 +116,10 @@ func BFD(ctx context.Context, kube kclient.Reader, in BFDIn) (*BFDOut, error) {
 
 	for _, swName := range slices.Sorted(maps.Keys(status)) {
 		peers := status[swName].BFDPeers
+
+		if err := checkStale(swName, status[swName].Collected, in.Strict); err != nil {
+			out.Errs = append(out.Errs, err)
+		}
 
 		if in.Strict {
 			for vrf, vrfPeers := range peers {
@@ -142,6 +138,7 @@ func BFD(ctx context.Context, kube kclient.Reader, in BFDIn) (*BFDOut, error) {
 		}
 
 		out.Peers[swName] = peers
+		out.Collected[swName] = status[swName].Collected
 	}
 
 	return out, nil

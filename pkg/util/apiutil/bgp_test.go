@@ -5,6 +5,7 @@ package apiutil_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
@@ -220,6 +221,8 @@ func TestGetBGPNeighborsUnnumberedExternal(t *testing.T) {
 	}
 
 	ag := &agentapi.Agent{Name: self, Namespace: kmetav1.NamespaceDefault}
+	heartbeat := kmetav1.Time{Time: time.Now().Truncate(time.Second)}
+	ag.Status.LastHeartbeat = heartbeat
 	ag.Status.State.BGPNeighbors = map[string]map[string]agentapi.SwitchStateBGPNeighbor{
 		"VrfEext": {
 			"E1/3.101": {SessionState: agentapi.BGPNeighborSessionStateEstablished},
@@ -239,6 +242,9 @@ func TestGetBGPNeighborsUnnumberedExternal(t *testing.T) {
 
 	status, err := apiutil.GetBGPStatus(t.Context(), kube, &meta.FabricConfig{}, apiutil.SwitchFilter{Names: []string{self}})
 	require.NoError(t, err)
+	require.True(t, heartbeat.Equal(&status[self].Collected.Time))
+	require.False(t, status[self].Collected.Stale)
+
 	neighs := status[self].Neighbors["VrfEext"]
 	require.Len(t, neighs, 2)
 

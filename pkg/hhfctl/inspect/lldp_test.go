@@ -20,8 +20,14 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
+	"go.githedgehog.com/fabric/api/meta"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
 	"go.githedgehog.com/fabric/pkg/util/apiutil"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 var (
@@ -355,12 +361,13 @@ func TestLLDPOutMarshalText(t *testing.T) {
 	now := time.Date(2026, 8, 21, 12, 0, 0, 0, time.UTC)
 	updated := kmetav1.Time{Time: now.Add(-30 * time.Second)}
 
-	// red() is a no-op as isatty is false under go test, so the output is stable
-	res, err := lldpTestOut(&updated).MarshalText(LLDPIn{}, now)
+	out := lldpTestOut(&updated)
+	out.Collected = map[string]apiutil.Collected{"ds5000-02": {Time: kmetav1.Time{Time: now.Add(-10 * time.Second)}}}
+	res, err := out.MarshalText(LLDPIn{}, now)
 	require.NoError(t, err)
 
 	lines := strings.Split(strings.TrimSpace(res), "\n")
-	require.Equal(t, "Switch: ds5000-02", lines[0])
+	require.Equal(t, "Switch: ds5000-02 (collected 10 seconds ago)", lines[0])
 	require.Contains(t, lines[1], "MAC")
 	require.Contains(t, lines[1], "AGE")
 
@@ -506,4 +513,46 @@ func TestLLDPOutMarshalTextShowAll(t *testing.T) {
 	require.Contains(t, rows[0], "spark-1.lan (want spark-1)")
 	require.Contains(t, rows[1], "enp1s0f1np1 (want p2)")
 	require.Contains(t, rows[4], "E1/6/1")
+}
+
+func TestLLDPStrictStale(t *testing.T) {
+	t.Parallel()
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, wiringapi.AddToScheme(scheme))
+	require.NoError(t, agentapi.AddToScheme(scheme))
+
+	profile := switchprofile.VS.DeepCopy()
+	profile.Namespace = kmetav1.NamespaceDefault
+
+	sw := func(name string) *wiringapi.Switch {
+		return &wiringapi.Switch{
+			Name: name, Namespace: kmetav1.NamespaceDefault,
+			Spec: wiringapi.SwitchSpec{Profile: meta.SwitchProfileVS},
+		}
+	}
+	agent := func(name string, heartbeat time.Time) *agentapi.Agent {
+		return &agentapi.Agent{
+			Name: name, Namespace: kmetav1.NamespaceDefault,
+			Status: agentapi.AgentStatus{LastHeartbeat: kmetav1.Time{Time: heartbeat}},
+		}
+	}
+
+	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+		profile,
+		sw("leaf-1"), agent("leaf-1", time.Now()),
+		sw("leaf-2"), agent("leaf-2", time.Now().Add(-5*time.Minute)),
+	).Build()
+
+	in := LLDPIn{Switches: []string{"leaf-1", "leaf-2"}}
+	out, err := LLDP(t.Context(), kube, in)
+	require.NoError(t, err)
+	require.Empty(t, out.Errs, "stale state is only a warning without strict")
+	require.True(t, out.Collected["leaf-2"].Stale)
+
+	in.Strict = true
+	out, err = LLDP(t.Context(), kube, in)
+	require.NoError(t, err)
+	require.Len(t, out.Errs, 1)
+	require.ErrorContains(t, out.Errs[0], "switch leaf-2: state is stale")
 }
