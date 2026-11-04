@@ -89,6 +89,7 @@ interfaces:
       config:
         aggregate-id: PortChannel2
         auto-negotiate: false
+        standalone-link-training: false
     name: Ethernet0
     subinterfaces:
       subinterface:
@@ -104,6 +105,7 @@ interfaces:
       config:
         aggregate-id: PortChannel1
         auto-negotiate: false
+        standalone-link-training: false
     name: Ethernet1
     subinterfaces:
       subinterface:
@@ -118,6 +120,7 @@ interfaces:
     ethernet:
       config:
         auto-negotiate: false
+        standalone-link-training: false
       switched-vlan:
         config:
           trunk-vlans:
@@ -135,6 +138,7 @@ interfaces:
     ethernet:
       config:
         auto-negotiate: false
+        standalone-link-training: false
     name: Ethernet3
     subinterfaces:
       subinterface:
@@ -151,6 +155,7 @@ interfaces:
     ethernet:
       config:
         auto-negotiate: false
+        standalone-link-training: false
     name: Ethernet4
     subinterfaces:
       subinterface:
@@ -167,6 +172,7 @@ interfaces:
     ethernet:
       config:
         auto-negotiate: false
+        standalone-link-training: false
     name: Ethernet5
     subinterfaces:
       subinterface:
@@ -183,6 +189,7 @@ interfaces:
     ethernet:
       config:
         auto-negotiate: false
+        standalone-link-training: false
     name: Ethernet6
     subinterfaces:
       subinterface:
@@ -199,6 +206,7 @@ interfaces:
     ethernet:
       config:
         auto-negotiate: false
+        standalone-link-training: false
     name: Ethernet7
     subinterfaces:
       subinterface:

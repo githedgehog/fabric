@@ -1060,13 +1060,13 @@ func (sp *SwitchProfileSpec) GetAvailableAPIPorts(sw *SwitchSpec) (map[string]bo
 	return ports, nil
 }
 
-// GetFECConfigurablePorts returns the set of API port names on which FEC may be configured.
-// It is GetAvailableAPIPorts (speed/group base names and breakout sub-port names) plus the
+// GetAPIPortsPostBreakouts returns the set of API port names in GetAvailableAPIPorts
+// (speed/group base names and breakout sub-port names) plus the
 // base name of any breakout port that is NOT broken out (its configured mode has a single
 // lane, e.g. "E1/53" at 1x100G), which may be addressed directly. A broken-out (multi-lane)
 // port keeps only its sub-port names, so its base name is rejected and the explicit sub-port
 // name (e.g. "E1/53/1") must be used.
-func (sp *SwitchProfileSpec) GetFECConfigurablePorts(sw *SwitchSpec) (map[string]bool, error) {
+func (sp *SwitchProfileSpec) GetAPIPortsPostBreakouts(sw *SwitchSpec) (map[string]bool, error) {
 	if sw == nil {
 		sw = &SwitchSpec{}
 	}
