@@ -261,6 +261,10 @@ spec:
       group: eslag-1
       type: eslag
     role: server-leaf
+    topology:
+      domains:
+        - default
+      fabric: default
     vlanNamespaces:
       - default
     vtepIP: 172.30.12.1/32

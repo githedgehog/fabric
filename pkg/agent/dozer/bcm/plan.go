@@ -74,6 +74,10 @@ const (
 )
 
 func (p *BroadcomProcessor) PlanDesiredState(_ context.Context, agent *agentapi.Agent) (*dozer.Spec, error) {
+	if len(agent.Spec.Switch.Topology.Domains) == 0 {
+		return nil, fmt.Errorf("switch has no domains") //nolint:err113
+	}
+
 	spec := &dozer.Spec{
 		ZTP:            new(false),
 		Hostname:       new(agent.Name),
@@ -461,10 +465,9 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 	if agent.Spec.Switch.Role.IsSpine() {
 		// a leaf shared between domains passes on what it learns from each, so drop what crossed
 		// another domain's spine before this domain's leaves get it
-		ownDomains := switchDomains(agent)
 		members := []string{}
-		for domainName, domain := range agentDomains(agent) {
-			if slices.Contains(ownDomains, domainName) || domain.SpineASN == 0 {
+		for domainName, domain := range agent.Spec.Config.Domains {
+			if slices.Contains(agent.Spec.Switch.Topology.Domains, domainName) || domain.SpineASN == 0 {
 				continue
 			}
 			members = append(members, fmt.Sprintf("_%d_", domain.SpineASN))
@@ -909,8 +912,8 @@ func planGatewayConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 		}
 
 		// a switch with a gateway connection is in exactly one domain
-		domainName := switchDomains(agent)[0]
-		gatewayASN := agentDomains(agent)[domainName].GatewayASN
+		domainName := agent.Spec.Switch.Topology.Domains[0]
+		gatewayASN := agent.Spec.Config.Domains[domainName].GatewayASN
 		if gatewayASN == 0 {
 			return fmt.Errorf("gateway ASN not set for domain %s", domainName) //nolint:err113
 		}
@@ -1066,38 +1069,15 @@ func addToAddr(addr netip.Addr, n uint32) netip.Addr {
 	return netip.AddrFrom4(newIP)
 }
 
-// switchDomains returns the domains of the agent's switch, the default one for a config saved before domains
-// existed: the agent plans from its saved config at startup and in the upgrade check, before it reads the new one,
-// and the refresh of stored objects on initialization never reaches what's saved on the switch.
-func switchDomains(agent *agentapi.Agent) []string {
-	if len(agent.Spec.Switch.Topology.Domains) == 0 {
-		return []string{wiringapi.DefaultFabricDomain}
-	}
-
-	return agent.Spec.Switch.Topology.Domains
-}
-
-// agentDomains falls back to the scalar ASNs for a config saved before Domains existed: the agent
-// plans from its saved config at startup and in the upgrade check, before it reads the new one.
-func agentDomains(agent *agentapi.Agent) map[string]wiringapi.FabricDomainSpec {
-	if len(agent.Spec.Config.Domains) > 0 {
-		return agent.Spec.Config.Domains
-	}
-
-	return map[string]wiringapi.FabricDomainSpec{
-		slices.Min(switchDomains(agent)): {
-			SpineASN:   agent.Spec.Config.SpineASN,
-			GatewayASN: agent.Spec.Config.GatewayASN,
-		},
-	}
-}
-
 func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 	// Build AS-path list to deny routes with the spine or gateway ASNs of the switch's domain in the path
-	// (a switch with an external connection is in exactly one domain; Min rather than [0] matches
-	// the key agentDomains uses for configs saved before Domains existed)
+	// (a switch with an external connection is in exactly one domain)
 	// TODO: also exclude leaf ASNs - regex for the generic case is complex
-	domain := agentDomains(agent)[slices.Min(switchDomains(agent))]
+	domainName := slices.Min(agent.Spec.Switch.Topology.Domains)
+	domain, exists := agent.Spec.Config.Domains[domainName]
+	if !exists {
+		return fmt.Errorf("switch domain %s not found in agent config", domainName) //nolint:err113
+	}
 	asPathMembers := []string{}
 	if domain.SpineASN != 0 {
 		asPathMembers = append(asPathMembers, fmt.Sprintf("_%d_", domain.SpineASN))

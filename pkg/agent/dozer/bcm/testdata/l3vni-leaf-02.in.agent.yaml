@@ -191,6 +191,10 @@ spec:
     protocolIP: 172.30.8.3/32
     redundancy: {}
     role: server-leaf
+    topology:
+      domains:
+        - default
+      fabric: default
     vlanNamespaces:
       - default
     vtepIP: 172.30.12.1/32
