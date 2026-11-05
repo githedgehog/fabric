@@ -3098,7 +3098,6 @@ _Appears in:_
 - [ConnGatewayLinkGateway](#conngatewaylinkgateway)
 - [ConnStaticExternalLinkSwitch](#connstaticexternallinkswitch)
 - [ServerToSwitchLink](#servertoswitchlink)
-- [SwitchToSwitchLink](#switchtoswitchlink)
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
@@ -3241,42 +3240,6 @@ _Appears in:_
 | `ip` _string_ | IP is the IP address of the switch side of the fabric link (switch port configuration) |  | Pattern: `^((25[0-5]\|(2[0-4]\|1\d\|[1-9]\|)\d)\.?\b)\{4\}/([1-2]?[0-9]\|3[0-2])$` <br /> |
 
 
-#### ConnMCLAG
-
-
-
-Deprecated: ConnMCLAG defines the MCLAG connection (port channel, single server to pair of switches with multiple links)
-
-
-
-_Appears in:_
-- [ConnectionSpec](#connectionspec)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `links` _[ServerToSwitchLink](#servertoswitchlink) array_ | Links is the list of server-to-switch links |  | MinItems: 2 <br /> |
-| `mtu` _integer_ | MTU is the MTU to be configured on the switch port or port channel |  |  |
-| `fallback` _boolean_ | Fallback is the optional flag that used to indicate one of the links in LACP port channel to be used as a fallback link |  |  |
-
-
-#### ConnMCLAGDomain
-
-
-
-Deprecated: ConnMCLAGDomain defines the MCLAG domain connection which makes two switches into a single logical switch or
-redundancy group and allows to use MCLAG connections to connect servers in a multi-homed way.
-
-
-
-_Appears in:_
-- [ConnectionSpec](#connectionspec)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `peerLinks` _[SwitchToSwitchLink](#switchtoswitchlink) array_ | PeerLinks is the list of peer links between the switches, used to pass server traffic between switch |  | MinItems: 1 <br /> |
-| `sessionLinks` _[SwitchToSwitchLink](#switchtoswitchlink) array_ | SessionLinks is the list of session links between the switches, used only to pass MCLAG control plane and BGP<br />traffic between switches |  | MinItems: 1 <br /> |
-
-
 #### ConnMesh
 
 
@@ -3401,9 +3364,7 @@ _Appears in:_
 | `topology` _[ConnectionTopology](#connectiontopology)_ | Topology is where the connection sits in the fabric topology |  |  |
 | `unbundled` _[ConnUnbundled](#connunbundled)_ | Unbundled defines the unbundled connection (no port channel, single server to a single switch with a single link) |  |  |
 | `bundled` _[ConnBundled](#connbundled)_ | Bundled defines the bundled connection (port channel, single server to a single switch with multiple links) |  |  |
-| `mclag` _[ConnMCLAG](#connmclag)_ | Deprecated: MCLAG defines the MCLAG connection (port channel, single server to pair of switches with multiple links) |  |  |
 | `eslag` _[ConnESLAG](#conneslag)_ | ESLAG defines the ESLAG connection (port channel, single server to 2-4 switches with multiple links) |  |  |
-| `mclagDomain` _[ConnMCLAGDomain](#connmclagdomain)_ | Deprecated: MCLAGDomain defines the MCLAG domain connection which makes two switches into a single logical switch for server multi-homing |  |  |
 | `fabric` _[ConnFabric](#connfabric)_ | Fabric defines the fabric connection (single spine to a single leaf with at least one link) |  |  |
 | `mesh` _[ConnMesh](#connmesh)_ | Mesh defines the mesh connection (direct leaf to leaf connection with at least one link) |  |  |
 | `gateway` _[ConnGateway](#conngateway)_ | Gateway defines the gateway connection (single spine to a single gateway with at least one link) |  |  |
@@ -3610,7 +3571,6 @@ ServerFacingConnectionConfig defines any server-facing connection (unbundled, bu
 _Appears in:_
 - [ConnBundled](#connbundled)
 - [ConnESLAG](#conneslag)
-- [ConnMCLAG](#connmclag)
 - [ConnUnbundled](#connunbundled)
 
 | Field | Description | Default | Validation |
@@ -3676,7 +3636,6 @@ ServerToSwitchLink defines the server-to-switch link
 _Appears in:_
 - [ConnBundled](#connbundled)
 - [ConnESLAG](#conneslag)
-- [ConnMCLAG](#connmclag)
 - [ConnUnbundled](#connunbundled)
 
 | Field | Description | Default | Validation |
@@ -4138,23 +4097,6 @@ SwitchStatus defines the observed state of Switch
 _Appears in:_
 - [Switch](#switch)
 
-
-
-#### SwitchToSwitchLink
-
-
-
-SwitchToSwitchLink defines the switch-to-switch link
-
-
-
-_Appears in:_
-- [ConnMCLAGDomain](#connmclagdomain)
-
-| Field | Description | Default | Validation |
-| --- | --- | --- | --- |
-| `switch1` _[BasePortName](#baseportname)_ | Switch1 is the first switch side of the connection |  |  |
-| `switch2` _[BasePortName](#baseportname)_ | Switch2 is the second switch side of the connection |  |  |
 
 
 #### SwitchTopology
