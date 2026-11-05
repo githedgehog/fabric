@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-	http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,7 +20,6 @@ import (
 	"maps"
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-tools/pkg/loader"
 )
 
@@ -29,10 +28,10 @@ import (
 var KnownPackages = map[string]PackageOverride{
 	"k8s.io/apimachinery/pkg/apis/meta/v1": func(p *Parser, pkg *loader.Package) {
 		p.Schemata[TypeIdent{Name: "ObjectMeta", Package: pkg}] = apiextensionsv1.JSONSchemaProps{
-			Type: "object",
+			Type: "object", //nolint:goconst
 		}
 		p.Schemata[TypeIdent{Name: "Time", Package: pkg}] = apiextensionsv1.JSONSchemaProps{
-			Type:   "string",
+			Type:   "string", //nolint:goconst
 			Format: "date-time",
 		}
 		p.Schemata[TypeIdent{Name: "MicroTime", Package: pkg}] = apiextensionsv1.JSONSchemaProps{
@@ -69,7 +68,7 @@ var KnownPackages = map[string]PackageOverride{
 		p.Schemata[TypeIdent{Name: "RawExtension", Package: pkg}] = apiextensionsv1.JSONSchemaProps{
 			// TODO(directxman12): regexp validation for this (or get kube to support it as a format value)
 			Type:                   "object",
-			XPreserveUnknownFields: ptr.To(true),
+			XPreserveUnknownFields: new(true),
 		}
 		p.AddPackage(pkg) // get the rest of the types
 	},
@@ -94,13 +93,13 @@ var KnownPackages = map[string]PackageOverride{
 
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1": func(p *Parser, pkg *loader.Package) {
 		p.Schemata[TypeIdent{Name: "JSON", Package: pkg}] = apiextensionsv1.JSONSchemaProps{
-			XPreserveUnknownFields: ptr.To(true),
+			XPreserveUnknownFields: new(true),
 		}
 		p.AddPackage(pkg) // get the rest of the types
 	},
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1": func(p *Parser, pkg *loader.Package) {
 		p.Schemata[TypeIdent{Name: "JSON", Package: pkg}] = apiextensionsv1.JSONSchemaProps{
-			XPreserveUnknownFields: ptr.To(true),
+			XPreserveUnknownFields: new(true),
 		}
 		p.AddPackage(pkg) // get the rest of the types
 	},
