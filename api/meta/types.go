@@ -133,8 +133,6 @@ type FabricConfig struct {
 	GatewayNamespace      string              `json:"gatewayNamespace,omitempty"` // Namespace where pods for gateways are deployed
 	GatewayTolerations    []corev1.Toleration `json:"gatewayTolerations,omitempty"`
 	DataplaneRef          string              `json:"dataplaneRef,omitempty"`
-	FRRRef                string              `json:"frrRef,omitempty"`     // TODO: remove after 26.05 release
-	ToolboxRef            string              `json:"toolboxRef,omitempty"` // TODO: remove after 26.05 release
 	DataplaneMetricsPort  uint16              `json:"dataplaneMetricsPort,omitempty"`
 	FRRMetricsPort        uint16              `json:"frrMetricsPort,omitempty"`
 	DataplaneValidatorRef string              `json:"dataplaneValidatorRef,omitempty"`

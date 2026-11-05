@@ -1970,8 +1970,6 @@ spec:
                     type: string
                   default:
                     type: string
-                  override:
-                    type: string
                   password:
                     type: string
                   repo:

@@ -272,7 +272,6 @@ func TestSubnetLease(t *testing.T) {
 
 		stored := getStored(t, kube).Status.Allocated[mac(0)]
 		assert.Equal(t, ip.String(), stored.IP)
-		assert.False(t, stored.Discover)
 		assert.WithinDuration(t, start.Add(time.Hour+5*time.Minute), stored.Expiry.Time, 2*time.Second)
 	})
 
@@ -329,12 +328,6 @@ func TestSubnetLease(t *testing.T) {
 				write:  true,
 			},
 			{
-				name:   "left from a discover before the upgrade",
-				stored: dhcpapi.DHCPAllocated{IP: "10.0.0.100", Expiry: kmetav1.NewTime(time.Now().Add(time.Hour + 4*time.Minute)), Discover: true},
-				req:    func(t *testing.T) *dhcpv4.DHCPv4 { return request(t, 0, "10.0.0.100", "") },
-				write:  true,
-			},
-			{
 				name:   "static",
 				stored: dhcpapi.DHCPAllocated{IP: "10.0.0.50"},
 				static: true,
@@ -375,7 +368,6 @@ func TestSubnetLease(t *testing.T) {
 
 				assert.EqualValues(t, 1, calls.updates.Load())
 				stored := getStored(t, kube).Status.Allocated[mac(0)]
-				assert.False(t, stored.Discover)
 				assert.Equal(t, tt.static, stored.Expiry.IsZero())
 			})
 		}

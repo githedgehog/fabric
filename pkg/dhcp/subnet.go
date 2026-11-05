@@ -334,7 +334,7 @@ func (sn *subnet) cleanup(ctx context.Context, kube kclient.Client, cfg *dhcpcfg
 // covers reports whether the stored entry already has everything the new one would write, so the stored expiry is
 // never earlier than the end of the lease given to the client
 func covers(stored, entry dhcpapi.DHCPAllocated, leaseEnd time.Time) bool {
-	if stored.IP != entry.IP || stored.Hostname != entry.Hostname || stored.Discover {
+	if stored.IP != entry.IP || stored.Hostname != entry.Hostname {
 		return false
 	}
 
