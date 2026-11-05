@@ -69,7 +69,7 @@ func (w *VPCPeeringWebhook) ValidateCreate(ctx context.Context, peer *vpcapi.VPC
 }
 
 func (w *VPCPeeringWebhook) ValidateUpdate(ctx context.Context, oldPeer *vpcapi.VPCPeering, newPeer *vpcapi.VPCPeering) (admission.Warnings, error) {
-	if fabricChanged(oldPeer.Spec.Topology.Fabric, newPeer.Spec.Topology.Fabric) {
+	if oldPeer.Spec.Topology.Fabric != newPeer.Spec.Topology.Fabric {
 		return nil, fmt.Errorf("topology.fabric is immutable") //nolint:err113
 	}
 

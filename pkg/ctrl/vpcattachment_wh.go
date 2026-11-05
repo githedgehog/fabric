@@ -69,7 +69,7 @@ func (w *VPCAttachmentWebhook) ValidateCreate(ctx context.Context, attach *vpcap
 }
 
 func (w *VPCAttachmentWebhook) ValidateUpdate(ctx context.Context, oldAttach *vpcapi.VPCAttachment, newAttach *vpcapi.VPCAttachment) (admission.Warnings, error) {
-	if fabricChanged(oldAttach.Spec.Topology.Fabric, newAttach.Spec.Topology.Fabric) {
+	if oldAttach.Spec.Topology.Fabric != newAttach.Spec.Topology.Fabric {
 		return nil, fmt.Errorf("topology.fabric is immutable") //nolint:err113
 	}
 
