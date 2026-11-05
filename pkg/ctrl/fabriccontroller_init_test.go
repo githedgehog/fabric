@@ -101,12 +101,16 @@ func initScheme(t *testing.T) *runtime.Scheme {
 
 func initFabricConfig() *meta.FabricConfig {
 	return &meta.FabricConfig{
-		SpineASN:                 65100,
-		LeafASNStart:             65101,
-		LeafASNEnd:               65533,
-		GatewayASN:               65534,
-		DisableBFD:               true,
 		AllowExtraSwitchProfiles: true,
+	}
+}
+
+func initFabricSpec() wiringapi.FabricSpec {
+	return wiringapi.FabricSpec{
+		LeafASNStart: 65101,
+		LeafASNEnd:   65533,
+		DisableBFD:   true,
+		Domains:      map[string]wiringapi.FabricDomainSpec{wiringapi.DefaultFabricDomain: {SpineASN: 65100, GatewayASN: 65534}},
 	}
 }
 
@@ -258,7 +262,7 @@ func TestFabricControllerInitializerLifecycle(t *testing.T) {
 		WithScheme(initScheme(t)).
 		WithObjects(&wiringapi.Fabric{
 			Namespace: kmetav1.NamespaceDefault, Name: wiringapi.DefaultFabric,
-			Spec: wiringapi.DefaultFabricSpec(initFabricConfig()),
+			Spec: initFabricSpec(),
 		}).
 		WithStatusSubresource(&fcintapi.FabricController{}).
 		WithInterceptorFuncs(createLikeAPIServer(interceptor.Funcs{
@@ -379,7 +383,7 @@ func TestFabricControllerInitializerStaleCache(t *testing.T) {
 		WithScheme(initScheme(t)).
 		WithObjects(&wiringapi.Fabric{
 			Namespace: kmetav1.NamespaceDefault, Name: wiringapi.DefaultFabric,
-			Spec: wiringapi.DefaultFabricSpec(initFabricConfig()),
+			Spec: initFabricSpec(),
 		}).
 		WithStatusSubresource(&fcintapi.FabricController{}).
 		WithInterceptorFuncs(createLikeAPIServer(interceptor.Funcs{
@@ -437,7 +441,7 @@ func TestFabricControllerInitializerStopsForMaintenance(t *testing.T) {
 			&fcintapi.FabricController{Namespace: key.Namespace, Name: key.Name, Generation: 1},
 			&wiringapi.Fabric{
 				Namespace: kmetav1.NamespaceDefault, Name: wiringapi.DefaultFabric,
-				Spec: wiringapi.DefaultFabricSpec(initFabricConfig()),
+				Spec: initFabricSpec(),
 			},
 		).
 		WithStatusSubresource(&fcintapi.FabricController{}).

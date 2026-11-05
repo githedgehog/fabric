@@ -181,7 +181,7 @@ func TestExternalInboundPrefixes(t *testing.T) {
 	require.NoError(t, v1beta1.AddToScheme(scheme))
 	require.NoError(t, wiringapi.AddToScheme(scheme))
 	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
-		fabricObj(wiringapi.DefaultFabric, &meta.FabricConfig{}), ipv4NamespaceObj(),
+		fabricObj(wiringapi.DefaultFabric), ipv4NamespaceObj(),
 	).Build()
 
 	for _, tt := range []struct {
@@ -228,7 +228,7 @@ func TestExternalInboundCommunityGateway(t *testing.T) {
 	require.NoError(t, v1beta1.AddToScheme(scheme))
 	require.NoError(t, wiringapi.AddToScheme(scheme))
 	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
-		fabricObj(wiringapi.DefaultFabric, &meta.FabricConfig{}), ipv4NamespaceObj(),
+		fabricObj(wiringapi.DefaultFabric), ipv4NamespaceObj(),
 	).Build()
 	cfg := &meta.FabricConfig{GatewayCommunities: map[uint32]string{0: "50001:0", 1: "50001:1"}}
 
@@ -293,8 +293,12 @@ func TestExternalLocalASNValidation(t *testing.T) {
 	attachNoASN.Spec.Neighbor.ASN = 0
 	staticAttach := staticExtAttGen("ext-att-03", func(att *v1beta1.ExternalAttachment) { att.Spec.External = attach.Spec.External })
 	// Fabric/default, added to the objects of every test, is created from this
-	cfg := &meta.FabricConfig{SpineASN: 65100, LeafASNStart: 65101, LeafASNEnd: 65200, GatewayASN: 65534}
-	defaultFabric := fabricObj(wiringapi.DefaultFabric, cfg)
+	defaultFabric := fabricObj(wiringapi.DefaultFabric)
+	defaultFabric.Spec = wiringapi.FabricSpec{
+		LeafASNStart: 65101,
+		LeafASNEnd:   65200,
+		Domains:      map[string]wiringapi.FabricDomainSpec{wiringapi.DefaultFabricDomain: {SpineASN: 65100, GatewayASN: 65534}},
+	}
 	withLocalASN := func(asn uint32) *v1beta1.External {
 		return extGen("external-01", func(ext *v1beta1.External) { ext.Spec.LocalASN = asn })
 	}
@@ -377,7 +381,7 @@ func TestExternalLocalASNValidation(t *testing.T) {
 				WithScheme(scheme).
 				WithObjects(withObjs(test.objects, defaultFabric)...).
 				Build()
-			warns, err := test.external.Validate(t.Context(), kube, cfg)
+			warns, err := test.external.Validate(t.Context(), kube, &meta.FabricConfig{})
 			if test.err {
 				require.Error(t, err)
 			} else {

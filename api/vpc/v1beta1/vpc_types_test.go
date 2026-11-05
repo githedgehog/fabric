@@ -112,7 +112,7 @@ func TestVPCValidation(t *testing.T) {
 	require.NoError(t, reservedRailCfg.WithReservedSubnets())
 
 	baseKubeObjs := []kclient.Object{
-		fabricObj(wiringapi.DefaultFabric, &meta.FabricConfig{}),
+		fabricObj(wiringapi.DefaultFabric),
 		defaulted(&v1beta1.IPv4Namespace{
 			Name:      "default",
 			Namespace: kmetav1.NamespaceDefault,

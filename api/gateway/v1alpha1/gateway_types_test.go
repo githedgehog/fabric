@@ -72,10 +72,6 @@ func withObjs(base []kclient.Object, objs ...kclient.Object) []kclient.Object {
 func TestGatewayValidate(t *testing.T) {
 	cfg := &meta.FabricConfig{
 		EnableGateway: true,
-		SpineASN:      65100,
-		LeafASNStart:  65101,
-		LeafASNEnd:    65200,
-		GatewayASN:    65101,
 		GatewayCommunities: map[uint32]string{
 			0: "50000:1000",
 			1: "50000:1001",
@@ -83,7 +79,11 @@ func TestGatewayValidate(t *testing.T) {
 	}
 
 	const planeB = "plane-b"
-	oneDomain := withName(wiringapi.DefaultFabric, &wiringapi.Fabric{Spec: wiringapi.DefaultFabricSpec(cfg)})
+	oneDomain := withName(wiringapi.DefaultFabric, &wiringapi.Fabric{Spec: wiringapi.FabricSpec{
+		LeafASNStart: 65101,
+		LeafASNEnd:   65200,
+		Domains:      map[string]wiringapi.FabricDomainSpec{"default": {SpineASN: 65100, GatewayASN: 65101}},
+	}})
 	twoDomains := withName(wiringapi.DefaultFabric, &wiringapi.Fabric{Spec: wiringapi.FabricSpec{Domains: map[string]wiringapi.FabricDomainSpec{
 		"default": {SpineASN: 65100, GatewayASN: 65101},
 		planeB:    {SpineASN: 65098, GatewayASN: 65099},

@@ -90,7 +90,7 @@ func TestFabricControllerRefresh(t *testing.T) {
 		WithObjects(
 			&wiringapi.Fabric{
 				Namespace: kmetav1.NamespaceDefault, Name: wiringapi.DefaultFabric,
-				Spec: wiringapi.DefaultFabricSpec(initFabricConfig()),
+				Spec: initFabricSpec(),
 			},
 			newSwitch("old", false),
 			newSwitch("current", true),
@@ -234,7 +234,7 @@ func TestFabricControllerRefreshInvalid(t *testing.T) {
 	objs = append(objs,
 		&wiringapi.Fabric{
 			Namespace: kmetav1.NamespaceDefault, Name: wiringapi.DefaultFabric,
-			Spec: wiringapi.DefaultFabricSpec(initFabricConfig()),
+			Spec: initFabricSpec(),
 		},
 		server("server-1"),
 		deleting,

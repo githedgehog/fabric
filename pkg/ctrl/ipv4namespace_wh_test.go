@@ -34,7 +34,7 @@ func TestIPv4NamespaceExternalInboundPrefixes(t *testing.T) {
 
 	fabric := &wiringapi.Fabric{
 		Name: wiringapi.DefaultFabric, Namespace: kmetav1.NamespaceDefault,
-		Spec: wiringapi.DefaultFabricSpec(&meta.FabricConfig{}),
+		Spec: wiringapi.FabricSpec{Domains: map[string]wiringapi.FabricDomainSpec{wiringapi.DefaultFabricDomain: {}}},
 	}
 	ns := &vpcapi.IPv4Namespace{
 		Name: vpcapi.DefaultIPv4Namespace, Namespace: kmetav1.NamespaceDefault,

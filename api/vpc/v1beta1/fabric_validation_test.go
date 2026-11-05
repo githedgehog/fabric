@@ -31,11 +31,11 @@ func defaulted[T interface {
 	return obj
 }
 
-// fabricObj returns the named Fabric with the spec the controller creates the default fabric with
-func fabricObj(name string, cfg *meta.FabricConfig) *wiringapi.Fabric {
+// fabricObj returns the named Fabric with only the default domain and no ASNs
+func fabricObj(name string) *wiringapi.Fabric {
 	return &wiringapi.Fabric{
 		Name: name, Namespace: kmetav1.NamespaceDefault,
-		Spec: wiringapi.DefaultFabricSpec(cfg),
+		Spec: wiringapi.FabricSpec{Domains: map[string]wiringapi.FabricDomainSpec{wiringapi.DefaultFabricDomain: {}}},
 	}
 }
 
@@ -51,8 +51,8 @@ func ipv4NamespaceObj() *v1beta1.IPv4Namespace {
 // fabric named "other". All of them are defaulted, as they are stored.
 func otherFabricObjs() []kclient.Object {
 	return []kclient.Object{
-		fabricObj(wiringapi.DefaultFabric, &meta.FabricConfig{}),
-		fabricObj("other", &meta.FabricConfig{}),
+		fabricObj(wiringapi.DefaultFabric),
+		fabricObj("other"),
 		ipv4NamespaceObj(),
 		defaulted(&v1beta1.IPv4Namespace{
 			Name: nsOther, Namespace: kmetav1.NamespaceDefault,
