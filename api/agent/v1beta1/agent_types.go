@@ -122,8 +122,6 @@ type AgentVersion struct {
 	// Agent information
 	Repo    string `json:"repo,omitempty"`
 	Default string `json:"default,omitempty"`
-	// TODO: remove after 26.05 release
-	Override string `json:"override,omitempty"`
 
 	// Alloy information
 	AlloyRepo    string `json:"alloyRepo,omitempty"`
