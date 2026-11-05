@@ -1389,7 +1389,6 @@ spec:
                         description: Type is the type of the redundancy group, although
                           only eslag is supported now
                         enum:
-                        - mclag
                         - eslag
                         type: string
                     type: object
@@ -1784,7 +1783,6 @@ spec:
                           description: Type is the type of the redundancy group, although
                             only eslag is supported now
                           enum:
-                          - mclag
                           - eslag
                           type: string
                       type: object

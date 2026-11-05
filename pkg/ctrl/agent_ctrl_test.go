@@ -128,7 +128,7 @@ func TestAgentSwitchLookups(t *testing.T) {
 
 	// a peer of another redundancy type is reported
 	leaf2 := get("leaf-2")
-	leaf2.Spec.Redundancy.Type = meta.RedundancyTypeMCLAG
+	leaf2.Spec.Redundancy.Type = meta.RedundancyTypeNone
 	require.NoError(t, kube.Update(t.Context(), leaf2))
 	_, err = r.redundancyGroupPeers(t.Context(), get("leaf-1"))
 	require.ErrorContains(t, err, "different redundancy types")
