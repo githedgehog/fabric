@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"slices"
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
@@ -70,7 +71,7 @@ func (w *SwitchWebhook) ValidateCreate(ctx context.Context, sw *wiringapi.Switch
 }
 
 func (w *SwitchWebhook) ValidateUpdate(ctx context.Context, oldSw *wiringapi.Switch, newSw *wiringapi.Switch) (admission.Warnings, error) {
-	if fabricChanged(oldSw.Spec.Topology.Fabric, newSw.Spec.Topology.Fabric) {
+	if oldSw.Spec.Topology.Fabric != newSw.Spec.Topology.Fabric {
 		return nil, fmt.Errorf("topology.fabric is immutable") //nolint:err113
 	}
 	// SONiC refuses to change the local AS of a running BGP instance, so the agent would fail on
@@ -78,7 +79,7 @@ func (w *SwitchWebhook) ValidateUpdate(ctx context.Context, oldSw *wiringapi.Swi
 	if oldSw.Spec.ASN != newSw.Spec.ASN {
 		return nil, fmt.Errorf("asn is immutable, delete and recreate the switch to change it") //nolint:err113
 	}
-	if domainsChanged(oldSw.Spec.Topology.Domains, newSw.Spec.Topology.Domains) {
+	if !slices.Equal(oldSw.Spec.Topology.Domains, newSw.Spec.Topology.Domains) {
 		return nil, fmt.Errorf("topology.domains is immutable, delete and recreate the switch to change it") //nolint:err113
 	}
 

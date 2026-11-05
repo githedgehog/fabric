@@ -60,7 +60,7 @@ func (w *SwitchGroupWebhook) ValidateCreate(ctx context.Context, sg *wiringapi.S
 }
 
 func (w *SwitchGroupWebhook) ValidateUpdate(ctx context.Context, oldSg *wiringapi.SwitchGroup, newSg *wiringapi.SwitchGroup) (admission.Warnings, error) {
-	if fabricChanged(oldSg.Spec.Topology.Fabric, newSg.Spec.Topology.Fabric) {
+	if oldSg.Spec.Topology.Fabric != newSg.Spec.Topology.Fabric {
 		return nil, fmt.Errorf("topology.fabric is immutable") //nolint:err113
 	}
 

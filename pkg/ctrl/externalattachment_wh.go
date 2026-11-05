@@ -69,7 +69,7 @@ func (w *ExternalAttachmentWebhook) ValidateCreate(ctx context.Context, attach *
 }
 
 func (w *ExternalAttachmentWebhook) ValidateUpdate(ctx context.Context, oldAttach *vpcapi.ExternalAttachment, newAttach *vpcapi.ExternalAttachment) (admission.Warnings, error) {
-	if fabricChanged(oldAttach.Spec.Topology.Fabric, newAttach.Spec.Topology.Fabric) {
+	if oldAttach.Spec.Topology.Fabric != newAttach.Spec.Topology.Fabric {
 		return nil, fmt.Errorf("topology.fabric is immutable") //nolint:err113
 	}
 

@@ -69,11 +69,11 @@ func (w *ExternalWebhook) ValidateCreate(ctx context.Context, ext *vpcapi.Extern
 }
 
 func (w *ExternalWebhook) ValidateUpdate(ctx context.Context, oldExt *vpcapi.External, newExt *vpcapi.External) (admission.Warnings, error) {
-	if fabricChanged(oldExt.Spec.Topology.Fabric, newExt.Spec.Topology.Fabric) {
+	if oldExt.Spec.Topology.Fabric != newExt.Spec.Topology.Fabric {
 		return nil, fmt.Errorf("topology.fabric is immutable") //nolint:err113
 	}
 	// so that an External update never has to re-check its attachments
-	if domainChanged(oldExt.Spec.Topology.Domain, newExt.Spec.Topology.Domain) {
+	if oldExt.Spec.Topology.Domain != newExt.Spec.Topology.Domain {
 		return nil, fmt.Errorf("topology.domain is immutable") //nolint:err113
 	}
 

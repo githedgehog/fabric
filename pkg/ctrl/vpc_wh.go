@@ -17,6 +17,7 @@ package ctrl
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
@@ -70,11 +71,11 @@ func (w *VPCWebhook) ValidateCreate(ctx context.Context, vpc *vpcapi.VPC) (admis
 }
 
 func (w *VPCWebhook) ValidateUpdate(ctx context.Context, oldVPC *vpcapi.VPC, newVPC *vpcapi.VPC) (admission.Warnings, error) {
-	if fabricChanged(oldVPC.Spec.Topology.Fabric, newVPC.Spec.Topology.Fabric) {
+	if oldVPC.Spec.Topology.Fabric != newVPC.Spec.Topology.Fabric {
 		return nil, fmt.Errorf("topology.fabric is immutable") //nolint:err113
 	}
 	// so that a VPC update never has to re-check its attachments
-	if domainsChanged(oldVPC.Spec.Topology.Domains, newVPC.Spec.Topology.Domains) {
+	if !slices.Equal(oldVPC.Spec.Topology.Domains, newVPC.Spec.Topology.Domains) {
 		return nil, fmt.Errorf("topology.domains is immutable") //nolint:err113
 	}
 

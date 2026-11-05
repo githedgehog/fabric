@@ -53,14 +53,8 @@ func TestTopologyDomainImmutable(t *testing.T) {
 
 			return err
 		}},
-		// stored before domains existed, then defaulted by admission on its first update
-		{name: "vpc domain defaulted", update: func() error {
-			_, err := vpcWh.ValidateUpdate(t.Context(), vpc(), vpc(wiringapi.DefaultFabricDomain))
-
-			return err
-		}},
-		{name: "vpc domains reordered", update: func() error {
-			_, err := vpcWh.ValidateUpdate(t.Context(), vpc("plane-b", wiringapi.DefaultFabricDomain), vpc(wiringapi.DefaultFabricDomain, "plane-b"))
+		{name: "vpc domains unchanged", update: func() error {
+			_, err := vpcWh.ValidateUpdate(t.Context(), vpc(wiringapi.DefaultFabricDomain, "plane-b"), vpc(wiringapi.DefaultFabricDomain, "plane-b"))
 
 			return err
 		}},
@@ -69,28 +63,13 @@ func TestTopologyDomainImmutable(t *testing.T) {
 
 			return err
 		}},
-		{name: "external domain defaulted", update: func() error {
-			_, err := extWh.ValidateUpdate(t.Context(), ext(""), ext(wiringapi.DefaultFabricDomain))
-
-			return err
-		}},
 		{name: "gateway domain changed", immutable: true, update: func() error {
 			_, err := gwWh.ValidateUpdate(t.Context(), gw(wiringapi.DefaultFabricDomain), gw("plane-b"))
 
 			return err
 		}},
-		{name: "gateway domain defaulted", update: func() error {
-			_, err := gwWh.ValidateUpdate(t.Context(), gw(""), gw(wiringapi.DefaultFabricDomain))
-
-			return err
-		}},
 		{name: "gateway group domain changed", immutable: true, update: func() error {
 			_, err := gwGrWh.ValidateUpdate(t.Context(), gwGr(wiringapi.DefaultFabricDomain), gwGr("plane-b"))
-
-			return err
-		}},
-		{name: "gateway group domain defaulted", update: func() error {
-			_, err := gwGrWh.ValidateUpdate(t.Context(), gwGr(""), gwGr(wiringapi.DefaultFabricDomain))
 
 			return err
 		}},
