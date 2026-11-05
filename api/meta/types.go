@@ -106,18 +106,16 @@ type FabricConfig struct {
 	DefaultMaxPathsEBGP      uint32        `json:"defaultMaxPathsEBGP,omitempty"`
 	AllowExtraSwitchProfiles bool          `json:"allowExtraSwitchProfiles,omitempty"`
 	MCLAGSessionSubnet       string        `json:"mclagSessionSubnet,omitempty"` // TODO: deprecated, remove in future releases
-	GatewayASN               uint32        `json:"gatewayASN,omitempty"`         // Temporarily assuming that all GWs are in the same AS
 	GatewayAPISync           bool          `json:"gatewayAPISync,omitempty"`
 	IncludeSONiCCLSPlus      bool          `json:"includeSONiCCLSPlus,omitempty"` // Include Celestica SONiC+
 	IncludeCumulus           bool          `json:"includeCumulus,omitempty"`      // Include Cumulus
 	ProtocolSubnet           string        `json:"protocolSubnet,omitempty"`
 	VTEPSubnet               string        `json:"vtepSubnet,omitempty"`
 	FabricSubnet             string        `json:"fabricSubnet,omitempty"`
-	DisableBFD               bool          `json:"disableBFD,omitempty"`
-	// Deprecated: not read, the Fabric's DisableBFD covers the gateway sessions too
-	GatewayBFD bool `json:"gatewayBFD,omitempty"`
-	// These, and GatewayASN and DisableBFD, only seed Fabric/default at first startup (or stand in
-	// for it while it does not exist). Editing them afterwards has no effect: edit the Fabric instead
+	// TODO: ignored as the Fabric has them, remove once fabricator stops setting them
+	GatewayASN   uint32 `json:"gatewayASN,omitempty"`
+	DisableBFD   bool   `json:"disableBFD,omitempty"`
+	GatewayBFD   bool   `json:"gatewayBFD,omitempty"`
 	SpineASN     uint32 `json:"spineASN,omitempty"`
 	LeafASNStart uint32 `json:"leafASNStart,omitempty"`
 	LeafASNEnd   uint32 `json:"leafASNEnd,omitempty"`
@@ -372,25 +370,6 @@ func (cfg *FabricConfig) Init(extraValidators ExtraValidators) (*FabricConfig, e
 		return nil, errors.Errorf("config: defaultMaxPathsEBGP is required")
 	}
 
-	if cfg.GatewayASN == 0 {
-		return nil, errors.Errorf("config: gatewayASN is required")
-	}
-
-	if cfg.SpineASN == 0 {
-		return nil, errors.Errorf("config: spineASN is required")
-	}
-	if cfg.LeafASNStart == 0 {
-		return nil, errors.Errorf("config: leafASNStart is required")
-	}
-	if cfg.LeafASNEnd == 0 {
-		return nil, errors.Errorf("config: leafASNEnd is required")
-	}
-	if cfg.LeafASNEnd < cfg.LeafASNStart {
-		return nil, errors.Errorf("config: leafASNEnd must be greater than or equal to leafASNStart")
-	}
-	if cfg.SpineASN >= cfg.LeafASNStart && cfg.SpineASN <= cfg.LeafASNEnd {
-		return nil, errors.Errorf("config: spineASN must not be in the leaf ASN range")
-	}
 	if cfg.ManagementSubnet == "" {
 		return nil, errors.Errorf("config: managementSubnet is required")
 	}
