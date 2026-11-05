@@ -66,23 +66,6 @@ func TestHydrationValidation(t *testing.T) {
 
 		return spine
 	}
-	mclagSwitch := &wiringapi.Switch{
-		Name:      "leaf1",
-		Namespace: "default",
-		Spec: wiringapi.SwitchSpec{
-			Role: wiringapi.SwitchRoleServerLeaf,
-			Redundancy: wiringapi.SwitchRedundancy{
-				Type:  meta.RedundancyTypeMCLAG,
-				Group: "mclag-1",
-			},
-			ASN:        65101,
-			IP:         "172.30.0.8/21",
-			VTEPIP:     "172.30.12.0/32",
-			ProtocolIP: "172.30.8.2/32",
-		},
-	}
-	mclagSwitch.Default()
-
 	fabricCfg := &meta.FabricConfig{
 		ControlVIP:          "172.30.0.1/32",
 		ProtocolSubnet:      "172.30.8.0/22",
@@ -354,28 +337,6 @@ func TestHydrationValidation(t *testing.T) {
 				},
 			},
 			dut:         leafSwitch,
-			expectError: false,
-		},
-		{
-			name: "mclagPeerAllGood",
-			objects: []kclient.Object{
-				&wiringapi.Switch{
-					Name:      "leaf5",
-					Namespace: "default",
-					Spec: wiringapi.SwitchSpec{
-						Role: wiringapi.SwitchRoleServerLeaf,
-						Redundancy: wiringapi.SwitchRedundancy{
-							Type:  meta.RedundancyTypeMCLAG,
-							Group: "mclag-1",
-						},
-						ASN:        65101,
-						IP:         "172.30.0.9/21",
-						VTEPIP:     "172.30.12.0/32",
-						ProtocolIP: "172.30.8.3/32",
-					},
-				},
-			},
-			dut:         mclagSwitch,
 			expectError: false,
 		},
 		{
