@@ -1447,7 +1447,7 @@ Examples:
 							},
 							&cli.BoolFlag{
 								Name:  "server-conns",
-								Usage: "include server neighbors (unbundled, bundled, eslag and mclag connections)",
+								Usage: "include server neighbors (unbundled, bundled and eslag connections)",
 								Value: true,
 							},
 							&cli.BoolFlag{

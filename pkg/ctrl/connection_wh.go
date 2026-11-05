@@ -91,7 +91,7 @@ func (w *ConnectionWebhook) ValidateUpdate(ctx context.Context, oldConn *wiringa
 		return warns, errors.Wrapf(err, "error validating connection")
 	}
 
-	// if newConn.Spec.Unbundled != nil || newConn.Spec.Bundled != nil || newConn.Spec.MCLAG != nil || newConn.Spec.ESLAG != nil {
+	// if newConn.Spec.Unbundled != nil || newConn.Spec.Bundled != nil || newConn.Spec.ESLAG != nil {
 	// 	if !equality.Semantic.DeepEqual(oldConn.Spec, newConn.Spec) {
 	// 		return nil, errors.Errorf("server-facing Connection spec is immutable")
 	// 	}

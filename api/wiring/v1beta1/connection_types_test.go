@@ -221,7 +221,6 @@ func TestConnectionValidation(t *testing.T) {
 		withClient bool
 		objects    []kclient.Object
 		err        bool
-		warning    string
 	}{
 		{
 			name:       "fabric-conn-crossing-fabrics",
@@ -886,22 +885,6 @@ func TestConnectionValidation(t *testing.T) {
 			})),
 			err: true,
 		},
-		{
-			name: "mclag-is-deprecated",
-			conn: withName("mclag-1", &wiringapi.Connection{
-				Spec: wiringapi.ConnectionSpec{
-					MCLAG: &wiringapi.ConnMCLAG{
-						Links: []wiringapi.ServerToSwitchLink{
-							{
-								Server: wiringapi.NewBasePortName("server-01/enp2s1"),
-								Switch: wiringapi.NewBasePortName("leaf-01/E1/1/2"),
-							},
-						},
-					},
-				},
-			}),
-			warning: "MCLAG is deprecated and no longer supported",
-		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := &meta.FabricConfig{
@@ -944,11 +927,7 @@ func TestConnectionValidation(t *testing.T) {
 
 			// as the mutating webhook does before validation
 			tt.conn.Default()
-			warn, err := tt.conn.Validate(ctx, kube, cfg)
-
-			if tt.warning != "" {
-				require.Contains(t, warn, tt.warning)
-			}
+			_, err = tt.conn.Validate(ctx, kube, cfg)
 			if tt.err {
 				require.Error(t, err)
 
