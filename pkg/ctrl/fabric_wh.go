@@ -107,31 +107,27 @@ func (w *FabricWebhook) ValidateCreate(ctx context.Context, fabric *wiringapi.Fa
 }
 
 func (w *FabricWebhook) ValidateUpdate(ctx context.Context, oldFabric *wiringapi.Fabric, fabric *wiringapi.Fabric) (admission.Warnings, error) {
-	// switches are validated against these ASNs and configured with them, so changing them would
-	// silently invalidate what is already admitted. Unset values can still be filled in
-	if oldFabric.Spec.LeafASNStart != 0 && oldFabric.Spec.LeafASNStart != fabric.Spec.LeafASNStart ||
-		oldFabric.Spec.LeafASNEnd != 0 && oldFabric.Spec.LeafASNEnd != fabric.Spec.LeafASNEnd {
+	// switches are validated against these ASNs and configured with them, so changing them would silently invalidate
+	// what is already admitted
+	if oldFabric.Spec.LeafASNStart != fabric.Spec.LeafASNStart || oldFabric.Spec.LeafASNEnd != fabric.Spec.LeafASNEnd {
 		return nil, fmt.Errorf("fabric leaf ASN range can not be changed") //nolint:err113
 	}
 	for name, oldDomain := range oldFabric.Spec.Domains {
 		domain, exists := fabric.Spec.Domains[name]
-		if !exists && oldDomain != (wiringapi.FabricDomainSpec{}) {
+		if !exists {
 			return nil, fmt.Errorf("domain %s can not be removed or renamed", name) //nolint:err113
 		}
-		if oldDomain.SpineASN != 0 && oldDomain.SpineASN != domain.SpineASN {
+		if oldDomain.SpineASN != domain.SpineASN {
 			return nil, fmt.Errorf("spineASN of domain %s can not be changed", name) //nolint:err113
 		}
-		if oldDomain.GatewayASN != 0 && oldDomain.GatewayASN != domain.GatewayASN {
+		if oldDomain.GatewayASN != domain.GatewayASN {
 			return nil, fmt.Errorf("gatewayASN of domain %s can not be changed", name) //nolint:err113
 		}
 	}
-	// nothing needs to grow a fabric yet, so its domains are fixed like its leaf ASN range. A
-	// fabric written before domains existed can still have them filled in
-	if len(oldFabric.Spec.Domains) > 0 {
-		for name := range fabric.Spec.Domains {
-			if _, exists := oldFabric.Spec.Domains[name]; !exists {
-				return nil, fmt.Errorf("domain %s can not be added to an existing fabric", name) //nolint:err113
-			}
+	// nothing needs to grow a fabric yet, so its domains are fixed like its leaf ASN range
+	for name := range fabric.Spec.Domains {
+		if _, exists := oldFabric.Spec.Domains[name]; !exists {
+			return nil, fmt.Errorf("domain %s can not be added to an existing fabric", name) //nolint:err113
 		}
 	}
 

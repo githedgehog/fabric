@@ -168,8 +168,6 @@ func TestFabricUpdateASNs(t *testing.T) {
 
 	added := fabricGen(64101, 64200, 64100, 64201)
 	added.Spec.Domains["plane-b"] = wiringapi.FabricDomainSpec{SpineASN: 64099, GatewayASN: 64202}
-	noDomains := fabricGen(0, 0, 0, 0)
-	noDomains.Spec.Domains = nil
 
 	renamed := fabricGen(64101, 64200, 64100, 64201)
 	renamed.Spec.Domains = map[string]wiringapi.FabricDomainSpec{"plane-a": renamed.Spec.Domains[wiringapi.DefaultFabricDomain]}
@@ -180,15 +178,12 @@ func TestFabricUpdateASNs(t *testing.T) {
 		err      string
 	}{
 		{name: "unchanged", old: fabricGen(64101, 64200, 64100, 64201), new: fabricGen(64101, 64200, 64100, 64201)},
-		// written by a build that had a single ASN range
-		{name: "filling in unset ASNs", old: fabricGen(0, 0, 0, 0), new: fabricGen(64101, 64200, 64100, 64201)},
 		{name: "changing leafASNStart", old: fabricGen(64101, 64200, 64100, 64201), new: fabricGen(64102, 64200, 64100, 64201), err: "leaf ASN range can not be changed"},
 		{name: "changing leafASNEnd", old: fabricGen(64101, 64200, 64100, 64201), new: fabricGen(64101, 64199, 64100, 64201), err: "leaf ASN range can not be changed"},
 		{name: "changing spineASN", old: fabricGen(64101, 64200, 64100, 64201), new: fabricGen(64101, 64200, 64099, 64201), err: "spineASN of domain default can not be changed"},
 		{name: "changing gatewayASN", old: fabricGen(64101, 64200, 64100, 64201), new: fabricGen(64101, 64200, 64100, 64202), err: "gatewayASN of domain default can not be changed"},
 		{name: "renaming the domain", old: fabricGen(64101, 64200, 64100, 64201), new: renamed, err: "domain default can not be removed or renamed"},
 		{name: "adding a domain", old: fabricGen(64101, 64200, 64100, 64201), new: added, err: "domain plane-b can not be added to an existing fabric"},
-		{name: "filling in the domains of a fabric written before they existed", old: noDomains, new: fabricGen(64101, 64200, 64100, 64201)},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			w := &FabricWebhook{}
