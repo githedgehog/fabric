@@ -105,7 +105,7 @@ type FabricConfig struct {
 	ControlProxyURL          string        `json:"controlProxyURL,omitempty"`
 	DefaultMaxPathsEBGP      uint32        `json:"defaultMaxPathsEBGP,omitempty"`
 	AllowExtraSwitchProfiles bool          `json:"allowExtraSwitchProfiles,omitempty"`
-	MCLAGSessionSubnet       string        `json:"mclagSessionSubnet,omitempty"` // TODO: deprecated, remove in future releases
+	MCLAGSessionSubnet       string        `json:"mclagSessionSubnet,omitempty"` // TODO: ignored, remove once fabricator stops setting it
 	GatewayAPISync           bool          `json:"gatewayAPISync,omitempty"`
 	IncludeSONiCCLSPlus      bool          `json:"includeSONiCCLSPlus,omitempty"` // Include Celestica SONiC+
 	IncludeCumulus           bool          `json:"includeCumulus,omitempty"`      // Include Cumulus
