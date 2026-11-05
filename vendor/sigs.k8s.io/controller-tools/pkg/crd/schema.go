@@ -38,6 +38,9 @@ import (
 const (
 	// defPrefix is the prefix used to link to definitions in the OpenAPI schema.
 	defPrefix = "#/definitions/"
+
+	// arrayType is the JSON schema type for arrays.
+	arrayType = "array"
 )
 
 // byteType is the types.Type for byte (see the types documention
@@ -49,7 +52,7 @@ var byteType = types.Universe.Lookup("byte").Type()
 type SchemaMarker interface {
 	// ApplyToSchema is called after the rest of the schema for a given type
 	// or field is generated, to modify the schema appropriately.
-	ApplyToSchema(*apiextensionsv1.JSONSchemaProps) error
+	ApplyToSchema(ctx *crdmarkers.SchemaContext, schema *apiextensionsv1.JSONSchemaProps) error
 }
 
 // applyFirstMarker is applied before any other markers.  It's a bit of a hack.
@@ -102,14 +105,48 @@ func (c *schemaContext) ForInfo(info *markers.TypeInfo) *schemaContext {
 // requestSchema asks for the schema for a type in the package with the
 // given import path.
 func (c *schemaContext) requestSchema(pkgPath, typeName string) {
+	c.requestSchemaWithPkg(pkgPath, typeName, nil)
+}
+
+func (c *schemaContext) requestSchemaWithPkg(pkgPath, typeName string, typesPkg *types.Package) {
 	pkg := c.pkg
 	if pkgPath != "" {
 		pkg = c.pkg.Imports()[pkgPath]
+		if pkg == nil && typesPkg != nil {
+			pkg = c.findPackageRecursive(typesPkg.Path())
+		}
+		if pkg == nil {
+			c.pkg.AddError(fmt.Errorf("unable to find package %q for type %s (not in direct imports)", pkgPath, typeName))
+			return
+		}
 	}
 	c.schemaRequester.NeedSchemaFor(TypeIdent{
 		Package: pkg,
 		Name:    typeName,
 	})
+}
+
+func (c *schemaContext) findPackageRecursive(pkgPath string) *loader.Package {
+	visited := make(map[*loader.Package]bool)
+	queue := []*loader.Package{c.pkg}
+
+	for len(queue) > 0 {
+		current := queue[0]
+		queue = queue[1:]
+
+		if visited[current] {
+			continue
+		}
+		visited[current] = true
+
+		for importPath, importPkg := range current.Imports() {
+			if loader.NonVendorPath(importPath) == loader.NonVendorPath(pkgPath) {
+				return importPkg
+			}
+			queue = append(queue, importPkg)
+		}
+	}
+	return nil
 }
 
 // infoToSchema creates a schema for the type in the given set of type information.
@@ -128,6 +165,7 @@ func infoToSchema(ctx *schemaContext) *apiextensionsv1.JSONSchemaProps {
 
 		// If the obj implements a text marshaler, encode it as a string.
 		case implements(obj.Type(), textMarshaler):
+			//nolint:goconst
 			schema := &apiextensionsv1.JSONSchemaProps{Type: "string"}
 			applyMarkers(ctx, ctx.info.Markers, schema, ctx.info.RawSpec.Type)
 			if schema.Type != "string" {
@@ -194,19 +232,20 @@ func applyMarkers(ctx *schemaContext, markerSet markers.MarkerValues, props *api
 	slices.SortStableFunc(markers, func(i, j schemaMarkerWithName) int { return cmpPriority(i, j) })
 	slices.SortStableFunc(itemsMarkers, func(i, j schemaMarkerWithName) int { return cmpPriority(i, j) })
 
+	schemaCtx := &crdmarkers.SchemaContext{Package: ctx.pkg, TypeInfo: ctx.info}
 	for _, schemaMarker := range markers {
-		if err := schemaMarker.SchemaMarker.ApplyToSchema(props); err != nil {
+		if err := schemaMarker.SchemaMarker.ApplyToSchema(schemaCtx, props); err != nil {
 			ctx.pkg.AddError(loader.ErrFromNode(err /* an okay guess */, node))
 		}
 	}
 
 	for _, schemaMarker := range itemsMarkers {
-		if props.Type != "array" || props.Items == nil || props.Items.Schema == nil {
+		if props.Type != arrayType || props.Items == nil || props.Items.Schema == nil {
 			err := fmt.Errorf("must apply %s to an array value, found %s", schemaMarker.Name, props.Type)
 			ctx.pkg.AddError(loader.ErrFromNode(err, node))
 		} else {
 			itemsSchema := props.Items.Schema
-			if err := schemaMarker.SchemaMarker.ApplyToSchema(itemsSchema); err != nil {
+			if err := schemaMarker.SchemaMarker.ApplyToSchema(schemaCtx, itemsSchema); err != nil {
 				ctx.pkg.AddError(loader.ErrFromNode(err /* an okay guess */, node))
 			}
 		}
@@ -229,9 +268,11 @@ func typeToSchema(ctx *schemaContext, rawType ast.Expr) *apiextensionsv1.JSONSch
 		props = typeToSchema(ctx.ForInfo(&markers.TypeInfo{}), expr.X)
 	case *ast.StructType:
 		props = structToSchema(ctx, expr)
+	case *ast.InterfaceType:
+		ctx.pkg.AddError(loader.ErrFromNode(fmt.Errorf("interface type is not supported in CRD schemas; consider using an explicit type or apiextensionsv1.JSON instead"), rawType))
+		return &apiextensionsv1.JSONSchemaProps{}
 	default:
 		ctx.pkg.AddError(loader.ErrFromNode(fmt.Errorf("unsupported AST kind %T", expr), rawType))
-		// NB(directxman12): we explicitly don't handle interfaces
 		return &apiextensionsv1.JSONSchemaProps{}
 	}
 
@@ -271,8 +312,9 @@ func localNamedToSchema(ctx *schemaContext, ident *ast.Ident) *apiextensionsv1.J
 	if aliasInfo, isAlias := typeInfo.(*types.Alias); isAlias {
 		typeInfo = aliasInfo.Rhs()
 	}
-	if basicInfo, isBasic := typeInfo.(*types.Basic); isBasic {
-		typ, fmt, err := builtinToType(basicInfo, ctx.allowDangerousTypes)
+	switch typeInfo := typeInfo.(type) {
+	case *types.Basic:
+		typ, fmt, err := builtinToType(typeInfo, ctx.allowDangerousTypes)
 		if err != nil {
 			ctx.pkg.AddError(loader.ErrFromNode(err, ident))
 		}
@@ -281,7 +323,7 @@ func localNamedToSchema(ctx *schemaContext, ident *ast.Ident) *apiextensionsv1.J
 		// > For gotypesalias=1, alias declarations produce an Alias type.
 		// > Otherwise, the alias information is only in the type name, which
 		// > points directly to the actual (aliased) type.
-		if basicInfo.Name() != ident.Name {
+		if typeInfo.Name() != ident.Name {
 			ctx.requestSchema("", ident.Name)
 			link := TypeRefLink("", ident.Name)
 			return &apiextensionsv1.JSONSchemaProps{
@@ -294,37 +336,48 @@ func localNamedToSchema(ctx *schemaContext, ident *ast.Ident) *apiextensionsv1.J
 			Type:   typ,
 			Format: fmt,
 		}
-	}
-	// NB(directxman12): if there are dot imports, this might be an external reference,
-	// so use typechecking info to get the actual object
-	typeNameInfo := typeInfo.(interface{ Obj() *types.TypeName }).Obj()
-	pkg := typeNameInfo.Pkg()
-	pkgPath := loader.NonVendorPath(pkg.Path())
-	if pkg == ctx.pkg.Types {
-		pkgPath = ""
-	}
-	ctx.requestSchema(pkgPath, typeNameInfo.Name())
-	link := TypeRefLink(pkgPath, typeNameInfo.Name())
-
-	// In cases where we have a named type, apply the type and format from the named schema
-	// to allow markers that need this information to apply correctly.
-	var typ, fmt string
-	if namedInfo, isNamed := typeInfo.(*types.Named); isNamed {
-		// We don't want/need to do this for structs, maps, or arrays.
-		// These are already handled in infoToSchema if they have custom marshalling.
-		if _, isBasic := namedInfo.Underlying().(*types.Basic); isBasic {
-			namedTypeInfo := ctx.schemaRequester.LookupType(ctx.pkg, namedInfo.Obj().Name())
-
-			namedSchema := infoToSchema(ctx.ForInfo(namedTypeInfo))
-			typ = namedSchema.Type
-			fmt = namedSchema.Format
+	case *types.Interface:
+		ctx.pkg.AddError(loader.ErrFromNode(fmt.Errorf("cannot generate schema for %s; interface type is not supported in CRD schemas, consider using an explicit type or apiextensionsv1.JSON instead", ident.Name), ident))
+		return &apiextensionsv1.JSONSchemaProps{}
+	case interface{ Obj() *types.TypeName }:
+		// NB(directxman12): if there are dot imports, this might be an external reference,
+		// so use typechecking info to get the actual object
+		typeNameInfo := typeInfo.Obj()
+		pkg := typeNameInfo.Pkg()
+		pkgPath := loader.NonVendorPath(pkg.Path())
+		if pkg == ctx.pkg.Types {
+			pkgPath = ""
 		}
-	}
+		ctx.requestSchemaWithPkg(pkgPath, typeNameInfo.Name(), pkg)
+		link := TypeRefLink(pkgPath, typeNameInfo.Name())
 
-	return &apiextensionsv1.JSONSchemaProps{
-		Type:   typ,
-		Format: fmt,
-		Ref:    &link,
+		props := &apiextensionsv1.JSONSchemaProps{
+			Ref: &link,
+		}
+
+		// Set the type for slice and map aliases so field-level markers like +listType
+		// and +mapType can work. Structs are skipped — they use a $ref only.
+		// Go 1.23+ (gotypesalias=1) represents `type Foo = []T` as *types.Alias, so
+		// unalias first to reach the real underlying type.
+		switch types.Unalias(typeInfo.(types.Type)).Underlying().(type) {
+		case *types.Slice:
+			props.Type = arrayType
+		case *types.Map:
+			//nolint:goconst
+			props.Type = "object"
+		case *types.Basic:
+			// We don't want/need to do this for structs, maps, or arrays.
+			// These are already handled in infoToSchema if they have custom marshalling.
+			namedTypeInfo := ctx.schemaRequester.LookupType(ctx.pkg, typeNameInfo.Name())
+			namedSchema := infoToSchema(ctx.ForInfo(namedTypeInfo))
+			props.Type = namedSchema.Type
+			props.Format = namedSchema.Format
+		}
+
+		return props
+	default:
+		ctx.pkg.AddError(loader.ErrFromNode(fmt.Errorf("unsupported type %T for identifier %s", typeInfo, ident.Name), ident))
+		return &apiextensionsv1.JSONSchemaProps{}
 	}
 }
 
@@ -335,15 +388,29 @@ func namedToSchema(ctx *schemaContext, named *ast.SelectorExpr) *apiextensionsv1
 		ctx.pkg.AddError(loader.ErrFromNode(fmt.Errorf("unknown type %v.%s", named.X, named.Sel.Name), named))
 		return &apiextensionsv1.JSONSchemaProps{}
 	}
+	if _, isInterface := typeInfoRaw.(*types.Interface); isInterface {
+		ctx.pkg.AddError(loader.ErrFromNode(fmt.Errorf("cannot generate schema for %v.%s; interface type is not supported in CRD schemas, consider using an explicit type or apiextensionsv1.JSON instead", named.X, named.Sel.Name), named))
+		return &apiextensionsv1.JSONSchemaProps{}
+	}
 	typeInfo := typeInfoRaw.(interface{ Obj() *types.TypeName })
 	typeNameInfo := typeInfo.Obj()
-	nonVendorPath := loader.NonVendorPath(typeNameInfo.Pkg().Path())
-	ctx.requestSchema(nonVendorPath, typeNameInfo.Name())
+	typesPkg := typeNameInfo.Pkg()
+	nonVendorPath := loader.NonVendorPath(typesPkg.Path())
+	ctx.requestSchemaWithPkg(nonVendorPath, typeNameInfo.Name(), typesPkg)
 	link := TypeRefLink(nonVendorPath, typeNameInfo.Name())
-	return &apiextensionsv1.JSONSchemaProps{
+	// Set the type for slice and map aliases so field-level markers like +listType
+	// and +mapType can work. Structs are skipped — they use a $ref only.
+	props := &apiextensionsv1.JSONSchemaProps{
 		Ref: &link,
 	}
+	switch typeInfoRaw.Underlying().(type) {
+	case *types.Slice:
+		props.Type = arrayType
+	case *types.Map:
+		props.Type = "object"
+	}
 	// NB(directxman12): we special-case things like resource.Quantity during the "collapse" phase.
+	return props
 }
 
 // arrayToSchema creates a schema for the items of the given array, dealing appropriately
@@ -362,7 +429,7 @@ func arrayToSchema(ctx *schemaContext, array *ast.ArrayType) *apiextensionsv1.JS
 	items := typeToSchema(ctx.ForInfo(&markers.TypeInfo{}), array.Elt)
 
 	return &apiextensionsv1.JSONSchemaProps{
-		Type:  "array",
+		Type:  arrayType,
 		Items: &apiextensionsv1.JSONSchemaPropsOrArray{Schema: items},
 	}
 }
@@ -370,20 +437,31 @@ func arrayToSchema(ctx *schemaContext, array *ast.ArrayType) *apiextensionsv1.JS
 // mapToSchema creates a schema for items of the given map.  Key types must eventually resolve
 // to string (other types aren't allowed by JSON, and thus the kubernetes API standards).
 func mapToSchema(ctx *schemaContext, mapType *ast.MapType) *apiextensionsv1.JSONSchemaProps {
-	keyInfo := ctx.pkg.TypesInfo.TypeOf(mapType.Key)
-	// check that we've got a type that actually corresponds to a string
+	keyType := ctx.pkg.TypesInfo.TypeOf(mapType.Key)
+	// check that we've got a type that actually corresponds to a string, or that
+	// implements encoding.TextMarshaler (in which case it serializes to a string,
+	// just like text-marshaler-implementing field types do).
+	keyInfo := keyType
 	for keyInfo != nil {
 		switch typedKey := keyInfo.(type) {
 		case *types.Basic:
 			if typedKey.Info()&types.IsString == 0 {
-				ctx.pkg.AddError(loader.ErrFromNode(fmt.Errorf("map keys must be strings, not %s", keyInfo.String()), mapType.Key))
+				if implements(keyType, textMarshaler) {
+					keyInfo = nil // stop iterating
+					break
+				}
+				ctx.pkg.AddError(loader.ErrFromNode(fmt.Errorf("map keys must be strings or implement encoding.TextMarshaler, not %s", keyInfo.String()), mapType.Key))
 				return &apiextensionsv1.JSONSchemaProps{}
 			}
 			keyInfo = nil // stop iterating
 		case *types.Named:
 			keyInfo = typedKey.Underlying()
 		default:
-			ctx.pkg.AddError(loader.ErrFromNode(fmt.Errorf("map keys must be strings, not %s", keyInfo.String()), mapType.Key))
+			if implements(keyType, textMarshaler) {
+				keyInfo = nil // stop iterating
+				break
+			}
+			ctx.pkg.AddError(loader.ErrFromNode(fmt.Errorf("map keys must be strings or implement encoding.TextMarshaler, not %s", keyInfo.String()), mapType.Key))
 			return &apiextensionsv1.JSONSchemaProps{}
 		}
 	}
@@ -401,6 +479,9 @@ func mapToSchema(ctx *schemaContext, mapType *ast.MapType) *apiextensionsv1.JSON
 		valSchema = typeToSchema(ctx.ForInfo(&markers.TypeInfo{}), val)
 	case *ast.MapType:
 		valSchema = typeToSchema(ctx.ForInfo(&markers.TypeInfo{}), val)
+	case *ast.InterfaceType:
+		ctx.pkg.AddError(loader.ErrFromNode(fmt.Errorf("interface type is not supported as map value in CRD schemas; consider using an explicit type or apiextensionsv1.JSON instead"), mapType.Value))
+		return &apiextensionsv1.JSONSchemaProps{}
 	default:
 		ctx.pkg.AddError(loader.ErrFromNode(fmt.Errorf("not a supported map value type: %T", mapType.Value), mapType.Value))
 		return &apiextensionsv1.JSONSchemaProps{}
@@ -425,6 +506,10 @@ func structToSchema(ctx *schemaContext, structType *ast.StructType) *apiextensio
 		Properties: make(map[string]apiextensionsv1.JSONSchemaProps),
 	}
 
+	if ctx.info.RawSpec == nil {
+		ctx.pkg.AddError(loader.ErrFromNode(fmt.Errorf("inline struct types are not supported, use a named type instead"), structType))
+		return props
+	}
 	if ctx.info.RawSpec.Type != structType {
 		ctx.pkg.AddError(loader.ErrFromNode(fmt.Errorf("encountered non-top-level struct (possibly embedded), those aren't allowed"), structType))
 		return props
@@ -445,6 +530,8 @@ func structToSchema(ctx *schemaContext, structType *ast.StructType) *apiextensio
 		ctx.pkg.AddError(loader.ErrFromNode(err, structType))
 		return props
 	}
+
+	var immutableFields []string
 
 	for _, field := range ctx.info.Fields {
 		// Skip if the field is not an inline field, ignoreUnexportedFields is true, and the field is not exported
@@ -470,7 +557,7 @@ func structToSchema(ctx *schemaContext, structType *ast.StructType) *apiextensio
 			switch opt {
 			case "inline":
 				inline = true
-			case "omitempty":
+			case "omitempty", "omitzero":
 				omitEmpty = true
 			}
 		}
@@ -505,10 +592,10 @@ func structToSchema(ctx *schemaContext, structType *ast.StructType) *apiextensio
 
 		// if this package isn't set to optional default...
 		case defaultMode == "required":
-			// ...everything that's not inline / omitempty is required
+			// ...everything that's not inline / omitempty / omitzero is required
 			if !inline && !omitEmpty {
 				if exactlyOneOf.Has(fieldName) || atMostOneOf.Has(fieldName) || atLeastOneOf.Has(fieldName) {
-					ctx.pkg.AddError(loader.ErrFromNode(fmt.Errorf("field %s is part of OneOf constraint and must have omitempty tag", fieldName), structType))
+					ctx.pkg.AddError(loader.ErrFromNode(fmt.Errorf("field %s is part of OneOf constraint and must have omitempty or omitzero tag", fieldName), structType))
 					return props
 				}
 				props.Required = append(props.Required, fieldName)
@@ -534,11 +621,28 @@ func structToSchema(ctx *schemaContext, structType *ast.StructType) *apiextensio
 			continue
 		}
 
+		if field.Markers.Get("k8s:immutable") != nil {
+			immutableFields = append(immutableFields, fieldName)
+		}
+
 		props.Properties[fieldName] = *propSchema
 	}
 
 	// Ensure the required fields are always listed alphabetically.
 	slices.Sort(props.Required)
+
+	// For optional immutable fields, add a parent-level validation rule to prevent
+	// clearing the field once set. The field-level rule prevents value changes, but
+	// when an optional field is removed, the field-level rule doesn't execute.
+	for _, fieldName := range immutableFields {
+		if slices.Contains(props.Required, fieldName) {
+			continue
+		}
+		props.XValidations = append(props.XValidations, apiextensionsv1.ValidationRule{
+			Rule:    fmt.Sprintf("!has(oldSelf.%s) || has(self.%s)", fieldName, fieldName),
+			Message: fmt.Sprintf("field %s is immutable once set", fieldName),
+		})
+	}
 
 	return props
 }
