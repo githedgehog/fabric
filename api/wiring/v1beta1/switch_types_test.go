@@ -87,10 +87,6 @@ func TestHydrationValidation(t *testing.T) {
 		ControlVIP:          "172.30.0.1/32",
 		ProtocolSubnet:      "172.30.8.0/22",
 		VTEPSubnet:          "172.30.12.0/22",
-		SpineASN:            65100,
-		LeafASNStart:        65101,
-		LeafASNEnd:          65200,
-		GatewayASN:          65201,
 		ManagementSubnet:    "172.30.0.0/21",
 		ManagementDHCPStart: "172.30.4.0",
 		ManagementDHCPEnd:   "172.30.7.254",
@@ -99,7 +95,11 @@ func TestHydrationValidation(t *testing.T) {
 
 	defaultFabric := &wiringapi.Fabric{
 		Name: wiringapi.DefaultFabric, Namespace: kmetav1.NamespaceDefault,
-		Spec: wiringapi.DefaultFabricSpec(fabricCfg),
+		Spec: wiringapi.FabricSpec{
+			LeafASNStart: 65101,
+			LeafASNEnd:   65200,
+			Domains:      map[string]wiringapi.FabricDomainSpec{wiringapi.DefaultFabricDomain: {SpineASN: 65100, GatewayASN: 65201}},
+		},
 	}
 	backendFabric := &wiringapi.Fabric{
 		Name: "backend", Namespace: "default",

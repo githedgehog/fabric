@@ -139,18 +139,6 @@ func (fabric *Fabric) domainASNs() (map[uint32]string, error) {
 	return asns, nil
 }
 
-// DefaultFabricSpec is the spec of Fabric/default built from the controller config
-func DefaultFabricSpec(cfg *meta.FabricConfig) FabricSpec {
-	return FabricSpec{
-		LeafASNStart: cfg.LeafASNStart,
-		LeafASNEnd:   cfg.LeafASNEnd,
-		DisableBFD:   cfg.DisableBFD,
-		Domains: map[string]FabricDomainSpec{
-			DefaultFabricDomain: {SpineASN: cfg.SpineASN, GatewayASN: cfg.GatewayASN},
-		},
-	}
-}
-
 // GetFabricSpec returns the spec of the named fabric
 func GetFabricSpec(ctx context.Context, kube kclient.Reader, namespace, name string) (*FabricSpec, error) {
 	if name == "" {

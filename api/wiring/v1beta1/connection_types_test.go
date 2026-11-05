@@ -921,7 +921,9 @@ func TestConnectionValidation(t *testing.T) {
 				scheme := runtime.NewScheme()
 				require.NoError(t, wiringapi.AddToScheme(scheme))
 				// the default fabric always exists
-				defaultFabric := withName(wiringapi.DefaultFabric, &wiringapi.Fabric{Spec: wiringapi.DefaultFabricSpec(cfg)})
+				defaultFabric := withName(wiringapi.DefaultFabric, &wiringapi.Fabric{Spec: wiringapi.FabricSpec{
+					Domains: map[string]wiringapi.FabricDomainSpec{wiringapi.DefaultFabricDomain: {}},
+				}})
 				objs := withObjs(tt.objects, defaultFabric)
 				for idx, obj := range objs {
 					// stored connections carry the labels they are looked up by
@@ -989,7 +991,9 @@ func TestConnectionValidationExtraValidator(t *testing.T) {
 		return sw
 	}
 	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
-		withName(wiringapi.DefaultFabric, &wiringapi.Fabric{Spec: wiringapi.DefaultFabricSpec(cfg)}),
+		withName(wiringapi.DefaultFabric, &wiringapi.Fabric{Spec: wiringapi.FabricSpec{
+			Domains: map[string]wiringapi.FabricDomainSpec{wiringapi.DefaultFabricDomain: {}},
+		}}),
 		switchWithRole("spine-01", wiringapi.SwitchRoleSpine),
 		switchWithRole("leaf-01", wiringapi.SwitchRoleServerLeaf),
 	).Build()

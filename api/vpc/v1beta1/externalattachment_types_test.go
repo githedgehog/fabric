@@ -112,8 +112,12 @@ func TestExternalAttachmentValidation(t *testing.T) {
 			Domains:      map[string]wiringapi.FabricDomainSpec{wiringapi.DefaultFabricDomain: {SpineASN: 64100, GatewayASN: 64200}},
 		},
 	}
-	// Fabric/default, added to the objects of every test, is created from the test config
-	asnCfg := &meta.FabricConfig{SpineASN: 65100, LeafASNStart: 65101, LeafASNEnd: 65200, GatewayASN: 65534}
+	// Fabric/default, added to the objects of every test, gets the test fabric spec if set
+	asnFabric := &wiringapi.FabricSpec{
+		LeafASNStart: 65101,
+		LeafASNEnd:   65200,
+		Domains:      map[string]wiringapi.FabricDomainSpec{wiringapi.DefaultFabricDomain: {SpineASN: 65100, GatewayASN: 65534}},
+	}
 	leafOnB := defaulted(&wiringapi.Switch{
 		Name: "leaf-01", Namespace: kmetav1.NamespaceDefault,
 		Spec: wiringapi.SwitchSpec{Topology: wiringapi.SwitchTopology{Domains: []string{"plane-b"}}},
@@ -129,7 +133,7 @@ func TestExternalAttachmentValidation(t *testing.T) {
 		name    string
 		extAtt  *v1beta1.ExternalAttachment
 		objects []kclient.Object
-		cfg     *meta.FabricConfig
+		fabric  *wiringapi.FabricSpec
 		err     bool
 		warns   bool
 	}{
@@ -151,7 +155,7 @@ func TestExternalAttachmentValidation(t *testing.T) {
 			name:    "BGP external attachment without neighbor ASN",
 			extAtt:  l3ExtAttGen("ext-att-01a", withNeighborASN(0)),
 			objects: append(slices.Clone(baseObjs), backendFabric),
-			cfg:     asnCfg,
+			fabric:  asnFabric,
 		},
 		{
 			name:    "BGP external attachment with switch IP only",
@@ -376,8 +380,11 @@ func TestExternalAttachmentValidation(t *testing.T) {
 				att.Spec.BFD = &v1beta1.ExternalAttachmentBFD{}
 			}),
 			objects: baseObjs,
-			cfg:     &meta.FabricConfig{DisableBFD: true},
-			warns:   true,
+			fabric: &wiringapi.FabricSpec{
+				DisableBFD: true,
+				Domains:    map[string]wiringapi.FabricDomainSpec{wiringapi.DefaultFabricDomain: {}},
+			},
+			warns: true,
 		},
 		{
 			name: "BFD on static attachment",
@@ -396,35 +403,35 @@ func TestExternalAttachmentValidation(t *testing.T) {
 			name:    "BGP neighbor ASN in another fabric leaf range",
 			extAtt:  l3ExtAttGen("ext-att-01", withNeighborASN(64150)),
 			objects: append(slices.Clone(baseObjs), backendFabric),
-			cfg:     asnCfg,
+			fabric:  asnFabric,
 			warns:   true,
 		},
 		{
 			name:    "BGP neighbor ASN is another fabric gateway ASN",
 			extAtt:  l3ExtAttGen("ext-att-01", withNeighborASN(64200)),
 			objects: append(slices.Clone(baseObjs), backendFabric),
-			cfg:     asnCfg,
+			fabric:  asnFabric,
 			warns:   true,
 		},
 		{
 			name:    "BGP neighbor ASN in own fabric leaf range",
 			extAtt:  l3ExtAttGen("ext-att-01", withNeighborASN(65150)),
 			objects: append(slices.Clone(baseObjs), backendFabric),
-			cfg:     asnCfg,
+			fabric:  asnFabric,
 			err:     true,
 		},
 		{
 			name:    "BGP neighbor ASN is own fabric spine ASN",
 			extAtt:  l3ExtAttGen("ext-att-01", withNeighborASN(65100)),
 			objects: baseObjs,
-			cfg:     asnCfg,
+			fabric:  asnFabric,
 			err:     true,
 		},
 		{
 			name:    "BGP neighbor ASN is own fabric gateway ASN",
 			extAtt:  l3ExtAttGen("ext-att-01", withNeighborASN(65534)),
 			objects: baseObjs,
-			cfg:     asnCfg,
+			fabric:  asnFabric,
 			err:     true,
 		},
 		{
@@ -433,7 +440,7 @@ func TestExternalAttachmentValidation(t *testing.T) {
 				att.Spec.Topology.Fabric = "backend"
 			}),
 			objects: append(slices.Clone(baseObjs), backendFabric),
-			cfg:     asnCfg,
+			fabric:  asnFabric,
 			err:     true,
 		},
 		{
@@ -466,15 +473,15 @@ func TestExternalAttachmentValidation(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			cfg := test.cfg
-			if cfg == nil {
-				cfg = &meta.FabricConfig{}
+			fabric := fabricObj(wiringapi.DefaultFabric)
+			if test.fabric != nil {
+				fabric.Spec = *test.fabric
 			}
 			kube := fake.NewClientBuilder().
 				WithScheme(scheme).
-				WithObjects(withObjs(test.objects, fabricObj(wiringapi.DefaultFabric, cfg))...).
+				WithObjects(withObjs(test.objects, fabric)...).
 				Build()
-			warns, err := test.extAtt.Validate(t.Context(), kube, cfg)
+			warns, err := test.extAtt.Validate(t.Context(), kube, &meta.FabricConfig{})
 			if test.err {
 				require.Error(t, err, "expected error but got none")
 			} else {

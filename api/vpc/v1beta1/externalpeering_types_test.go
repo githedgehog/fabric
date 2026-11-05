@@ -48,7 +48,7 @@ func extPeeringGen(name string, f ...func(peering *v1beta1.ExternalPeering)) *v1
 
 func TestExternalPeeringValidation(t *testing.T) {
 	baseObjs := []kclient.Object{
-		fabricObj(wiringapi.DefaultFabric, &meta.FabricConfig{}),
+		fabricObj(wiringapi.DefaultFabric),
 		defaulted(&v1beta1.VPC{
 			Name:      "vpc-01",
 			Namespace: kmetav1.NamespaceDefault,
@@ -230,7 +230,7 @@ func TestPeeringValidationExtraValidator(t *testing.T) {
 	require.NoError(t, wiringapi.AddToScheme(scheme))
 	kube := fake.NewClientBuilder().
 		WithScheme(scheme).
-		WithObjects(fabricObj(wiringapi.DefaultFabric, &meta.FabricConfig{})).
+		WithObjects(fabricObj(wiringapi.DefaultFabric)).
 		Build()
 
 	vpcPeering := vpcPeeringGen("vpc-01--vpc-02", "vpc-01", "vpc-02")
