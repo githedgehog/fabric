@@ -313,13 +313,10 @@ var ErrRetryLater = fmt.Errorf("retry later")
 // cleanupGateway deletes what's deployed for the gateway in the gateway namespace, the rest in the gateway's own
 // namespace is garbage collected with it
 func (r *GatewayReconciler) cleanupGateway(ctx context.Context, gw *gwapi.Gateway) error {
-	dsNames := append([]string{gwapi.DaemonSetName(gw.Name)}, oldGatewayDSNames(gw.Name)...)
-	objs := []kclient.Object{} //nolint:prealloc
-	for _, name := range dsNames {
-		objs = append(objs, &appv1.DaemonSet{Namespace: r.cfg.GatewayNamespace, Name: name})
-	}
-	objs = append(objs, &corev1.ServiceAccount{Namespace: r.cfg.GatewayNamespace, Name: entityName(gw.Name)})
-	for _, obj := range objs {
+	for _, obj := range []kclient.Object{
+		&appv1.DaemonSet{Namespace: r.cfg.GatewayNamespace, Name: gwapi.DaemonSetName(gw.Name)},
+		&corev1.ServiceAccount{Namespace: r.cfg.GatewayNamespace, Name: entityName(gw.Name)},
+	} {
 		if err := r.Delete(ctx, obj); kclient.IgnoreNotFound(err) != nil {
 			return fmt.Errorf("deleting %T %s: %w", obj, obj.GetName(), err)
 		}
@@ -594,17 +591,8 @@ func quantity(bytes int64) resource.Quantity {
 	return *resource.NewQuantity(bytes, resource.BinarySI)
 }
 
-// oldGatewayDSNames are the daemonsets deployed for a gateway before FRR moved into the dataplane pod
-func oldGatewayDSNames(gwName string) []string {
-	return []string{entityName(gwName, "dataplane"), entityName(gwName, "frr")}
-}
-
-func entityName(gwName string, t ...string) string {
-	if len(t) == 0 {
-		return fmt.Sprintf("gw-%s", gwName)
-	}
-
-	return fmt.Sprintf("gw--%s--%s", gwName, strings.Join(t, "-"))
+func entityName(gwName string) string {
+	return fmt.Sprintf("gw-%s", gwName)
 }
 
 func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway, hp1G, hp2M int64) error {
@@ -686,31 +674,6 @@ func (r *GatewayReconciler) deployGateway(ctx context.Context, gw *gwapi.Gateway
 			MaxUnavailable: new(intstr.FromInt(1)),
 			MaxSurge:       new(intstr.FromInt(0)),
 		},
-	}
-
-	// the old dataplane and frr daemonsets have to be gone before the new one starts, both dataplanes would take the same
-	// interfaces otherwise
-	oldLeft := false
-	for _, name := range oldGatewayDSNames(gw.Name) {
-		ds := &appv1.DaemonSet{}
-		if err := r.Get(ctx, kclient.ObjectKey{Namespace: r.cfg.GatewayNamespace, Name: name}, ds); err != nil {
-			if kapierrors.IsNotFound(err) {
-				continue
-			}
-
-			return fmt.Errorf("getting old gateway daemonset %s: %w", name, err)
-		}
-
-		oldLeft = true
-		if ds.DeletionTimestamp != nil {
-			continue
-		}
-		if err := r.Delete(ctx, ds, kclient.PropagationPolicy(kmetav1.DeletePropagationForeground)); kclient.IgnoreNotFound(err) != nil {
-			return fmt.Errorf("deleting old gateway daemonset %s: %w", name, err)
-		}
-	}
-	if oldLeft {
-		return fmt.Errorf("waiting for old gateway daemonsets to be deleted: %w", ErrRetryLater)
 	}
 
 	{
