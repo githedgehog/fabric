@@ -20,7 +20,6 @@ var CelesticaDS4101 = wiringapi.SwitchProfile{
 			L2VNI:         false,
 			L3VNI:         false,
 			RoCE:          true,
-			MCLAG:         false,
 			ESLAG:         false,
 			ECMPRoCEQPN:   true,
 			PortLocator:   true,

@@ -19,7 +19,6 @@ var DellZ9332FON = wiringapi.SwitchProfile{
 			L2VNI:         false,
 			L3VNI:         false,
 			RoCE:          true,
-			MCLAG:         false,
 			ESLAG:         false,
 			ECMPRoCEQPN:   false,
 			PortLocator:   true,
