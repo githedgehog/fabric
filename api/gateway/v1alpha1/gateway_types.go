@@ -46,6 +46,7 @@ type GatewaySpec struct {
 	// VTEP MAC address to be used by the gateway
 	VTEPMAC string `json:"vtepMAC,omitempty"`
 	// ASN is the ASN of the gateway
+	// +kubebuilder:validation:Format=int64
 	ASN uint32 `json:"asn,omitempty"`
 	// VTEPMTU is the MTU for the VTEP interface
 	VTEPMTU uint32 `json:"vtepMTU,omitempty"`
@@ -99,6 +100,7 @@ type GatewayBGPNeighbor struct {
 	// IP is the IP address of the BGP neighbor
 	IP string `json:"ip,omitempty"`
 	// ASN is the remote ASN of the BGP neighbor
+	// +kubebuilder:validation:Format=int64
 	ASN uint32 `json:"asn,omitempty"`
 }
 

@@ -72,7 +72,7 @@ spec:
             properties:
               asn:
                 description: ASN is the ASN of the gateway
-                format: int32
+                format: int64
                 type: integer
               driver:
                 description: Driver is the dataplane driver for the interfaces, kernel
@@ -159,7 +159,7 @@ spec:
                   properties:
                     asn:
                       description: ASN is the remote ASN of the BGP neighbor
-                      format: int32
+                      format: int64
                       type: integer
                     ip:
                       description: IP is the IP address of the BGP neighbor
