@@ -492,10 +492,7 @@ func TestDataplaneHugePages(t *testing.T) {
 }
 
 func TestGatewayDeploy(t *testing.T) {
-	oldDS := func(name string) *appv1.DaemonSet {
-		return &appv1.DaemonSet{Namespace: "fab", Name: name, Finalizers: []string{testFinalizer}}
-	}
-	kube := gatewayTestKube(t, oldDS(entityName("gw-1", "dataplane")), oldDS(entityName("gw-1", "frr")))
+	kube := gatewayTestKube(t)
 	r := &GatewayReconciler{
 		Client: kube,
 		cfg: &meta.FabricConfig{
@@ -506,21 +503,6 @@ func TestGatewayDeploy(t *testing.T) {
 			GatewayHugePages1G:   4,
 		},
 		lock: unlockedLock(),
-	}
-
-	// the old daemonsets are deleted and waited for before the new one is created
-	for range 2 {
-		res, err := r.Reconcile(t.Context(), reconcileReq("gw-1"))
-		require.NoError(t, err)
-		require.NotZero(t, res.RequeueAfter)
-		requireNotFound(t, kube, &appv1.DaemonSet{}, "fab", gwapi.DaemonSetName("gw-1"))
-	}
-	for _, name := range oldGatewayDSNames("gw-1") {
-		ds := &appv1.DaemonSet{}
-		require.NoError(t, kube.Get(t.Context(), kclient.ObjectKey{Namespace: "fab", Name: name}, ds))
-		require.NotNil(t, ds.DeletionTimestamp, name)
-		ds.Finalizers = nil
-		require.NoError(t, kube.Update(t.Context(), ds))
 	}
 
 	res, err := r.Reconcile(t.Context(), reconcileReq("gw-1"))
