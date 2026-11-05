@@ -139,7 +139,7 @@ func (fabric *Fabric) domainASNs() (map[uint32]string, error) {
 	return asns, nil
 }
 
-// DefaultFabricSpec is the spec Fabric/default is seeded with from the controller config
+// DefaultFabricSpec is the spec of Fabric/default built from the controller config
 func DefaultFabricSpec(cfg *meta.FabricConfig) FabricSpec {
 	return FabricSpec{
 		LeafASNStart: cfg.LeafASNStart,

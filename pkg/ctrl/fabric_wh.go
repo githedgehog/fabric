@@ -144,9 +144,8 @@ func (w *FabricWebhook) ValidateUpdate(ctx context.Context, oldFabric *wiringapi
 }
 
 func (w *FabricWebhook) ValidateDelete(ctx context.Context, fabric *wiringapi.Fabric) (admission.Warnings, error) {
-	// The default fabric is reserved. Every object written before the reference existed belongs
-	// to it implicitly, admission exempts it from the fabric-exists check so nothing would refuse
-	// to admit more, and the initializer only recreates it at startup.
+	// The default fabric is reserved. Every object without a fabric reference belongs to it implicitly and admission
+	// exempts it from the fabric-exists check, so nothing would refuse to admit more.
 	if fabric.Name == wiringapi.DefaultFabric {
 		return nil, fmt.Errorf("the default Fabric can not be deleted") //nolint:err113
 	}
