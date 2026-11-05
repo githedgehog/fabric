@@ -143,8 +143,10 @@ const (
 )
 
 type BGPNeighborStatus struct {
-	Enabled        bool   `json:"enabled,omitempty"`
-	LocalAS        uint32 `json:"localAS,omitempty"`
+	Enabled bool `json:"enabled,omitempty"`
+	// +kubebuilder:validation:Format=int64
+	LocalAS uint32 `json:"localAS,omitempty"`
+	// +kubebuilder:validation:Format=int64
 	PeerAS         uint32 `json:"peerAS,omitempty"`
 	RemoteRouterID string `json:"remoteRouterID,omitempty"`
 

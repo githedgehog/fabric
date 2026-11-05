@@ -90,8 +90,10 @@ type AgentSpecConfig struct {
 	ESLAGESIPrefix        string                    `json:"eslagESIPrefix,omitempty"`
 	DefaultMaxPathsEBGP   uint32                    `json:"defaultMaxPathsEBGP,omitempty"`
 	// Deprecated: ignored, Domains has it. TODO: remove after 26.06 release
+	// +kubebuilder:validation:Format=int64
 	GatewayASN uint32 `json:"gatewayASN,omitempty"`
 	// Deprecated: ignored, Domains has it. TODO: remove after 26.06 release
+	// +kubebuilder:validation:Format=int64
 	SpineASN            uint32            `json:"spineASN,omitempty"`
 	ProtocolSubnet      string            `json:"protocolSubnet,omitempty"`
 	VTEPSubnet          string            `json:"vtepSubnet,omitempty"`
@@ -375,24 +377,26 @@ type SwitchStateLLDPNeighbor struct {
 }
 
 type SwitchStateBGPNeighbor struct {
-	ConnectionsDropped     uint64                                    `json:"connDropped,omitempty"`
-	Enabled                bool                                      `json:"enabled,omitempty"`
-	EstablishedTransitions uint64                                    `json:"estabTrans,omitempty"`
-	LastEstablished        kmetav1.Time                              `json:"lastEstab,omitempty"`
-	LastRead               kmetav1.Time                              `json:"lastRead,omitempty"`
-	LastResetReason        string                                    `json:"lastResetReason,omitempty"`
-	LastResetTime          kmetav1.Time                              `json:"lastReset,omitempty"`
-	LastWrite              kmetav1.Time                              `json:"lastWrite,omitempty"`
-	LocalAS                uint32                                    `json:"localAS,omitempty"`
-	Messages               BGPMessages                               `json:"msgs,omitempty"`
-	PeerAS                 uint32                                    `json:"peerAS,omitempty"`
-	PeerGroup              string                                    `json:"peerGroup,omitempty"`
-	PeerPort               uint16                                    `json:"peerPort,omitempty"`
-	PeerType               BGPPeerType                               `json:"peerType,omitempty"`
-	RemoteRouterID         string                                    `json:"remoteRouterID,omitempty"`
-	SessionState           BGPNeighborSessionState                   `json:"state,omitempty"`
-	ShutdownMessage        string                                    `json:"shutdownMsg,omitempty"`
-	Prefixes               map[string]SwitchStateBGPNeighborPrefixes `json:"prefixes,omitempty"`
+	ConnectionsDropped     uint64       `json:"connDropped,omitempty"`
+	Enabled                bool         `json:"enabled,omitempty"`
+	EstablishedTransitions uint64       `json:"estabTrans,omitempty"`
+	LastEstablished        kmetav1.Time `json:"lastEstab,omitempty"`
+	LastRead               kmetav1.Time `json:"lastRead,omitempty"`
+	LastResetReason        string       `json:"lastResetReason,omitempty"`
+	LastResetTime          kmetav1.Time `json:"lastReset,omitempty"`
+	LastWrite              kmetav1.Time `json:"lastWrite,omitempty"`
+	// +kubebuilder:validation:Format=int64
+	LocalAS  uint32      `json:"localAS,omitempty"`
+	Messages BGPMessages `json:"msgs,omitempty"`
+	// +kubebuilder:validation:Format=int64
+	PeerAS          uint32                                    `json:"peerAS,omitempty"`
+	PeerGroup       string                                    `json:"peerGroup,omitempty"`
+	PeerPort        uint16                                    `json:"peerPort,omitempty"`
+	PeerType        BGPPeerType                               `json:"peerType,omitempty"`
+	RemoteRouterID  string                                    `json:"remoteRouterID,omitempty"`
+	SessionState    BGPNeighborSessionState                   `json:"state,omitempty"`
+	ShutdownMessage string                                    `json:"shutdownMsg,omitempty"`
+	Prefixes        map[string]SwitchStateBGPNeighborPrefixes `json:"prefixes,omitempty"`
 }
 
 type SwitchStateBGPNeighborPrefixes struct {

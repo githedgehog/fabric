@@ -295,9 +295,9 @@ _Appears in:_
 | `lastResetReason` _string_ |  |  |  |
 | `lastReset` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#time-v1-meta)_ |  |  |  |
 | `lastWrite` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.35/#time-v1-meta)_ |  |  |  |
-| `localAS` _integer_ |  |  |  |
+| `localAS` _integer_ |  |  | Format: int64 <br /> |
 | `msgs` _[BGPMessages](#bgpmessages)_ |  |  |  |
-| `peerAS` _integer_ |  |  |  |
+| `peerAS` _integer_ |  |  | Format: int64 <br /> |
 | `peerGroup` _string_ |  |  |  |
 | `peerPort` _integer_ |  |  |  |
 | `peerType` _[BGPPeerType](#bgppeertype)_ |  |  |  |
@@ -1112,7 +1112,7 @@ _Appears in:_
 | --- | --- | --- | --- |
 | `source` _string_ | Source is the source interface for the BGP neighbor configuration |  |  |
 | `ip` _string_ | IP is the IP address of the BGP neighbor |  |  |
-| `asn` _integer_ | ASN is the remote ASN of the BGP neighbor |  |  |
+| `asn` _integer_ | ASN is the remote ASN of the BGP neighbor |  | Format: int64 <br /> |
 
 
 #### GatewayDriver
@@ -1357,7 +1357,7 @@ _Appears in:_
 | `protocolIP` _string_ | ProtocolIP is used as a loopback IP and BGP Router ID |  |  |
 | `vtepIP` _string_ | VTEP IP to be used by the gateway |  |  |
 | `vtepMAC` _string_ | VTEP MAC address to be used by the gateway |  |  |
-| `asn` _integer_ | ASN is the ASN of the gateway |  |  |
+| `asn` _integer_ | ASN is the ASN of the gateway |  | Format: int64 <br /> |
 | `vtepMTU` _integer_ | VTEPMTU is the MTU for the VTEP interface |  |  |
 | `interfaces` _object (keys:string, values:[GatewayInterface](#gatewayinterface))_ | Interfaces is a map of interface names to their configurations |  |  |
 | `neighbors` _[GatewayBGPNeighbor](#gatewaybgpneighbor) array_ | Neighbors is a list of BGP neighbors |  |  |
@@ -1891,8 +1891,8 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `enabled` _boolean_ |  |  |  |
-| `localAS` _integer_ |  |  |  |
-| `peerAS` _integer_ |  |  |  |
+| `localAS` _integer_ |  |  | Format: int64 <br /> |
+| `peerAS` _integer_ |  |  | Format: int64 <br /> |
 | `remoteRouterID` _string_ |  |  |  |
 | `sessionState` _[BGPNeighborSessionState](#bgpneighborsessionstate)_ |  |  | Enum: [unset idle connect active open established] <br /> |
 | `connectionsDropped` _integer_ |  |  |  |
@@ -2263,7 +2263,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `asn` _integer_ | ASN (optional) is the ASN of the BGP neighbor, if not set any ASN other than the switch's own is accepted |  |  |
+| `asn` _integer_ | ASN (optional) is the ASN of the BGP neighbor, if not set any ASN other than the switch's own is accepted |  | Format: int64 <br /> |
 | `ip` _string_ | IP is the IP address of the BGP neighbor to peer with (without prefix length).<br />Leave it and switch.ip empty for a BGP unnumbered session over IPv6 link-local addresses |  |  |
 | `prefixLimit` _[ExternalAttachmentPrefixLimit](#externalattachmentprefixlimit)_ | PrefixLimit (optional) limits the prefixes accepted from the neighbor |  |  |
 
@@ -2543,7 +2543,7 @@ _Appears in:_
 | `inboundCommunity` _string_ | InboundCommunity is the optional inbound community to filter routes from the external system (e.g. 65102:5000) |  |  |
 | `outboundCommunity` _string_ | OutboundCommunity is the optional outbound community that all outbound routes will be stamped with (e.g. 50000:50001) |  |  |
 | `static` _[ExternalStaticSpec](#externalstaticspec)_ | Static contains parameters specific to static externals |  |  |
-| `localASN` _integer_ | LocalASN makes every attachment to this External present the same ASN to the external system<br />instead of each border leaf's own. Changing it resets all sessions to this External, and the<br />external system has to change its remote-as to match. Static attachments ignore it. |  |  |
+| `localASN` _integer_ | LocalASN makes every attachment to this External present the same ASN to the external system<br />instead of each border leaf's own. Changing it resets all sessions to this External, and the<br />external system has to change its remote-as to match. Static attachments ignore it. |  | Format: int64 <br /> |
 | `inboundPrefixes` _object (keys:string, values:[ExternalInboundPrefix](#externalinboundprefix))_ | InboundPrefixes (optional) limits the routes accepted from the external system to these prefixes,<br />keyed by prefix. Without it any prefix outside the IPv4Namespace is accepted |  |  |
 
 
@@ -3434,8 +3434,8 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `spineASN` _integer_ | SpineASN is the ASN shared by all spines of this domain, outside the leaf ASN range |  |  |
-| `gatewayASN` _integer_ | GatewayASN is the ASN shared by all gateways attached to this domain, outside the leaf ASN range |  |  |
+| `spineASN` _integer_ | SpineASN is the ASN shared by all spines of this domain, outside the leaf ASN range |  | Format: int64 <br /> |
+| `gatewayASN` _integer_ | GatewayASN is the ASN shared by all gateways attached to this domain, outside the leaf ASN range |  | Format: int64 <br /> |
 
 
 #### FabricLink
@@ -3468,8 +3468,8 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `leafASNStart` _integer_ | LeafASNStart is the first ASN of the range leaves of this Fabric are allocated from |  |  |
-| `leafASNEnd` _integer_ | LeafASNEnd is the last ASN of the range leaves of this Fabric are allocated from |  |  |
+| `leafASNStart` _integer_ | LeafASNStart is the first ASN of the range leaves of this Fabric are allocated from |  | Format: int64 <br /> |
+| `leafASNEnd` _integer_ | LeafASNEnd is the last ASN of the range leaves of this Fabric are allocated from |  | Format: int64 <br /> |
 | `disableBFD` _boolean_ | DisableBFD disables BFD on the links between switches and on the sessions with the gateways |  |  |
 | `domains` _object (keys:string, values:[FabricDomainSpec](#fabricdomainspec))_ | Domains is the set of spine layers in this Fabric, at least one is required |  |  |
 
@@ -4069,7 +4069,7 @@ _Appears in:_
 | `groups` _string array_ | Groups is a list of switch groups the switch belongs to |  |  |
 | `redundancy` _[SwitchRedundancy](#switchredundancy)_ | Redundancy is the switch redundancy configuration including name of the redundancy group switch belongs to and its type, used for ESLAG connections |  |  |
 | `vlanNamespaces` _string array_ | VLANNamespaces is a list of VLAN namespaces the switch is part of, their VLAN ranges could not overlap |  |  |
-| `asn` _integer_ | ASN is the ASN of the switch |  |  |
+| `asn` _integer_ | ASN is the ASN of the switch |  | Format: int64 <br /> |
 | `ip` _string_ | IP is the IP of the switch that could be used to access it from other switches and control nodes in the Fabric |  |  |
 | `vtepIP` _string_ | VTEPIP is the VTEP IP of the switch |  |  |
 | `protocolIP` _string_ | ProtocolIP is used as BGP Router ID for switch configuration |  |  |

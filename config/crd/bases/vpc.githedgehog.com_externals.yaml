@@ -103,7 +103,7 @@ spec:
                   LocalASN makes every attachment to this External present the same ASN to the external system
                   instead of each border leaf's own. Changing it resets all sessions to this External, and the
                   external system has to change its remote-as to match. Static attachments ignore it.
-                format: int32
+                format: int64
                 type: integer
               outboundCommunity:
                 description: OutboundCommunity is the optional outbound community

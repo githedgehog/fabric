@@ -463,12 +463,12 @@ spec:
                         gatewayASN:
                           description: GatewayASN is the ASN shared by all gateways
                             attached to this domain, outside the leaf ASN range
-                          format: int32
+                          format: int64
                           type: integer
                         spineASN:
                           description: SpineASN is the ASN shared by all spines of
                             this domain, outside the leaf ASN range
-                          format: int32
+                          format: int64
                           type: integer
                       type: object
                     description: Domains holds every domain of the switch's fabric
@@ -487,7 +487,7 @@ spec:
                   gatewayASN:
                     description: 'Deprecated: ignored, Domains has it. TODO: remove
                       after 26.06 release'
-                    format: int32
+                    format: int64
                     type: integer
                   gatewayBFD:
                     type: boolean
@@ -507,7 +507,7 @@ spec:
                   spineASN:
                     description: 'Deprecated: ignored, Domains has it. TODO: remove
                       after 26.06 release'
-                    format: int32
+                    format: int64
                     type: integer
                   spineLeaf:
                     type: object
@@ -963,7 +963,7 @@ spec:
                         asn:
                           description: ASN (optional) is the ASN of the BGP neighbor,
                             if not set any ASN other than the switch's own is accepted
-                          format: int32
+                          format: int64
                           type: integer
                         ip:
                           description: |-
@@ -1152,7 +1152,7 @@ spec:
                         LocalASN makes every attachment to this External present the same ASN to the external system
                         instead of each border leaf's own. Changing it resets all sessions to this External, and the
                         external system has to change its remote-as to match. Static attachments ignore it.
-                      format: int32
+                      format: int64
                       type: integer
                     outboundCommunity:
                       description: OutboundCommunity is the optional outbound community
@@ -1249,7 +1249,7 @@ spec:
                 properties:
                   asn:
                     description: ASN is the ASN of the switch
-                    format: int32
+                    format: int64
                     type: integer
                   boot:
                     description: Boot is the boot/provisioning information of the
@@ -1640,7 +1640,7 @@ spec:
                   properties:
                     asn:
                       description: ASN is the ASN of the switch
-                      format: int32
+                      format: int64
                       type: integer
                     boot:
                       description: Boot is the boot/provisioning information of the
@@ -2373,7 +2373,7 @@ spec:
                             format: date-time
                             type: string
                           localAS:
-                            format: int32
+                            format: int64
                             type: integer
                           msgs:
                             properties:
@@ -2421,7 +2421,7 @@ spec:
                                 type: object
                             type: object
                           peerAS:
-                            format: int32
+                            format: int64
                             type: integer
                           peerGroup:
                             type: string

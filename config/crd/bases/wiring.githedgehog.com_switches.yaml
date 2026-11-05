@@ -78,7 +78,7 @@ spec:
             properties:
               asn:
                 description: ASN is the ASN of the switch
-                format: int32
+                format: int64
                 type: integer
               boot:
                 description: Boot is the boot/provisioning information of the switch
