@@ -12,10 +12,7 @@ import (
 	"time"
 
 	fcintapi "go.githedgehog.com/fabric/api/fcint/v1alpha1"
-	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
 	"go.githedgehog.com/fabric/api/meta"
-	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
-	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
 	"go.githedgehog.com/fabric/pkg/version"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -46,11 +43,10 @@ const (
 )
 
 // FabricControllerInitializer enforces the built-in switch profiles once per process and initializes the running
-// fabric controller version for the current FabricController spec: the default fabric for a deployment that predates
-// fabrics and the refresh of stored objects. Recording it as Ready then unlocks the fabric controller on every
-// replica. While it runs the fabric controller is locked, so its own writes are the only ones. It's a leader-elected
-// reconciler of the FabricController: errors are retried with backoff, a spec change (e.g. leaving maintenance)
-// initializes again and a deleted FabricController is recreated.
+// fabric controller version for the current FabricController spec by refreshing the stored objects. Recording it as
+// Ready then unlocks the fabric controller on every replica. While it runs the fabric controller is locked, so its own
+// writes are the only ones. It's a leader-elected reconciler of the FabricController: errors are retried with backoff,
+// a spec change (e.g. leaving maintenance) initializes again and a deleted FabricController is recreated.
 type FabricControllerInitializer struct {
 	kclient.Client
 	apiReader    kclient.Reader
@@ -210,17 +206,6 @@ func (i *FabricControllerInitializer) initialize(ctx context.Context, fc *fcinta
 	if err := i.checkMaintenance(ctx); err != nil {
 		return err
 	}
-	if err := i.ensureFabricForUpgrade(ctx); err != nil {
-		return err
-	}
-
-	if err := i.checkMaintenance(ctx); err != nil {
-		return err
-	}
-	if err := i.deleteVPCLoopbackConnections(ctx); err != nil {
-		return err
-	}
-
 	if err := i.refresh(ctx, fc); err != nil {
 		return fmt.Errorf("refreshing stored objects: %w", err)
 	}
@@ -364,72 +349,4 @@ func (i *FabricControllerInitializer) getOrCreate(ctx context.Context) (*fcintap
 	}
 
 	return fc, nil
-}
-
-// ensureFabricForUpgrade creates the default fabric for a deployment that predates fabrics: no fabric at all but
-// objects that refer to one. Refreshing them then puts them into the default fabric and domain. A new deployment
-// has nothing yet when it's initialized and gets its fabrics from the user
-func (i *FabricControllerInitializer) ensureFabricForUpgrade(ctx context.Context) error {
-	fabrics := &wiringapi.FabricList{}
-	if err := i.List(ctx, fabrics, kclient.Limit(1)); err != nil {
-		return fmt.Errorf("listing fabrics: %w", err)
-	}
-	if len(fabrics.Items) > 0 {
-		return nil
-	}
-
-	predates := false
-	for _, objs := range []kclient.ObjectList{
-		&wiringapi.SwitchList{},
-		&wiringapi.SwitchGroupList{},
-		&wiringapi.ConnectionList{},
-		&vpcapi.IPv4NamespaceList{},
-		&vpcapi.VPCList{},
-		&vpcapi.ExternalList{},
-		&gwapi.GatewayList{},
-	} {
-		if err := i.List(ctx, objs, kclient.Limit(1)); err != nil {
-			return fmt.Errorf("listing %T: %w", objs, err)
-		}
-		if kmeta.LenList(objs) > 0 {
-			predates = true
-
-			break
-		}
-	}
-	if !predates {
-		return nil
-	}
-
-	fabric := &wiringapi.Fabric{
-		Namespace: kmetav1.NamespaceDefault, Name: wiringapi.DefaultFabric,
-		Spec: wiringapi.DefaultFabricSpec(i.cfg),
-	}
-	if err := i.Create(ctx, fabric); err != nil {
-		return fmt.Errorf("creating default fabric: %w", err)
-	}
-
-	kctrllog.FromContext(ctx).Info("Created the default fabric for a deployment that predates fabrics")
-
-	return nil
-}
-
-// deleteVPCLoopbackConnections deletes the Connections of the VPC loopback workaround, whose type is gone from the
-// API: what's stored of them has no spec left, only the type label their webhook set
-func (i *FabricControllerInitializer) deleteVPCLoopbackConnections(ctx context.Context) error {
-	conns := &wiringapi.ConnectionList{}
-	if err := i.List(ctx, conns, kclient.MatchingLabels{wiringapi.LabelConnectionType: "vpc-loopback"}); err != nil {
-		return fmt.Errorf("listing vpc-loopback connections: %w", err)
-	}
-
-	for idx := range conns.Items {
-		conn := &conns.Items[idx]
-		if err := i.Delete(ctx, conn); kclient.IgnoreNotFound(err) != nil {
-			return fmt.Errorf("deleting vpc-loopback connection %s: %w", conn.Name, err)
-		}
-
-		kctrllog.FromContext(ctx).Info("Deleted vpc-loopback connection", "name", conn.Name)
-	}
-
-	return nil
 }

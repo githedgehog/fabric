@@ -125,60 +125,27 @@ func testFabricControllerInitializer(t *testing.T, ver string) {
 
 	cfg := initFabricConfig()
 
-	defaultFabric := ktypes.NamespacedName{Namespace: kmetav1.NamespaceDefault, Name: wiringapi.DefaultFabric}
-
 	// devel builds never count as initialized
 	reinit := ver == develVersion
 
 	// objects without a spec are invalid, so they fail the initialization: it still does all its steps
 	for _, tt := range []struct {
-		name          string
-		objs          []kclient.Object
-		initializes   bool
-		invalid       bool
-		defaultFabric bool
-		deletedConns  []string
-		keptConns     []string
+		name        string
+		objs        []kclient.Object
+		initializes bool
+		invalid     bool
 	}{
 		{
 			name:        "fresh deployment",
 			initializes: true,
 		},
 		{
-			name: "upgrade from before fabrics",
+			name: "invalid stored objects",
 			objs: []kclient.Object{
-				&wiringapi.Switch{Namespace: kmetav1.NamespaceDefault, Name: "leaf-01"},
-			},
-			initializes:   true,
-			invalid:       true,
-			defaultFabric: true,
-		},
-		{
-			name: "fabrics already exist",
-			objs: []kclient.Object{
-				&wiringapi.Fabric{Namespace: kmetav1.NamespaceDefault, Name: "other"},
 				&wiringapi.Switch{Namespace: kmetav1.NamespaceDefault, Name: "leaf-01"},
 			},
 			initializes: true,
 			invalid:     true,
-		},
-		{
-			name: "upgrade with vpc-loopback connections",
-			objs: []kclient.Object{
-				&wiringapi.Fabric{Namespace: kmetav1.NamespaceDefault, Name: "other"},
-				&wiringapi.Connection{
-					Namespace: kmetav1.NamespaceDefault, Name: "leaf-01--vpc-loopback",
-					Labels: map[string]string{wiringapi.LabelConnectionType: "vpc-loopback"},
-				},
-				&wiringapi.Connection{
-					Namespace: kmetav1.NamespaceDefault, Name: "spine-01--fabric--leaf-01",
-					Labels: map[string]string{wiringapi.LabelConnectionType: wiringapi.ConnectionTypeFabric},
-				},
-			},
-			initializes:  true,
-			invalid:      true,
-			deletedConns: []string{"leaf-01--vpc-loopback"},
-			keptConns:    []string{"spine-01--fabric--leaf-01"},
 		},
 		{
 			name: "already initialized",
@@ -186,9 +153,8 @@ func testFabricControllerInitializer(t *testing.T, ver string) {
 				readyFabricController(ns, ver, 1),
 				&wiringapi.Switch{Namespace: kmetav1.NamespaceDefault, Name: "leaf-01"},
 			},
-			initializes:   reinit,
-			invalid:       true,
-			defaultFabric: reinit,
+			initializes: reinit,
+			invalid:     true,
 		},
 		{
 			name: "initialized for an older spec",
@@ -196,9 +162,8 @@ func testFabricControllerInitializer(t *testing.T, ver string) {
 				readyFabricController(ns, ver, 2),
 				&wiringapi.Switch{Namespace: kmetav1.NamespaceDefault, Name: "leaf-01"},
 			},
-			initializes:   true,
-			invalid:       true,
-			defaultFabric: true,
+			initializes: true,
+			invalid:     true,
 		},
 		{
 			name: "initialized by another version",
@@ -206,9 +171,8 @@ func testFabricControllerInitializer(t *testing.T, ver string) {
 				readyFabricController(ns, "v0.0.1", 1),
 				&wiringapi.Switch{Namespace: kmetav1.NamespaceDefault, Name: "leaf-01"},
 			},
-			initializes:   true,
-			invalid:       true,
-			defaultFabric: true,
+			initializes: true,
+			invalid:     true,
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
@@ -249,24 +213,7 @@ func testFabricControllerInitializer(t *testing.T, ver string) {
 			require.Equal(t, ver, fc.Status.Version)
 			require.Empty(t, fc.Status.Error)
 
-			fabric := &wiringapi.Fabric{}
-			err = kube.Get(t.Context(), defaultFabric, fabric)
-			if tt.defaultFabric {
-				require.NoError(t, err)
-				require.Equal(t, wiringapi.DefaultFabricSpec(cfg), fabric.Spec)
-			} else {
-				require.True(t, kapierrors.IsNotFound(err), "expected no default fabric, got %v", err)
-			}
-
 			require.Equal(t, tt.initializes, !fc.Status.Refresh.StartedAt.IsZero(), "refreshed")
-
-			for _, name := range tt.deletedConns {
-				err := kube.Get(t.Context(), ktypes.NamespacedName{Namespace: kmetav1.NamespaceDefault, Name: name}, &wiringapi.Connection{})
-				require.True(t, kapierrors.IsNotFound(err), "expected connection %s to be deleted, got %v", name, err)
-			}
-			for _, name := range tt.keptConns {
-				require.NoError(t, kube.Get(t.Context(), ktypes.NamespacedName{Namespace: kmetav1.NamespaceDefault, Name: name}, &wiringapi.Connection{}))
-			}
 
 			// built-in switch profiles are enforced on every start, an already initialized version included
 			sps := &wiringapi.SwitchProfileList{}

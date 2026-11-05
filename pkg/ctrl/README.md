@@ -41,8 +41,9 @@ singleton `default` in the fabric controller's namespace (`kubectl get fc -A`).
 ## Initialization
 
 The initializer (`fabriccontroller_init.go`) is a leader-elected reconciler of the `FabricController`. For a new version
-or spec generation it enforces the built-in switch profiles, runs the one-time migrations, refreshes the stored objects
-(`fabriccontroller_refresh.go`) and records `Ready`. A restart of an initialized version only enforces the profiles.
+or spec generation it enforces the built-in switch profiles, runs the one-time migrations if there are any, refreshes
+the stored objects (`fabriccontroller_refresh.go`) and records `Ready`. A restart of an initialized version only
+enforces the profiles.
 
 The refresh writes the current `Default()` to every object that doesn't carry it, in passes over the cache until one
 finds nothing to change, and validates each object on its own. Objects it can't fix (rejected, stale or invalid) fail
