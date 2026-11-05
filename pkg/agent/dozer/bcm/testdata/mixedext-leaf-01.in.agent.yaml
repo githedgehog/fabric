@@ -100,7 +100,6 @@ spec:
       "7": "50001:7"
       "8": "50001:8"
       "9": "50001:9"
-    mclagSessionSubnet: 172.30.95.0/31
     protocolSubnet: 172.30.8.0/22
     proxyExternalSubnet: 172.30.16.0/22
     serverFacingMTUOffset: 64

@@ -495,8 +495,6 @@ spec:
                   heartbeatInterval:
                     format: int32
                     type: integer
-                  mclagSessionSubnet:
-                    type: string
                   protocolSubnet:
                     type: string
                   proxyExternalSubnet:
