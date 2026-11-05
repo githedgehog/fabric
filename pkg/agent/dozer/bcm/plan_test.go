@@ -223,8 +223,6 @@ func TestPlan(t *testing.T) {
 		{name: "domains-spine-1"}, // in default only, rejects EVPN routes that crossed plane-b's spine
 		{name: "domains-leaf-3"},  // border leaf in plane-b only, external deny list has plane-b's ASNs, not default's
 		{name: "domains-leaf-4"},  // in plane-b only, peers with the gateway using plane-b's gateway ASN
-		// group: legacy
-		{name: "legacy-reg-leaf-4"}, // reg-leaf-4 saved by a controller from before domains, with only the scalar ASNs
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			updateGoldens := os.Getenv("UPDATE") == "true"

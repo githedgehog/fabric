@@ -470,9 +470,7 @@ spec:
                           format: int32
                           type: integer
                       type: object
-                    description: |-
-                      Domains holds every domain of the switch's fabric. It replaces GatewayASN and SpineASN, which
-                      are still filled in for older agents and read only from configs saved before Domains existed.
+                    description: Domains holds every domain of the switch's fabric
                     type: object
                   enforceInterval:
                     format: int32

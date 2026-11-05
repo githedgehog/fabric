@@ -89,8 +89,8 @@ type AgentSpecConfig struct {
 	ESLAGESIPrefix        string                    `json:"eslagESIPrefix,omitempty"`
 	DefaultMaxPathsEBGP   uint32                    `json:"defaultMaxPathsEBGP,omitempty"`
 	MCLAGSessionSubnet    string                    `json:"mclagSessionSubnet,omitempty"`
-	GatewayASN            uint32                    `json:"gatewayASN,omitempty"`
-	SpineASN              uint32                    `json:"spineASN,omitempty"`
+	GatewayASN            uint32                    `json:"gatewayASN,omitempty"` // TODO: remove after 26.06 release
+	SpineASN              uint32                    `json:"spineASN,omitempty"`   // TODO: remove after 26.06 release
 	ProtocolSubnet        string                    `json:"protocolSubnet,omitempty"`
 	VTEPSubnet            string                    `json:"vtepSubnet,omitempty"`
 	FabricSubnet          string                    `json:"fabricSubnet,omitempty"`
@@ -101,8 +101,7 @@ type AgentSpecConfig struct {
 	GatewayCommunities    map[string]string         `json:"gatewayCommunities,omitempty"`
 	HeartbeatInterval     uint32                    `json:"heartbeatInterval,omitempty"` // seconds, default and minimum 15
 	EnforceInterval       uint32                    `json:"enforceInterval,omitempty"`   // seconds, default and minimum 120
-	// Domains holds every domain of the switch's fabric. It replaces GatewayASN and SpineASN, which
-	// are still filled in for older agents and read only from configs saved before Domains existed.
+	// Domains holds every domain of the switch's fabric
 	Domains map[string]wiringapi.FabricDomainSpec `json:"domains,omitempty"`
 }
 

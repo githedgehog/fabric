@@ -539,12 +539,6 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 	if len(sw.Spec.Topology.Domains) == 0 {
 		return kctrl.Result{}, fmt.Errorf("switch has no domains") //nolint:err113
 	}
-	// only for the deprecated scalar ASNs in the agent config, which agents from before domains read
-	domainName := slices.Min(sw.Spec.Topology.Domains)
-	domain, exists := fabric.Domains[domainName]
-	if !exists {
-		return kctrl.Result{}, fmt.Errorf("switch domain %s not found in fabric", domainName) //nolint:err113
-	}
 
 	// TODO impl
 	statusUpdates := appendUpdate(nil, sw)
@@ -1077,8 +1071,6 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 			ESLAGMACBase:          r.cfg.ESLAGMACBase,
 			ESLAGESIPrefix:        r.cfg.ESLAGESIPrefix,
 			DefaultMaxPathsEBGP:   r.cfg.DefaultMaxPathsEBGP,
-			GatewayASN:            domain.GatewayASN,
-			SpineASN:              domain.SpineASN,
 			Domains:               fabric.Domains,
 			ProtocolSubnet:        r.cfg.ProtocolSubnet,
 			VTEPSubnet:            r.cfg.VTEPSubnet,

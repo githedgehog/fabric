@@ -232,6 +232,7 @@ spec:
     topology:
       domains:
         - plane-b
+      fabric: default
     vlanNamespaces:
       - default
     vtepIP: 172.30.12.2/32
