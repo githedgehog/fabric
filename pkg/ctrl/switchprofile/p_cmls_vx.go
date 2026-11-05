@@ -19,7 +19,7 @@ var CumulusVX = wiringapi.SwitchProfile{
 			L2VNI:         true,
 			L3VNI:         true,
 			RoCE:          true,
-			MCLAG:         true,
+			MCLAG:         false,
 			ESLAG:         true,
 			ECMPRoCEQPN:   false,
 		},
