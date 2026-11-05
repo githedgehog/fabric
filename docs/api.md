@@ -3833,7 +3833,7 @@ _Appears in:_
 | `l2vni` _boolean_ | L2VNI defines if switch supports L2 VNIs |  |  |
 | `l3vni` _boolean_ | L3VNI defines if switch supports L3 VNIs |  |  |
 | `roce` _boolean_ | RoCE defines if switch supports RoCEv2 over VXLAN and related features used by the fabric |  |  |
-| `mclag` _boolean_ | MCLAG is ignored, MCLAG isn't supported anymore |  |  |
+| `mclag` _boolean_ | Deprecated: ignored, MCLAG isn't supported anymore. TODO: remove after 26.06 release |  |  |
 | `eslag` _boolean_ | ESLAG defines if switch supports ESLAG (ESI multi-homing) |  |  |
 | `ecmpRoCEQPN` _boolean_ | ECMPRoCEQPN defines if switch supports ECMP QPN hashing |  |  |
 | `portLocator` _boolean_ | PortLocator defines if switch supports port locator LED control |  |  |

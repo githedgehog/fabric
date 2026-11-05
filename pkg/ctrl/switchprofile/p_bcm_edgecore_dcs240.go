@@ -20,7 +20,6 @@ var EdgecoreDCS240 = wiringapi.SwitchProfile{
 			L2VNI:         true,
 			L3VNI:         true,
 			RoCE:          true,
-			MCLAG:         false,
 			ESLAG:         true,
 			ECMPRoCEQPN:   true,
 			PortLocator:   true,

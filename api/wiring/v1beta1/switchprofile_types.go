@@ -57,8 +57,8 @@ type SwitchProfileFeatures struct {
 	L3VNI bool `json:"l3vni,omitempty"`
 	// RoCE defines if switch supports RoCEv2 over VXLAN and related features used by the fabric
 	RoCE bool `json:"roce,omitempty"`
-	// MCLAG is ignored, MCLAG isn't supported anymore
-	MCLAG bool `json:"mclag,omitempty"` // TODO: remove after 26.06 release
+	// Deprecated: ignored, MCLAG isn't supported anymore. TODO: remove after 26.06 release
+	MCLAG bool `json:"mclag,omitempty"`
 	// ESLAG defines if switch supports ESLAG (ESI multi-homing)
 	ESLAG bool `json:"eslag,omitempty"`
 	// ECMPRoCEQPN defines if switch supports ECMP QPN hashing

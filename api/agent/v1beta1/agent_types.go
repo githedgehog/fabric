@@ -36,10 +36,11 @@ import (
 // AgentSpec defines the desired state of the Agent and includes all relevant information required to fully configure
 // the switch and manage its lifecycle. It is not intended to be used directly by users.
 type AgentSpec struct {
-	Role                 wiringapi.SwitchRole                     `json:"role,omitempty"`
-	Description          string                                   `json:"description,omitempty"`
-	Config               AgentSpecConfig                          `json:"config,omitempty"`
-	Alloy                meta.AlloyConfig                         `json:"alloy,omitempty"` // TODO ignored, remove in future releases
+	Role        wiringapi.SwitchRole `json:"role,omitempty"`
+	Description string               `json:"description,omitempty"`
+	Config      AgentSpecConfig      `json:"config,omitempty"`
+	// Deprecated: ignored. TODO: remove after 26.06 release
+	Alloy                meta.AlloyConfig                         `json:"alloy,omitempty"`
 	Version              AgentVersion                             `json:"version,omitempty"`
 	Users                []UserCreds                              `json:"users,omitempty"`
 	Switch               wiringapi.SwitchSpec                     `json:"switch,omitempty"`
@@ -88,18 +89,20 @@ type AgentSpecConfig struct {
 	ESLAGMACBase          string                    `json:"eslagMACBase,omitempty"`
 	ESLAGESIPrefix        string                    `json:"eslagESIPrefix,omitempty"`
 	DefaultMaxPathsEBGP   uint32                    `json:"defaultMaxPathsEBGP,omitempty"`
-	GatewayASN            uint32                    `json:"gatewayASN,omitempty"` // TODO: remove after 26.06 release
-	SpineASN              uint32                    `json:"spineASN,omitempty"`   // TODO: remove after 26.06 release
-	ProtocolSubnet        string                    `json:"protocolSubnet,omitempty"`
-	VTEPSubnet            string                    `json:"vtepSubnet,omitempty"`
-	FabricSubnet          string                    `json:"fabricSubnet,omitempty"`
-	ProxyExternalSubnet   string                    `json:"proxyExternalSubnet,omitempty"`
-	DisableBFD            bool                      `json:"disableBFD,omitempty"`
-	GatewayBFD            bool                      `json:"gatewayBFD,omitempty"`
-	Alloy                 alloy.Config              `json:"alloy,omitempty"`
-	GatewayCommunities    map[string]string         `json:"gatewayCommunities,omitempty"`
-	HeartbeatInterval     uint32                    `json:"heartbeatInterval,omitempty"` // seconds, default and minimum 15
-	EnforceInterval       uint32                    `json:"enforceInterval,omitempty"`   // seconds, default and minimum 120
+	// Deprecated: ignored, Domains has it. TODO: remove after 26.06 release
+	GatewayASN uint32 `json:"gatewayASN,omitempty"`
+	// Deprecated: ignored, Domains has it. TODO: remove after 26.06 release
+	SpineASN            uint32            `json:"spineASN,omitempty"`
+	ProtocolSubnet      string            `json:"protocolSubnet,omitempty"`
+	VTEPSubnet          string            `json:"vtepSubnet,omitempty"`
+	FabricSubnet        string            `json:"fabricSubnet,omitempty"`
+	ProxyExternalSubnet string            `json:"proxyExternalSubnet,omitempty"`
+	DisableBFD          bool              `json:"disableBFD,omitempty"`
+	GatewayBFD          bool              `json:"gatewayBFD,omitempty"`
+	Alloy               alloy.Config      `json:"alloy,omitempty"`
+	GatewayCommunities  map[string]string `json:"gatewayCommunities,omitempty"`
+	HeartbeatInterval   uint32            `json:"heartbeatInterval,omitempty"` // seconds, default and minimum 15
+	EnforceInterval     uint32            `json:"enforceInterval,omitempty"`   // seconds, default and minimum 120
 	// Domains holds every domain of the switch's fabric
 	Domains map[string]wiringapi.FabricDomainSpec `json:"domains,omitempty"`
 }

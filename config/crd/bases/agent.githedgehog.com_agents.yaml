@@ -115,6 +115,7 @@ spec:
             description: Spec is the desired state of the Agent
             properties:
               alloy:
+                description: 'Deprecated: ignored. TODO: remove after 26.06 release'
                 properties:
                   agentScrapeIntervalSeconds:
                     type: integer
@@ -484,6 +485,8 @@ spec:
                   fabricSubnet:
                     type: string
                   gatewayASN:
+                    description: 'Deprecated: ignored, Domains has it. TODO: remove
+                      after 26.06 release'
                     format: int32
                     type: integer
                   gatewayBFD:
@@ -502,6 +505,8 @@ spec:
                   serverFacingMTUOffset:
                     type: integer
                   spineASN:
+                    description: 'Deprecated: ignored, Domains has it. TODO: remove
+                      after 26.06 release'
                     format: int32
                     type: integer
                   spineLeaf:
@@ -1469,7 +1474,8 @@ spec:
                         description: L3VNI defines if switch supports L3 VNIs
                         type: boolean
                       mclag:
-                        description: MCLAG is ignored, MCLAG isn't supported anymore
+                        description: 'Deprecated: ignored, MCLAG isn''t supported
+                          anymore. TODO: remove after 26.06 release'
                         type: boolean
                       portLocator:
                         description: PortLocator defines if switch supports port locator
