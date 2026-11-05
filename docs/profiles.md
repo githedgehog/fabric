@@ -32,24 +32,24 @@ features and port naming scheme.
 
 The following table shows which features are supported by each switch profile:
 
-| Switch Profile | Subinterfaces | ACLs | L2VNI | L3VNI | RoCE | MCLAG | ESLAG | QPN | PortLocator |
-|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| [Celestica DS2000 (Questone 2a)](#celestica-ds2000) | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: | :material-check: | :material-close: | :material-check: |
-| [Celestica DS3000 (Seastone2)](#celestica-ds3000) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: |
-| [Celestica DS4000 (Silverstone2)](#celestica-ds4000) | :material-close: | :material-check: | :material-close: | :material-close: | :material-check: | :material-close: | :material-close: | :material-close: | :material-check: |
-| [Celestica DS4101 (Greystone)](#celestica-ds4101) | :material-close: | :material-check: | :material-close: | :material-close: | :material-check: | :material-close: | :material-close: | :material-check: | :material-check: |
-| [Celestica DS5000 (Moonstone)](#celestica-ds5000) | :material-check: | :material-check: | :material-close: | :material-check: | :material-check: | :material-close: | :material-close: | :material-check: | :material-check: |
-| [Dell S5232F-ON](#dell-s5232f-on) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: |
-| [Dell S5248F-ON](#dell-s5248f-on) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: |
-| [Dell Z9332F-ON](#dell-z9332f-on) | :material-close: | :material-check: | :material-close: | :material-close: | :material-check: | :material-close: | :material-close: | :material-close: | :material-check: |
-| [Edgecore DCS203 (AS7326-56X)](#edgecore-dcs203) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: |
-| [Edgecore DCS204 (AS7726-32X)](#edgecore-dcs204) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-close: |
-| [Edgecore DCS240 (AS9726)](#edgecore-dcs240) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: | :material-check: | :material-check: |
-| [Edgecore DCS501 (AS7712-32X)](#edgecore-dcs501) | :material-close: | :material-check: | :material-close: | :material-close: | :material-close: | :material-close: | :material-close: | :material-close: | :material-close: |
-| [Edgecore EPS202 (AS4630-54PE)](#edgecore-eps202) | :material-close: | :material-check: | :material-check: | :material-check: | :material-close: | :material-close: | :material-check: | :material-close: | :material-check: |
-| [Edgecore EPS203 (AS4630-54NPE)](#edgecore-eps203) | :material-close: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: | :material-check: | :material-close: | :material-check: |
-| [Supermicro SSE-C4632SB](#supermicro-sse-c4632sb) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: |
-| [Virtual Switch](#virtual-switch) | :material-check: | :material-close: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-close: |
+| Switch Profile | Subinterfaces | ACLs | L2VNI | L3VNI | RoCE | ESLAG | QPN | PortLocator |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| [Celestica DS2000 (Questone 2a)](#celestica-ds2000) | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: | :material-close: | :material-check: |
+| [Celestica DS3000 (Seastone2)](#celestica-ds3000) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: |
+| [Celestica DS4000 (Silverstone2)](#celestica-ds4000) | :material-close: | :material-check: | :material-close: | :material-close: | :material-check: | :material-close: | :material-close: | :material-check: |
+| [Celestica DS4101 (Greystone)](#celestica-ds4101) | :material-close: | :material-check: | :material-close: | :material-close: | :material-check: | :material-close: | :material-check: | :material-check: |
+| [Celestica DS5000 (Moonstone)](#celestica-ds5000) | :material-check: | :material-check: | :material-close: | :material-check: | :material-check: | :material-close: | :material-check: | :material-check: |
+| [Dell S5232F-ON](#dell-s5232f-on) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: |
+| [Dell S5248F-ON](#dell-s5248f-on) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: |
+| [Dell Z9332F-ON](#dell-z9332f-on) | :material-close: | :material-check: | :material-close: | :material-close: | :material-check: | :material-close: | :material-close: | :material-check: |
+| [Edgecore DCS203 (AS7326-56X)](#edgecore-dcs203) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: |
+| [Edgecore DCS204 (AS7726-32X)](#edgecore-dcs204) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-close: |
+| [Edgecore DCS240 (AS9726)](#edgecore-dcs240) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: |
+| [Edgecore DCS501 (AS7712-32X)](#edgecore-dcs501) | :material-close: | :material-check: | :material-close: | :material-close: | :material-close: | :material-close: | :material-close: | :material-close: |
+| [Edgecore EPS202 (AS4630-54PE)](#edgecore-eps202) | :material-close: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: | :material-close: | :material-check: |
+| [Edgecore EPS203 (AS4630-54NPE)](#edgecore-eps203) | :material-close: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: | :material-close: | :material-check: |
+| [Supermicro SSE-C4632SB](#supermicro-sse-c4632sb) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: |
+| [Virtual Switch](#virtual-switch) | :material-check: | :material-close: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-close: |
 
 
 
@@ -77,7 +77,6 @@ Ports Summary: **48xSFP28-25G, 8xQSFP28-100G**
 - L2VNI: true
 - L3VNI: true
 - RoCE: false
-- MCLAG: true
 - ESLAG: true
 - ECMP RoCE QPN hashing: false
 
@@ -165,7 +164,6 @@ Ports Summary: **32xQSFP28-100G, 1xSFP28-10G**
 - L2VNI: true
 - L3VNI: true
 - RoCE: true
-- MCLAG: true
 - ESLAG: true
 - ECMP RoCE QPN hashing: false
 
@@ -230,7 +228,6 @@ Ports Summary: **32xQSFPDD-400G, 1xSFP28-10G**
 - L2VNI: false
 - L3VNI: false
 - RoCE: true
-- MCLAG: false
 - ESLAG: false
 - ECMP RoCE QPN hashing: false
 
@@ -313,7 +310,6 @@ Ports Summary: **32xOSFP-2x400G, 2xSFP28-10G**
 - L2VNI: false
 - L3VNI: false
 - RoCE: true
-- MCLAG: false
 - ESLAG: false
 - ECMP RoCE QPN hashing: true
 
@@ -407,7 +403,6 @@ Notes: Doesn't support non-L3 VPC modes due to the lack of L2VNI support.
 - L2VNI: false
 - L3VNI: true
 - RoCE: true
-- MCLAG: false
 - ESLAG: false
 - ECMP RoCE QPN hashing: true
 
@@ -545,7 +540,6 @@ Ports Summary: **32xQSFP28-100G, 2xSFP28-10G**
 - L2VNI: true
 - L3VNI: true
 - RoCE: true
-- MCLAG: true
 - ESLAG: true
 - ECMP RoCE QPN hashing: false
 
@@ -609,7 +603,6 @@ Ports Summary: **48xSFP28-25G, 8xQSFP28-100G**
 - L2VNI: true
 - L3VNI: true
 - RoCE: true
-- MCLAG: true
 - ESLAG: true
 - ECMP RoCE QPN hashing: false
 
@@ -695,7 +688,6 @@ Ports Summary: **32xQSFPDD-400G, 2xSFP28-10G**
 - L2VNI: false
 - L3VNI: false
 - RoCE: true
-- MCLAG: false
 - ESLAG: false
 - ECMP RoCE QPN hashing: false
 
@@ -779,7 +771,6 @@ Ports Summary: **48xSFP28-25G, 8xQSFP28-100G, 2xSFP28-10G**
 - L2VNI: true
 - L3VNI: true
 - RoCE: true
-- MCLAG: true
 - ESLAG: true
 - ECMP RoCE QPN hashing: false
 
@@ -869,7 +860,6 @@ Ports Summary: **32xQSFP28-100G, 2xSFP28-10G**
 - L2VNI: true
 - L3VNI: true
 - RoCE: true
-- MCLAG: true
 - ESLAG: true
 - ECMP RoCE QPN hashing: false
 
@@ -937,7 +927,6 @@ Notes: Upper 16 ports supply maximum of 24W, lower 16 ports supply maximum of 14
 - L2VNI: true
 - L3VNI: true
 - RoCE: true
-- MCLAG: false
 - ESLAG: true
 - ECMP RoCE QPN hashing: true
 
@@ -1003,7 +992,6 @@ Ports Summary: **32xQSFP28-100G**
 - L2VNI: false
 - L3VNI: false
 - RoCE: false
-- MCLAG: false
 - ESLAG: false
 - ECMP RoCE QPN hashing: false
 
@@ -1069,7 +1057,6 @@ Notes: Doesn't support StaticExternals and ExternalAttachments with VLANs due to
 - L2VNI: true
 - L3VNI: true
 - RoCE: false
-- MCLAG: false
 - ESLAG: true
 - ECMP RoCE QPN hashing: false
 
@@ -1157,7 +1144,6 @@ Notes: Doesn't support StaticExternals and ExternalAttachments with VLANs due to
 - L2VNI: true
 - L3VNI: true
 - RoCE: false
-- MCLAG: true
 - ESLAG: true
 - ECMP RoCE QPN hashing: false
 
@@ -1241,7 +1227,6 @@ Ports Summary: **32xQSFP28-100G, 1xSFP28-10G**
 - L2VNI: true
 - L3VNI: true
 - RoCE: true
-- MCLAG: true
 - ESLAG: true
 - ECMP RoCE QPN hashing: false
 
@@ -1306,7 +1291,6 @@ Ports Summary: **48xSFP28-25G**
 - L2VNI: true
 - L3VNI: true
 - RoCE: true
-- MCLAG: true
 - ESLAG: true
 - ECMP RoCE QPN hashing: false
 

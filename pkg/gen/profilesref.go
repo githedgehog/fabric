@@ -165,7 +165,6 @@ func GenerateProfilesRef(ctx context.Context, targetDir string) error {
 		resCatalog.WriteString("- L2VNI: " + strconv.FormatBool(sp.Spec.Features.L2VNI) + "\n")
 		resCatalog.WriteString("- L3VNI: " + strconv.FormatBool(sp.Spec.Features.L3VNI) + "\n")
 		resCatalog.WriteString("- RoCE: " + strconv.FormatBool(sp.Spec.Features.RoCE) + "\n")
-		resCatalog.WriteString("- MCLAG: " + strconv.FormatBool(sp.Spec.Features.MCLAG) + "\n")
 		resCatalog.WriteString("- ESLAG: " + strconv.FormatBool(sp.Spec.Features.ESLAG) + "\n")
 		resCatalog.WriteString("- ECMP RoCE QPN hashing: " + strconv.FormatBool(sp.Spec.Features.ECMPRoCEQPN) + "\n")
 		resCatalog.WriteString("\n")
@@ -275,7 +274,8 @@ func generateFeatureMatrix(sps []*wiringapi.SwitchProfile) string {
 
 	var fieldNames []string
 	for field := range featuresType.Fields() {
-		if field.Type.Kind() == reflect.Bool && field.PkgPath == "" {
+		// TODO: drop the MCLAG check with the field after 26.06 release
+		if field.Type.Kind() == reflect.Bool && field.PkgPath == "" && field.Name != "MCLAG" {
 			fieldNames = append(fieldNames, field.Name)
 		}
 	}
