@@ -65,12 +65,7 @@ func (w *ExternalAttachmentWebhook) Default(_ context.Context, attach *vpcapi.Ex
 }
 
 func (w *ExternalAttachmentWebhook) ValidateCreate(ctx context.Context, attach *vpcapi.ExternalAttachment) (admission.Warnings, error) {
-	warns, err := attach.Validate(ctx, w.KubeClient, w.Cfg)
-	if err != nil {
-		return warns, fmt.Errorf("failed to validate external attachment: %w", err)
-	}
-
-	return warns, nil
+	return attach.Validate(ctx, w.KubeClient, w.Cfg) //nolint:wrapcheck
 }
 
 func (w *ExternalAttachmentWebhook) ValidateUpdate(ctx context.Context, oldAttach *vpcapi.ExternalAttachment, newAttach *vpcapi.ExternalAttachment) (admission.Warnings, error) {
@@ -82,12 +77,7 @@ func (w *ExternalAttachmentWebhook) ValidateUpdate(ctx context.Context, oldAttac
 	// 	return nil, errors.Errorf("external attachment spec is immutable")
 	// }
 
-	warns, err := newAttach.Validate(ctx, w.KubeClient, w.Cfg)
-	if err != nil {
-		return warns, fmt.Errorf("failed to validate external attachment: %w", err)
-	}
-
-	return warns, nil
+	return newAttach.Validate(ctx, w.KubeClient, w.Cfg) //nolint:wrapcheck
 }
 
 func (w *ExternalAttachmentWebhook) ValidateDelete(_ context.Context, _ *vpcapi.ExternalAttachment) (admission.Warnings, error) {

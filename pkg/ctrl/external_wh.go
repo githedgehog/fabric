@@ -65,12 +65,7 @@ func (w *ExternalWebhook) Default(_ context.Context, ext *vpcapi.External) error
 }
 
 func (w *ExternalWebhook) ValidateCreate(ctx context.Context, ext *vpcapi.External) (admission.Warnings, error) {
-	warns, err := ext.Validate(ctx, w.KubeClient, w.Cfg)
-	if err != nil {
-		return warns, fmt.Errorf("error validating external: %w", err)
-	}
-
-	return warns, nil
+	return ext.Validate(ctx, w.KubeClient, w.Cfg) //nolint:wrapcheck
 }
 
 func (w *ExternalWebhook) ValidateUpdate(ctx context.Context, oldExt *vpcapi.External, newExt *vpcapi.External) (admission.Warnings, error) {
@@ -88,7 +83,7 @@ func (w *ExternalWebhook) ValidateUpdate(ctx context.Context, oldExt *vpcapi.Ext
 
 	warns, err := newExt.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
-		return warns, fmt.Errorf("error validating external: %w", err)
+		return warns, err //nolint:wrapcheck
 	}
 
 	// static attachments install one route per spec.static.prefixes, so dropping the prefixes

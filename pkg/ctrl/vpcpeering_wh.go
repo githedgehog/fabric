@@ -65,12 +65,7 @@ func (w *VPCPeeringWebhook) Default(_ context.Context, peer *vpcapi.VPCPeering) 
 }
 
 func (w *VPCPeeringWebhook) ValidateCreate(ctx context.Context, peer *vpcapi.VPCPeering) (admission.Warnings, error) {
-	warns, err := peer.Validate(ctx, w.KubeClient, w.Cfg)
-	if err != nil {
-		return warns, fmt.Errorf("failed to validate vpc peering: %w", err)
-	}
-
-	return warns, nil
+	return peer.Validate(ctx, w.KubeClient, w.Cfg) //nolint:wrapcheck
 }
 
 func (w *VPCPeeringWebhook) ValidateUpdate(ctx context.Context, oldPeer *vpcapi.VPCPeering, newPeer *vpcapi.VPCPeering) (admission.Warnings, error) {
@@ -82,12 +77,7 @@ func (w *VPCPeeringWebhook) ValidateUpdate(ctx context.Context, oldPeer *vpcapi.
 	// 	return nil, errors.Errorf("vpc peering permit list is immutable")
 	// }
 
-	warns, err := newPeer.Validate(ctx, w.KubeClient, w.Cfg)
-	if err != nil {
-		return warns, fmt.Errorf("failed to validate vpc peering: %w", err)
-	}
-
-	return warns, nil
+	return newPeer.Validate(ctx, w.KubeClient, w.Cfg) //nolint:wrapcheck
 }
 
 func (w *VPCPeeringWebhook) ValidateDelete(_ context.Context, _ *vpcapi.VPCPeering) (admission.Warnings, error) {

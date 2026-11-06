@@ -74,7 +74,7 @@ func (w *SwitchProfileWebhook) validate(ctx context.Context, sp *wiringapi.Switc
 
 	warns, err := sp.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
-		return warns, fmt.Errorf("error validating switchprofile: %w", err)
+		return warns, err //nolint:wrapcheck
 	}
 
 	if dsp := w.Profiles.Get(sp.Name); dsp != nil {
