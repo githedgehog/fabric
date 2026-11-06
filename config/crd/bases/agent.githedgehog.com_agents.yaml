@@ -606,7 +606,7 @@ spec:
                                     type: string
                                 type: object
                             type: object
-                          minItems: 2
+                          minItems: 1
                           type: array
                         mtu:
                           description: MTU is the MTU to be configured on the switch
