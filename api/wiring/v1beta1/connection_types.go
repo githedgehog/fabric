@@ -98,7 +98,7 @@ type ConnBundled struct {
 
 // ConnESLAG defines the ESLAG connection (port channel, single server to 2-4 switches with multiple links)
 type ConnESLAG struct {
-	// +kubebuilder:validation:MinItems=2
+	// +kubebuilder:validation:MinItems=1
 	// Links is the list of server-to-switch links
 	Links []ServerToSwitchLink `json:"links,omitempty"`
 	// ServerFacingConnectionConfig defines any server-facing connection (unbundled, bundled, eslag, etc.) configuration
