@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"slices"
 
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
@@ -78,10 +79,8 @@ func (w *SwitchWebhook) ValidateUpdate(ctx context.Context, oldSw *wiringapi.Swi
 	if oldSw.Spec.ASN != newSw.Spec.ASN {
 		return nil, field.Invalid(field.NewPath("spec", "asn"), newSw.Spec.ASN, kapivalidation.FieldImmutableErrorMsg+", delete and recreate the switch to change it")
 	}
-	if err := checkDomainsUnchanged(oldSw.Spec.Topology.Domains, newSw.Spec.Topology.Domains); err != nil {
-		err.Detail += ", delete and recreate the switch to change it"
-
-		return nil, err
+	if !slices.Equal(sortedDomainsOrDefault(oldSw.Spec.Topology.Domains), sortedDomainsOrDefault(newSw.Spec.Topology.Domains)) {
+		return nil, field.Invalid(field.NewPath("spec", "topology", "domains"), newSw.Spec.Topology.Domains, kapivalidation.FieldImmutableErrorMsg+", delete and recreate the switch to change it")
 	}
 
 	warns, err := newSw.Validate(ctx, w.KubeClient, w.Cfg)
