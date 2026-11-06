@@ -552,6 +552,15 @@ func TestGatewayValidate(t *testing.T) {
 			err:  true,
 		},
 		{
+			name: "test-hugepages-1g-overflow",
+			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
+				gw.Annotations = map[string]string{v1alpha1.AnnotationHugePages1G: "99999999999999999999"}
+			}),
+			objs:   base,
+			err:    true,
+			errMsg: "must be between 0 and 1024",
+		},
+		{
 			name: "test-hugepages-2m-not-integer",
 			gw: *gwa("gw-1", func(gw *v1alpha1.Gateway) {
 				gw.Annotations = map[string]string{v1alpha1.AnnotationHugePages2M: "1.5"}
