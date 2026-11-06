@@ -66,12 +66,7 @@ func (w *ConnectionWebhook) Default(_ context.Context, conn *wiringapi.Connectio
 }
 
 func (w *ConnectionWebhook) ValidateCreate(ctx context.Context, conn *wiringapi.Connection) (admission.Warnings, error) {
-	warns, err := conn.Validate(ctx, w.KubeClient, w.Cfg)
-	if err != nil {
-		return warns, fmt.Errorf("error validating connection: %w", err)
-	}
-
-	return warns, nil
+	return conn.Validate(ctx, w.KubeClient, w.Cfg) //nolint:wrapcheck
 }
 
 func (w *ConnectionWebhook) ValidateUpdate(ctx context.Context, oldConn *wiringapi.Connection, newConn *wiringapi.Connection) (admission.Warnings, error) {
@@ -93,7 +88,7 @@ func (w *ConnectionWebhook) ValidateUpdate(ctx context.Context, oldConn *wiringa
 
 	warns, err := newConn.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
-		return warns, fmt.Errorf("error validating connection: %w", err)
+		return warns, err //nolint:wrapcheck
 	}
 
 	// if newConn.Spec.Unbundled != nil || newConn.Spec.Bundled != nil || newConn.Spec.ESLAG != nil {

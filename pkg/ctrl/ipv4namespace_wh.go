@@ -69,12 +69,7 @@ func (w *IPv4NamespaceWebhook) Default(_ context.Context, ns *vpcapi.IPv4Namespa
 }
 
 func (w *IPv4NamespaceWebhook) ValidateCreate(ctx context.Context, ns *vpcapi.IPv4Namespace) (admission.Warnings, error) {
-	warns, err := ns.Validate(ctx, w.KubeClient, w.Cfg)
-	if err != nil {
-		return warns, fmt.Errorf("failed to validate ipv4namespace: %w", err)
-	}
-
-	return warns, nil
+	return ns.Validate(ctx, w.KubeClient, w.Cfg) //nolint:wrapcheck
 }
 
 func (w *IPv4NamespaceWebhook) ValidateUpdate(ctx context.Context, oldNs *vpcapi.IPv4Namespace, newNs *vpcapi.IPv4Namespace) (admission.Warnings, error) {
@@ -83,7 +78,7 @@ func (w *IPv4NamespaceWebhook) ValidateUpdate(ctx context.Context, oldNs *vpcapi
 	}
 
 	if warn, err := newNs.Validate(ctx, w.Client, w.Cfg); err != nil {
-		return warn, fmt.Errorf("failed to validate ipv4namespace: %w", err)
+		return warn, err //nolint:wrapcheck
 	}
 
 	nsSubnets := []netip.Prefix{}

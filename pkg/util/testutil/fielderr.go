@@ -4,7 +4,6 @@
 package testutil
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -14,13 +13,14 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
-// RequireFieldError checks that err is a field error and that its path exists in obj's type, following the json
-// tags, as the paths in validation are written by hand and nothing else would notice them drifting from the API.
+// RequireFieldError checks that err is an unwrapped field error, as the webhooks only report those as invalid, and that
+// its path exists in obj's type, following the json tags, as the paths in validation are written by hand and nothing
+// else would notice them drifting from the API.
 func RequireFieldError(t testing.TB, err error, obj any) {
 	t.Helper()
 
-	fieldErr, ok := errors.AsType[*field.Error](err)
-	require.True(t, ok, "expected a field error, got %v", err)
+	fieldErr, ok := err.(*field.Error) //nolint:errorlint
+	require.True(t, ok, "expected an unwrapped field error, got %v", err)
 	require.NoError(t, ResolveFieldPath(reflect.TypeOf(obj), fieldErr.Field), "field error %v", fieldErr)
 }
 

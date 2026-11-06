@@ -5,7 +5,6 @@ package ctrl
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -83,10 +82,10 @@ func (v *lockedValidator[T]) ValidateDelete(ctx context.Context, obj T) (admissi
 
 // apiStatusError turns a field error from create or update validation into a 422 Invalid, so that kubectl edit (and
 // so k9s) reopens the editor with it instead of giving up as it does on the 403 controller-runtime returns for other
-// errors. Other errors are returned as they are. The name comes from the object, as the request has none for a
-// create with generateName.
+// errors. Other errors are returned as they are, wrapped field errors too, as one may be about another object. The name
+// comes from the object, as the request has none for a create with generateName.
 func apiStatusError(ctx context.Context, obj kclient.Object, err error) error {
-	fieldErr, ok := errors.AsType[*field.Error](err)
+	fieldErr, ok := err.(*field.Error) //nolint:errorlint
 	if !ok {
 		return err
 	}

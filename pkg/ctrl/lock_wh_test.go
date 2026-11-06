@@ -147,10 +147,15 @@ func TestLockedValidatorStatusErrors(t *testing.T) {
 			asIs: true,
 		},
 		{
-			name:    "wrapped field error",
-			err:     fmt.Errorf("failed to validate server: %w", field.Invalid(field.NewPath("spec", "profile"), "foo", "not found")),
+			name:    "field error",
+			err:     field.Invalid(field.NewPath("spec", "profile"), "foo", "not found"),
 			field:   "spec.profile",
 			message: `Server.wiring.githedgehog.com "server-1" is invalid: spec.profile: Invalid value: "foo": not found`,
+		},
+		{
+			name: "wrapped field error",
+			err:  fmt.Errorf("building gateway agent: %w", field.Invalid(field.NewPath("spec", "profile"), "foo", "not found")),
+			asIs: true,
 		},
 		{
 			name: "api status error",

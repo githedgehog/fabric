@@ -61,21 +61,11 @@ func (w *ServerWebhook) Default(_ context.Context, srv *wiringapi.Server) error 
 }
 
 func (w *ServerWebhook) ValidateCreate(ctx context.Context, srv *wiringapi.Server) (admission.Warnings, error) {
-	warns, err := srv.Validate(ctx, w.Client, w.Cfg)
-	if err != nil {
-		return warns, fmt.Errorf("error validating server: %w", err)
-	}
-
-	return warns, nil
+	return srv.Validate(ctx, w.Client, w.Cfg) //nolint:wrapcheck
 }
 
 func (w *ServerWebhook) ValidateUpdate(ctx context.Context, _ *wiringapi.Server, newSrv *wiringapi.Server) (admission.Warnings, error) {
-	warns, err := newSrv.Validate(ctx, w.Client, w.Cfg)
-	if err != nil {
-		return warns, fmt.Errorf("error validating server: %w", err)
-	}
-
-	return warns, nil
+	return newSrv.Validate(ctx, w.Client, w.Cfg) //nolint:wrapcheck
 }
 
 func (w *ServerWebhook) ValidateDelete(ctx context.Context, srv *wiringapi.Server) (admission.Warnings, error) {
