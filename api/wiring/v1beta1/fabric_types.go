@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ktypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -95,44 +96,47 @@ func (fabricList *FabricList) GetItems() []meta.Object {
 	return items
 }
 
-// ErrFabricNotSet is returned for an empty fabric reference: defaulting sets it, so only an object the refresh on
-// fabric-ctrl initialization had to leave alone or one validated without defaulting can have it empty
+// ErrFabricNotSet is returned by GetFabricSpec, which the reconcilers use, for an empty fabric reference: defaulting
+// sets it, so only an object the refresh on fabric-ctrl initialization had to leave alone can have it empty
 var ErrFabricNotSet = errors.New("topology.fabric is required")
 
-// CheckFabricExists checks that a fabric reference is set and, given a client, names a Fabric that exists
-func CheckFabricExists(ctx context.Context, kube kclient.Reader, namespace, name string) error {
+// CheckFabricExists checks that a fabric reference is set and, given a client, names a Fabric that exists, returning
+// its spec (nil without a client). It reports spec.topology.fabric, where every object keeps the reference.
+func CheckFabricExists(ctx context.Context, kube kclient.Reader, namespace, name string) (*FabricSpec, error) {
+	path := field.NewPath("spec", "topology", "fabric")
 	if name == "" {
-		return ErrFabricNotSet
+		return nil, field.Required(path, "")
 	}
 	if kube == nil {
-		return nil
+		return nil, nil //nolint:nilnil // nothing to look the spec up with, the callers only use it given a client
 	}
 
-	if err := kube.Get(ctx, ktypes.NamespacedName{Name: name, Namespace: namespace}, &Fabric{}); err != nil {
+	fabric := &Fabric{}
+	if err := kube.Get(ctx, ktypes.NamespacedName{Name: name, Namespace: namespace}, fabric); err != nil {
 		if kapierrors.IsNotFound(err) {
-			return fmt.Errorf("fabric %s not found", name) //nolint:err113
+			return nil, field.NotFound(path, name)
 		}
 
-		return fmt.Errorf("failed to get fabric %s: %w", name, err) // TODO replace with some internal error to not expose to the user
+		return nil, fmt.Errorf("failed to get fabric %s: %w", name, err) // TODO replace with some internal error to not expose to the user
 	}
 
-	return nil
+	return &fabric.Spec, nil
 }
 
-// domainASNs maps each spine and gateway ASN of the fabric to what it is used for, failing if a
+// domainASNs maps each spine and gateway ASN of the fabric to the field it's set in, failing if a
 // domain has either unset or the same ASN is used twice
-func (fabric *Fabric) domainASNs() (map[uint32]string, error) {
-	asns := map[uint32]string{}
+func (fabric *Fabric) domainASNs() (map[uint32]*field.Path, error) {
+	asns := map[uint32]*field.Path{}
 	for name, domain := range fabric.Spec.Domains {
 		for role, asn := range map[string]uint32{"spineASN": domain.SpineASN, "gatewayASN": domain.GatewayASN} {
-			what := fmt.Sprintf("domain %s %s", name, role)
+			path := field.NewPath("spec", "domains").Key(name).Child(role)
 			if asn == 0 {
-				return nil, fmt.Errorf("%s is required", what) //nolint:err113
+				return nil, field.Required(path, "")
 			}
 			if other, exists := asns[asn]; exists {
-				return nil, fmt.Errorf("%s %d is already used as %s", what, asn, other) //nolint:err113
+				return nil, field.Invalid(path, asn, "already used as "+other.String())
 			}
-			asns[asn] = what
+			asns[asn] = path
 		}
 	}
 
@@ -178,26 +182,33 @@ func (fabric *Fabric) Default() {
 
 func (fabric *Fabric) Validate(ctx context.Context, kube kclient.Reader, _ *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(fabric); err != nil {
-		return nil, fmt.Errorf("failed to validate metadata: %w", err)
+		return nil, err //nolint:wrapcheck
 	}
 
-	if fabric.Spec.LeafASNStart == 0 || fabric.Spec.LeafASNEnd == 0 {
-		return nil, fmt.Errorf("leafASNStart and leafASNEnd are required") //nolint:err113
+	spec := field.NewPath("spec")
+	leafStartPath := spec.Child("leafASNStart")
+
+	if fabric.Spec.LeafASNStart == 0 {
+		return nil, field.Required(leafStartPath, "")
+	}
+	if fabric.Spec.LeafASNEnd == 0 {
+		return nil, field.Required(spec.Child("leafASNEnd"), "")
 	}
 	if fabric.Spec.LeafASNStart > fabric.Spec.LeafASNEnd {
-		return nil, fmt.Errorf("leafASNStart %d is greater than leafASNEnd %d", fabric.Spec.LeafASNStart, fabric.Spec.LeafASNEnd) //nolint:err113
+		return nil, field.Invalid(leafStartPath, fabric.Spec.LeafASNStart, fmt.Sprintf("greater than leafASNEnd %d", fabric.Spec.LeafASNEnd))
 	}
 
 	if len(fabric.Spec.Domains) == 0 {
-		return nil, fmt.Errorf("at least one domain is required") //nolint:err113
+		return nil, field.Required(spec.Child("domains"), "at least one domain is required")
 	}
 	for name := range fabric.Spec.Domains {
+		domainPath := spec.Child("domains").Key(name)
 		// the name becomes a label key segment
 		if errs := validation.IsDNS1123Label(name); len(errs) > 0 {
-			return nil, fmt.Errorf("invalid domain name %s: %s", name, strings.Join(errs, ", ")) //nolint:err113
+			return nil, field.Invalid(domainPath, name, strings.Join(errs, ", "))
 		}
 		if len(name) > meta.MaxNameLength {
-			return nil, fmt.Errorf("domain name %s is too long, must be <= %d characters", name, meta.MaxNameLength) //nolint:err113
+			return nil, field.TooLongCharacters(domainPath, name, meta.MaxNameLength)
 		}
 	}
 
@@ -205,9 +216,9 @@ func (fabric *Fabric) Validate(ctx context.Context, kube kclient.Reader, _ *meta
 	if err != nil {
 		return nil, err
 	}
-	for asn, what := range asns {
+	for asn, path := range asns {
 		if asn >= fabric.Spec.LeafASNStart && asn <= fabric.Spec.LeafASNEnd {
-			return nil, fmt.Errorf("%s %d is within the leaf ASN range %d-%d", what, asn, fabric.Spec.LeafASNStart, fabric.Spec.LeafASNEnd) //nolint:err113
+			return nil, field.Invalid(path, asn, fmt.Sprintf("within the leaf ASN range %d-%d", fabric.Spec.LeafASNStart, fabric.Spec.LeafASNEnd))
 		}
 	}
 
@@ -223,22 +234,22 @@ func (fabric *Fabric) Validate(ctx context.Context, kube kclient.Reader, _ *meta
 				continue
 			}
 			if fabric.Spec.LeafASNStart <= other.Spec.LeafASNEnd && other.Spec.LeafASNStart <= fabric.Spec.LeafASNEnd {
-				return nil, fmt.Errorf("leaf ASN range %d-%d overlaps with fabric %s leaf ASN range %d-%d", fabric.Spec.LeafASNStart, fabric.Spec.LeafASNEnd, other.Name, other.Spec.LeafASNStart, other.Spec.LeafASNEnd) //nolint:err113
+				return nil, field.Invalid(leafStartPath, fabric.Spec.LeafASNStart, fmt.Sprintf("leaf ASN range %d-%d overlaps with fabric %s leaf ASN range %d-%d", fabric.Spec.LeafASNStart, fabric.Spec.LeafASNEnd, other.Name, other.Spec.LeafASNStart, other.Spec.LeafASNEnd))
 			}
 
 			// the other fabric has passed this validation already
 			otherASNs, _ := other.domainASNs()
-			for asn, what := range asns {
+			for asn, path := range asns {
 				if asn >= other.Spec.LeafASNStart && asn <= other.Spec.LeafASNEnd {
-					return nil, fmt.Errorf("%s %d is within fabric %s leaf ASN range %d-%d", what, asn, other.Name, other.Spec.LeafASNStart, other.Spec.LeafASNEnd) //nolint:err113
+					return nil, field.Invalid(path, asn, fmt.Sprintf("within fabric %s leaf ASN range %d-%d", other.Name, other.Spec.LeafASNStart, other.Spec.LeafASNEnd))
 				}
-				if otherWhat, exists := otherASNs[asn]; exists {
-					return nil, fmt.Errorf("%s %d is already used by fabric %s as %s", what, asn, other.Name, otherWhat) //nolint:err113
+				if otherPath, exists := otherASNs[asn]; exists {
+					return nil, field.Invalid(path, asn, fmt.Sprintf("already used by fabric %s as %s", other.Name, otherPath))
 				}
 			}
-			for asn, otherWhat := range otherASNs {
+			for asn, otherPath := range otherASNs {
 				if asn >= fabric.Spec.LeafASNStart && asn <= fabric.Spec.LeafASNEnd {
-					return nil, fmt.Errorf("leaf ASN range %d-%d contains fabric %s %s %d", fabric.Spec.LeafASNStart, fabric.Spec.LeafASNEnd, other.Name, otherWhat, asn) //nolint:err113
+					return nil, field.Invalid(leafStartPath, fabric.Spec.LeafASNStart, fmt.Sprintf("leaf ASN range %d-%d contains fabric %s %s %d", fabric.Spec.LeafASNStart, fabric.Spec.LeafASNEnd, other.Name, otherPath, asn))
 				}
 			}
 		}
