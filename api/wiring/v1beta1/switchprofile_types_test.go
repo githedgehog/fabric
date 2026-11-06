@@ -308,8 +308,15 @@ func TestGetNOS2APIPortsFor(t *testing.T) {
 					"E1/8":  {NOSName: "8", Label: "8", Profile: "QSFP28-100G", BaseNOSName: "swp"},
 					"E1/9":  {NOSName: "9", Label: "9", Profile: "QSFP28-100G", BaseNOSName: "swp"},
 					"E1/10": {NOSName: "10", Label: "10", Profile: "QSFP28-100G", BaseNOSName: "swp"},
+					"E1/11": {NOSName: "11", Label: "11", Profile: "SFP28-25G", BaseNOSName: "swp"},
 				},
 				PortProfiles: map[string]wiringapi.SwitchProfilePortProfile{
+					"SFP28-25G": {
+						Speed: &wiringapi.SwitchProfilePortProfileSpeed{
+							Default:   "25G",
+							Supported: []string{"10G", "25G"},
+						},
+					},
 					"QSFP28-100G": {
 						Breakout: &wiringapi.SwitchProfilePortProfileBreakout{
 							Default: "1x100G",
@@ -348,6 +355,7 @@ func TestGetNOS2APIPortsFor(t *testing.T) {
 				"swp9s0": "E1/9/1",
 				"swp9s1": "E1/9/2",
 				"swp10":  "E1/10/1",
+				"swp11":  "E1/11",
 				"eth0":   "M1",
 			},
 		},
