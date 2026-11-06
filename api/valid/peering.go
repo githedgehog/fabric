@@ -29,6 +29,8 @@ func Peering(ctx context.Context, kube kclient.Reader, checkPeering kclient.Obje
 	checkName := checkPeering.GetName()
 	checkNs := checkPeering.GetNamespace()
 
+	// the peers are spec.permit of a VPCPeering or ExternalPeering and spec.peering of a GatewayPeering
+	peersPath := field.NewPath("spec", "permit")
 	var vpcs, exts []string
 	switch peering := any(checkPeering).(type) {
 	case *vpcapi.VPCPeering:
@@ -41,6 +43,7 @@ func Peering(ctx context.Context, kube kclient.Reader, checkPeering kclient.Obje
 		vpcs = []string{peering.Spec.Permit.VPC.Name}
 		exts = []string{peering.Spec.Permit.External.Name}
 	case *gwapi.GatewayPeering:
+		peersPath = field.NewPath("spec", "peering")
 		for vpc := range peering.Spec.Peering {
 			if ext, ok := strings.CutPrefix(vpc, gwapi.VPCInfoExtPrefix); ok {
 				exts = append(exts, ext)
@@ -53,7 +56,7 @@ func Peering(ctx context.Context, kube kclient.Reader, checkPeering kclient.Obje
 	}
 
 	if len(vpcs)+len(exts) != 2 {
-		return field.Invalid(field.NewPath("spec"), field.OmitValueType{}, fmt.Sprintf("expected exactly 2 unique vpcs/externals, got %d + %d", len(vpcs), len(exts)))
+		return field.Invalid(peersPath, field.OmitValueType{}, fmt.Sprintf("expected exactly 2 unique vpcs/externals, got %d + %d", len(vpcs), len(exts)))
 	}
 
 	slices.Sort(vpcs)
@@ -74,7 +77,7 @@ func Peering(ctx context.Context, kube kclient.Reader, checkPeering kclient.Obje
 				continue
 			}
 
-			return field.Invalid(field.NewPath("spec"), field.OmitValueType{}, fmt.Sprintf("VPCPeering %q already exists for VPCs %s and %s", peer.Name, vpcs[0], vpcs[1]))
+			return field.Invalid(peersPath, field.OmitValueType{}, fmt.Sprintf("VPCPeering %q already exists for VPCs %s and %s", peer.Name, vpcs[0], vpcs[1]))
 		}
 	}
 
@@ -93,7 +96,7 @@ func Peering(ctx context.Context, kube kclient.Reader, checkPeering kclient.Obje
 				continue
 			}
 
-			return field.Invalid(field.NewPath("spec"), field.OmitValueType{}, fmt.Sprintf("ExternalPeering %q already exists for VPC %s and External %s", peer.Name, vpcs[0], exts[0]))
+			return field.Invalid(peersPath, field.OmitValueType{}, fmt.Sprintf("ExternalPeering %q already exists for VPC %s and External %s", peer.Name, vpcs[0], exts[0]))
 		}
 	}
 
@@ -116,7 +119,7 @@ func Peering(ctx context.Context, kube kclient.Reader, checkPeering kclient.Obje
 				continue
 			}
 
-			return field.Invalid(field.NewPath("spec"), field.OmitValueType{}, fmt.Sprintf("GatewayPeering %q already exists for VPCs %s", peer.Name, strings.Join(append(vpcs, exts...), ", ")))
+			return field.Invalid(peersPath, field.OmitValueType{}, fmt.Sprintf("GatewayPeering %q already exists for VPCs %s", peer.Name, strings.Join(append(vpcs, exts...), ", ")))
 		}
 	}
 
