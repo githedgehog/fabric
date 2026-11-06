@@ -225,6 +225,23 @@ func TestExternalInboundPrefixes(t *testing.T) {
 	}
 }
 
+// a stored namespace the refresh on fabric-ctrl initialization had to leave alone may have an invalid subnet, which
+// must not let an inbound prefix through unchecked
+func TestExternalInboundPrefixesInvalidNamespace(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, v1beta1.AddToScheme(scheme))
+	require.NoError(t, wiringapi.AddToScheme(scheme))
+	ns := ipv4NamespaceObj()
+	ns.Spec.Subnets = []string{"10.0.0.0/33"}
+	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(fabricObj(wiringapi.DefaultFabric), ns).Build()
+
+	ext := extGen("ext-01", func(ext *v1beta1.External) {
+		ext.Spec.InboundPrefixes = map[string]v1beta1.ExternalInboundPrefix{"10.1.1.0/24": {}}
+	})
+	_, err := ext.Validate(t.Context(), kube, &meta.FabricConfig{})
+	require.ErrorContains(t, err, "invalid subnet 10.0.0.0/33 in IPv4Namespace default")
+}
+
 func TestExternalInboundCommunityGateway(t *testing.T) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, v1beta1.AddToScheme(scheme))

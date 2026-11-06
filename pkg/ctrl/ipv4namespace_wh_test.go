@@ -40,11 +40,12 @@ func TestIPv4NamespaceExternalInboundPrefixes(t *testing.T) {
 		Name: vpcapi.DefaultIPv4Namespace, Namespace: kmetav1.NamespaceDefault,
 		Spec: vpcapi.IPv4NamespaceSpec{Subnets: []string{"10.0.0.0/16"}},
 	}
+	// the invalid prefix could only have been admitted in maintenance and must not block namespace updates
 	ext := &vpcapi.External{
 		Name: "ext-01", Namespace: kmetav1.NamespaceDefault,
 		Spec: vpcapi.ExternalSpec{
 			IPv4Namespace:   vpcapi.DefaultIPv4Namespace,
-			InboundPrefixes: map[string]vpcapi.ExternalInboundPrefix{"10.1.1.0/24": {}, "0.0.0.0/0": {}},
+			InboundPrefixes: map[string]vpcapi.ExternalInboundPrefix{"10.1.1.0/24": {}, "0.0.0.0/0": {}, "10.1.0.0/33": {}},
 		},
 	}
 	for _, obj := range []interface{ Default() }{ns, ext} {

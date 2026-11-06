@@ -293,7 +293,11 @@ func (external *External) Validate(ctx context.Context, kube kclient.Reader, fab
 		}
 
 		for _, prefixStr := range slices.Sorted(maps.Keys(external.Spec.InboundPrefixes)) {
-			if idx := ipNs.SubnetContaining(prefixStr); idx >= 0 {
+			idx, err := ipNs.SubnetContaining(prefixStr)
+			if err != nil {
+				return nil, err
+			}
+			if idx >= 0 {
 				return nil, field.Invalid(inboundPrefixesPath.Key(prefixStr), prefixStr, fmt.Sprintf("inside subnet %s of IPv4Namespace %s", ipNs.Spec.Subnets[idx], ipNs.Name))
 			}
 		}
