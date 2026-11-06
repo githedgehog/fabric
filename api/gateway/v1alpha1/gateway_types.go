@@ -5,6 +5,7 @@ package v1alpha1
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 	"net"
@@ -578,8 +579,9 @@ func hugePagesAnnotation(gw *Gateway, key string, def, upTo int64) (int64, error
 		return def, nil
 	}
 
+	// on overflow ParseInt returns the closest int64, which then fails the range check
 	count, err := strconv.ParseInt(val, 10, 64)
-	if err != nil {
+	if err != nil && !errors.Is(err, strconv.ErrRange) {
 		return 0, field.Invalid(field.NewPath("metadata", "annotations").Key(key), val, "must be an integer")
 	}
 	if count < 0 || count > upTo {
