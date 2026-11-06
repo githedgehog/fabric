@@ -92,6 +92,13 @@ const (
 	PortFECModeDisabled PortFECMode = "disabled"
 )
 
+var PortFECModes = []PortFECMode{
+	PortFECModeRS,
+	PortFECModeFC,
+	PortFECModeAuto,
+	PortFECModeDisabled,
+}
+
 // SwitchRedundancy is the switch redundancy configuration which includes name of the redundancy group switch belongs
 // to and its type, used for ESLAG connections. It defines how redundancy will be configured and handled
 // on the switch as well as which connection types will be available. If not specified, switch will not be part of any
@@ -627,6 +634,10 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 		return nil, err
 	}
 
+	if !slices.Contains(SwitchRoles, sw.Spec.Role) {
+		return nil, errors.Errorf("invalid role %q, must be one of %v", sw.Spec.Role, SwitchRoles)
+	}
+
 	if len(sw.Spec.VLANNamespaces) == 0 {
 		return nil, errors.Errorf("at least one VLAN namespace required")
 	}
@@ -690,6 +701,21 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 		}
 		if sw.Spec.LinkFlapErrDisable.RecoveryInterval == nil {
 			return nil, errors.Errorf("link-flap error-disable is enabled but no recovery interval provided")
+		}
+		if threshold := *sw.Spec.LinkFlapErrDisable.FlapThreshold; threshold < 1 || threshold > 50 {
+			return nil, errors.Errorf("link-flap error-disable flap threshold %d is not in 1-50", threshold)
+		}
+		if interval := *sw.Spec.LinkFlapErrDisable.SamplingInterval; interval < 1 || interval > 65535 {
+			return nil, errors.Errorf("link-flap error-disable sampling interval %d is not in 1-65535", interval)
+		}
+		if interval := *sw.Spec.LinkFlapErrDisable.RecoveryInterval; interval > 65534 {
+			return nil, errors.Errorf("link-flap error-disable recovery interval %d is above 65534", interval)
+		}
+	}
+
+	for port, fec := range sw.Spec.PortFECs {
+		if !slices.Contains(PortFECModes, fec) {
+			return nil, errors.Errorf("invalid FEC mode %q for port %s, must be one of %v", fec, port, PortFECModes)
 		}
 	}
 

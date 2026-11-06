@@ -414,6 +414,28 @@ func TestConnectionValidation(t *testing.T) {
 			}),
 		},
 		{
+			name: "static-ext-ipv6",
+			conn: withName("static-ext-ipv6", &wiringapi.Connection{
+				Spec: wiringapi.ConnectionSpec{
+					StaticExternal: &wiringapi.ConnStaticExternal{
+						Link: wiringapi.ConnStaticExternalLink{
+							Switch: wiringapi.ConnStaticExternalLinkSwitch{
+								BasePortName: wiringapi.BasePortName{
+									Port: "some/some",
+								},
+								IP:      "2001:db8::2/64",
+								NextHop: "2001:db8::1",
+								Subnets: []string{
+									"1.2.3.0/24",
+								},
+							},
+						},
+					},
+				},
+			}),
+			err: true,
+		},
+		{
 			name: "static-ext-overlap-route",
 			conn: withName("static-ext-overlap-route", &wiringapi.Connection{
 				Spec: wiringapi.ConnectionSpec{

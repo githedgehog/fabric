@@ -69,6 +69,18 @@ func TestValidate(t *testing.T) {
 			name:   "no-collision",
 			vlanNS: vlanNSGen("ns-1", []meta.VLANRange{{From: 10, To: 1500}}),
 		},
+		{
+			name: "too-many-ranges",
+			vlanNS: vlanNSGen("ns-1", func() []meta.VLANRange {
+				ranges := make([]meta.VLANRange, 0, 21)
+				for idx := range uint16(21) {
+					ranges = append(ranges, meta.VLANRange{From: 10 + 2*idx})
+				}
+
+				return ranges
+			}()),
+			err: true,
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := tt.vlanNS.Validate(t.Context(), nil, cfg)
