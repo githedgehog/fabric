@@ -253,6 +253,8 @@ type ExternalAttachmentSwitch struct {
 type ExternalAttachmentNeighbor struct {
 	// ASN (optional) is the ASN of the BGP neighbor, if not set any ASN other than the switch's own is accepted
 	// +kubebuilder:validation:Format=int64
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=4294967295
 	ASN uint32 `json:"asn,omitempty"`
 	// IP is the IP address of the BGP neighbor to peer with (without prefix length).
 	// Leave it and switch.ip empty for a BGP unnumbered session over IPv6 link-local addresses

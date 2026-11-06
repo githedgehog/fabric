@@ -168,6 +168,8 @@ type SwitchSpec struct {
 	VLANNamespaces []string `json:"vlanNamespaces,omitempty"`
 	// ASN is the ASN of the switch
 	// +kubebuilder:validation:Format=int64
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=4294967295
 	ASN uint32 `json:"asn,omitempty"`
 	// IP is the IP of the switch that could be used to access it from other switches and control nodes in the Fabric
 	IP string `json:"ip,omitempty"`
