@@ -25,7 +25,7 @@ processor:
 
 render:
   # Version of Kubernetes to use when generating links to Kubernetes API documentation.
-  kubernetesVersion: 1.35
+  kubernetesVersion: 1.37
   knownTypes:
   - name: "map[string]VPCPeer"
     package: go.githedgehog.com/fabric/api/vpc/v1beta1
