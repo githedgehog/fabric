@@ -6,18 +6,28 @@ package cmls
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"go.githedgehog.com/fabric/api/agent/v1beta1"
+	"go.githedgehog.com/fabric/pkg/agent/cmls/nvue"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm"
 )
 
-type CumulusProcessor struct{}
+type CumulusProcessor struct {
+	client       *nvue.Client
+	warnNoClient sync.Once
+}
 
 var _ dozer.Processor = &CumulusProcessor{}
 
 func Processor() *CumulusProcessor {
 	return &CumulusProcessor{}
+}
+
+// SetClient provides the NVUE API client the switch state is collected with
+func (c *CumulusProcessor) SetClient(client *nvue.Client) {
+	c.client = client
 }
 
 // TODO
