@@ -24,6 +24,7 @@ import (
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	"go.githedgehog.com/fabric/pkg/agent/cmls/nvue"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/util/logutil"
 )
@@ -91,7 +92,9 @@ type PortConfig struct {
 	AdaptiveRouting bool
 }
 
-func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
+// buildConfigFor renders the agent config into tmpl, with the agent's own switch account added to the users when
+// it's known, which it isn't yet at ZTP time
+func buildConfigFor(tmpl string, agent *agentapi.Agent, agentUser *User) (*bytes.Buffer, error) {
 	isSpine := agent.IsSpineLeaf() && agent.Spec.Switch.Role.IsSpine()
 	isLeaf := agent.IsSpineLeaf() && agent.Spec.Switch.Role.IsLeaf()
 
@@ -137,12 +140,19 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 			})
 		}
 
+		if agentUser != nil && user.Name == agentUser.Name {
+			return nil, fmt.Errorf("user %s is reserved for the agent", user.Name) //nolint:err113
+		}
+
 		users = append(users, User{
 			Name:           user.Name,
 			HashedPassword: user.Password,
 			Role:           role,
 			SSHKeys:        keys,
 		})
+	}
+	if agentUser != nil {
+		users = append(users, *agentUser)
 	}
 
 	portConfigs := []PortConfig{}
@@ -365,6 +375,7 @@ func swp(in string) string {
 	port, err := strconv.ParseUint(portStr, 10, 16)
 	if err != nil {
 		slog.Warn("invalid port", "in", in)
+
 		return "port-invalid-uint"
 	}
 	if !isBreakout {
@@ -374,6 +385,7 @@ func swp(in string) string {
 	breakout, err := strconv.ParseUint(breakoutStr, 10, 16)
 	if err != nil {
 		slog.Warn("invalid breakout", "in", in)
+
 		return "port-invalid-uint"
 	}
 
@@ -402,7 +414,7 @@ func BuildZTPFor(agent *agentapi.Agent, kubeConfig []byte, agentVersion string) 
 		return nil, fmt.Errorf("parsing control VIP: %w", err)
 	}
 
-	cfgBuf, err := buildConfigFor(ztpCfgTmpl, agent)
+	cfgBuf, err := buildConfigFor(ztpCfgTmpl, agent, nil)
 	if err != nil {
 		return nil, fmt.Errorf("building config: %w", err)
 	}
@@ -435,7 +447,12 @@ func BuildZTPFor(agent *agentapi.Agent, kubeConfig []byte, agentVersion string) 
 }
 
 func Enforce(ctx context.Context, _ /* processor */ dozer.Processor, agent *agentapi.Agent, basedir string, dryRun bool) error {
-	cfgBuf, err := buildConfigFor(fullCfgTmpl, agent)
+	agentUser, err := agentUserFor(basedir)
+	if err != nil {
+		return fmt.Errorf("preparing agent user: %w", err)
+	}
+
+	cfgBuf, err := buildConfigFor(fullCfgTmpl, agent, agentUser)
 	if err != nil {
 		return fmt.Errorf("building full config: %w", err)
 	}
@@ -471,6 +488,27 @@ func Enforce(ctx context.Context, _ /* processor */ dozer.Processor, agent *agen
 	}
 
 	return nil
+}
+
+// agentUserFor is the read-only account the agent collects the switch state with, its password lives in basedir
+// and is created on first use, see nvue.AgentPassword
+func agentUserFor(basedir string) (*User, error) {
+	password, err := nvue.AgentPassword(basedir)
+	if err != nil {
+		return nil, err //nolint:wrapcheck // it names the file
+	}
+
+	hash, err := nvue.AgentPasswordHash(basedir, password)
+	if err != nil {
+		return nil, err //nolint:wrapcheck // it names the file
+	}
+
+	return &User{
+		Name:           nvue.AgentUser,
+		HashedPassword: hash,
+		Role:           nvue.AgentRole,
+		SSHKeys:        []SSHKey{},
+	}, nil
 }
 
 func run(ctx context.Context, name, command string, arg ...string) error {
