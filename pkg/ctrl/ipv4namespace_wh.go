@@ -99,9 +99,16 @@ func (w *IPv4NamespaceWebhook) ValidateUpdate(ctx context.Context, oldNs *vpcapi
 	}
 	for _, ext := range exts.Items {
 		for _, prefixStr := range slices.Sorted(maps.Keys(ext.Spec.InboundPrefixes)) {
-			if idx := newNs.SubnetContaining(prefixStr); idx >= 0 {
-				// no index, as defaulting sorts the subnets
-				return nil, field.Invalid(field.NewPath("spec", "subnets"), newNs.Spec.Subnets[idx], fmt.Sprintf("contains inbound prefix %s of external %s", prefixStr, ext.Name))
+			// one admitted in maintenance may not parse, but then it isn't inside any subnet either
+			prefix, err := netip.ParsePrefix(prefixStr)
+			if err != nil {
+				continue
+			}
+			for idx, subnet := range nsSubnets {
+				if iputil.IsSubset(prefix, subnet) {
+					// no index, as defaulting sorts the subnets
+					return nil, field.Invalid(field.NewPath("spec", "subnets"), newNs.Spec.Subnets[idx], fmt.Sprintf("contains inbound prefix %s of external %s", prefixStr, ext.Name))
+				}
 			}
 		}
 	}
