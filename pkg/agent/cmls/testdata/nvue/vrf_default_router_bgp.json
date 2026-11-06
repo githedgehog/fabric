@@ -1,0 +1,234 @@
+{
+  "address-family": {
+    "ipv4-unicast": {
+      "admin-distance": {
+        "external": 20,
+        "internal": 200
+      },
+      "multipaths": {
+        "compare-cluster-length": "disabled",
+        "ebgp": 64,
+        "ibgp": 64
+      },
+      "redistribute": {
+        "connected": {
+          "metric": "auto",
+          "route-map": "lo_to_bgp",
+          "state": "enabled"
+        },
+        "kernel": {
+          "state": "disabled"
+        },
+        "ospf": {
+          "state": "disabled"
+        },
+        "static": {
+          "state": "disabled"
+        }
+      },
+      "route-export": {
+        "rd": "none",
+        "route-target": {
+          "none": {}
+        },
+        "to-evpn": {
+          "default-route-origination": "disabled"
+        },
+        "to-vrf": {
+          "list": {
+            "none": {}
+          }
+        }
+      },
+      "route-import": {
+        "from-vrf": {
+          "list": {
+            "none": {}
+          }
+        },
+        "route-target": {
+          "none": {}
+        }
+      }
+    },
+    "ipv6-unicast": {
+      "multipaths": {
+        "compare-cluster-length": "disabled"
+      },
+      "redistribute": {
+        "connected": {
+          "state": "disabled"
+        },
+        "kernel": {
+          "state": "disabled"
+        },
+        "ospf6": {
+          "state": "disabled"
+        },
+        "static": {
+          "state": "disabled"
+        }
+      },
+      "route-export": {
+        "rd": "none",
+        "route-target": {
+          "none": {}
+        },
+        "to-evpn": {
+          "default-route-origination": "disabled"
+        },
+        "to-vrf": {
+          "list": {
+            "none": {}
+          }
+        }
+      },
+      "route-import": {
+        "from-vrf": {
+          "list": {
+            "none": {}
+          }
+        },
+        "route-target": {
+          "none": {}
+        }
+      }
+    }
+  },
+  "autonomous-system": 65102,
+  "configured-neighbors": 5,
+  "established-neighbors": 5,
+  "neighbor": {
+    "172.30.128.14": {
+      "address-family": {
+        "ipv4-unicast": {
+          "rx-prefix": 1,
+          "tx-prefix": 4
+        }
+      },
+      "last-reset-reason": "No AFI/SAFI activated for peer",
+      "last-reset-time": 2064067000,
+      "message-stats": {
+        "rx-total": 688006,
+        "tx-total": 688006
+      },
+      "remote-as": 65100,
+      "remote-hostname": "env-7-sn3700c-01",
+      "session-state": "established",
+      "uptime": 2064066000
+    },
+    "172.30.128.16": {
+      "address-family": {
+        "ipv4-unicast": {
+          "rx-prefix": 1,
+          "tx-prefix": 4
+        }
+      },
+      "last-reset-reason": "No AFI/SAFI activated for peer",
+      "last-reset-time": 2064066000,
+      "message-stats": {
+        "rx-total": 688009,
+        "tx-total": 688009
+      },
+      "remote-as": 65100,
+      "remote-hostname": "env-7-sn3700c-01",
+      "session-state": "established",
+      "uptime": 2064065000
+    },
+    "172.30.128.4": {
+      "address-family": {
+        "ipv4-unicast": {
+          "rx-prefix": 1,
+          "tx-prefix": 4
+        }
+      },
+      "last-reset-reason": "BGP Notification send",
+      "last-reset-time": 602522000,
+      "message-stats": {
+        "rx-total": 667626,
+        "tx-total": 667630
+      },
+      "remote-as": 65100,
+      "remote-hostname": "env-7-sn2700-01",
+      "session-state": "established",
+      "uptime": 602521000
+    },
+    "172.30.8.0": {
+      "address-family": {
+        "l2vpn-evpn": {
+          "rx-prefix": 0,
+          "tx-prefix": 0
+        }
+      },
+      "last-reset-reason": "Waiting for peer OPEN",
+      "last-reset-time": 602520000,
+      "message-stats": {
+        "rx-total": 667620,
+        "tx-total": 667620
+      },
+      "remote-as": 65100,
+      "remote-hostname": "env-7-sn2700-01",
+      "session-state": "established",
+      "uptime": 602520000
+    },
+    "172.30.8.1": {
+      "address-family": {
+        "l2vpn-evpn": {
+          "rx-prefix": 0,
+          "tx-prefix": 0
+        }
+      },
+      "last-reset-reason": "No AFI/SAFI activated for peer",
+      "last-reset-time": 2064078000,
+      "message-stats": {
+        "rx-total": 688001,
+        "tx-total": 687998
+      },
+      "remote-as": 65100,
+      "remote-hostname": "env-7-sn3700c-01",
+      "session-state": "established",
+      "uptime": 2064065000
+    }
+  },
+  "path-selection": {
+    "aspath": {
+      "compare-confed": "disabled",
+      "compare-lengths": "enabled"
+    },
+    "med": {
+      "compare-always": "disabled",
+      "compare-confed": "disabled",
+      "compare-deterministic": "enabled",
+      "missing-as-max": "disabled"
+    },
+    "multipath": {
+      "aspath-ignore": "disabled",
+      "bandwidth": "all-paths",
+      "generate-asset": "disabled"
+    },
+    "routerid-compare": "disabled",
+    "use-imported-attributes": "disabled"
+  },
+  "peer-group": {
+    "overlay": {
+      "member-count": 2,
+      "type": "external"
+    },
+    "underlay_leaf": {
+      "type": "external"
+    },
+    "underlay_spine": {
+      "member-count": 3,
+      "type": "external"
+    }
+  },
+  "route-reflection": {
+    "outbound-policy": "disabled",
+    "reflect-between-clients": "enabled"
+  },
+  "router-id": "172.30.8.3",
+  "timers": {
+    "connection-retry": 10,
+    "route-advertisement": "none"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "cable-length": "1.00m",
+  "cable-type": "Passive copper cable",
+  "diagnostics-status": "N/A",
+  "error-status": "N/A",
+  "identifier": "OSFP",
+  "pmd-type": "ETH_100GBASE_CR4",
+  "revision-compliance": "Rev. 4.0",
+  "status": "Inserted",
+  "vendor-date-code": "260310",
+  "vendor-name": "FS",
+  "vendor-oui": "64:9d:99",
+  "vendor-pn": "OSFP-400G-2QPC01",
+  "vendor-rev": "00",
+  "vendor-sn": "C2603126809"
+}

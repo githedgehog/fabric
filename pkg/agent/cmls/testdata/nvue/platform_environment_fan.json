@@ -1,0 +1,100 @@
+{
+  "FAN1/1": {
+    "current-speed": "6974",
+    "direction": "F2B",
+    "max-speed": "21800",
+    "min-speed": "6879",
+    "state": "ok"
+  },
+  "FAN1/2": {
+    "current-speed": "7067",
+    "direction": "F2B",
+    "max-speed": "20500",
+    "min-speed": "6468",
+    "state": "ok"
+  },
+  "FAN2/1": {
+    "current-speed": "6974",
+    "direction": "F2B",
+    "max-speed": "21800",
+    "min-speed": "6879",
+    "state": "ok"
+  },
+  "FAN2/2": {
+    "current-speed": "7211",
+    "direction": "F2B",
+    "max-speed": "20500",
+    "min-speed": "6468",
+    "state": "ok"
+  },
+  "FAN3/1": {
+    "current-speed": "7115",
+    "direction": "F2B",
+    "max-speed": "21800",
+    "min-speed": "6879",
+    "state": "ok"
+  },
+  "FAN3/2": {
+    "current-speed": "7067",
+    "direction": "F2B",
+    "max-speed": "20500",
+    "min-speed": "6468",
+    "state": "ok"
+  },
+  "FAN4/1": {
+    "current-speed": "7067",
+    "direction": "F2B",
+    "max-speed": "21800",
+    "min-speed": "6879",
+    "state": "ok"
+  },
+  "FAN4/2": {
+    "current-speed": "7067",
+    "direction": "F2B",
+    "max-speed": "20500",
+    "min-speed": "6468",
+    "state": "ok"
+  },
+  "FAN5/1": {
+    "current-speed": "7067",
+    "direction": "F2B",
+    "max-speed": "21800",
+    "min-speed": "6879",
+    "state": "ok"
+  },
+  "FAN5/2": {
+    "current-speed": "7115",
+    "direction": "F2B",
+    "max-speed": "20500",
+    "min-speed": "6468",
+    "state": "ok"
+  },
+  "PSU1/FAN": {
+    "current-speed": "9440",
+    "direction": "F2B",
+    "max-speed": "32500",
+    "min-speed": "9000",
+    "state": "ok"
+  },
+  "PSU2/FAN": {
+    "current-speed": "N/A",
+    "direction": "N/A",
+    "max-speed": "N/A",
+    "min-speed": "N/A",
+    "state": "absent"
+  },
+  "PSU3/FAN": {
+    "current-speed": "9232",
+    "direction": "F2B",
+    "max-speed": "32500",
+    "min-speed": "9000",
+    "state": "ok"
+  },
+  "PSU4/FAN": {
+    "current-speed": "N/A",
+    "direction": "N/A",
+    "max-speed": "N/A",
+    "min-speed": "N/A",
+    "state": "absent"
+  }
+}

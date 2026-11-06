@@ -1,0 +1,37 @@
+{
+  "BIOS": {
+    "actual-firmware": "0ACTV_00.01.012",
+    "fw-source": "default",
+    "part-number": "American Megatrends Inc."
+  },
+  "CPLD1": {
+    "actual-firmware": "3.0",
+    "fw-source": "default",
+    "part-number": "370"
+  },
+  "CPLD2": {
+    "actual-firmware": "7.0",
+    "fw-source": "default",
+    "part-number": "398"
+  },
+  "CPLD3": {
+    "actual-firmware": "5.0",
+    "fw-source": "default",
+    "part-number": "399"
+  },
+  "CPLD4": {
+    "actual-firmware": "4.0",
+    "fw-source": "default",
+    "part-number": "400"
+  },
+  "SSD": {
+    "actual-firmware": "CE00A400",
+    "fw-source": "default",
+    "part-number": "Virtium VTPM24CEXI080-BM110006"
+  },
+  "Spectrum-4": {
+    "actual-firmware": "34.2020.1086",
+    "fw-source": "default",
+    "part-number": "920-9N42F-00RI-3C1_Ax"
+  }
+}

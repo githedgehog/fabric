@@ -14,7 +14,7 @@
             {{ $.ProtocolIP }}: {}
             {{ if $.VTEPIP }}{{ $.VTEPIP }}: {}{{ end }}
         type: loopback
-      swp1-64:
+      swp1-{{ $.FrontPorts }}:
         ipv6:
           state: disabled
         lldp:
@@ -300,7 +300,6 @@
           acl-default-whitelist:
             inbound: {}
       docker:
-        state: enabled
         vrf: mgmt
       hostname: {{ $.Hostname }}
       lldp:

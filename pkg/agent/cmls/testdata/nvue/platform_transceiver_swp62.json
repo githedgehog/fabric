@@ -1,0 +1,16 @@
+{
+  "cable-length": "2.00m",
+  "cable-type": "Passive copper cable",
+  "diagnostics-status": "N/A",
+  "error-status": "N/A",
+  "identifier": "OSFP",
+  "pmd-type": "ETH_400GBASE_CR4",
+  "revision-compliance": "Rev. 5.0",
+  "status": "Inserted",
+  "vendor-date-code": "250417",
+  "vendor-name": "FS",
+  "vendor-oui": "64:9d:99",
+  "vendor-pn": "OSFP-800G2OPC015",
+  "vendor-rev": "00",
+  "vendor-sn": "C2504422334-1"
+}

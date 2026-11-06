@@ -6,6 +6,7 @@ package cmls
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/netip"
@@ -23,14 +24,16 @@ import (
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	"go.githedgehog.com/fabric/pkg/agent/cmls/nvue"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
-	"go.githedgehog.com/fabric/pkg/agent/switchstate"
 	"go.githedgehog.com/fabric/pkg/util/logutil"
 )
 
 const (
 	cfgFile = "last-config.yaml"
 )
+
+var errNoSwitchProfile = errors.New("switch profile not found")
 
 //go:embed ztp_config.tmpl.yaml
 var ztpCfgTmpl string
@@ -46,6 +49,7 @@ type ConfigIn struct {
 	ProtocolIP   string
 	VTEPIP       string
 	ASN          uint32
+	FrontPorts   uint16
 	HostSubnet   string
 	RouterID     string
 	VXLANSource  string
@@ -88,7 +92,9 @@ type PortConfig struct {
 	AdaptiveRouting bool
 }
 
-func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
+// buildConfigFor renders the agent config into tmpl, with the agent's own switch account added to the users when
+// it's known, which it isn't yet at ZTP time
+func buildConfigFor(tmpl string, agent *agentapi.Agent, agentUser *User) (*bytes.Buffer, error) {
 	isSpine := agent.IsSpineLeaf() && agent.Spec.Switch.Role.IsSpine()
 	isLeaf := agent.IsSpineLeaf() && agent.Spec.Switch.Role.IsLeaf()
 
@@ -134,12 +140,19 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 			})
 		}
 
+		if agentUser != nil && user.Name == agentUser.Name {
+			return nil, fmt.Errorf("user %s is reserved for the agent", user.Name) //nolint:err113
+		}
+
 		users = append(users, User{
 			Name:           user.Name,
 			HashedPassword: user.Password,
 			Role:           role,
 			SSHKeys:        keys,
 		})
+	}
+	if agentUser != nil {
+		users = append(users, *agentUser)
 	}
 
 	portConfigs := []PortConfig{}
@@ -310,6 +323,11 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		return strings.Compare(a.Name, b.Name)
 	})
 
+	// the front port count comes from the profile, there's no config without one
+	if agent.Spec.SwitchProfile == nil {
+		return nil, errNoSwitchProfile
+	}
+
 	cfgIn := ConfigIn{
 		Hostname:     agent.Name,
 		Users:        users,
@@ -318,6 +336,7 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		ProtocolIP:   agent.Spec.Switch.ProtocolIP,
 		VTEPIP:       agent.Spec.Switch.VTEPIP,
 		ASN:          agent.Spec.Switch.ASN,
+		FrontPorts:   uint16(len(agent.Spec.SwitchProfile.Ports) - 1), //nolint:gosec // disable G115
 		RouterID:     protocolIP.Addr().String(),
 		VXLANSource:  vtepIP.Addr().String(),
 		VPCs:         vpcs,
@@ -347,16 +366,31 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 }
 
 func swp(in string) string {
-	if portStr, ok := strings.CutPrefix(in, "E1/"); ok {
-		port, err := strconv.ParseUint(portStr, 10, 16)
-		if err != nil {
-			return "port-invalid-uint"
-		}
+	portStr, ok := strings.CutPrefix(in, "E1/")
+	if !ok {
+		return "port-invalid-prefix"
+	}
 
+	portStr, breakoutStr, isBreakout := strings.Cut(portStr, "/")
+	port, err := strconv.ParseUint(portStr, 10, 16)
+	if err != nil {
+		slog.Warn("invalid port", "in", in)
+
+		return "port-invalid-uint"
+	}
+	if !isBreakout {
 		return fmt.Sprintf("swp%d", port)
 	}
 
-	return "port-invalid-prefix"
+	breakout, err := strconv.ParseUint(breakoutStr, 10, 16)
+	if err != nil {
+		slog.Warn("invalid breakout", "in", in)
+
+		return "port-invalid-uint"
+	}
+
+	// our breakouts are 1-indexed (E1/1/1), cumulus is 0-indexed (swp1s0)
+	return fmt.Sprintf("swp%ds%d", port, breakout-1)
 }
 
 //go:embed ztp_script.tmpl.sh
@@ -380,7 +414,7 @@ func BuildZTPFor(agent *agentapi.Agent, kubeConfig []byte, agentVersion string) 
 		return nil, fmt.Errorf("parsing control VIP: %w", err)
 	}
 
-	cfgBuf, err := buildConfigFor(ztpCfgTmpl, agent)
+	cfgBuf, err := buildConfigFor(ztpCfgTmpl, agent, nil)
 	if err != nil {
 		return nil, fmt.Errorf("building config: %w", err)
 	}
@@ -413,7 +447,12 @@ func BuildZTPFor(agent *agentapi.Agent, kubeConfig []byte, agentVersion string) 
 }
 
 func Enforce(ctx context.Context, _ /* processor */ dozer.Processor, agent *agentapi.Agent, basedir string, dryRun bool) error {
-	cfgBuf, err := buildConfigFor(fullCfgTmpl, agent)
+	agentUser, err := agentUserFor(basedir)
+	if err != nil {
+		return fmt.Errorf("preparing agent user: %w", err)
+	}
+
+	cfgBuf, err := buildConfigFor(fullCfgTmpl, agent, agentUser)
 	if err != nil {
 		return fmt.Errorf("building full config: %w", err)
 	}
@@ -451,6 +490,27 @@ func Enforce(ctx context.Context, _ /* processor */ dozer.Processor, agent *agen
 	return nil
 }
 
+// agentUserFor is the read-only account the agent collects the switch state with, its password lives in basedir
+// and is created on first use, see nvue.AgentPassword
+func agentUserFor(basedir string) (*User, error) {
+	password, err := nvue.AgentPassword(basedir)
+	if err != nil {
+		return nil, err //nolint:wrapcheck // it names the file
+	}
+
+	hash, err := nvue.AgentPasswordHash(basedir, password)
+	if err != nil {
+		return nil, err //nolint:wrapcheck // it names the file
+	}
+
+	return &User{
+		Name:           nvue.AgentUser,
+		HashedPassword: hash,
+		Role:           nvue.AgentRole,
+		SSHKeys:        []SSHKey{},
+	}, nil
+}
+
 func run(ctx context.Context, name, command string, arg ...string) error {
 	cmd := exec.CommandContext(ctx, command, arg...)
 	cmd.Stdout = logutil.NewSink(ctx, slog.Debug, name+": ")
@@ -459,46 +519,6 @@ func run(ctx context.Context, name, command string, arg ...string) error {
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("running %s: %w", name, err)
 	}
-
-	return nil
-}
-
-// TODO proper impl by reading from API
-func (c *CumulusProcessor) UpdateSwitchState(ctx context.Context, agent *agentapi.Agent, reg *switchstate.Registry) error {
-	swState := &agentapi.SwitchState{
-		Interfaces:   map[string]agentapi.SwitchStateInterface{},
-		Breakouts:    map[string]agentapi.SwitchStateBreakout{},
-		Transceivers: map[string]agentapi.SwitchStateTransceiver{},
-		BGPNeighbors: map[string]map[string]agentapi.SwitchStateBGPNeighbor{},
-		Platform: agentapi.SwitchStatePlatform{
-			Fans:         map[string]agentapi.SwitchStatePlatformFan{},
-			PSUs:         map[string]agentapi.SwitchStatePlatformPSU{},
-			Temperatures: map[string]agentapi.SwitchStatePlatformTemperature{},
-		},
-		Firmware: map[string]string{},
-	}
-
-	osReleaseData, err := os.ReadFile("/etc/os-release")
-	if err != nil {
-		return fmt.Errorf("reading os-release: %w", err)
-	}
-	version := ""
-	for line := range strings.Lines(string(osReleaseData)) {
-		if after, ok := strings.CutPrefix(line, "VERSION="); ok {
-			after = strings.TrimSpace(after)
-			if len(after) > 2 {
-				version = after[1 : len(after)-1]
-			}
-
-			break
-		}
-	}
-
-	swState.NOS = agentapi.SwitchStateNOS{
-		SoftwareVersion: version,
-	}
-
-	reg.SaveSwitchState(swState)
 
 	return nil
 }

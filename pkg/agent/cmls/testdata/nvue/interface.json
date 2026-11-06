@@ -1,0 +1,2940 @@
+{
+  "eth0": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 0,
+        "carrier-transitions": 1,
+        "carrier-up-count": 1
+      }
+    },
+    "ifindex": 2,
+    "ipv4": {
+      "address": {
+        "172.30.0.10/21": {
+          "type": "primary"
+        }
+      }
+    },
+    "ipv6": {
+      "address": {
+        "fe80::f620:4dff:fe9d:e1e/64": {}
+      }
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "duplex": "full",
+      "flag": {
+        "broadcast": {},
+        "lower-up": {},
+        "multicast": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:9d:0e:1e",
+      "mtu": 1500,
+      "oper-status": "up",
+      "oper-status-last-change": "2026/10/14 14:46:36.464",
+      "protodown": "disabled",
+      "speed": "1G",
+      "state": {
+        "up": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "dcbx-ets-config-tlv": "disabled",
+      "dcbx-ets-recomm-tlv": "disabled",
+      "dcbx-pfc-tlv": "disabled",
+      "neighbor": {
+        "he-f2-1500-05-07-tor": {
+          "age": "1404840",
+          "bridge": {
+            "untagged": 1207,
+            "vlan": {}
+          },
+          "chassis": {
+            "capability": {
+              "is-router": {}
+            },
+            "chassis-id": "b4:6a:d4:c2:8b:30",
+            "management-ifinfo": {
+              "1": {
+                "management-address-ipv4": "172.30.0.12"
+              }
+            },
+            "system-description": "Hedgehog Fabric",
+            "system-name": "he-f2-1500-05-07-tor"
+          },
+          "lldp-med": {
+            "capability": {
+              "capabilities": {},
+              "inventory": {},
+              "location": {},
+              "mdi-pd": {},
+              "mdi-pse": {},
+              "policy": {}
+            },
+            "device-type": "Network Connectivity Device",
+            "inventory": {
+              "firmware-revision": "v47.01.02.02",
+              "manufacturer": "Accton",
+              "model": "AS4630-54NPE",
+              "serial-number": "463054NPE2402027",
+              "software-revision": "5.10.0-39-amd64"
+            }
+          },
+          "port": {
+            "description": "Unbundled he-f2-env-07-dut-03 mgmt--he-f2-env-07-dut-03-mgmt--he-f2-1500-05-07-tor",
+            "mtu": 9036,
+            "name": "Ethernet4",
+            "pmd-autoneg": {
+              "advertised": {},
+              "autoneg": {},
+              "mau-oper-type": "1000BaseTFD - Four-pair Category 5 UTP, full duplex mode"
+            },
+            "ttl": 20,
+            "type": "local"
+          }
+        }
+      },
+      "tlv": {
+        "profile": "default"
+      }
+    },
+    "parent": "mgmt",
+    "type": "eth",
+    "vrf": "mgmt"
+  },
+  "lo": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 0,
+        "carrier-transitions": 0,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 1,
+    "ipv4": {
+      "address": {
+        "127.0.0.1/8": {
+          "type": "primary"
+        }
+      }
+    },
+    "ipv6": {
+      "address": {
+        "::1/128": {}
+      }
+    },
+    "link": {
+      "admin-status": "up",
+      "flag": {
+        "loopback": {},
+        "lower-up": {},
+        "up": {}
+      },
+      "mac-address": "00:00:00:00:00:00",
+      "mtu": 65536,
+      "oper-status": "unknown",
+      "oper-status-last-change": "Never",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "loopback"
+  },
+  "mgmt": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 0,
+        "carrier-transitions": 0,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 71,
+    "ipv4": {
+      "address": {
+        "127.0.0.1/8": {
+          "type": "primary"
+        },
+        "127.0.1.1/8": {
+          "type": "secondary"
+        }
+      }
+    },
+    "ipv6": {
+      "address": {
+        "::1/128": {}
+      }
+    },
+    "link": {
+      "admin-status": "up",
+      "flag": {
+        "lower-up": {},
+        "master": {},
+        "noarp": {},
+        "up": {}
+      },
+      "mac-address": "2e:69:38:31:cb:51",
+      "mtu": 65575,
+      "oper-status": "up",
+      "oper-status-last-change": "Never",
+      "protodown": "disabled"
+    },
+    "type": "vrf"
+  },
+  "swp1": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 2,
+        "carrier-up-count": 1
+      }
+    },
+    "ifindex": 3,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "duplex": "full",
+      "fec": "rs",
+      "flag": {
+        "broadcast": {},
+        "lower-up": {},
+        "multicast": {},
+        "up": {}
+      },
+      "lanes": "4",
+      "mac-address": "f4:20:4d:ad:bf:5e",
+      "mtu": 9216,
+      "oper-status": "up",
+      "oper-status-last-change": "2026/10/14 14:46:35.336",
+      "protodown": "disabled",
+      "speed": "400G",
+      "state": {
+        "up": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "dcbx-ets-config-tlv": "disabled",
+      "dcbx-ets-recomm-tlv": "disabled",
+      "dcbx-pfc-tlv": "disabled",
+      "neighbor": {
+        "env-7-sn5610-01": {
+          "age": "1404840",
+          "bridge": {
+            "vlan": {}
+          },
+          "chassis": {
+            "capability": {
+              "is-router": {}
+            },
+            "chassis-id": "f4:20:4d:9d:0e:1e",
+            "management-ifinfo": {
+              "2": {
+                "management-address-ipv4": "172.30.0.10",
+                "management-address-ipv6": "fe80::f620:4dff:fe9d:e1e"
+              }
+            },
+            "system-description": "Cumulus Linux version 5.18.0 running on Nvidia SN5610",
+            "system-name": "env-7-sn5610-01"
+          },
+          "lldp-med": {
+            "capability": {
+              "capabilities": {},
+              "inventory": {},
+              "location": {},
+              "mdi-pd": {},
+              "mdi-pse": {},
+              "policy": {}
+            },
+            "device-type": "Network Connectivity Device",
+            "inventory": {}
+          },
+          "port": {
+            "description": "swp62",
+            "mtu": 9216,
+            "name": "swp62",
+            "pmd-autoneg": {
+              "advertised": {},
+              "autoneg": {
+                "is-enabled": {},
+                "is-supported": {}
+              },
+              "mau-oper-type": "unknown"
+            },
+            "ttl": 120,
+            "type": "ifname"
+          }
+        }
+      },
+      "tlv": {
+        "profile": "default"
+      }
+    },
+    "type": "swp"
+  },
+  "swp10": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 12,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:bf:42",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.515",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp11": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 13,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:bf:4a",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.524",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp12": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 14,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:bf:46",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.532",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp13": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 15,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:bf:2e",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.541",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp14": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 16,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:bf:32",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.549",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp15": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 17,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:bf:3a",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.557",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp16": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 18,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:bf:36",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.566",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp17": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 19,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:bf:22",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.574",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp18": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 20,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:bf:1e",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.582",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp19": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 21,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:bf:26",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.590",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp2": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 4,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:bf:62",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.418",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp20": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 22,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:bf:2a",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.598",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp21": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 23,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:bf:12",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.607",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp22": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 24,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:bf:0e",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.615",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp23": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 25,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:bf:16",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.623",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp24": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 26,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:bf:1a",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.631",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp25": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 27,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:bf:02",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.639",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp26": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 28,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:be:fe",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.647",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp27": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 29,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:bf:06",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.655",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp28": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 30,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:bf:0a",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.664",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp29": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 31,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:be:f2",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.672",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp3": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 2,
+        "carrier-up-count": 1
+      }
+    },
+    "ifindex": 5,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "duplex": "full",
+      "fec": "rs",
+      "flag": {
+        "broadcast": {},
+        "lower-up": {},
+        "multicast": {},
+        "up": {}
+      },
+      "lanes": "2",
+      "mac-address": "f4:20:4d:ad:bf:6a",
+      "mtu": 9216,
+      "oper-status": "up",
+      "oper-status-last-change": "2026/10/14 14:46:34.782",
+      "protodown": "disabled",
+      "speed": "200G",
+      "state": {
+        "up": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "dcbx-ets-config-tlv": "disabled",
+      "dcbx-ets-recomm-tlv": "disabled",
+      "dcbx-pfc-tlv": "disabled",
+      "neighbor": {
+        "he-f2-env-07-vm": {
+          "age": "1404841",
+          "bridge": {
+            "vlan": {}
+          },
+          "chassis": {
+            "capability": {},
+            "chassis-id": "00:00:00:00:00:00",
+            "system-description": "",
+            "system-name": "he-f2-env-07-vm"
+          },
+          "lldp-med": {
+            "capability": {},
+            "device-type": "",
+            "inventory": {}
+          },
+          "port": {
+            "description": "",
+            "name": "ens7f1np1",
+            "pmd-autoneg": {
+              "advertised": {},
+              "autoneg": {}
+            },
+            "ttl": 120,
+            "type": "ifname"
+          }
+        }
+      },
+      "tlv": {
+        "profile": "default"
+      }
+    },
+    "type": "swp"
+  },
+  "swp30": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 32,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:be:ee",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.680",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp31": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 33,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:be:f6",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.688",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp32": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 34,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:be:fa",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.697",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp33": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 35,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:be:7a",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.706",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp34": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 36,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:be:76",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.715",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp35": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 37,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:be:6e",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.723",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp36": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 38,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:be:72",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.731",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp37": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 39,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:be:8a",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.740",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp38": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 40,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:be:86",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.748",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp39": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 41,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:be:7e",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.757",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp4": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 6,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:bf:66",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.448",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp40": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 42,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:be:82",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.765",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp41": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 43,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:be:9a",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.773",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp42": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 44,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:be:96",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.782",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp43": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 45,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:be:8e",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.790",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp44": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 46,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:be:92",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.799",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp45": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 47,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:be:aa",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.807",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp46": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 48,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:be:a6",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.815",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp47": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 49,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:be:9e",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.824",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp48": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 50,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:be:a2",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.832",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp49": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 51,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:be:b6",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.841",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp5": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 7,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:bf:4e",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.464",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp50": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 52,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:be:ba",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.849",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp51": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 53,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:be:b2",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.858",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp52": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 54,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:be:ae",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.866",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp53": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 55,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:be:c6",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.875",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp54": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 56,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:be:ca",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.884",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp55": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 57,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:be:c2",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.892",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp56": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 58,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:be:be",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.901",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp57": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 59,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:be:d6",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.909",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp58": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 60,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:be:da",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.918",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp59": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 61,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:be:d2",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.927",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp6": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 8,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:bf:52",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.478",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp60": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 62,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:be:ce",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.935",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp61": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 63,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:be:e6",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.943",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp62": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 2,
+        "carrier-up-count": 1
+      }
+    },
+    "ifindex": 64,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "duplex": "full",
+      "fec": "rs",
+      "flag": {
+        "broadcast": {},
+        "lower-up": {},
+        "multicast": {},
+        "up": {}
+      },
+      "lanes": "4",
+      "mac-address": "f4:20:4d:ad:be:ea",
+      "mtu": 9216,
+      "oper-status": "up",
+      "oper-status-last-change": "2026/10/14 14:46:35.324",
+      "protodown": "disabled",
+      "speed": "400G",
+      "state": {
+        "up": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "dcbx-ets-config-tlv": "disabled",
+      "dcbx-ets-recomm-tlv": "disabled",
+      "dcbx-pfc-tlv": "disabled",
+      "neighbor": {
+        "env-7-sn5610-01": {
+          "age": "1404840",
+          "bridge": {
+            "vlan": {}
+          },
+          "chassis": {
+            "capability": {
+              "is-router": {}
+            },
+            "chassis-id": "f4:20:4d:9d:0e:1e",
+            "management-ifinfo": {
+              "2": {
+                "management-address-ipv4": "172.30.0.10",
+                "management-address-ipv6": "fe80::f620:4dff:fe9d:e1e"
+              }
+            },
+            "system-description": "Cumulus Linux version 5.18.0 running on Nvidia SN5610",
+            "system-name": "env-7-sn5610-01"
+          },
+          "lldp-med": {
+            "capability": {
+              "capabilities": {},
+              "inventory": {},
+              "location": {},
+              "mdi-pd": {},
+              "mdi-pse": {},
+              "policy": {}
+            },
+            "device-type": "Network Connectivity Device",
+            "inventory": {}
+          },
+          "port": {
+            "description": "swp1",
+            "mtu": 9216,
+            "name": "swp1",
+            "pmd-autoneg": {
+              "advertised": {},
+              "autoneg": {
+                "is-enabled": {},
+                "is-supported": {}
+              },
+              "mau-oper-type": "unknown"
+            },
+            "ttl": 120,
+            "type": "ifname"
+          }
+        }
+      },
+      "tlv": {
+        "profile": "default"
+      }
+    },
+    "type": "swp"
+  },
+  "swp63": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 2,
+        "carrier-up-count": 1
+      }
+    },
+    "ifindex": 65,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "duplex": "full",
+      "fec": "rs",
+      "flag": {
+        "broadcast": {},
+        "lower-up": {},
+        "multicast": {},
+        "up": {}
+      },
+      "lanes": "4",
+      "mac-address": "f4:20:4d:ad:be:e2",
+      "mtu": 9216,
+      "oper-status": "up",
+      "oper-status-last-change": "2026/10/14 14:46:37.206",
+      "protodown": "disabled",
+      "speed": "100G",
+      "state": {
+        "up": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "dcbx-ets-config-tlv": "disabled",
+      "dcbx-ets-recomm-tlv": "disabled",
+      "dcbx-pfc-tlv": "disabled",
+      "neighbor": {
+        "env-7-sn3700c-01": {
+          "age": "1404841",
+          "bridge": {
+            "vlan": {}
+          },
+          "chassis": {
+            "capability": {
+              "is-router": {}
+            },
+            "chassis-id": "b8:3f:d2:f1:1f:90",
+            "management-ifinfo": {
+              "1": {
+                "management-address-ipv4": "172.30.8.1"
+              }
+            },
+            "system-description": "Cumulus Linux version 5.18.1 running on Mellanox Technologies Ltd. MSN3700C",
+            "system-name": "env-7-sn3700c-01"
+          },
+          "lldp-med": {
+            "capability": {
+              "capabilities": {},
+              "inventory": {},
+              "location": {},
+              "mdi-pd": {},
+              "mdi-pse": {},
+              "policy": {}
+            },
+            "device-type": "Network Connectivity Device",
+            "inventory": {}
+          },
+          "port": {
+            "description": "swp31",
+            "mtu": 9216,
+            "name": "swp31",
+            "pmd-autoneg": {
+              "advertised": {
+                "0": {
+                  "flags": {
+                    "fd": {}
+                  },
+                  "type": "1000Base-T"
+                }
+              },
+              "autoneg": {
+                "is-enabled": {},
+                "is-supported": {}
+              },
+              "mau-oper-type": "100GbaseCR4 - 100GBASE-R PCS/PMA over 4 lane shielded copper balanced cable"
+            },
+            "ttl": 120,
+            "type": "ifname"
+          }
+        }
+      },
+      "tlv": {
+        "profile": "default"
+      }
+    },
+    "type": "swp"
+  },
+  "swp64": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 2,
+        "carrier-up-count": 1
+      }
+    },
+    "ifindex": 66,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "duplex": "full",
+      "fec": "rs",
+      "flag": {
+        "broadcast": {},
+        "lower-up": {},
+        "multicast": {},
+        "up": {}
+      },
+      "lanes": "4",
+      "mac-address": "f4:20:4d:ad:be:de",
+      "mtu": 9216,
+      "oper-status": "up",
+      "oper-status-last-change": "2026/10/14 14:46:36.846",
+      "protodown": "disabled",
+      "speed": "100G",
+      "state": {
+        "up": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "dcbx-ets-config-tlv": "disabled",
+      "dcbx-ets-recomm-tlv": "disabled",
+      "dcbx-pfc-tlv": "disabled",
+      "neighbor": {
+        "env-7-sn3700c-01": {
+          "age": "1404841",
+          "bridge": {
+            "vlan": {}
+          },
+          "chassis": {
+            "capability": {
+              "is-router": {}
+            },
+            "chassis-id": "b8:3f:d2:f1:1f:90",
+            "management-ifinfo": {
+              "1": {
+                "management-address-ipv4": "172.30.8.1"
+              }
+            },
+            "system-description": "Cumulus Linux version 5.18.1 running on Mellanox Technologies Ltd. MSN3700C",
+            "system-name": "env-7-sn3700c-01"
+          },
+          "lldp-med": {
+            "capability": {
+              "capabilities": {},
+              "inventory": {},
+              "location": {},
+              "mdi-pd": {},
+              "mdi-pse": {},
+              "policy": {}
+            },
+            "device-type": "Network Connectivity Device",
+            "inventory": {}
+          },
+          "port": {
+            "description": "swp32",
+            "mtu": 9216,
+            "name": "swp32",
+            "pmd-autoneg": {
+              "advertised": {
+                "0": {
+                  "flags": {
+                    "fd": {}
+                  },
+                  "type": "1000Base-T"
+                }
+              },
+              "autoneg": {
+                "is-enabled": {},
+                "is-supported": {}
+              },
+              "mau-oper-type": "100GbaseCR4 - 100GBASE-R PCS/PMA over 4 lane shielded copper balanced cable"
+            },
+            "ttl": 120,
+            "type": "ifname"
+          }
+        }
+      },
+      "tlv": {
+        "profile": "default"
+      }
+    },
+    "type": "swp"
+  },
+  "swp65": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 2,
+        "carrier-up-count": 1
+      }
+    },
+    "ifindex": 67,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "duplex": "full",
+      "fec": "off",
+      "flag": {
+        "broadcast": {},
+        "lower-up": {},
+        "multicast": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:bf:6e",
+      "mtu": 9216,
+      "oper-status": "up",
+      "oper-status-last-change": "2026/10/14 14:46:36.018",
+      "protodown": "disabled",
+      "speed": "10G",
+      "state": {
+        "up": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "dcbx-ets-config-tlv": "disabled",
+      "dcbx-ets-recomm-tlv": "disabled",
+      "dcbx-pfc-tlv": "disabled",
+      "neighbor": {
+        "he-f2-env-07-vm": {
+          "age": "1404841",
+          "bridge": {
+            "vlan": {}
+          },
+          "chassis": {
+            "capability": {},
+            "chassis-id": "00:00:00:00:00:00",
+            "system-description": "",
+            "system-name": "he-f2-env-07-vm"
+          },
+          "lldp-med": {
+            "capability": {},
+            "device-type": "",
+            "inventory": {}
+          },
+          "port": {
+            "description": "",
+            "name": "enp154s0f0",
+            "pmd-autoneg": {
+              "advertised": {},
+              "autoneg": {}
+            },
+            "ttl": 120,
+            "type": "ifname"
+          }
+        }
+      },
+      "tlv": {
+        "profile": "default"
+      }
+    },
+    "type": "swp"
+  },
+  "swp66": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 2,
+        "carrier-up-count": 1
+      }
+    },
+    "ifindex": 68,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "duplex": "full",
+      "fec": "off",
+      "flag": {
+        "broadcast": {},
+        "lower-up": {},
+        "multicast": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:bf:6f",
+      "mtu": 9216,
+      "oper-status": "up",
+      "oper-status-last-change": "2026/10/14 14:46:36.028",
+      "protodown": "disabled",
+      "speed": "10G",
+      "state": {
+        "up": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "dcbx-ets-config-tlv": "disabled",
+      "dcbx-ets-recomm-tlv": "disabled",
+      "dcbx-pfc-tlv": "disabled",
+      "neighbor": {
+        "he-f2-env-07-vm": {
+          "age": "1404841",
+          "bridge": {
+            "vlan": {}
+          },
+          "chassis": {
+            "capability": {},
+            "chassis-id": "00:00:00:00:00:00",
+            "system-description": "",
+            "system-name": "he-f2-env-07-vm"
+          },
+          "lldp-med": {
+            "capability": {},
+            "device-type": "",
+            "inventory": {}
+          },
+          "port": {
+            "description": "",
+            "name": "enp157s0f0",
+            "pmd-autoneg": {
+              "advertised": {},
+              "autoneg": {}
+            },
+            "ttl": 120,
+            "type": "ifname"
+          }
+        }
+      },
+      "tlv": {
+        "profile": "default"
+      }
+    },
+    "type": "swp"
+  },
+  "swp7": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 9,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:bf:5a",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.490",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp8": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 10,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:bf:56",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.499",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp9": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 1,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 11,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "enabled",
+      "fec": "none",
+      "flag": {
+        "broadcast": {},
+        "multicast": {},
+        "no-carrier": {},
+        "up": {}
+      },
+      "mac-address": "f4:20:4d:ad:bf:3e",
+      "mtu": 9216,
+      "oper-status": "down",
+      "oper-status-last-change": "2026/10/14 14:46:33.507",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  }
+}
