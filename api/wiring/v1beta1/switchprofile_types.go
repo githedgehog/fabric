@@ -734,6 +734,9 @@ func (sp *SwitchProfileSpec) GetNOS2APIPortsFor(sw *SwitchSpec) (map[string]stri
 						}
 					}
 				}
+			} else if !port.Management {
+				// a port that can't be broken out, such as an SFP28 one, keeps its name on both sides
+				ports[port.BaseNOSName+port.NOSName] = portName
 			}
 		}
 	} else {
