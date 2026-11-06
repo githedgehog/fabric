@@ -589,7 +589,7 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 				var external v1beta1.External
 				if err := kube.Get(ctx, ktypes.NamespacedName{Name: extName, Namespace: kmetav1.NamespaceDefault}, &external); err != nil {
 					if kapierrors.IsNotFound(err) {
-						return field.Invalid(entryPath, field.OmitValueType{}, fmt.Sprintf("external %s not found", extName))
+						return field.NotFound(entryPath, extName)
 					}
 
 					return fmt.Errorf("failed to get External %s: %w", extName, err)
@@ -610,7 +610,7 @@ func (p *GatewayPeering) Validate(ctx context.Context, kube kclient.Reader, fabr
 			var vpc v1beta1.VPC
 			if err := kube.Get(ctx, ktypes.NamespacedName{Name: vpcName, Namespace: kmetav1.NamespaceDefault}, &vpc); err != nil {
 				if kapierrors.IsNotFound(err) {
-					return field.Invalid(entryPath, field.OmitValueType{}, fmt.Sprintf("VPC %s not found", vpcName))
+					return field.NotFound(entryPath, vpcName)
 				}
 
 				return fmt.Errorf("failed to get VPC %s: %w", vpcName, err)
