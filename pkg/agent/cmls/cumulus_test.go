@@ -19,6 +19,10 @@ func TestBuildZTPFor(t *testing.T) {
 		Spec: agentapi.AgentSpec{
 			Config: agentapi.AgentSpecConfig{ControlVIP: "172.30.0.1/32"},
 			Switch: wiringapi.SwitchSpec{ProtocolIP: "172.30.8.1/32"},
+			SwitchProfile: &wiringapi.SwitchProfileSpec{Ports: map[string]wiringapi.SwitchProfilePort{
+				"M1":   {NOSName: "eth0", Management: true},
+				"E1/1": {NOSName: "1", BaseNOSName: "swp"},
+			}},
 		},
 		Status: agentapi.AgentStatus{RunID: "old-run-id"},
 	}

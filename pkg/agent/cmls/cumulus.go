@@ -6,6 +6,7 @@ package cmls
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/netip"
@@ -32,6 +33,8 @@ const (
 	cfgFile = "last-config.yaml"
 )
 
+var errNoSwitchProfile = errors.New("switch profile not found")
+
 //go:embed ztp_config.tmpl.yaml
 var ztpCfgTmpl string
 
@@ -46,6 +49,7 @@ type ConfigIn struct {
 	ProtocolIP   string
 	VTEPIP       string
 	ASN          uint32
+	FrontPorts   uint16
 	HostSubnet   string
 	RouterID     string
 	VXLANSource  string
@@ -310,6 +314,11 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		return strings.Compare(a.Name, b.Name)
 	})
 
+	// the front port count comes from the profile, there's no config without one
+	if agent.Spec.SwitchProfile == nil {
+		return nil, errNoSwitchProfile
+	}
+
 	cfgIn := ConfigIn{
 		Hostname:     agent.Name,
 		Users:        users,
@@ -318,6 +327,7 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		ProtocolIP:   agent.Spec.Switch.ProtocolIP,
 		VTEPIP:       agent.Spec.Switch.VTEPIP,
 		ASN:          agent.Spec.Switch.ASN,
+		FrontPorts:   uint16(len(agent.Spec.SwitchProfile.Ports) - 1), //nolint:gosec // disable G115
 		RouterID:     protocolIP.Addr().String(),
 		VXLANSource:  vtepIP.Addr().String(),
 		VPCs:         vpcs,
