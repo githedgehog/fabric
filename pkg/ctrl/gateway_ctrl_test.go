@@ -5,6 +5,7 @@ package ctrl
 
 import (
 	"context"
+	"errors"
 	"maps"
 	"slices"
 	"testing"
@@ -20,6 +21,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -578,7 +580,9 @@ func TestGatewayReconcileInvalidHugePages(t *testing.T) {
 	require.NoError(t, kube.Update(t.Context(), gw))
 
 	_, err := r.Reconcile(t.Context(), reconcileReq("gw-1"))
-	testutil.RequireFieldError(t, err, gw)
+	fieldErr, ok := errors.AsType[*field.Error](err)
+	require.True(t, ok, "expected a field error, got %v", err)
+	testutil.RequireFieldError(t, fieldErr, gw)
 	requireNotFound(t, kube, &gwintapi.GatewayAgent{}, kmetav1.NamespaceDefault, "gw-1")
 	requireNotFound(t, kube, &appv1.DaemonSet{}, "fab", gwapi.DaemonSetName("gw-1"))
 }

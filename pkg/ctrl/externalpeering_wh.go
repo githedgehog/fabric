@@ -63,12 +63,7 @@ func (w *ExternalPeeringWebhook) Default(_ context.Context, peer *vpcapi.Externa
 }
 
 func (w *ExternalPeeringWebhook) ValidateCreate(ctx context.Context, peer *vpcapi.ExternalPeering) (admission.Warnings, error) {
-	warns, err := peer.Validate(ctx, w.KubeClient, w.Cfg)
-	if err != nil {
-		return warns, fmt.Errorf("failed to validate external peering: %w", err)
-	}
-
-	return warns, nil
+	return peer.Validate(ctx, w.KubeClient, w.Cfg) //nolint:wrapcheck
 }
 
 func (w *ExternalPeeringWebhook) ValidateUpdate(ctx context.Context, oldPeer *vpcapi.ExternalPeering, newPeer *vpcapi.ExternalPeering) (admission.Warnings, error) {
@@ -80,12 +75,7 @@ func (w *ExternalPeeringWebhook) ValidateUpdate(ctx context.Context, oldPeer *vp
 	// 	return nil, errors.Errorf("external peering spec is immutable")
 	// }
 
-	warns, err := newPeer.Validate(ctx, w.KubeClient, w.Cfg)
-	if err != nil {
-		return warns, fmt.Errorf("failed to validate external peering: %w", err)
-	}
-
-	return warns, nil
+	return newPeer.Validate(ctx, w.KubeClient, w.Cfg) //nolint:wrapcheck
 }
 
 func (w *ExternalPeeringWebhook) ValidateDelete(_ context.Context, _ *vpcapi.ExternalPeering) (admission.Warnings, error) {

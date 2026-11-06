@@ -67,7 +67,7 @@ func (w *VLANNamespaceWebhook) Default(_ context.Context, ns *wiringapi.VLANName
 func (w *VLANNamespaceWebhook) ValidateCreate(ctx context.Context, ns *wiringapi.VLANNamespace) (admission.Warnings, error) {
 	warns, err := ns.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
-		return warns, fmt.Errorf("failed to validate vlannamespace: %w", err)
+		return warns, err //nolint:wrapcheck
 	}
 
 	return nil, nil
@@ -75,7 +75,7 @@ func (w *VLANNamespaceWebhook) ValidateCreate(ctx context.Context, ns *wiringapi
 
 func (w *VLANNamespaceWebhook) ValidateUpdate(ctx context.Context, _ *wiringapi.VLANNamespace, ns *wiringapi.VLANNamespace) (admission.Warnings, error) {
 	if warn, err := ns.Validate(ctx, w.Client, w.Cfg); err != nil {
-		return warn, fmt.Errorf("failed to validate new vlannamespace: %w", err)
+		return warn, err //nolint:wrapcheck
 	}
 
 	vpcs := &vpcapi.VPCList{}

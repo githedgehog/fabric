@@ -51,12 +51,7 @@ func (w *SwitchGroupWebhook) Default(_ context.Context, sg *wiringapi.SwitchGrou
 }
 
 func (w *SwitchGroupWebhook) ValidateCreate(ctx context.Context, sg *wiringapi.SwitchGroup) (admission.Warnings, error) {
-	warns, err := sg.Validate(ctx, w.KubeClient, w.Cfg)
-	if err != nil {
-		return warns, fmt.Errorf("failed to validate switchgroup: %w", err)
-	}
-
-	return warns, nil
+	return sg.Validate(ctx, w.KubeClient, w.Cfg) //nolint:wrapcheck
 }
 
 func (w *SwitchGroupWebhook) ValidateUpdate(ctx context.Context, oldSg *wiringapi.SwitchGroup, newSg *wiringapi.SwitchGroup) (admission.Warnings, error) {
@@ -64,12 +59,7 @@ func (w *SwitchGroupWebhook) ValidateUpdate(ctx context.Context, oldSg *wiringap
 		return nil, err
 	}
 
-	warns, err := newSg.Validate(ctx, w.KubeClient, w.Cfg)
-	if err != nil {
-		return warns, fmt.Errorf("failed to validate switchgroup: %w", err)
-	}
-
-	return warns, nil
+	return newSg.Validate(ctx, w.KubeClient, w.Cfg) //nolint:wrapcheck
 }
 
 // ValidateDelete refuses deleting a group that switches still reference: the catalog of a redundancy group is garbage

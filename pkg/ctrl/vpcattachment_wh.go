@@ -63,12 +63,7 @@ func (w *VPCAttachmentWebhook) Default(_ context.Context, attach *vpcapi.VPCAtta
 }
 
 func (w *VPCAttachmentWebhook) ValidateCreate(ctx context.Context, attach *vpcapi.VPCAttachment) (admission.Warnings, error) {
-	warns, err := attach.Validate(ctx, w.KubeClient, w.Cfg)
-	if err != nil {
-		return warns, fmt.Errorf("failed to validate vpc attachment: %w", err)
-	}
-
-	return warns, nil
+	return attach.Validate(ctx, w.KubeClient, w.Cfg) //nolint:wrapcheck
 }
 
 func (w *VPCAttachmentWebhook) ValidateUpdate(ctx context.Context, oldAttach *vpcapi.VPCAttachment, newAttach *vpcapi.VPCAttachment) (admission.Warnings, error) {
@@ -80,12 +75,7 @@ func (w *VPCAttachmentWebhook) ValidateUpdate(ctx context.Context, oldAttach *vp
 	// 	return nil, errors.Errorf("vpc attachment is immutable")
 	// }
 
-	warns, err := newAttach.Validate(ctx, w.KubeClient, w.Cfg)
-	if err != nil {
-		return warns, fmt.Errorf("failed to validate vpc attachment: %w", err)
-	}
-
-	return warns, nil
+	return newAttach.Validate(ctx, w.KubeClient, w.Cfg) //nolint:wrapcheck
 }
 
 func (w *VPCAttachmentWebhook) ValidateDelete(_ context.Context, _ *vpcapi.VPCAttachment) (admission.Warnings, error) {

@@ -109,12 +109,7 @@ func (w *FabricWebhook) Default(_ context.Context, fabric *wiringapi.Fabric) err
 }
 
 func (w *FabricWebhook) ValidateCreate(ctx context.Context, fabric *wiringapi.Fabric) (admission.Warnings, error) {
-	warns, err := fabric.Validate(ctx, w.KubeClient, w.Cfg)
-	if err != nil {
-		return warns, fmt.Errorf("failed to validate fabric: %w", err)
-	}
-
-	return warns, nil
+	return fabric.Validate(ctx, w.KubeClient, w.Cfg) //nolint:wrapcheck
 }
 
 func (w *FabricWebhook) ValidateUpdate(ctx context.Context, oldFabric *wiringapi.Fabric, fabric *wiringapi.Fabric) (admission.Warnings, error) {
@@ -147,12 +142,7 @@ func (w *FabricWebhook) ValidateUpdate(ctx context.Context, oldFabric *wiringapi
 		}
 	}
 
-	warns, err := fabric.Validate(ctx, w.KubeClient, w.Cfg)
-	if err != nil {
-		return warns, fmt.Errorf("failed to validate fabric: %w", err)
-	}
-
-	return warns, nil
+	return fabric.Validate(ctx, w.KubeClient, w.Cfg) //nolint:wrapcheck
 }
 
 func (w *FabricWebhook) ValidateDelete(ctx context.Context, fabric *wiringapi.Fabric) (admission.Warnings, error) {

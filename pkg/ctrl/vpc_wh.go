@@ -64,12 +64,7 @@ func (w *VPCWebhook) Default(_ context.Context, vpc *vpcapi.VPC) error {
 }
 
 func (w *VPCWebhook) ValidateCreate(ctx context.Context, vpc *vpcapi.VPC) (admission.Warnings, error) {
-	warns, err := vpc.Validate(ctx, w.KubeClient, w.Cfg)
-	if err != nil {
-		return warns, fmt.Errorf("failed to validate vpc: %w", err)
-	}
-
-	return warns, nil
+	return vpc.Validate(ctx, w.KubeClient, w.Cfg) //nolint:wrapcheck
 }
 
 func (w *VPCWebhook) ValidateUpdate(ctx context.Context, oldVPC *vpcapi.VPC, newVPC *vpcapi.VPC) (admission.Warnings, error) {
@@ -83,7 +78,7 @@ func (w *VPCWebhook) ValidateUpdate(ctx context.Context, oldVPC *vpcapi.VPC, new
 
 	warns, err := newVPC.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
-		return warns, fmt.Errorf("failed to validate vpc: %w", err)
+		return warns, err //nolint:wrapcheck
 	}
 
 	// TODO check that you can only add subnets, or edit/remove unused ones

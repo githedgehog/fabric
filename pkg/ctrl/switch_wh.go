@@ -66,12 +66,7 @@ func (w *SwitchWebhook) Default(_ context.Context, sw *wiringapi.Switch) error {
 }
 
 func (w *SwitchWebhook) ValidateCreate(ctx context.Context, sw *wiringapi.Switch) (admission.Warnings, error) {
-	warns, err := sw.Validate(ctx, w.KubeClient, w.Cfg)
-	if err != nil {
-		return warns, fmt.Errorf("error validating switch: %w", err)
-	}
-
-	return warns, nil
+	return sw.Validate(ctx, w.KubeClient, w.Cfg) //nolint:wrapcheck
 }
 
 func (w *SwitchWebhook) ValidateUpdate(ctx context.Context, oldSw *wiringapi.Switch, newSw *wiringapi.Switch) (admission.Warnings, error) {
@@ -91,7 +86,7 @@ func (w *SwitchWebhook) ValidateUpdate(ctx context.Context, oldSw *wiringapi.Swi
 
 	warns, err := newSw.Validate(ctx, w.KubeClient, w.Cfg)
 	if err != nil {
-		return warns, fmt.Errorf("error validating switch: %w", err)
+		return warns, err //nolint:wrapcheck
 	}
 
 	if (oldSw.Spec.RoCE || newSw.Spec.RoCE) && !reflect.DeepEqual(oldSw.Spec.PortBreakouts, newSw.Spec.PortBreakouts) {
