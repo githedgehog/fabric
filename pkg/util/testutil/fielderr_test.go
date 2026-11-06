@@ -56,6 +56,7 @@ func TestResolveFieldPath(t *testing.T) {
 		{path: "spec.entry"},
 		{path: "spec.Entries"},
 		{path: "spec.Skipped"},
+		{path: "spec.-"},
 		{path: "spec.entries[foo].end"},
 		{path: "spec.mode[0]"},
 		{path: "spec.mode.foo"},

@@ -61,7 +61,11 @@ func jsonField(structType reflect.Type, name string) (reflect.Type, bool) {
 	}
 
 	for f := range structType.Fields() {
-		tagName, _, _ := strings.Cut(f.Tag.Get("json"), ",")
+		tag := f.Tag.Get("json")
+		if tag == "-" {
+			continue
+		}
+		tagName, _, _ := strings.Cut(tag, ",")
 		if tagName == name {
 			return f.Type, true
 		}
