@@ -190,9 +190,17 @@ func (peering *VPCPeering) Validate(ctx context.Context, kube kclient.Reader, fa
 		return nil, err
 	}
 
+	if len(peering.Spec.Permit) > 10 {
+		return nil, errors.Errorf("too many permit policies (%d), max is 10", len(peering.Spec.Permit))
+	}
 	for idx, permit := range peering.Spec.Permit {
 		if len(permit) != 2 {
 			return nil, errors.Errorf("permit must have exactly 2 VPCs (idx %d)", idx)
+		}
+		for vpcName, vpcPeer := range permit {
+			if len(vpcPeer.Subnets) > 10 {
+				return nil, errors.Errorf("permit policy #%d: too many subnets (%d) for VPC %s, max is 10", idx, len(vpcPeer.Subnets), vpcName)
+			}
 		}
 	}
 

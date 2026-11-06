@@ -631,6 +631,40 @@ func TestSwitchDomainsValidation(t *testing.T) {
 			sw:   swGen(func(sw *wiringapi.Switch) { sw.Spec.Boot.MAC = "0C-20-12-FE-01-00" }),
 		},
 		{
+			name: "invalid role", err: `invalid role "leaf"`,
+			sw: swGen(func(sw *wiringapi.Switch) { sw.Spec.Role = "leaf" }),
+		},
+		{
+			name: "invalid FEC mode", err: `invalid FEC mode "none" for port E1/1`,
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Spec.PortFECs = map[string]wiringapi.PortFECMode{"E1/1": "none"}
+			}),
+		},
+		{
+			name: "link-flap flap threshold out of range", err: "flap threshold 51 is not in 1-50",
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Spec.LinkFlapErrDisable = &wiringapi.SwitchLinkFlapErrDisable{FlapThreshold: new(uint8(51))}
+			}),
+		},
+		{
+			name: "link-flap sampling interval out of range", err: "sampling interval 0 is not in 1-65535",
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Spec.LinkFlapErrDisable = &wiringapi.SwitchLinkFlapErrDisable{SamplingInterval: new(uint32(0))}
+			}),
+		},
+		{
+			name: "link-flap recovery interval out of range", err: "recovery interval 65535 is above 65534",
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Spec.LinkFlapErrDisable = &wiringapi.SwitchLinkFlapErrDisable{RecoveryInterval: new(uint32(65535))}
+			}),
+		},
+		{
+			name: "link-flap defaulted",
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Spec.LinkFlapErrDisable = &wiringapi.SwitchLinkFlapErrDisable{}
+			}),
+		},
+		{
 			name: "syslog debug annotation",
 			sw: swGen(func(sw *wiringapi.Switch) {
 				sw.Annotations = map[string]string{wiringapi.AnnotationSwitchSyslogDebug: "true"}

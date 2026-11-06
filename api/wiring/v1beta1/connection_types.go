@@ -769,10 +769,16 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to parse cidr %s", se.IP)
 		}
+		if ipNet.IP.To4() == nil {
+			return nil, errors.Errorf("ip %s is not IPv4", se.IP)
+		}
 
 		nextHop := net.ParseIP(se.NextHop)
 		if nextHop == nil {
 			return nil, errors.Errorf("failed to parse next hop %s", se.NextHop)
+		}
+		if nextHop.To4() == nil {
+			return nil, errors.Errorf("next hop %s is not IPv4", se.NextHop)
 		}
 
 		if !ipNet.Contains(nextHop) {
