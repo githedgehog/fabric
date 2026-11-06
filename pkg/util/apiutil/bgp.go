@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	"go.githedgehog.com/fabric/api/meta"
@@ -54,7 +55,8 @@ type BGPSwitchStatus struct {
 	// vrf -> neighbor key
 	Neighbors map[string]map[string]BGPNeighborStatus `json:"neighbors,omitempty"`
 	// vrf -> peer address
-	BFDPeers map[string]map[string]BFDPeerStatus `json:"bfdPeers,omitempty"`
+	BFDPeers  map[string]map[string]BFDPeerStatus `json:"bfdPeers,omitempty"`
+	Collected Collected                           `json:"collected"`
 }
 
 // bgpConnTypes are the only connections with BGP sessions on the switch side
@@ -138,6 +140,7 @@ func GetBGPStatus(ctx context.Context, kube kclient.Reader, fabCfg *meta.FabricC
 		out[in.sw.Name] = &BGPSwitchStatus{
 			Neighbors: neighs,
 			BFDPeers:  bfdPeers(in.ag, neighs),
+			Collected: Collected{Time: in.ag.Status.LastHeartbeat, Stale: in.ag.IsHeartbeatStale(time.Now())},
 		}
 
 		return nil

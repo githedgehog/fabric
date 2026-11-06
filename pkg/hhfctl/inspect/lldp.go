@@ -8,13 +8,10 @@ import (
 	"context"
 	"fmt"
 	"maps"
-	"os"
 	"slices"
 	"strings"
 	"time"
 
-	"github.com/fatih/color"
-	"github.com/mattn/go-isatty"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/apiutil"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -44,6 +41,7 @@ type LLDPIn struct {
 
 type LLDPOut struct {
 	Neighbors map[string]map[string]apiutil.LLDPNeighborStatus `json:"neighbors"`
+	Collected map[string]apiutil.Collected                     `json:"collected,omitempty"`
 	Errs      []error                                          `json:"errors"`
 }
 
@@ -176,16 +174,6 @@ func lldpNeighborAge(now time.Time, neighbor apiutil.LLDPNeighbor, withTTL bool)
 }
 
 func (out *LLDPOut) MarshalText(in LLDPIn, now time.Time) (string, error) {
-	// TODO pass to a marshal func?
-	noColor := !isatty.IsTerminal(os.Stdout.Fd())
-
-	red := color.New(color.FgRed).SprintFunc()
-	dim := color.New(color.Faint).SprintFunc()
-	if noColor {
-		red = fmt.Sprint
-		dim = fmt.Sprint
-	}
-
 	str := &strings.Builder{}
 
 	age := "Age"
@@ -210,7 +198,7 @@ func (out *LLDPOut) MarshalText(in LLDPIn, now time.Time) (string, error) {
 	}
 
 	for _, swName := range slices.Sorted(maps.Keys(out.Neighbors)) {
-		str.WriteString("Switch: " + swName + "\n")
+		str.WriteString(switchHeader(swName, out.Collected[swName], now))
 
 		data := [][]string{}
 		anyHidden := false
@@ -321,6 +309,7 @@ var (
 func LLDP(ctx context.Context, kube kclient.Reader, in LLDPIn) (*LLDPOut, error) {
 	out := &LLDPOut{
 		Neighbors: map[string]map[string]apiutil.LLDPNeighborStatus{},
+		Collected: map[string]apiutil.Collected{},
 	}
 
 	filter := apiutil.SwitchFilter{Names: in.Switches, Fabric: in.Fabric, Domain: in.Domain}
@@ -338,8 +327,12 @@ func LLDP(ctx context.Context, kube kclient.Reader, in LLDPIn) (*LLDPOut, error)
 
 	for _, swName := range slices.Sorted(maps.Keys(neighbors)) {
 		out.Neighbors[swName] = map[string]apiutil.LLDPNeighborStatus{}
+		out.Collected[swName] = neighbors[swName].Collected
+		if err := checkStale(swName, neighbors[swName].Collected, in.Strict); err != nil {
+			out.Errs = append(out.Errs, err)
+		}
 
-		for name, n := range neighbors[swName] {
+		for name, n := range neighbors[swName].Neighbors {
 			if !in.FabricConns && n.Type == apiutil.LLDPNeighborTypeFabric {
 				continue
 			}

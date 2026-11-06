@@ -109,6 +109,7 @@ func TestFabricFilter(t *testing.T) {
 	require.Equal(t, 1, profileGets, "shared switch profile should be fetched once")
 	require.Zero(t, agentGets, "agents should be listed, not fetched one by one")
 	require.Equal(t, "Ready: 1/2 switches", out.Summary)
+	require.Equal(t, &AgentState{Summary: "Unknown"}, out.Switches[1].State, "leaf-02 has no agent")
 
 	out, err = Fabric(t.Context(), kube, FabricIn{Name: "default"})
 	require.NoError(t, err)
