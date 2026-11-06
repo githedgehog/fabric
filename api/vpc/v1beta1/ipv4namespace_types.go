@@ -16,6 +16,7 @@ package v1beta1
 
 import (
 	"context"
+	"fmt"
 	"maps"
 	"net/netip"
 	"slices"
@@ -177,20 +178,23 @@ func (ns *IPv4Namespace) Validate(ctx context.Context, kube kclient.Reader, fabr
 	return nil, nil
 }
 
-// SubnetContaining returns the index of the namespace subnet the prefix is inside of, or -1, also for a prefix that
-// doesn't parse. An External drops the routes within the namespace subnets silently, while a prefix around one, such
-// as a default route, is fine
-func (ns *IPv4Namespace) SubnetContaining(prefixStr string) int {
+// SubnetContaining returns the index of the namespace subnet the prefix is inside of, or -1. An External drops the
+// routes within the namespace subnets silently, while a prefix around one, such as a default route, is fine
+func (ns *IPv4Namespace) SubnetContaining(prefixStr string) (int, error) {
 	prefix, err := netip.ParsePrefix(prefixStr)
 	if err != nil {
-		return -1
+		return -1, fmt.Errorf("invalid prefix %s: %w", prefixStr, err)
 	}
 
 	for idx, s := range ns.Spec.Subnets {
-		if subnet, err := netip.ParsePrefix(s); err == nil && iputil.IsSubset(prefix, subnet) {
-			return idx
+		subnet, err := netip.ParsePrefix(s)
+		if err != nil {
+			return -1, fmt.Errorf("invalid subnet %s in IPv4Namespace %s: %w", s, ns.Name, err)
+		}
+		if iputil.IsSubset(prefix, subnet) {
+			return idx, nil
 		}
 	}
 
-	return -1
+	return -1, nil
 }
