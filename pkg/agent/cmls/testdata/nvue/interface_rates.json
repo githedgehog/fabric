@@ -1,0 +1,728 @@
+{
+  "swp1": {
+    "rates": {
+      "in-bits-rate": 360,
+      "in-pkts-rate": 0,
+      "in-utilization": 8.99727549830802e-08,
+      "load-interval": 60,
+      "out-bits-rate": 357,
+      "out-pkts-rate": 0,
+      "out-utilization": 8.917299716100838e-08
+    }
+  },
+  "swp10": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp11": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp12": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp13": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp14": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp15": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp16": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp17": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp18": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp19": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp2": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp20": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp21": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp22": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp23": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp24": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp25": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp26": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp27": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp28": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp29": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp3": {
+    "rates": {
+      "in-bits-rate": 30,
+      "in-pkts-rate": 0,
+      "in-utilization": 1.519945673696968e-08,
+      "load-interval": 60,
+      "out-bits-rate": 563,
+      "out-pkts-rate": 0,
+      "out-utilization": 2.81525146013242e-07
+    }
+  },
+  "swp30": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp31": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp32": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp33": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp34": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp35": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp36": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp37": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp38": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp39": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp4": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp40": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp41": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp42": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp43": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp44": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp45": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp46": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp47": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp48": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp49": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp5": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp50": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp51": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp52": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp53": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp54": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp55": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp56": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp57": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp58": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp59": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp6": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp60": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp61": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp62": {
+    "rates": {
+      "in-bits-rate": 357,
+      "in-pkts-rate": 0,
+      "in-utilization": 8.917299716100838e-08,
+      "load-interval": 60,
+      "out-bits-rate": 360,
+      "out-pkts-rate": 0,
+      "out-utilization": 8.99727549830802e-08
+    }
+  },
+  "swp63": {
+    "rates": {
+      "in-bits-rate": 1109,
+      "in-pkts-rate": 1,
+      "in-utilization": 1.1086665725169312e-06,
+      "load-interval": 60,
+      "out-bits-rate": 360,
+      "out-pkts-rate": 0,
+      "out-utilization": 3.598910199323208e-07
+    }
+  },
+  "swp64": {
+    "rates": {
+      "in-bits-rate": 1109,
+      "in-pkts-rate": 1,
+      "in-utilization": 1.1086814893065388e-06,
+      "load-interval": 60,
+      "out-bits-rate": 360,
+      "out-pkts-rate": 0,
+      "out-utilization": 3.598910199323208e-07
+    }
+  },
+  "swp65": {
+    "rates": {
+      "in-bits-rate": 31,
+      "in-pkts-rate": 0,
+      "in-utilization": 3.066411188055265e-07,
+      "load-interval": 60,
+      "out-bits-rate": 360,
+      "out-pkts-rate": 0,
+      "out-utilization": 3.5989101993232085e-06
+    }
+  },
+  "swp66": {
+    "rates": {
+      "in-bits-rate": 31,
+      "in-pkts-rate": 0,
+      "in-utilization": 3.0659539369717495e-07,
+      "load-interval": 60,
+      "out-bits-rate": 669,
+      "out-pkts-rate": 0,
+      "out-utilization": 6.6948143945027235e-06
+    }
+  },
+  "swp7": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp8": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  },
+  "swp9": {
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    }
+  }
+}

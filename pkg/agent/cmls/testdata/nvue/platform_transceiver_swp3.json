@@ -1,0 +1,16 @@
+{
+  "cable-length": "1.00m",
+  "cable-type": "Passive copper cable",
+  "diagnostics-status": "N/A",
+  "error-status": "N/A",
+  "identifier": "OSFP",
+  "pmd-type": "ETH_200GBASE_CR2",
+  "revision-compliance": "Rev. 5.1",
+  "status": "Inserted",
+  "vendor-date-code": "250408",
+  "vendor-name": "OEM",
+  "vendor-oui": "48:b0:2d",
+  "vendor-pn": "O2Q-8XND-P1M",
+  "vendor-rev": "01",
+  "vendor-sn": "DO250407010001"
+}

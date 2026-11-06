@@ -1,0 +1,30 @@
+{
+  "PSU1": {
+    "capacity": 2200.0,
+    "current": 11.671,
+    "power": 145.0,
+    "state": "ok",
+    "voltage": 12.429
+  },
+  "PSU2": {
+    "capacity": "N/A",
+    "current": "N/A",
+    "power": "N/A",
+    "state": "bad",
+    "voltage": "N/A"
+  },
+  "PSU3": {
+    "capacity": 2200.0,
+    "current": 12.453,
+    "power": 155.25,
+    "state": "ok",
+    "voltage": 12.47
+  },
+  "PSU4": {
+    "capacity": "N/A",
+    "current": "N/A",
+    "power": "N/A",
+    "state": "bad",
+    "voltage": "N/A"
+  }
+}
