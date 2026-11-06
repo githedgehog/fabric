@@ -71,11 +71,15 @@ spec:
                       description: GatewayASN is the ASN shared by all gateways attached
                         to this domain, outside the leaf ASN range
                       format: int64
+                      maximum: 4294967295
+                      minimum: 0
                       type: integer
                     spineASN:
                       description: SpineASN is the ASN shared by all spines of this
                         domain, outside the leaf ASN range
                       format: int64
+                      maximum: 4294967295
+                      minimum: 0
                       type: integer
                   type: object
                 description: Domains is the set of spine layers in this Fabric, at
@@ -85,11 +89,15 @@ spec:
                 description: LeafASNEnd is the last ASN of the range leaves of this
                   Fabric are allocated from
                 format: int64
+                maximum: 4294967295
+                minimum: 0
                 type: integer
               leafASNStart:
                 description: LeafASNStart is the first ASN of the range leaves of
                   this Fabric are allocated from
                 format: int64
+                maximum: 4294967295
+                minimum: 0
                 type: integer
             type: object
           status:

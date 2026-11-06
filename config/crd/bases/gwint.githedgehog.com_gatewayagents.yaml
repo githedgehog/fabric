@@ -106,6 +106,8 @@ spec:
                   asn:
                     description: ASN is the ASN of the gateway
                     format: int64
+                    maximum: 4294967295
+                    minimum: 0
                     type: integer
                   driver:
                     description: Driver is the dataplane driver for the interfaces,
@@ -193,6 +195,8 @@ spec:
                         asn:
                           description: ASN is the remote ASN of the BGP neighbor
                           format: int64
+                          maximum: 4294967295
+                          minimum: 0
                           type: integer
                         ip:
                           description: IP is the IP address of the BGP neighbor
@@ -626,6 +630,8 @@ spec:
                                     type: string
                                   localAS:
                                     format: int64
+                                    maximum: 4294967295
+                                    minimum: 0
                                     type: integer
                                   messages:
                                     properties:
@@ -674,6 +680,8 @@ spec:
                                     type: object
                                   peerAS:
                                     format: int64
+                                    maximum: 4294967295
+                                    minimum: 0
                                     type: integer
                                   remoteRouterID:
                                     type: string

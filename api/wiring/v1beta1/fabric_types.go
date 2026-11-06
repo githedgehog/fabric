@@ -25,9 +25,13 @@ import (
 type FabricSpec struct {
 	// LeafASNStart is the first ASN of the range leaves of this Fabric are allocated from
 	// +kubebuilder:validation:Format=int64
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=4294967295
 	LeafASNStart uint32 `json:"leafASNStart,omitempty"`
 	// LeafASNEnd is the last ASN of the range leaves of this Fabric are allocated from
 	// +kubebuilder:validation:Format=int64
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=4294967295
 	LeafASNEnd uint32 `json:"leafASNEnd,omitempty"`
 	// DisableBFD disables BFD on the links between switches and on the sessions with the gateways
 	DisableBFD bool `json:"disableBFD,omitempty"`
@@ -39,9 +43,13 @@ type FabricSpec struct {
 type FabricDomainSpec struct {
 	// SpineASN is the ASN shared by all spines of this domain, outside the leaf ASN range
 	// +kubebuilder:validation:Format=int64
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=4294967295
 	SpineASN uint32 `json:"spineASN,omitempty"`
 	// GatewayASN is the ASN shared by all gateways attached to this domain, outside the leaf ASN range
 	// +kubebuilder:validation:Format=int64
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=4294967295
 	GatewayASN uint32 `json:"gatewayASN,omitempty"`
 }
 

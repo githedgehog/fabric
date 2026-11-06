@@ -187,6 +187,8 @@ spec:
                     description: ASN (optional) is the ASN of the BGP neighbor, if
                       not set any ASN other than the switch's own is accepted
                     format: int64
+                    maximum: 4294967295
+                    minimum: 0
                     type: integer
                   ip:
                     description: |-

@@ -74,6 +74,8 @@ type ExternalSpec struct {
 	// external system has to change its remote-as to match. Static attachments ignore it.
 	// +optional
 	// +kubebuilder:validation:Format=int64
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=4294967295
 	LocalASN uint32 `json:"localASN,omitempty"`
 	// InboundPrefixes (optional) limits the routes accepted from the external system to these prefixes,
 	// keyed by prefix. Without it any prefix outside the IPv4Namespace is accepted

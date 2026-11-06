@@ -104,6 +104,8 @@ spec:
                   instead of each border leaf's own. Changing it resets all sessions to this External, and the
                   external system has to change its remote-as to match. Static attachments ignore it.
                 format: int64
+                maximum: 4294967295
+                minimum: 0
                 type: integer
               outboundCommunity:
                 description: OutboundCommunity is the optional outbound community

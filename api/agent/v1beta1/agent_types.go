@@ -91,9 +91,13 @@ type AgentSpecConfig struct {
 	DefaultMaxPathsEBGP   uint32                    `json:"defaultMaxPathsEBGP,omitempty"`
 	// Deprecated: ignored, Domains has it. TODO: remove after 26.06 release
 	// +kubebuilder:validation:Format=int64
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=4294967295
 	GatewayASN uint32 `json:"gatewayASN,omitempty"`
 	// Deprecated: ignored, Domains has it. TODO: remove after 26.06 release
 	// +kubebuilder:validation:Format=int64
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=4294967295
 	SpineASN            uint32            `json:"spineASN,omitempty"`
 	ProtocolSubnet      string            `json:"protocolSubnet,omitempty"`
 	VTEPSubnet          string            `json:"vtepSubnet,omitempty"`
@@ -386,9 +390,13 @@ type SwitchStateBGPNeighbor struct {
 	LastResetTime          kmetav1.Time `json:"lastReset,omitempty"`
 	LastWrite              kmetav1.Time `json:"lastWrite,omitempty"`
 	// +kubebuilder:validation:Format=int64
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=4294967295
 	LocalAS  uint32      `json:"localAS,omitempty"`
 	Messages BGPMessages `json:"msgs,omitempty"`
 	// +kubebuilder:validation:Format=int64
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=4294967295
 	PeerAS          uint32                                    `json:"peerAS,omitempty"`
 	PeerGroup       string                                    `json:"peerGroup,omitempty"`
 	PeerPort        uint16                                    `json:"peerPort,omitempty"`
