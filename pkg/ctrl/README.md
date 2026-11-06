@@ -50,6 +50,9 @@ finds nothing to change, and validates each object on its own. Objects it can't 
 the initialization: it stays locked without retrying until a spec change or a restart, see `status.problems`. Other
 errors are retried with backoff, see `status.error`.
 
+`CheckUpgrade` (`fabriccontroller_check.go`) runs the same steps and validation against a fake client loaded with the
+objects, e.g. from a support dump, to find the invalid ones before upgrading.
+
 - `Default()` only depends on the object itself and is idempotent.
 - A new kind with a defaulting webhook goes into `refreshKinds`.
 - A new one-time migration goes into the initializer before the refresh and is idempotent.
