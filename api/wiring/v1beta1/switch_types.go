@@ -55,7 +55,7 @@ const (
 	PortLocatorAllPorts = "*"
 )
 
-// +kubebuilder:validation:Enum=spine;server-leaf;border-leaf;mixed-leaf;virtual-edge
+// +kubebuilder:validation:Enum=spine;server-leaf;border-leaf;mixed-leaf
 // SwitchRole is the role of the switch, could be spine, server-leaf or border-leaf or mixed-leaf
 type SwitchRole string
 

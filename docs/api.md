@@ -4036,7 +4036,7 @@ _Underlying type:_ _string_
 SwitchRole is the role of the switch, could be spine, server-leaf or border-leaf or mixed-leaf
 
 _Validation:_
-- Enum: [spine server-leaf border-leaf mixed-leaf virtual-edge]
+- Enum: [spine server-leaf border-leaf mixed-leaf]
 
 _Appears in:_
 - [SwitchSpec](#switchspec)
@@ -4062,7 +4062,7 @@ _Appears in:_
 
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
-| `role` _[SwitchRole](#switchrole)_ | Role is the role of the switch, could be spine, server-leaf or border-leaf or mixed-leaf |  | Enum: [spine server-leaf border-leaf mixed-leaf virtual-edge] <br />Required: \{\} <br /> |
+| `role` _[SwitchRole](#switchrole)_ | Role is the role of the switch, could be spine, server-leaf or border-leaf or mixed-leaf |  | Enum: [spine server-leaf border-leaf mixed-leaf] <br />Required: \{\} <br /> |
 | `description` _string_ | Description is a description of the switch |  |  |
 | `profile` _string_ | Profile is the profile of the switch, name of the SwitchProfile object to be used for this switch, currently not used by the Fabric |  |  |
 | `topology` _[SwitchTopology](#switchtopology)_ | Topology is where the switch sits in the fabric topology |  |  |
