@@ -450,6 +450,7 @@ vrfs:
           - protocol-loopback-only
           remoteAS: 65104
         172.30.128.21:
+          bfdProfile: fabric
           description: Gateway gateway-1/enp2s1 spine-01--gateway--gateway-1
           enabled: true
           ipv4Unicast: true

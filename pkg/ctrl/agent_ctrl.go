@@ -1077,11 +1077,12 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 			FabricSubnet:          r.cfg.FabricSubnet,
 			ProxyExternalSubnet:   r.cfg.L2ProxyExternalSubnet,
 			DisableBFD:            fabric.DisableBFD,
-			GatewayBFD:            !fabric.DisableBFD,
-			Alloy:                 alloyCfg,
-			GatewayCommunities:    map[string]string{},
-			HeartbeatInterval:     r.cfg.AgentHeartbeatInterval,
-			EnforceInterval:       r.cfg.AgentEnforceInterval,
+			// TODO: stop setting it after 26.06 release, 26.05 agents still read it
+			GatewayBFD:         !fabric.DisableBFD, //nolint:staticcheck
+			Alloy:              alloyCfg,
+			GatewayCommunities: map[string]string{},
+			HeartbeatInterval:  r.cfg.AgentHeartbeatInterval,
+			EnforceInterval:    r.cfg.AgentEnforceInterval,
 		}
 		if r.cfg.FabricMode == fmeta.FabricModeSpineLeaf {
 			agent.Spec.Config.SpineLeaf = &agentapi.AgentSpecConfigSpineLeaf{}

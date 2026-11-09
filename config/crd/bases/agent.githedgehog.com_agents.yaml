@@ -496,6 +496,8 @@ spec:
                     minimum: 0
                     type: integer
                   gatewayBFD:
+                    description: 'Deprecated: ignored, DisableBFD covers it. TODO:
+                      remove after 26.07 release, as 26.06 agents still have it saved'
                     type: boolean
                   gatewayCommunities:
                     additionalProperties:

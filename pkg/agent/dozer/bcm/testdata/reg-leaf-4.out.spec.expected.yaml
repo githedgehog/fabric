@@ -716,6 +716,7 @@ vrfs:
           - protocol-loopback-only
           remoteAS: 65100
         172.30.128.23:
+          bfdProfile: fabric
           description: Gateway gateway-1/enp2s2 leaf-04--gateway--gateway-1
           enabled: true
           ipv4Unicast: true

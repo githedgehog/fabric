@@ -771,6 +771,10 @@ network-instances:
                 enabled: true
                 neighbor-address: 172.30.128.23
                 peer-as: 65534
+              enable-bfd:
+                config:
+                  bfd-profile: fabric
+                  enabled: true
               neighbor-address: 172.30.128.23
             - afi-safis:
                 afi-safi:
