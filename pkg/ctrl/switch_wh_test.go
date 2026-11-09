@@ -25,6 +25,6 @@ func TestSwitchDomainsImmutable(t *testing.T) {
 		newSw.Spec.Topology.Domains = []string{"plane-b"}
 
 		_, err := (&SwitchWebhook{}).ValidateUpdate(t.Context(), oldSw, newSw)
-		require.ErrorContains(t, err, "spec.topology.domains: Invalid value", role)
+		require.ErrorContains(t, err, `spec.topology.domains: Invalid value: ["plane-b"]: field is immutable, delete and recreate the switch to change it`, role)
 	}
 }
