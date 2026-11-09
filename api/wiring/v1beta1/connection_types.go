@@ -96,7 +96,7 @@ type ConnBundled struct {
 	Fallback bool `json:"fallback,omitempty"`
 }
 
-// ConnESLAG defines the ESLAG connection (port channel, single server to 2-4 switches with multiple links)
+// ConnESLAG defines the ESLAG connection (port channel, single server to 1-4 switches with one or more links)
 type ConnESLAG struct {
 	// +kubebuilder:validation:MinItems=1
 	// Links is the list of server-to-switch links
@@ -224,7 +224,7 @@ type ConnectionSpec struct {
 	Unbundled *ConnUnbundled `json:"unbundled,omitempty"`
 	// Bundled defines the bundled connection (port channel, single server to a single switch with multiple links)
 	Bundled *ConnBundled `json:"bundled,omitempty"`
-	// ESLAG defines the ESLAG connection (port channel, single server to 2-4 switches with multiple links)
+	// ESLAG defines the ESLAG connection (port channel, single server to 1-4 switches with one or more links)
 	ESLAG *ConnESLAG `json:"eslag,omitempty"`
 	// Fabric defines the fabric connection (single spine to a single leaf with at least one link)
 	Fabric *ConnFabric `json:"fabric,omitempty"`
