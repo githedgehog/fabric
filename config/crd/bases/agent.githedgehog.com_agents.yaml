@@ -574,7 +574,7 @@ spec:
                       type: object
                     eslag:
                       description: ESLAG defines the ESLAG connection (port channel,
-                        single server to 2-4 switches with multiple links)
+                        single server to 1-4 switches with one or more links)
                       properties:
                         fallback:
                           description: Fallback is the optional flag that used to
