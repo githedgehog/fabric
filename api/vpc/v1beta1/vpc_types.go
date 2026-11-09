@@ -232,12 +232,9 @@ type VPCDHCPOptions struct {
 	// +kubebuilder:validation:Optional
 	// TimeServers (optional) NTP server addresses to configure for time servers for this particular segment such as: 10.10.10.1, 10.10.10.2
 	TimeServers []string `json:"timeServers"`
-	// +kubebuilder:validation:Minimum: 96
-	// +kubebuilder:validation:Maximum: 9036
 	// InterfaceMTU (optional) is the MTU setting that the dhcp server will send to the clients. It is dependent on the client to honor this option.
 	InterfaceMTU uint16 `json:"interfaceMTU"`
 	// Lease time in seconds, such as 3600
-	// +kubebuilder:validation:Minimum: 1
 	LeaseTimeSeconds uint32 `json:"leaseTimeSeconds"`
 	// Disable default route advertisement. For L3VNI VPCs, a classless static route to the VPC subnet
 	// will be advertised if this option is enabled.
