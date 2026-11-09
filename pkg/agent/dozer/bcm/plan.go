@@ -987,7 +987,7 @@ func planGatewayConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 
 			var bfdProfile *string
-			if agent.Spec.Config.GatewayBFD && !agent.Spec.Config.DisableBFD {
+			if !agent.Spec.Config.DisableBFD {
 				bfdProfile = new(FabricBFDProfile)
 			}
 

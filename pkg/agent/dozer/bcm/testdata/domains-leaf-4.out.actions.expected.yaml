@@ -2537,6 +2537,10 @@
         enabled: true
         neighbor-address: 172.30.128.23
         peer-as: 65011
+      enable-bfd:
+        config:
+          bfd-profile: fabric
+          enabled: true
       neighbor-address: 172.30.128.23
   weight: 87
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.34]

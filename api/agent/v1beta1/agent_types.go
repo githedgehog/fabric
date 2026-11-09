@@ -98,17 +98,18 @@ type AgentSpecConfig struct {
 	// +kubebuilder:validation:Format=int64
 	// +kubebuilder:validation:Minimum=0
 	// +kubebuilder:validation:Maximum=4294967295
-	SpineASN            uint32            `json:"spineASN,omitempty"`
-	ProtocolSubnet      string            `json:"protocolSubnet,omitempty"`
-	VTEPSubnet          string            `json:"vtepSubnet,omitempty"`
-	FabricSubnet        string            `json:"fabricSubnet,omitempty"`
-	ProxyExternalSubnet string            `json:"proxyExternalSubnet,omitempty"`
-	DisableBFD          bool              `json:"disableBFD,omitempty"`
-	GatewayBFD          bool              `json:"gatewayBFD,omitempty"`
-	Alloy               alloy.Config      `json:"alloy,omitempty"`
-	GatewayCommunities  map[string]string `json:"gatewayCommunities,omitempty"`
-	HeartbeatInterval   uint32            `json:"heartbeatInterval,omitempty"` // seconds, default and minimum 15
-	EnforceInterval     uint32            `json:"enforceInterval,omitempty"`   // seconds, default and minimum 120
+	SpineASN            uint32 `json:"spineASN,omitempty"`
+	ProtocolSubnet      string `json:"protocolSubnet,omitempty"`
+	VTEPSubnet          string `json:"vtepSubnet,omitempty"`
+	FabricSubnet        string `json:"fabricSubnet,omitempty"`
+	ProxyExternalSubnet string `json:"proxyExternalSubnet,omitempty"`
+	DisableBFD          bool   `json:"disableBFD,omitempty"`
+	// Deprecated: ignored, DisableBFD covers it. TODO: remove after 26.07 release, as 26.06 agents still have it saved
+	GatewayBFD         bool              `json:"gatewayBFD,omitempty"`
+	Alloy              alloy.Config      `json:"alloy,omitempty"`
+	GatewayCommunities map[string]string `json:"gatewayCommunities,omitempty"`
+	HeartbeatInterval  uint32            `json:"heartbeatInterval,omitempty"` // seconds, default and minimum 15
+	EnforceInterval    uint32            `json:"enforceInterval,omitempty"`   // seconds, default and minimum 120
 	// Domains holds every domain of the switch's fabric
 	Domains map[string]wiringapi.FabricDomainSpec `json:"domains,omitempty"`
 }
