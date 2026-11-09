@@ -4,7 +4,6 @@
 package valid
 
 import (
-	"context"
 	"slices"
 	"strings"
 	"testing"
@@ -12,16 +11,11 @@ import (
 	"github.com/stretchr/testify/require"
 	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
+	"go.githedgehog.com/fabric/pkg/util/testutil"
 	"k8s.io/apimachinery/pkg/runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
-
-func checkPeering(peering kclient.Object) func(context.Context, kclient.Reader) error {
-	return func(ctx context.Context, kube kclient.Reader) error {
-		return Peering(ctx, kube, peering)
-	}
-}
 
 // peeringName returns the name override if passed, otherwise generates one from the members, e.g. "vpc-1--vpc-2"
 func peeringName(member1, member2 string, nameOverride ...string) string {
@@ -87,84 +81,84 @@ func gwPeering(member1, member2 string, nameOverride ...string) *gwapi.GatewayPe
 func TestValidatePeering(t *testing.T) {
 	tests := []struct {
 		name    string
-		check   func(context.Context, kclient.Reader) error
+		peering kclient.Object
 		objects []kclient.Object
 		err     bool
 	}{
 		{
 			name:    "vpc-peering-no-conflict",
-			check:   checkPeering(vpcPeering("vpc-1", "vpc-2")),
+			peering: vpcPeering("vpc-1", "vpc-2"),
 			objects: []kclient.Object{vpcPeering("vpc-1", "vpc-3")},
 		},
 		{
 			name:    "ext-peering-no-conflict",
-			check:   checkPeering(extPeering("vpc-1", "ext-1")),
+			peering: extPeering("vpc-1", "ext-1"),
 			objects: []kclient.Object{extPeering("vpc-1", "ext-2")},
 		},
 		{
 			name:    "gw-peering-no-conflict",
-			check:   checkPeering(gwPeering("vpc-1", "vpc-2")),
+			peering: gwPeering("vpc-1", "vpc-2"),
 			objects: []kclient.Object{gwPeering("vpc-1", "vpc-3")},
 		},
 		{
 			name:    "gw-peering-ext-no-conflict",
-			check:   checkPeering(gwPeering("vpc-1", gwExt("ext-1"))),
+			peering: gwPeering("vpc-1", gwExt("ext-1")),
 			objects: []kclient.Object{gwPeering("vpc-1", gwExt("ext-2"))},
 		},
 		{
 			name:    "vpc-peering-update-self",
-			check:   checkPeering(vpcPeering("vpc-1", "vpc-2")),
+			peering: vpcPeering("vpc-1", "vpc-2"),
 			objects: []kclient.Object{vpcPeering("vpc-1", "vpc-2")},
 		},
 		{
 			name:    "ext-peering-update-self",
-			check:   checkPeering(extPeering("vpc-1", "ext-1")),
+			peering: extPeering("vpc-1", "ext-1"),
 			objects: []kclient.Object{extPeering("vpc-1", "ext-1")},
 		},
 		{
 			name:    "gw-peering-update-self",
-			check:   checkPeering(gwPeering("vpc-1", "vpc-2")),
+			peering: gwPeering("vpc-1", "vpc-2"),
 			objects: []kclient.Object{gwPeering("vpc-1", "vpc-2")},
 		},
 		{
 			name:    "vpc-peering-conflicting-vpc-peering",
-			check:   checkPeering(vpcPeering("vpc-1", "vpc-2")),
+			peering: vpcPeering("vpc-1", "vpc-2"),
 			objects: []kclient.Object{vpcPeering("vpc-2", "vpc-1", "other-name")},
 			err:     true,
 		},
 		{
 			name:    "ext-peering-conflicting-ext-peering",
-			check:   checkPeering(extPeering("vpc-1", "ext-1")),
+			peering: extPeering("vpc-1", "ext-1"),
 			objects: []kclient.Object{extPeering("vpc-1", "ext-1", "other-name")},
 			err:     true,
 		},
 		{
 			name:    "gw-peering-conflicting-gw-peering",
-			check:   checkPeering(gwPeering("vpc-1", gwExt("ext-1"))),
+			peering: gwPeering("vpc-1", gwExt("ext-1")),
 			objects: []kclient.Object{gwPeering(gwExt("ext-1"), "vpc-1", "other-name")},
 			err:     true,
 		},
 		{
 			name:    "gw-peering-conflicting-vpc-peering",
-			check:   checkPeering(gwPeering("vpc-1", "vpc-2")),
+			peering: gwPeering("vpc-1", "vpc-2"),
 			objects: []kclient.Object{vpcPeering("vpc-1", "vpc-2")},
 			err:     true,
 		},
 		{
 			name:    "vpc-peering-conflicting-gw-peering",
-			check:   checkPeering(vpcPeering("vpc-1", "vpc-2")),
+			peering: vpcPeering("vpc-1", "vpc-2"),
 			objects: []kclient.Object{gwPeering("vpc-1", "vpc-2")},
 			err:     true,
 		},
 		{
 			name:    "gw-peering-conflicting-ext-peering",
-			check:   checkPeering(gwPeering("vpc-1", gwExt("ext-1"))),
+			peering: gwPeering("vpc-1", gwExt("ext-1")),
 			objects: []kclient.Object{extPeering("vpc-1", "ext-1")},
 			err:     true,
 		},
 		{
 			name:    "ext-peering-conflicting-gw-peering",
-			check:   checkPeering(extPeering("vpc-1", "ext-1")),
+			peering: extPeering("vpc-1", "ext-1"),
 			objects: []kclient.Object{gwPeering("vpc-1", gwExt("ext-1"))},
 			err:     true,
 		},
@@ -181,9 +175,9 @@ func TestValidatePeering(t *testing.T) {
 				WithObjects(test.objects...).
 				Build()
 
-			err := test.check(t.Context(), kube)
+			err := Peering(t.Context(), kube, test.peering)
 			if test.err {
-				require.Error(t, err, "expected error but got none")
+				testutil.RequireFieldError(t, err, test.peering)
 			} else {
 				require.NoError(t, err, "unexpected error during validation")
 			}

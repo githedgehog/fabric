@@ -18,10 +18,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
+	kapivalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	kctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -42,10 +43,14 @@ func SetupExternalAttachmentWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfi
 		Cfg:        cfg,
 	}
 
-	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr, &vpcapi.ExternalAttachment{}).
+	if err := kctrl.NewWebhookManagedBy(mgr, &vpcapi.ExternalAttachment{}).
 		WithDefaulter(w).
 		WithValidator(newLockedValidator[*vpcapi.ExternalAttachment](w, lock)).
-		Complete(), "failed to setup external attachment webhook")
+		Complete(); err != nil {
+		return fmt.Errorf("failed to setup external attachment webhook: %w", err)
+	}
+
+	return nil
 }
 
 // +kubebuilder:webhook:path=/mutate-vpc-githedgehog-com-v1beta1-externalattachment,mutating=true,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=externalattachments,verbs=create;update,versions=v1beta1,name=mexternalattachment.kb.io,admissionReviewVersions=v1
@@ -60,29 +65,19 @@ func (w *ExternalAttachmentWebhook) Default(_ context.Context, attach *vpcapi.Ex
 }
 
 func (w *ExternalAttachmentWebhook) ValidateCreate(ctx context.Context, attach *vpcapi.ExternalAttachment) (admission.Warnings, error) {
-	warns, err := attach.Validate(ctx, w.KubeClient, w.Cfg)
-	if err != nil {
-		return warns, errors.Wrapf(err, "failed to validate external attachment")
-	}
-
-	return warns, nil
+	return attach.Validate(ctx, w.KubeClient, w.Cfg) //nolint:wrapcheck
 }
 
 func (w *ExternalAttachmentWebhook) ValidateUpdate(ctx context.Context, oldAttach *vpcapi.ExternalAttachment, newAttach *vpcapi.ExternalAttachment) (admission.Warnings, error) {
 	if oldAttach.Spec.Topology.Fabric != newAttach.Spec.Topology.Fabric {
-		return nil, fmt.Errorf("topology.fabric is immutable") //nolint:err113
+		return nil, field.Invalid(field.NewPath("spec", "topology", "fabric"), newAttach.Spec.Topology.Fabric, kapivalidation.FieldImmutableErrorMsg)
 	}
 
 	// if !equality.Semantic.DeepEqual(oldAttach.Spec, newAttach.Spec) {
 	// 	return nil, errors.Errorf("external attachment spec is immutable")
 	// }
 
-	warns, err := newAttach.Validate(ctx, w.KubeClient, w.Cfg)
-	if err != nil {
-		return warns, errors.Wrapf(err, "failed to validate external attachment")
-	}
-
-	return warns, nil
+	return newAttach.Validate(ctx, w.KubeClient, w.Cfg) //nolint:wrapcheck
 }
 
 func (w *ExternalAttachmentWebhook) ValidateDelete(_ context.Context, _ *vpcapi.ExternalAttachment) (admission.Warnings, error) {

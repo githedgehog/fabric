@@ -18,10 +18,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
+	kapivalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	kctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -42,10 +43,14 @@ func SetupExternalPeeringWebhookWith(mgr kctrl.Manager, cfg *meta.FabricConfig, 
 		Cfg:        cfg,
 	}
 
-	return errors.Wrapf(kctrl.NewWebhookManagedBy(mgr, &vpcapi.ExternalPeering{}).
+	if err := kctrl.NewWebhookManagedBy(mgr, &vpcapi.ExternalPeering{}).
 		WithDefaulter(w).
 		WithValidator(newLockedValidator[*vpcapi.ExternalPeering](w, lock)).
-		Complete(), "failed to setup external peering webhook")
+		Complete(); err != nil {
+		return fmt.Errorf("failed to setup external peering webhook: %w", err)
+	}
+
+	return nil
 }
 
 // +kubebuilder:webhook:path=/mutate-vpc-githedgehog-com-v1beta1-externalpeering,mutating=true,failurePolicy=fail,sideEffects=None,groups=vpc.githedgehog.com,resources=externalpeerings,verbs=create;update,versions=v1beta1,name=mexternalpeering.kb.io,admissionReviewVersions=v1
@@ -60,29 +65,19 @@ func (w *ExternalPeeringWebhook) Default(_ context.Context, peer *vpcapi.Externa
 }
 
 func (w *ExternalPeeringWebhook) ValidateCreate(ctx context.Context, peer *vpcapi.ExternalPeering) (admission.Warnings, error) {
-	warns, err := peer.Validate(ctx, w.KubeClient, w.Cfg)
-	if err != nil {
-		return warns, errors.Wrapf(err, "failed to validate external peering")
-	}
-
-	return warns, nil
+	return peer.Validate(ctx, w.KubeClient, w.Cfg) //nolint:wrapcheck
 }
 
 func (w *ExternalPeeringWebhook) ValidateUpdate(ctx context.Context, oldPeer *vpcapi.ExternalPeering, newPeer *vpcapi.ExternalPeering) (admission.Warnings, error) {
 	if oldPeer.Spec.Topology.Fabric != newPeer.Spec.Topology.Fabric {
-		return nil, fmt.Errorf("topology.fabric is immutable") //nolint:err113
+		return nil, field.Invalid(field.NewPath("spec", "topology", "fabric"), newPeer.Spec.Topology.Fabric, kapivalidation.FieldImmutableErrorMsg)
 	}
 
 	// if !equality.Semantic.DeepEqual(oldPeer.Spec, newPeer.Spec) {
 	// 	return nil, errors.Errorf("external peering spec is immutable")
 	// }
 
-	warns, err := newPeer.Validate(ctx, w.KubeClient, w.Cfg)
-	if err != nil {
-		return warns, errors.Wrapf(err, "failed to validate external peering")
-	}
-
-	return warns, nil
+	return newPeer.Validate(ctx, w.KubeClient, w.Cfg) //nolint:wrapcheck
 }
 
 func (w *ExternalPeeringWebhook) ValidateDelete(_ context.Context, _ *vpcapi.ExternalPeering) (admission.Warnings, error) {

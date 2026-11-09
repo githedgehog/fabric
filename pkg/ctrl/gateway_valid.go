@@ -212,6 +212,7 @@ func (v *GatewayValidator) Validate(ctx context.Context, gwAg *gwintapi.GatewayA
 			}
 		}
 
+		// not a field error, as the problem can be in any object that goes into the agent, not just the one written
 		return fmt.Errorf("dp-validator: %s", strings.Join(msgs, ", ")) //nolint:err113
 	}
 
