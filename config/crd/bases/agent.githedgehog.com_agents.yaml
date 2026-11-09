@@ -1238,7 +1238,6 @@ spec:
                 - server-leaf
                 - border-leaf
                 - mixed-leaf
-                - virtual-edge
                 type: string
               statusUpdates:
                 items:
@@ -1421,7 +1420,6 @@ spec:
                     - server-leaf
                     - border-leaf
                     - mixed-leaf
-                    - virtual-edge
                     type: string
                   topology:
                     description: Topology is where the switch sits in the fabric topology
@@ -1817,7 +1815,6 @@ spec:
                       - server-leaf
                       - border-leaf
                       - mixed-leaf
-                      - virtual-edge
                       type: string
                     topology:
                       description: Topology is where the switch sits in the fabric

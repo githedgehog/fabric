@@ -235,7 +235,6 @@ spec:
                 - server-leaf
                 - border-leaf
                 - mixed-leaf
-                - virtual-edge
                 type: string
               topology:
                 description: Topology is where the switch sits in the fabric topology
