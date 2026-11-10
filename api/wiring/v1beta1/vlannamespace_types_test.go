@@ -70,6 +70,11 @@ func TestValidate(t *testing.T) {
 			vlanNS: vlanNSGen("ns-1", []meta.VLANRange{{From: 10, To: 1500}}),
 		},
 		{
+			name:   "no-ranges",
+			vlanNS: vlanNSGen("ns-1", nil),
+			err:    true,
+		},
+		{
 			name: "too-many-ranges",
 			vlanNS: vlanNSGen("ns-1", func() []meta.VLANRange {
 				ranges := make([]meta.VLANRange, 0, 21)
