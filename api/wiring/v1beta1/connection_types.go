@@ -790,6 +790,9 @@ func (conn *Connection) Validate(ctx context.Context, kube kclient.Reader, fabri
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed to parse cidr %s", subnet)
 			}
+			if !prefix.Addr().Is4() {
+				return nil, errors.Errorf("subnet %s is not IPv4", subnet)
+			}
 
 			if subnet == "0.0.0.0/0" {
 				if len(se.Subnets) > 1 {
