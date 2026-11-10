@@ -128,6 +128,9 @@ func (ns *VLANNamespace) Validate(_ context.Context, _ kclient.Reader, fabricCfg
 	if err != nil {
 		return nil, errors.Wrapf(err, "invalid ranges")
 	}
+	if len(ranges) == 0 {
+		return nil, errors.Errorf("at least one range required")
+	}
 	if len(ranges) > 20 {
 		return nil, errors.Errorf("too many ranges (%d), max is 20", len(ranges))
 	}
