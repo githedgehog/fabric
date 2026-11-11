@@ -158,10 +158,10 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 	case isCumulus:
 		svc.SkipControlLink = true
 		cmlsProcessor := cmls.Processor()
-		if nvueClient, err := nvue.NewForAgent(svc.Basedir); err != nil {
+		if nvueCfg, err := nvue.AgentConfig(svc.Basedir); err != nil {
 			slog.Warn("NVUE client not configured, switch state collection is limited", "err", err)
 		} else {
-			cmlsProcessor.SetClient(nvueClient)
+			cmlsProcessor.SetClient(nvue.New(nvueCfg))
 		}
 		svc.processor = cmlsProcessor
 	default:

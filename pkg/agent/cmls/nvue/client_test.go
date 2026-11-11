@@ -40,7 +40,7 @@ func TestClientGet(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := New(server.URL+"/nvue_v1/", "admin", "secret")
+	client := New(Config{Address: server.URL + "/nvue_v1/", Username: "admin", Password: "secret"})
 
 	t.Run("decodes and escapes the path", func(t *testing.T) {
 		var iface Interface
@@ -76,7 +76,7 @@ func TestClientGet(t *testing.T) {
 
 	t.Run("bad credentials", func(t *testing.T) {
 		var out map[string]any
-		err := New(server.URL+"/nvue_v1", "admin", "wrong").Get(t.Context(), "/broken", nil, &out)
+		err := New(Config{Address: server.URL + "/nvue_v1", Username: "admin", Password: "wrong"}).Get(t.Context(), "/broken", nil, &out)
 
 		var apiErr *Error
 		require.ErrorAs(t, err, &apiErr)
@@ -91,16 +91,15 @@ func TestBGPInstanceWithoutBGP(t *testing.T) {
 	}))
 	defer server.Close()
 
-	instance, err := New(server.URL, "admin", "secret").BGPInstance(t.Context(), "default")
-	require.NoError(t, err)
-	require.Nil(t, instance)
+	_, err := New(Config{Address: server.URL, Username: "admin", Password: "secret"}).BGPInstance(t.Context(), "default")
+	require.ErrorIs(t, err, ErrNotFound)
 }
 
-func TestNewForAgent(t *testing.T) {
+func TestAgentConfig(t *testing.T) {
 	t.Run("nothing configured", func(t *testing.T) {
 		t.Setenv(EnvPassword, "")
 
-		_, err := NewForAgent("")
+		_, err := AgentConfig("")
 		require.ErrorIs(t, err, ErrNoCredentials)
 	})
 
@@ -109,11 +108,10 @@ func TestNewForAgent(t *testing.T) {
 		t.Setenv(EnvUsername, "admin")
 		t.Setenv(EnvPassword, "secret")
 
-		client, err := NewForAgent("")
+		cfg, err := AgentConfig("")
 		require.NoError(t, err)
-		require.Equal(t, "https://10.0.0.1:8765/nvue_v1", client.address)
-		require.Equal(t, "admin", client.username)
-		require.Equal(t, "secret", client.password)
+		require.Equal(t, Config{Address: "https://10.0.0.1:8765/nvue_v1/", Username: "admin", Password: "secret"}, cfg)
+		require.Equal(t, "https://10.0.0.1:8765/nvue_v1", New(cfg).cfg.Address)
 	})
 
 	t.Run("agent account in basedir", func(t *testing.T) {
@@ -124,11 +122,9 @@ func TestNewForAgent(t *testing.T) {
 		basedir := t.TempDir()
 		require.NoError(t, os.WriteFile(filepath.Join(basedir, AgentPasswordFile), []byte("s3cret\n"), 0o600))
 
-		client, err := NewForAgent(basedir)
+		cfg, err := AgentConfig(basedir)
 		require.NoError(t, err)
-		require.Equal(t, DefaultAddress, client.address)
-		require.Equal(t, AgentUser, client.username)
-		require.Equal(t, "s3cret", client.password)
+		require.Equal(t, Config{Address: DefaultAddress, Username: AgentUser, Password: "s3cret"}, cfg)
 	})
 }
 

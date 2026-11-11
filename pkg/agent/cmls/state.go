@@ -780,11 +780,11 @@ func (c *CumulusProcessor) updateBGPNeighbors(ctx context.Context, reg *switchst
 		}
 
 		instance, err := c.client.BGPInstance(ctx, vrf)
+		if errors.Is(err, nvue.ErrNotFound) {
+			continue // the VRF has no BGP
+		}
 		if err != nil {
 			return fmt.Errorf("getting bgp instance for vrf %s: %w", vrf, err)
-		}
-		if instance == nil {
-			continue
 		}
 
 		// the instance only carries a summary of each neighbor, the rest is served one neighbor at a time
@@ -817,10 +817,10 @@ func (c *CumulusProcessor) updateBGPNeighbors(ctx context.Context, reg *switchst
 				group, known := groups[st.PeerGroup]
 				if !known {
 					group, err = c.client.BGPPeerGroup(ctx, vrf, st.PeerGroup)
-					if err != nil {
+					if err != nil && !errors.Is(err, nvue.ErrNotFound) {
 						return fmt.Errorf("getting bgp peer group %s in vrf %s: %w", st.PeerGroup, vrf, err)
 					}
-					groups[st.PeerGroup] = group
+					groups[st.PeerGroup] = group // nil when the neighbor names a group that doesn't exist
 				}
 
 				st.PeerType = bgpPeerTypeFromGroup(group, localAS)

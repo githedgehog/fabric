@@ -6,7 +6,6 @@ package nvue
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/url"
 	"slices"
@@ -141,14 +140,10 @@ func (c *Client) VRFs(ctx context.Context) ([]string, error) {
 	return names, nil
 }
 
-// BGPInstance returns the BGP instance of a VRF with a summary of its neighbors, or nil when the VRF has no BGP
+// BGPInstance returns the BGP instance of a VRF with a summary of its neighbors, ErrNotFound when the VRF has no BGP
 func (c *Client) BGPInstance(ctx context.Context, vrf string) (*BGPInstance, error) {
 	instance := &BGPInstance{}
 	if err := c.Get(ctx, fmt.Sprintf("/vrf/%s/router/bgp", url.PathEscape(vrf)), nil, instance); err != nil {
-		if errors.Is(err, ErrNotFound) {
-			return nil, nil //nolint:nilnil // no BGP is a normal outcome, not an error
-		}
-
 		return nil, err
 	}
 
@@ -166,15 +161,11 @@ func (c *Client) BGPNeighbor(ctx context.Context, vrf, id string) (*BGPNeighbor,
 	return neighbor, nil
 }
 
-// BGPPeerGroup returns a peer group of the BGP instance in a VRF, or nil when there's no such group
+// BGPPeerGroup returns a peer group of the BGP instance in a VRF, ErrNotFound when there's no such group
 func (c *Client) BGPPeerGroup(ctx context.Context, vrf, id string) (*BGPPeerGroup, error) {
 	group := &BGPPeerGroup{}
 	path := fmt.Sprintf("/vrf/%s/router/bgp/peer-group/%s", url.PathEscape(vrf), url.PathEscape(id))
 	if err := c.Get(ctx, path, nil, group); err != nil {
-		if errors.Is(err, ErrNotFound) {
-			return nil, nil //nolint:nilnil // a missing group is a normal outcome, not an error
-		}
-
 		return nil, err
 	}
 

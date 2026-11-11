@@ -42,26 +42,32 @@ var (
 	ErrNoCredentials = errors.New("no NVUE credentials configured")
 )
 
-// Client talks to a single NVUE API endpoint using basic auth, it's safe for concurrent use
-type Client struct {
-	address  string
-	username string
-	password string
-	http     *http.Client
+// Config is where the API is and who to talk to it as
+type Config struct {
+	// Address of the API including the version prefix, like DefaultAddress
+	Address  string
+	Username string
+	Password string
 }
 
-// New returns a client for the API at address, which includes the version prefix like DefaultAddress does
-func New(address, username, password string) *Client {
+// Client talks to a single NVUE API endpoint using basic auth, it's safe for concurrent use
+type Client struct {
+	cfg  Config
+	http *http.Client
+}
+
+// New returns a client for the API described by cfg
+func New(cfg Config) *Client {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.TLSClientConfig = &tls.Config{
 		MinVersion:         tls.VersionTLS12,
 		InsecureSkipVerify: true, //nolint:gosec // TODO nvued serves a self-signed certificate, pin or install it
 	}
 
+	cfg.Address = strings.TrimSuffix(cfg.Address, "/")
+
 	return &Client{
-		address:  strings.TrimSuffix(address, "/"),
-		username: username,
-		password: password,
+		cfg: cfg,
 		http: &http.Client{
 			Transport: transport,
 			Timeout:   requestTimeout,
@@ -69,27 +75,29 @@ func New(address, username, password string) *Client {
 	}
 }
 
-// NewForAgent builds the client the agent collects the switch state with: its own account on the local API, with
-// the password kept in basedir (see AgentPassword), unless the HH_NVUE_* environment says otherwise. Without a
-// basedir the environment has to provide the password, or it's ErrNoCredentials.
-func NewForAgent(basedir string) (*Client, error) {
-	address := cmp.Or(os.Getenv(EnvAddress), DefaultAddress)
-	username := cmp.Or(os.Getenv(EnvUsername), AgentUser)
-	password := os.Getenv(EnvPassword)
+// AgentConfig is what the agent collects the switch state with: its own account on the local API, with the password
+// kept in basedir (see AgentPassword), unless the HH_NVUE_* environment says otherwise. Without a basedir the
+// environment has to provide the password, or it's ErrNoCredentials.
+func AgentConfig(basedir string) (Config, error) {
+	cfg := Config{
+		Address:  cmp.Or(os.Getenv(EnvAddress), DefaultAddress),
+		Username: cmp.Or(os.Getenv(EnvUsername), AgentUser),
+		Password: os.Getenv(EnvPassword),
+	}
 
-	if password == "" {
+	if cfg.Password == "" {
 		if basedir == "" {
-			return nil, ErrNoCredentials
+			return Config{}, ErrNoCredentials
 		}
 
 		var err error
-		password, err = AgentPassword(basedir)
+		cfg.Password, err = AgentPassword(basedir)
 		if err != nil {
-			return nil, err
+			return Config{}, err
 		}
 	}
 
-	return New(address, username, password), nil
+	return cfg, nil
 }
 
 // Error is the problem-details body NVUE returns on failure
@@ -111,7 +119,7 @@ func (e *Error) Is(target error) bool {
 
 // Get reads the operational state at path, such as "/interface/swp1/counters", and decodes it into out
 func (c *Client) Get(ctx context.Context, path string, query url.Values, out any) error {
-	reqURL := c.address + path
+	reqURL := c.cfg.Address + path
 	if len(query) > 0 {
 		reqURL += "?" + query.Encode()
 	}
@@ -120,7 +128,7 @@ func (c *Client) Get(ctx context.Context, path string, query url.Values, out any
 	if err != nil {
 		return fmt.Errorf("creating request for %s: %w", path, err)
 	}
-	req.SetBasicAuth(c.username, c.password)
+	req.SetBasicAuth(c.cfg.Username, c.cfg.Password)
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := c.http.Do(req)

@@ -69,7 +69,7 @@ func TestUpdateSwitchState(t *testing.T) {
 	server := newFixtureServer(t)
 
 	processor := Processor()
-	processor.SetClient(nvue.New(server.URL, "admin", "secret"))
+	processor.SetClient(nvue.New(nvue.Config{Address: server.URL, Username: "admin", Password: "secret"}))
 	reg := switchstate.NewRegistry()
 
 	require.NoError(t, processor.UpdateSwitchState(t.Context(), sn5610Agent(), reg))
@@ -279,11 +279,12 @@ func TestUpdateSwitchStateOffline(t *testing.T) {
 //	HH_NVUE_ADDRESS=https://127.0.0.1:8765/nvue_v1 HH_NVUE_USERNAME=admin HH_NVUE_PASSWORD=... HH_NVUE_PROFILE=nvidia-sn4600 \
 //	  go test ./pkg/agent/cmls -run Live -v
 func TestUpdateSwitchStateLive(t *testing.T) {
-	client, err := nvue.NewForAgent("")
+	cfg, err := nvue.AgentConfig("")
 	if errors.Is(err, nvue.ErrNoCredentials) {
 		t.Skip("no live switch configured")
 	}
 	require.NoError(t, err)
+	client := nvue.New(cfg)
 
 	agent := sn5610Agent()
 	if name := os.Getenv("HH_NVUE_PROFILE"); name != "" {
