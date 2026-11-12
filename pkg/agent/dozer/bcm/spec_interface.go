@@ -808,12 +808,24 @@ func unmarshalOCInterfaces(agent *agentapi.Agent, ocVal *oc.OpenconfigInterfaces
 
 		if ocIface.Subinterfaces != nil && len(ocIface.Subinterfaces.Subinterface) > 0 {
 			for id, ocSub := range ocIface.Subinterfaces.Subinterface {
-				if ocSub.Config == nil && ocSub.Ipv6 == nil {
+				// there seems to be an issue with the config flag, where it is sometimes false here even though
+				// gnmic and sonic-cli show it as true, so let us also check the state flag as a workaround
+				ipv6Enabled := ocSub.Ipv6 != nil &&
+					((ocSub.Ipv6.Config != nil && ocSub.Ipv6.Config.Enabled != nil && *ocSub.Ipv6.Config.Enabled) ||
+						(ocSub.Ipv6.State != nil && ocSub.Ipv6.State.Enabled != nil && *ocSub.Ipv6.State.Enabled))
+
+				// SONiC's bulk read of /interfaces/interface reports config-less phantom subinterfaces on
+				// random ports, borrowing the index of a real subinterface elsewhere
+				if ocSub.Config == nil && !ipv6Enabled {
 					continue
 				}
+
 				subIface := &dozer.SpecSubinterface{
 					IPs:        map[string]*dozer.SpecInterfaceIP{},
 					StaticARPs: map[string]*dozer.SpecStaticARP{},
+				}
+				if ipv6Enabled {
+					subIface.IPv6 = &dozer.SpecInterfaceIPv6{Enabled: new(true)}
 				}
 
 				if ocSub.Ipv4 != nil {
@@ -866,18 +878,6 @@ func unmarshalOCInterfaces(agent *agentapi.Agent, ocVal *oc.OpenconfigInterfaces
 						subIface.VLAN, err = unmarshalVLAN(ocSub.Vlan.State.VlanId)
 						if err != nil {
 							return nil, errors.Wrapf(err, "failed to unmarshal VLAN for %s.%d", name, id)
-						}
-					}
-				}
-
-				// only set v6 enable it exists and it is true. note that there seems to be an issue with the config
-				// flag, where it is sometimes false here even though gnmic and sonic-cli show it as true, so let us
-				// also check the state flag as a workaround
-				if ocSub.Ipv6 != nil {
-					if (ocSub.Ipv6.Config != nil && ocSub.Ipv6.Config.Enabled != nil && *ocSub.Ipv6.Config.Enabled) ||
-						(ocSub.Ipv6.State != nil && ocSub.Ipv6.State.Enabled != nil && *ocSub.Ipv6.State.Enabled) {
-						subIface.IPv6 = &dozer.SpecInterfaceIPv6{
-							Enabled: new(true),
 						}
 					}
 				}
