@@ -262,6 +262,7 @@
             {{ $user.Name }}:
               hashed-password: {{ $user.HashedPassword }}
               role: {{ $user.Role }}
+              {{ if $user.SSHKeys }}
               ssh:
                 authorized-key:
                   {{ range $id, $key := $user.SSHKeys }}
@@ -269,6 +270,7 @@
                       key: {{ $key.Key }}
                       type: {{ $key.Type }}
                   {{ end }}
+              {{ end }}
           {{ end }}
       api:
         state: enabled

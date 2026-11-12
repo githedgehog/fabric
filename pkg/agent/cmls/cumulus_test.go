@@ -4,6 +4,7 @@
 package cmls
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -94,20 +95,27 @@ func TestBuildConfigForUsers(t *testing.T) {
 	var cfg []map[string]any
 	require.NoError(t, kyaml.Unmarshal(cfgBuf.Bytes(), &cfg))
 
+	requireNoNulls(t, cfg, "")
+
 	users := cfg[0]["set"].(map[string]any)["system"].(map[string]any)["aaa"].(map[string]any)["user"].(map[string]any)
 	require.Len(t, users, 3)
+	// the agent's account has no keys, and an empty authorized-key would be a null that nv config replace rejects
 	require.Equal(t, map[string]any{
 		"hashed-password": "$2a$10$hash",
 		"role":            nvue.AgentRole,
-		"ssh":             map[string]any{"authorized-key": nil},
 	}, users[nvue.AgentUser])
 	require.Equal(t, "system-admin", users["admin"].(map[string]any)["role"])
 	require.Equal(t, "nvue-monitor", users["op"].(map[string]any)["role"])
+	require.Contains(t, users["admin"].(map[string]any)["ssh"], "authorized-key")
 
 	// ZTP runs before the agent has its account
 	ztpBuf, err := buildConfigFor(ztpCfgTmpl, minimalAgent(), nil)
 	require.NoError(t, err)
 	require.NotContains(t, ztpBuf.String(), nvue.AgentUser)
+
+	var ztpCfg []map[string]any
+	require.NoError(t, kyaml.Unmarshal(ztpBuf.Bytes(), &ztpCfg))
+	requireNoNulls(t, ztpCfg, "")
 
 	// the name is taken
 	agent := minimalAgent()
@@ -135,4 +143,27 @@ func TestAgentUserFor(t *testing.T) {
 	again, err := agentUserFor(basedir)
 	require.NoError(t, err)
 	require.Equal(t, user, again)
+}
+
+// requireNoNulls fails on a null anywhere in a rendered config: NVUE rejects a set with a null value, which is what a
+// template key with nothing rendered under it becomes
+func requireNoNulls(t *testing.T, v any, path string) {
+	t.Helper()
+
+	switch v := v.(type) {
+	case nil:
+		require.Fail(t, "null value in config", "at %s", path)
+	case map[string]any:
+		for k, child := range v {
+			requireNoNulls(t, child, path+"/"+k)
+		}
+	case []map[string]any:
+		for i, child := range v {
+			requireNoNulls(t, child, fmt.Sprintf("%s[%d]", path, i))
+		}
+	case []any:
+		for i, child := range v {
+			requireNoNulls(t, child, fmt.Sprintf("%s[%d]", path, i))
+		}
+	}
 }
