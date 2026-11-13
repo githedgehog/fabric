@@ -29,7 +29,7 @@ var CumulusNvidiaSN2201 = wiringapi.SwitchProfile{
 			ESLAG:         false, // TODO enable if it's Spectrum A1 (Device Version >= 16 in decode-syseeprom), EVPN multihoming isn't supported on A0
 			ECMPRoCEQPN:   false, // TODO verify
 		},
-		Notes:    "Ports 49 and 51 support up to 5W transceivers, ports 50 and 52 up to 3.5W",
+		Notes:    "Ports 49 and 51 support up to 5W transceivers, ports 50 and 52 up to 3.5W.",
 		NOSType:  meta.NOSTypeCumulusMlx,
 		Platform: "x86-64-nv-sn2201", // TODO verify the platform string ONIE reports, likely "x86_64-nvidia_sn2201-r0" (SONiC sonic-buildimage device/mellanox)
 		MaxPorts: 64,

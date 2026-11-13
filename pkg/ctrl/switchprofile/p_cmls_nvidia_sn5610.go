@@ -31,7 +31,7 @@ var CumulusNvidiaSN5610 = wiringapi.SwitchProfile{
 			ESLAG:         true,
 			ECMPRoCEQPN:   false, // TODO verify
 		},
-		Notes:    "Transceiver orientation of bottom two rows of cages is upside down. Breaking out an odd port into 8 ports disables the even port next to it. All OSFP ports support up to 18W transceivers",
+		Notes:    "Transceiver orientation of bottom two rows of cages is upside down. Breaking out an odd port into 8 ports disables the even port next to it. All OSFP ports support up to 18W transceivers.",
 		NOSType:  meta.NOSTypeCumulusMlx,
 		Platform: "x86_64-nv-sn5610-r0", // TODO verify the platform string ONIE reports, likely "x86_64-nvidia_sn5610-r0" (third-party GitHub doc, SONiC only has "x86_64-nvidia_sn5610n-r0" for SN5610N)
 		MaxPorts: 256,
