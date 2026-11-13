@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
@@ -118,6 +119,23 @@ type AgentSpecConfigSpineLeaf struct{}
 
 func (a *Agent) IsSpineLeaf() bool {
 	return a != nil && a.Spec.Config.SpineLeaf != nil
+}
+
+const DefaultHeartbeatInterval = 15 * time.Second
+
+func (a *Agent) HeartbeatInterval() time.Duration {
+	return max(DefaultHeartbeatInterval, time.Duration(a.Spec.Config.HeartbeatInterval)*time.Second)
+}
+
+// HeartbeatStaleAfter is how long the agent can go without a heartbeat before it's considered stale: two missed
+// heartbeats plus some slack, but never less than a minute
+func (a *Agent) HeartbeatStaleAfter() time.Duration {
+	return max(time.Minute, 2*a.HeartbeatInterval()+30*time.Second)
+}
+
+// IsHeartbeatStale reports whether the agent is considered down. Switch state is collected with each heartbeat
+func (a *Agent) IsHeartbeatStale(now time.Time) bool {
+	return now.Sub(a.Status.LastHeartbeat.Time) >= a.HeartbeatStaleAfter()
 }
 
 // TODO rename?

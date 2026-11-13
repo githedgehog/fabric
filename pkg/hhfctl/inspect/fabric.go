@@ -136,9 +136,12 @@ func (out *FabricOut) MarshalText(_ FabricIn, now time.Time) (string, error) {
 			applied = HumanizeTime(now, sw.State.LastAppliedTime.Time)
 		}
 
-		heartbeat := ""
+		heartbeat := neverHeartbeat
 		if !sw.State.LastHeartbeat.IsZero() {
 			heartbeat = HumanizeTime(now, sw.State.LastHeartbeat.Time)
+		}
+		if sw.State.Stale {
+			heartbeat = red(heartbeat + " (stale)")
 		}
 
 		swData = append(swData, []string{
@@ -232,11 +235,8 @@ func Fabric(ctx context.Context, kube kclient.Reader, in FabricIn) (*FabricOut, 
 			profiles[sw.Spec.Profile] = sp
 		}
 
-		skipActual := false
-		agent, ok := agents[swName]
-		if !ok {
-			skipActual = true
-			agent = &agentapi.Agent{}
+		agent := agents[swName]
+		if agent == nil {
 			slog.Warn("Agent object not found", "name", swName)
 		}
 
@@ -249,7 +249,7 @@ func Fabric(ctx context.Context, kube kclient.Reader, in FabricIn) (*FabricOut, 
 			Groups:             sw.Spec.Groups,
 		}
 
-		if !skipActual {
+		if agent != nil {
 			swState.Serial = agent.Status.State.NOS.SerialNumber
 			swState.Software = agent.Status.State.NOS.SoftwareVersion
 
