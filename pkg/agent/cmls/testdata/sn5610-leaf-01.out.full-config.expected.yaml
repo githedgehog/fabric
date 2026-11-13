@@ -829,7 +829,7 @@
                 peer-group: underlay_spine
                 type: numbered
               172.30.128.2:
-                description: fabric underlay to spine spine-01/E1/2
+                description: fabric underlay to spine spine-01/E1/2/1
                 peer-group: underlay_spine
                 type: numbered
               172.30.8.0:

@@ -120,8 +120,8 @@ func TestBuildConfig(t *testing.T) {
 		{name: "vx-spine-01", profile: switchprofile.CumulusVX},
 		{name: "vx-leaf-01", profile: switchprofile.CumulusVX}, // route summ, p2p link on an attachment
 		// SN5610 with breakouts, incl. an 8x one that disables the next port
-		{name: "sn5610-spine-01", profile: switchprofile.CumulusNvidiaSN5610}, // fabric link on a broken out port
-		{name: "sn5610-leaf-01", profile: switchprofile.CumulusNvidiaSN5610},  // servers on a breakout sub-port and a bonus port
+		{name: "sn5610-spine-01", profile: switchprofile.CumulusNvidiaSN5610}, // fabric links on a broken out port and on a 1x sub-port
+		{name: "sn5610-leaf-01", profile: switchprofile.CumulusNvidiaSN5610},  // servers on a breakout sub-port and a bonus port, fabric link on an explicit 1x port
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			agData, err := os.ReadFile(filepath.Join(testdataDir, tt.name+".in.agent.yaml"))
