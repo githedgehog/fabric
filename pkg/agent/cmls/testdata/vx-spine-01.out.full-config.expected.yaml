@@ -12,9 +12,7 @@
         ipv4:
           address:
             172.30.8.0/32: {}
-            
         type: loopback
-      
       swp1:
         ipv6:
           state: disabled
@@ -23,23 +21,15 @@
         qos:
           pfc-watchdog:
             state: enable
-        
         link:
           state:
             up: {}
-        
-        
         ipv4:
           address:
             172.30.128.0/31: {}
-        
-        
         router:
           adaptive-routing:
             state: enabled
-        
-        
-      
       swp2:
         ipv6:
           state: disabled
@@ -48,23 +38,15 @@
         qos:
           pfc-watchdog:
             state: enable
-        
         link:
           state:
             up: {}
-        
-        
         ipv4:
           address:
             172.30.128.2/31: {}
-        
-        
         router:
           adaptive-routing:
             state: enabled
-        
-        
-      
       swp3:
         ipv6:
           state: disabled
@@ -73,23 +55,15 @@
         qos:
           pfc-watchdog:
             state: enable
-        
         link:
           state:
             up: {}
-        
-        
         ipv4:
           address:
             172.30.128.4/31: {}
-        
-        
         router:
           adaptive-routing:
             state: enabled
-        
-        
-      
       swp4:
         ipv6:
           state: disabled
@@ -98,23 +72,15 @@
         qos:
           pfc-watchdog:
             state: enable
-        
         link:
           state:
             up: {}
-        
-        
         ipv4:
           address:
             172.30.128.6/31: {}
-        
-        
         router:
           adaptive-routing:
             state: enabled
-        
-        
-      
       swp5:
         ipv6:
           state: disabled
@@ -123,8 +89,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp6:
         ipv6:
           state: disabled
@@ -133,8 +97,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp7:
         ipv6:
           state: disabled
@@ -143,8 +105,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp8:
         ipv6:
           state: disabled
@@ -153,8 +113,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp9:
         ipv6:
           state: disabled
@@ -163,8 +121,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp10:
         ipv6:
           state: disabled
@@ -173,8 +129,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp11:
         ipv6:
           state: disabled
@@ -183,8 +137,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp12:
         ipv6:
           state: disabled
@@ -193,8 +145,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp13:
         ipv6:
           state: disabled
@@ -203,8 +153,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp14:
         ipv6:
           state: disabled
@@ -213,8 +161,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp15:
         ipv6:
           state: disabled
@@ -223,8 +169,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp16:
         ipv6:
           state: disabled
@@ -233,8 +177,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp17:
         ipv6:
           state: disabled
@@ -243,8 +185,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp18:
         ipv6:
           state: disabled
@@ -253,8 +193,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp19:
         ipv6:
           state: disabled
@@ -263,8 +201,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp20:
         ipv6:
           state: disabled
@@ -273,8 +209,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp21:
         ipv6:
           state: disabled
@@ -283,8 +217,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp22:
         ipv6:
           state: disabled
@@ -293,8 +225,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp23:
         ipv6:
           state: disabled
@@ -303,8 +233,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp24:
         ipv6:
           state: disabled
@@ -313,8 +241,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp25:
         ipv6:
           state: disabled
@@ -323,8 +249,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp26:
         ipv6:
           state: disabled
@@ -333,8 +257,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp27:
         ipv6:
           state: disabled
@@ -343,8 +265,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp28:
         ipv6:
           state: disabled
@@ -353,8 +273,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp29:
         ipv6:
           state: disabled
@@ -363,8 +281,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp30:
         ipv6:
           state: disabled
@@ -373,8 +289,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp31:
         ipv6:
           state: disabled
@@ -383,8 +297,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp32:
         ipv6:
           state: disabled
@@ -393,8 +305,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp33:
         ipv6:
           state: disabled
@@ -403,8 +313,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp34:
         ipv6:
           state: disabled
@@ -413,8 +321,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp35:
         ipv6:
           state: disabled
@@ -423,8 +329,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp36:
         ipv6:
           state: disabled
@@ -433,8 +337,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp37:
         ipv6:
           state: disabled
@@ -443,8 +345,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp38:
         ipv6:
           state: disabled
@@ -453,8 +353,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp39:
         ipv6:
           state: disabled
@@ -463,8 +361,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp40:
         ipv6:
           state: disabled
@@ -473,8 +369,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp41:
         ipv6:
           state: disabled
@@ -483,8 +377,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp42:
         ipv6:
           state: disabled
@@ -493,8 +385,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp43:
         ipv6:
           state: disabled
@@ -503,8 +393,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp44:
         ipv6:
           state: disabled
@@ -513,8 +401,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp45:
         ipv6:
           state: disabled
@@ -523,8 +409,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp46:
         ipv6:
           state: disabled
@@ -533,8 +417,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp47:
         ipv6:
           state: disabled
@@ -543,8 +425,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp48:
         ipv6:
           state: disabled
@@ -553,8 +433,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp49:
         ipv6:
           state: disabled
@@ -563,8 +441,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp50:
         ipv6:
           state: disabled
@@ -573,8 +449,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp51:
         ipv6:
           state: disabled
@@ -583,8 +457,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp52:
         ipv6:
           state: disabled
@@ -593,8 +465,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp53:
         ipv6:
           state: disabled
@@ -603,8 +473,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp54:
         ipv6:
           state: disabled
@@ -613,8 +481,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp55:
         ipv6:
           state: disabled
@@ -623,8 +489,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp56:
         ipv6:
           state: disabled
@@ -633,8 +497,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp57:
         ipv6:
           state: disabled
@@ -643,8 +505,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp58:
         ipv6:
           state: disabled
@@ -653,8 +513,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp59:
         ipv6:
           state: disabled
@@ -663,8 +521,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp60:
         ipv6:
           state: disabled
@@ -673,8 +529,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp61:
         ipv6:
           state: disabled
@@ -683,8 +537,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp62:
         ipv6:
           state: disabled
@@ -693,8 +545,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp63:
         ipv6:
           state: disabled
@@ -703,8 +553,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
       swp64:
         ipv6:
           state: disabled
@@ -713,11 +561,8 @@
         qos:
           pfc-watchdog:
             state: enable
-        
-      
     evpn:
       state: enabled
-    
     qos:
       pfc:
         default-global:
@@ -846,42 +691,32 @@
                 multihop-ttl: 2
                 remote-as: external
                 update-source: lo
-            
             neighbor:
-              
               172.30.128.1:
                 description: fabric underlay to leaf leaf-01/E1/5
                 peer-group: underlay_leaf
                 type: numbered
-              
               172.30.128.3:
                 description: fabric underlay to leaf leaf-01/E1/6
                 peer-group: underlay_leaf
                 type: numbered
-              
               172.30.128.5:
                 description: fabric underlay to leaf leaf-02/E1/4
                 peer-group: underlay_leaf
                 type: numbered
-              
               172.30.128.7:
                 description: fabric underlay to leaf leaf-02/E1/5
                 peer-group: underlay_leaf
                 type: numbered
-              
               172.30.8.2:
                 description: fabric overlay to leaf leaf-01
                 peer-group: overlay
                 type: numbered
-              
               172.30.8.3:
                 description: fabric overlay to leaf leaf-02
                 peer-group: overlay
                 type: numbered
-              
-            
             state: enabled
-      
     system:
       aaa:
         class:
@@ -912,37 +747,28 @@
               nvapply: {}
               sudo: {}
         user:
-          
             admin:
               hashed-password: $5$8nAYPGcl4l6G7Av1$Qi4/gnM0yPtGv9kjpMh78NuNSfQWy7vR1rulHpurL36
               role: system-admin
               ssh:
                 authorized-key:
-                  
                     key-0:
                       key: AAAAC3NzaC1lZDI1NTE5AAAAIGpF2+9I1Nj4BcN7y6DjzTbq1VcUYIRGyfzId5ZoBEFj
                       type: ssh-ed25519
-                  
                     key-1:
                       key: AAAAC3NzaC1lZDI1NTE5AAAAIILr33oUspqfHiKC9BaenkKG3nIznbi/Ep3mmsMZjS4U
                       type: ssh-ed25519
-                  
-          
             op:
               hashed-password: $5$8nAYPGcl4l6G7Av1$Qi4/gnM0yPtGv9kjpMh78NuNSfQWy7vR1rulHpurL36
               role: nvue-monitor
               ssh:
                 authorized-key:
-                  
                     key-0:
                       key: AAAAC3NzaC1lZDI1NTE5AAAAIGpF2+9I1Nj4BcN7y6DjzTbq1VcUYIRGyfzId5ZoBEFj
                       type: ssh-ed25519
-                  
                     key-1:
                       key: AAAAC3NzaC1lZDI1NTE5AAAAIILr33oUspqfHiKC9BaenkKG3nIznbi/Ep3mmsMZjS4U
                       type: ssh-ed25519
-                  
-          
       api:
         state: enabled
       config:
@@ -989,11 +815,8 @@
         vrf: mgmt
       ssh-server:
         allow-users:
-          
             admin: {}
-          
             op: {}
-          
         permit-root-login: disabled
         state: enabled
       wjh:
