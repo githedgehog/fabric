@@ -22,6 +22,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp2:
         ipv6:
           state: disabled
@@ -31,6 +33,7 @@
           pfc-watchdog:
             state: enable
         link:
+          speed: 10G
           state:
             up: {}
         vrf: vpc-03
@@ -43,6 +46,7 @@
           pfc-watchdog:
             state: enable
         link:
+          speed: 10G
           state:
             up: {}
         vrf: vpc-01
@@ -58,6 +62,7 @@
           pfc-watchdog:
             state: enable
         link:
+          speed: 10G
           state:
             up: {}
         vrf: vpc-02
@@ -70,6 +75,7 @@
           pfc-watchdog:
             state: enable
         link:
+          speed: 10G
           state:
             up: {}
         ipv4:
@@ -87,6 +93,7 @@
           pfc-watchdog:
             state: enable
         link:
+          speed: 10G
           state:
             up: {}
         ipv4:
@@ -104,6 +111,7 @@
           pfc-watchdog:
             state: enable
         link:
+          speed: 10G
           state:
             up: {}
         ipv4:
@@ -121,6 +129,7 @@
           pfc-watchdog:
             state: enable
         link:
+          speed: 10G
           state:
             up: {}
         ipv4:
@@ -137,6 +146,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp10:
         ipv6:
           state: disabled
@@ -145,6 +156,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp11:
         ipv6:
           state: disabled
@@ -153,6 +166,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp12:
         ipv6:
           state: disabled
@@ -161,6 +176,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp13:
         ipv6:
           state: disabled
@@ -169,6 +186,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp14:
         ipv6:
           state: disabled
@@ -177,6 +196,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp15:
         ipv6:
           state: disabled
@@ -185,6 +206,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp16:
         ipv6:
           state: disabled
@@ -193,6 +216,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp17:
         ipv6:
           state: disabled
@@ -201,6 +226,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp18:
         ipv6:
           state: disabled
@@ -209,6 +236,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp19:
         ipv6:
           state: disabled
@@ -217,6 +246,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp20:
         ipv6:
           state: disabled
@@ -225,6 +256,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp21:
         ipv6:
           state: disabled
@@ -233,6 +266,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp22:
         ipv6:
           state: disabled
@@ -241,6 +276,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp23:
         ipv6:
           state: disabled
@@ -249,6 +286,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp24:
         ipv6:
           state: disabled
@@ -257,6 +296,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp25:
         ipv6:
           state: disabled
@@ -265,6 +306,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp26:
         ipv6:
           state: disabled
@@ -273,6 +316,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp27:
         ipv6:
           state: disabled
@@ -281,6 +326,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp28:
         ipv6:
           state: disabled
@@ -289,6 +336,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp29:
         ipv6:
           state: disabled
@@ -297,6 +346,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp30:
         ipv6:
           state: disabled
@@ -305,6 +356,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp31:
         ipv6:
           state: disabled
@@ -313,6 +366,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp32:
         ipv6:
           state: disabled
@@ -321,6 +376,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp33:
         ipv6:
           state: disabled
@@ -329,6 +386,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp34:
         ipv6:
           state: disabled
@@ -337,6 +396,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp35:
         ipv6:
           state: disabled
@@ -345,6 +406,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp36:
         ipv6:
           state: disabled
@@ -353,6 +416,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp37:
         ipv6:
           state: disabled
@@ -361,6 +426,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp38:
         ipv6:
           state: disabled
@@ -369,6 +436,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp39:
         ipv6:
           state: disabled
@@ -377,6 +446,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp40:
         ipv6:
           state: disabled
@@ -385,6 +456,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp41:
         ipv6:
           state: disabled
@@ -393,6 +466,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp42:
         ipv6:
           state: disabled
@@ -401,6 +476,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp43:
         ipv6:
           state: disabled
@@ -409,6 +486,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp44:
         ipv6:
           state: disabled
@@ -417,6 +496,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp45:
         ipv6:
           state: disabled
@@ -425,6 +506,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp46:
         ipv6:
           state: disabled
@@ -433,6 +516,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp47:
         ipv6:
           state: disabled
@@ -441,6 +526,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp48:
         ipv6:
           state: disabled
@@ -449,6 +536,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp49:
         ipv6:
           state: disabled
@@ -457,6 +546,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp50:
         ipv6:
           state: disabled
@@ -465,6 +556,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp51:
         ipv6:
           state: disabled
@@ -473,6 +566,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp52:
         ipv6:
           state: disabled
@@ -481,6 +576,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp53:
         ipv6:
           state: disabled
@@ -489,6 +586,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp54:
         ipv6:
           state: disabled
@@ -497,6 +596,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp55:
         ipv6:
           state: disabled
@@ -505,6 +606,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp56:
         ipv6:
           state: disabled
@@ -513,6 +616,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp57:
         ipv6:
           state: disabled
@@ -521,6 +626,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp58:
         ipv6:
           state: disabled
@@ -529,6 +636,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp59:
         ipv6:
           state: disabled
@@ -537,6 +646,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp60:
         ipv6:
           state: disabled
@@ -545,6 +656,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp61:
         ipv6:
           state: disabled
@@ -553,6 +666,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp62:
         ipv6:
           state: disabled
@@ -561,6 +676,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp63:
         ipv6:
           state: disabled
@@ -569,6 +686,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
       swp64:
         ipv6:
           state: disabled
@@ -577,6 +696,8 @@
         qos:
           pfc-watchdog:
             state: enable
+        link:
+          speed: 10G
     evpn:
       state: enabled
     nve:

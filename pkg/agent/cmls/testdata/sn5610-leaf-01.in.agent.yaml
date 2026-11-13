@@ -261,6 +261,8 @@ spec:
       E1/3: 2x400G
       E1/5: 1x400G
       E1/9: 8x100G
+    portSpeeds:
+      E1/66: 10G
     profile: nvidia-sn5610
     protocolIP: 172.30.8.2/32
     redundancy: {}

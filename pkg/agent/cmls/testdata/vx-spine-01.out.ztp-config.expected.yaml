@@ -10,6 +10,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -18,6 +19,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -26,6 +28,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -34,6 +37,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -42,6 +46,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -50,6 +55,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -58,6 +64,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -66,6 +73,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -74,6 +82,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -82,6 +91,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -90,6 +100,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -98,6 +109,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -106,6 +118,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -114,6 +127,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -122,6 +136,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -130,6 +145,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -138,6 +154,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -146,6 +163,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -154,6 +172,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -162,6 +181,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -170,6 +190,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -178,6 +199,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -186,6 +208,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -194,6 +217,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -202,6 +226,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -210,6 +235,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -218,6 +244,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -226,6 +253,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -234,6 +262,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -242,6 +271,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -250,6 +280,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -258,6 +289,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -266,6 +298,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -274,6 +307,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -282,6 +316,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -290,6 +325,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -298,6 +334,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -306,6 +343,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -314,6 +352,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -322,6 +361,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -330,6 +370,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -338,6 +379,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -346,6 +388,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -354,6 +397,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -362,6 +406,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -370,6 +415,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -378,6 +424,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -386,6 +433,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -394,6 +442,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -402,6 +451,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -410,6 +460,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -418,6 +469,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -426,6 +478,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -434,6 +487,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -442,6 +496,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -450,6 +505,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -458,6 +514,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -466,6 +523,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -474,6 +532,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -482,6 +541,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -490,6 +550,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -498,6 +559,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -506,6 +568,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
@@ -514,6 +577,7 @@
         ipv6:
           state: disabled
         link:
+          speed: 10G
           state:
             up: {}
         lldp:
