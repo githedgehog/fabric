@@ -28,7 +28,7 @@ var CumulusNvidiaSN4700 = wiringapi.SwitchProfile{
 			ESLAG:         true,
 			ECMPRoCEQPN:   false, // TODO verify
 		},
-		Notes:    "Breaking out an odd port into 8 ports disables the even port next to it. Auto-negotiation isn't supported with 400G transceivers, speed must be set explicitly. All ports support up to 12W transceivers.",
+		Notes:    "Breaking out an odd port into 8 ports disables the even port next to it. All ports support up to 12W transceivers.",
 		NOSType:  meta.NOSTypeCumulusMlx,
 		Platform: "x86_64-mlnx_msn4700-r0",
 		MaxPorts: 128,
@@ -68,6 +68,9 @@ var CumulusNvidiaSN4700 = wiringapi.SwitchProfile{
 			"E1/32": {NOSName: "swp32", Label: "32", Profile: "QSFPDD-400G" + wiringapi.EvenPortProfileSuffix},
 		},
 		// TODO verify, Cumulus docs list 8x1G, 8x10G and 8x25G for the odd ports which are missing here
+		// TODO verify 400G auto-negotiation with QSFP-DD transceivers, the Cumulus port attributes docs say it isn't
+		// supported on SN4700 and the speed must be forced while the release notes say NVIDIA to NVIDIA PAM4 links need
+		// it, NVUE accepts it at 400G (5.18.1)
 		PortProfiles: map[string]wiringapi.SwitchProfilePortProfile{
 			"QSFPDD-400G" + wiringapi.OddPortProfileSuffix: {
 				Breakout: &wiringapi.SwitchProfilePortProfileBreakout{
