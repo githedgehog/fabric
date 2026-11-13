@@ -526,6 +526,11 @@ func (sp *SwitchProfile) Validate(_ context.Context, _ kclient.Reader, _ *meta.F
 				return nil, errors.Errorf("profile %q must have default breakout in supported breakouts", name)
 			}
 
+			// disabled ports are always at their default breakout, so it can't disable other ports
+			if len(profile.Breakout.Supported[profile.Breakout.Default].DisablesPortOffsets) > 0 {
+				return nil, fmt.Errorf("profile %q default breakout %q must not disable other ports", name, profile.Breakout.Default) //nolint:err113
+			}
+
 			for mode, offsets := range profile.Breakout.Supported {
 				if len(offsets.Offsets) == 0 {
 					return nil, errors.Errorf("profile %q must have non-empty offsets for mode %q", name, mode)
@@ -730,6 +735,11 @@ func (sp *SwitchProfileSpec) GetDisabledAPIPorts(sw *SwitchSpec) (map[string]str
 			disabledName, err := offsetPortName(portName, offset)
 			if err != nil {
 				return nil, err
+			}
+
+			// keep the first port in order if several ports disable the same one, for stable error messages
+			if by, ok := disabled[disabledName]; ok && ComparePortNames(by, portName) < 0 {
+				continue
 			}
 
 			disabled[disabledName] = portName
