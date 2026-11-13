@@ -969,6 +969,11 @@ func TestSwitchProfileValidateCumulus(t *testing.T) {
 			f:    setDisables("4x25G", ""),
 			err:  true,
 		},
+		{
+			name: "disables-in-default-mode",
+			f:    setDisables("1x100G", "1"),
+			err:  true,
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			sp := cumulusTestProfile()
@@ -1033,6 +1038,17 @@ func TestSwitchProfileDisabledPorts(t *testing.T) {
 	disabled, err = sp.GetDisabledAPIPorts(&wiringapi.SwitchSpec{})
 	require.NoError(t, err)
 	require.Empty(t, disabled)
+
+	// E1/1 and E1/3 both disable E1/2, the first one is always reported
+	breakout.DisablesPortOffsets = []string{"1", "-1"}
+	sp.PortProfiles["QSFP28-100G"].Breakout.Supported["4x25G"] = breakout
+	for range 10 {
+		disabled, err = sp.GetDisabledAPIPorts(&wiringapi.SwitchSpec{PortBreakouts: map[string]string{"E1/1": "4x25G", "E1/3": "4x25G"}})
+		require.NoError(t, err)
+		require.Equal(t, "E1/1", disabled["E1/2"])
+	}
+	breakout.DisablesPortOffsets = []string{"1"}
+	sp.PortProfiles["QSFP28-100G"].Breakout.Supported["4x25G"] = breakout
 
 	bonus := sp.Ports["E1/5"]
 	bonus.Bonus = true
