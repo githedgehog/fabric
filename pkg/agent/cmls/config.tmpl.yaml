@@ -14,7 +14,7 @@
             {{ $.ProtocolIP }}: {}
             {{ if $.VTEPIP }}{{ $.VTEPIP }}: {}{{ end }}
         type: loopback
-      swp1-64:
+      swp1-{{ $.FrontPorts }}:
         ipv6:
           state: disabled
         lldp:
@@ -262,6 +262,7 @@
             {{ $user.Name }}:
               hashed-password: {{ $user.HashedPassword }}
               role: {{ $user.Role }}
+              {{ if $user.SSHKeys }}
               ssh:
                 authorized-key:
                   {{ range $id, $key := $user.SSHKeys }}
@@ -269,6 +270,7 @@
                       key: {{ $key.Key }}
                       type: {{ $key.Type }}
                   {{ end }}
+              {{ end }}
           {{ end }}
       api:
         state: enabled
@@ -300,7 +302,6 @@
           acl-default-whitelist:
             inbound: {}
       docker:
-        state: enabled
         vrf: mgmt
       hostname: {{ $.Hostname }}
       lldp:

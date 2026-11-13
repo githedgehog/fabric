@@ -39,6 +39,7 @@ import (
 	"go.githedgehog.com/fabric/pkg/agent/alloy"
 	"go.githedgehog.com/fabric/pkg/agent/clsp"
 	"go.githedgehog.com/fabric/pkg/agent/cmls"
+	"go.githedgehog.com/fabric/pkg/agent/cmls/nvue"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/clsds5000"
@@ -157,6 +158,11 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 	case isCumulus:
 		svc.SkipControlLink = true
 		cmlsProcessor := cmls.Processor()
+		if nvueCfg, err := nvue.AgentConfig(svc.Basedir); err != nil {
+			slog.Warn("NVUE client not configured, switch state collection is limited", "err", err)
+		} else {
+			cmlsProcessor.SetClient(nvue.New(nvueCfg))
+		}
 		svc.processor = cmlsProcessor
 	default:
 		return fmt.Errorf("unsupported nos type: %s", agent.Spec.SwitchProfile.NOSType) //nolint:err113

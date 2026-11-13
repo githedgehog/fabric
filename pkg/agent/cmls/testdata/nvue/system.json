@@ -1,0 +1,110 @@
+{
+  "date-time": {
+    "local-time": "2026-10-30 21:00:48",
+    "timezone": "Etc/UTC"
+  },
+  "dns": {
+    "domain": ""
+  },
+  "fqdn": "env-7-sn5610-01",
+  "global": {
+    "anycast-id": "none",
+    "anycast-mac": "none",
+    "arp": {
+      "base-reachable-time": 1080,
+      "garbage-collection-threshold": {
+        "effective": 36178,
+        "maximum": 41347,
+        "minimum": 128
+      }
+    },
+    "fabric-id": 1,
+    "fabric-mac": "none",
+    "icmp": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "nd": {
+      "base-reachable-time": 1080,
+      "garbage-collection-threshold": {
+        "effective": 18088,
+        "maximum": 20673,
+        "minimum": 128
+      }
+    },
+    "reserved": {
+      "routing-table": {
+        "pbr": {
+          "begin": 10000,
+          "end": 4294966272
+        }
+      },
+      "vlan": {
+        "internal": {
+          "range": "3725-3999"
+        },
+        "l3-vni-vlan": {
+          "begin": 4000,
+          "end": 4064
+        }
+      }
+    },
+    "system-mac": "f4:20:4d:ad:bf:8f"
+  },
+  "health": {
+    "issues": {
+      "PSU2": {
+        "issue": "bad"
+      },
+      "PSU2-Temp-Sensor": {
+        "issue": "absent"
+      },
+      "PSU2/FAN": {
+        "issue": "absent"
+      },
+      "PSU4": {
+        "issue": "bad"
+      },
+      "PSU4-Temp-Sensor": {
+        "issue": "absent"
+      },
+      "PSU4/FAN": {
+        "issue": "absent"
+      },
+      "ps_r_policy_check": {
+        "issue": "bad : Good PSUs - 2 :: PSU redundancy Required PSUs - 4"
+      }
+    },
+    "status": "Not OK",
+    "status-led": "amber"
+  },
+  "hostname": "env-7-sn5610-01",
+  "memory": {
+    "physical": {
+      "buffer": 373235712,
+      "cache": 2769850368,
+      "free": 25695088640,
+      "total": 33000202240,
+      "used": 4685611008,
+      "utilization": 14.198734219636103
+    }
+  },
+  "platform": "x86_64-nvidia_sn5610-r0",
+  "product-name": "Cumulus Linux",
+  "security": {
+    "secure-boot": {
+      "state": "enabled"
+    }
+  },
+  "uptime": 1404905,
+  "version": {
+    "base-os": "Debian GNU/Linux 12.12",
+    "image": {
+      "build-date": "Sat Aug 01 15:01:36 UTC 2026",
+      "build-id": "5.18.0.0045"
+    },
+    "kernel": "6.1.0-cl-1-amd64",
+    "onie": "2025.05-5.3.0017-115200",
+    "product-release": "5.18.0"
+  }
+}

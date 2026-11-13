@@ -1,0 +1,79 @@
+{
+  "cable-type": "Optical module",
+  "channel": {
+    "channel-1": {
+      "rx-cdr-lol": "N/A",
+      "rx-los": "N/A",
+      "rx-power": {
+        "alarm": "Off",
+        "high-alarm-threshold": "1.00 dBm",
+        "high-warning-threshold": "0.00 dBm",
+        "low-alarm-threshold": "-15.00 dBm",
+        "low-warning-threshold": "-12.00 dBm",
+        "power": "0.6087 mW / -2.16 dBm"
+      },
+      "tx-bias-current": {
+        "alarm": "Off",
+        "current": "5.540 mA",
+        "high-alarm-threshold": "20.000 mA",
+        "high-warning-threshold": "15.000 mA",
+        "low-alarm-threshold": "0.500 mA",
+        "low-warning-threshold": "1.000 mA"
+      },
+      "tx-cdr-lol": "N/A",
+      "tx-fault": "N/A",
+      "tx-los": "N/A",
+      "tx-power": {
+        "alarm": "Off",
+        "high-alarm-threshold": "2.00 dBm",
+        "high-warning-threshold": "1.00 dBm",
+        "low-alarm-threshold": "-8.00 dBm",
+        "low-warning-threshold": "-7.00 dBm",
+        "power": "0.5642 mW / -2.49 dBm"
+      }
+    }
+  },
+  "diagnostics-status": "Diagnostic Data Available",
+  "error-status": "N/A",
+  "flag-in-use": "N/A",
+  "identifier": "SFP",
+  "pmd-type": "ETH_XAUI_1_10G",
+  "status": "Inserted",
+  "supported-cable-length": "30m om1, 80m om2, 300m om3, 0m om4, 0m om5",
+  "supported-cable-length-smf": "0.0m",
+  "temp-flags": {
+    "high-alarm": "N/A",
+    "high-warning": "N/A",
+    "low-alarm": "N/A",
+    "low-warning": "N/A"
+  },
+  "temperature": {
+    "alarm": "Off",
+    "high-alarm-threshold": "85.00 C",
+    "high-warning-threshold": "75.00 C",
+    "low-alarm-threshold": "-10.00 C",
+    "low-warning-threshold": "-5.00 C",
+    "setpoint": 75,
+    "temperature": "28.68 C"
+  },
+  "vcc-flags": {
+    "high-alarm": "N/A",
+    "high-warning": "N/A",
+    "low-alarm": "N/A",
+    "low-warning": "N/A"
+  },
+  "vendor-date-code": "230303",
+  "vendor-name": "Edgecore",
+  "vendor-oui": "3c:2c:99",
+  "vendor-pn": "ET5402-SR",
+  "vendor-rev": "A0",
+  "vendor-sn": "L22310000360",
+  "voltage": {
+    "alarm": "Off",
+    "high-alarm-threshold": "3.6000 V",
+    "high-warning-threshold": "3.5000 V",
+    "low-alarm-threshold": "3.0000 V",
+    "low-warning-threshold": "3.1000 V",
+    "voltage": "3.2512 V"
+  }
+}
