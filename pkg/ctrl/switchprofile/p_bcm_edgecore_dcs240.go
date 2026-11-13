@@ -24,7 +24,7 @@ var EdgecoreDCS240 = wiringapi.SwitchProfile{
 			ECMPRoCEQPN:   true,
 			PortLocator:   true,
 		},
-		Notes:    "Upper 16 ports supply maximum of 24W, lower 16 ports supply maximum of 14W",
+		Notes:    "Upper 16 ports supply maximum of 24W, lower 16 ports supply maximum of 14W.",
 		NOSType:  meta.NOSTypeSONiCBCMBase,
 		Platform: "x86_64-accton_as9726_32d-r0",
 		Config:   wiringapi.SwitchProfileConfig{},

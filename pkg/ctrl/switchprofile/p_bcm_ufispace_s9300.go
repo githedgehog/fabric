@@ -23,7 +23,7 @@ var UfiSpaceS9300 = wiringapi.SwitchProfile{
 			ECMPRoCEQPN:   true,
 			PortLocator:   true,
 		},
-		Notes:    "To prevent overheating only 8 ZR transceivers in ports 0,4,8,12,16,20,24,28 and/or only 6 OpenZr+ transceivers in ports 8,12,16,20,24,28. SFP ports are left-most ports, left of ports labeled MGMT",
+		Notes:    "To prevent overheating only 8 ZR transceivers in ports 0,4,8,12,16,20,24,28 and/or only 6 OpenZr+ transceivers in ports 8,12,16,20,24,28. SFP ports are left-most ports, left of ports labeled MGMT.",
 		NOSType:  meta.NOSTypeSONiCBCMBase,
 		Platform: "x86_64-ufispace_s9300_32d-r0",
 		Config:   wiringapi.SwitchProfileConfig{},

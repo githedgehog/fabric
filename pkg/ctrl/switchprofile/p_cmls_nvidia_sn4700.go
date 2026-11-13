@@ -28,7 +28,7 @@ var CumulusNvidiaSN4700 = wiringapi.SwitchProfile{
 			ESLAG:         true,
 			ECMPRoCEQPN:   false, // TODO verify
 		},
-		Notes:    "Breaking out an odd port into 8 ports disables the even port next to it. Auto-negotiation isn't supported with 400G transceivers, speed must be set explicitly. All ports support up to 12W transceivers",
+		Notes:    "Breaking out an odd port into 8 ports disables the even port next to it. Auto-negotiation isn't supported with 400G transceivers, speed must be set explicitly. All ports support up to 12W transceivers.",
 		NOSType:  meta.NOSTypeCumulusMlx,
 		Platform: "x86-64-nv-sn4700", // TODO verify the platform string ONIE reports, likely "x86_64-mlnx_msn4700-r0" (SONiC sonic-buildimage device/mellanox)
 		MaxPorts: 128,

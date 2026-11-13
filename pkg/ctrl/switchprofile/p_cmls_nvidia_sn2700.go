@@ -30,7 +30,7 @@ var CumulusNvidiaSN2700 = wiringapi.SwitchProfile{
 			ESLAG:         false, // EVPN multihoming needs Spectrum A1 and SN2700 shipped with both A0 and A1
 			ECMPRoCEQPN:   false, // TODO verify
 		},
-		Notes:    "Breaking out an odd port into 4 ports disables the even port next to it. Only ports 1, 2, 31 and 32 support 5W transceivers",
+		Notes:    "Breaking out an odd port into 4 ports disables the even port next to it. Only ports 1, 2, 31 and 32 support 5W transceivers.",
 		NOSType:  meta.NOSTypeCumulusMlx,
 		Platform: "x86-64-nv-sn2700", // TODO verify the platform string ONIE reports, likely "x86_64-mlnx_msn2700-r0" (NVIDIA ONIE CLI reference)
 		MaxPorts: 64,

@@ -1030,7 +1030,7 @@ Switch Silicon: **Broadcom TD4-X11**
 
 Ports Summary: **32xQSFP56DD-400G, 2xSFP28-10G**
 
-Notes: Upper 16 ports supply maximum of 24W, lower 16 ports supply maximum of 14W
+Notes: Upper 16 ports supply maximum of 24W, lower 16 ports supply maximum of 14W.
 
 **Supported features:**
 
@@ -1332,7 +1332,7 @@ Switch Silicon: **NVIDIA Spectrum**
 
 Ports Summary: **48xRJ45-1G, 4xQSFP28-100G**
 
-Notes: Ports 49 and 51 support up to 5W transceivers, ports 50 and 52 up to 3.5W
+Notes: Ports 49 and 51 support up to 5W transceivers, ports 50 and 52 up to 3.5W.
 
 **Supported features:**
 
@@ -1419,7 +1419,7 @@ Switch Silicon: **NVIDIA Spectrum**
 
 Ports Summary: **32xQSFP28-100G**
 
-Notes: Breaking out an odd port into 4 ports disables the even port next to it. Only ports 1, 2, 31 and 32 support 5W transceivers
+Notes: Breaking out an odd port into 4 ports disables the even port next to it. Only ports 1, 2, 31 and 32 support 5W transceivers.
 
 **Supported features:**
 
@@ -1486,7 +1486,7 @@ Switch Silicon: **NVIDIA Spectrum-2**
 
 Ports Summary: **32xQSFP28-100G**
 
-Notes: Ports 1, 2, 31 and 32 support up to 5W transceivers, ports 3-30 up to 3.5W
+Notes: Ports 1, 2, 31 and 32 support up to 5W transceivers, ports 3-30 up to 3.5W.
 
 **Supported features:**
 
@@ -1553,7 +1553,7 @@ Switch Silicon: **NVIDIA Spectrum-3**
 
 Ports Summary: **64xQSFP56-200G**
 
-Notes: Breaking out an odd port into 4 ports disables the even port next to it. All ports support up to 5W transceivers, ports 49-50, 53-54, 57-58 and 61-62 up to 6.5W
+Notes: Breaking out an odd port into 4 ports disables the even port next to it. All ports support up to 5W transceivers, ports 49-50, 53-54, 57-58 and 61-62 up to 6.5W.
 
 **Supported features:**
 
@@ -1652,7 +1652,7 @@ Switch Silicon: **NVIDIA Spectrum-3**
 
 Ports Summary: **32xQSFPDD-400G**
 
-Notes: Breaking out an odd port into 8 ports disables the even port next to it. Auto-negotiation isn't supported with 400G transceivers, speed must be set explicitly. All ports support up to 12W transceivers
+Notes: Breaking out an odd port into 8 ports disables the even port next to it. Auto-negotiation isn't supported with 400G transceivers, speed must be set explicitly. All ports support up to 12W transceivers.
 
 **Supported features:**
 
@@ -1719,7 +1719,7 @@ Switch Silicon: **NVIDIA Spectrum-4**
 
 Ports Summary: **64xOSFP-800G, 1xSFP28-25G**
 
-Notes: Experimental, not tested on actual hardware. Transceiver orientation of bottom two rows of cages is upside down. Breaking out an odd port into 8 ports disables the even port next to it. All OSFP ports support up to 18W transceivers
+Notes: Experimental, not tested on actual hardware. Transceiver orientation of bottom two rows of cages is upside down. Breaking out an odd port into 8 ports disables the even port next to it. All OSFP ports support up to 18W transceivers.
 
 **Supported features:**
 
@@ -1819,7 +1819,7 @@ Switch Silicon: **NVIDIA Spectrum-4**
 
 Ports Summary: **64xOSFP-800G, 2xSFP28-25G**
 
-Notes: Transceiver orientation of bottom two rows of cages is upside down. Breaking out an odd port into 8 ports disables the even port next to it. All OSFP ports support up to 18W transceivers
+Notes: Transceiver orientation of bottom two rows of cages is upside down. Breaking out an odd port into 8 ports disables the even port next to it. All OSFP ports support up to 18W transceivers.
 
 **Supported features:**
 
@@ -1982,7 +1982,7 @@ Switch Silicon: **Broadcom TD4-X11**
 
 Ports Summary: **32xQSFP56DD-400G, 2xSFP28-10G**
 
-Notes: To prevent overheating only 8 ZR transceivers in ports 0,4,8,12,16,20,24,28 and/or only 6 OpenZr+ transceivers in ports 8,12,16,20,24,28. SFP ports are left-most ports, left of ports labeled MGMT
+Notes: To prevent overheating only 8 ZR transceivers in ports 0,4,8,12,16,20,24,28 and/or only 6 OpenZr+ transceivers in ports 8,12,16,20,24,28. SFP ports are left-most ports, left of ports labeled MGMT.
 
 **Supported features:**
 

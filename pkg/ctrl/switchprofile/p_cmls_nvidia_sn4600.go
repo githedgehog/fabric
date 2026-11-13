@@ -31,7 +31,7 @@ var CumulusNvidiaSN4600 = wiringapi.SwitchProfile{
 			ESLAG:         true,
 			ECMPRoCEQPN:   false, // TODO verify
 		},
-		Notes:    "Breaking out an odd port into 4 ports disables the even port next to it. All ports support up to 5W transceivers, ports 49-50, 53-54, 57-58 and 61-62 up to 6.5W",
+		Notes:    "Breaking out an odd port into 4 ports disables the even port next to it. All ports support up to 5W transceivers, ports 49-50, 53-54, 57-58 and 61-62 up to 6.5W.",
 		NOSType:  meta.NOSTypeCumulusMlx,
 		Platform: "x86-64-nv-sn4600", // TODO verify the platform string ONIE reports, likely "x86_64-mlnx_msn4600-r0" (SONiC sonic-buildimage device/mellanox)
 		MaxPorts: 128,
