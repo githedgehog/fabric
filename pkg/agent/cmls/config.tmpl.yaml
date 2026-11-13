@@ -14,7 +14,8 @@
             {{ $.ProtocolIP }}: {}
             {{ if $.VTEPIP }}{{ $.VTEPIP }}: {}{{ end }}
         type: loopback
-      swp1-64:
+      {{ range $port := $.Ports }}
+      {{ $port.Name }}:
         ipv6:
           state: disabled
         lldp:
@@ -22,9 +23,7 @@
         qos:
           pfc-watchdog:
             state: enable
-      {{ if $.PortConfigs }}
-      {{ range $port := $.PortConfigs }}
-      {{ $port.Name }}:
+        {{ if $port.Used }}
         link:
           state:
             up: {}
@@ -39,7 +38,7 @@
           adaptive-routing:
             state: enabled
         {{ end }}
-      {{ end }}
+        {{ end }}
       {{ end }}
     evpn:
       state: enabled
