@@ -927,6 +927,16 @@ func TestSwitchProfileValidateCumulus(t *testing.T) {
 			err:  true,
 		},
 		{
+			name: "offsets-too-few",
+			f:    setOffsets("4x25G", "0"),
+			err:  true,
+		},
+		{
+			name: "offsets-too-many",
+			f:    setOffsets("1x100G", "0", "1"),
+			err:  true,
+		},
+		{
 			name: "bonus",
 			f:    setPort("E1/5", func(p *wiringapi.SwitchProfilePort) { p.Bonus = true }),
 		},

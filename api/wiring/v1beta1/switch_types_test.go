@@ -552,6 +552,32 @@ func TestSwitchDomainsValidation(t *testing.T) {
 		}
 	}
 
+	// E1/1 at 4x25G disables the speed port E1/2
+	disablesSpeedPortProfile := withName("disables-speed-port", &wiringapi.SwitchProfile{
+		Spec: wiringapi.SwitchProfileSpec{
+			DisplayName:   "Test",
+			SwitchSilicon: "test",
+			Features:      wiringapi.SwitchProfileFeatures{Subinterfaces: true, ACLs: true, L2VNI: true, L3VNI: true},
+			NOSType:       meta.NOSTypeCumulusMlx,
+			Platform:      "test",
+			Ports: map[string]wiringapi.SwitchProfilePort{
+				"M1":   {NOSName: "eth0", Management: true, OniePortName: "eth0"},
+				"E1/1": {NOSName: "swp1", Label: "1", Profile: "QSFP28-100G"},
+				"E1/2": {NOSName: "swp2", Label: "2", Profile: "SFP28-25G"},
+			},
+			PortProfiles: map[string]wiringapi.SwitchProfilePortProfile{
+				"QSFP28-100G": {Breakout: &wiringapi.SwitchProfilePortProfileBreakout{
+					Default: "1x100G",
+					Supported: map[string]wiringapi.SwitchProfilePortProfileBreakoutMode{
+						"1x100G": {Offsets: []string{"0"}},
+						"4x25G":  {Offsets: []string{"0", "1", "2", "3"}, DisablesPortOffsets: []string{"1"}},
+					},
+				}},
+				"SFP28-25G": {Speed: &wiringapi.SwitchProfilePortProfileSpeed{Default: "25G", Supported: []string{"10G", "25G"}}},
+			},
+		},
+	})
+
 	eslagGroup := withName("eslag-1", &wiringapi.SwitchGroup{})
 	eslagGroup.Default()
 
@@ -733,6 +759,23 @@ func TestSwitchDomainsValidation(t *testing.T) {
 			sw: swGen(sn5610FullBreakout, func(sw *wiringapi.Switch) { sw.Spec.PortBreakouts["E1/2"] = "1x800G" }),
 		},
 		{
+			name: "speed of a disabled port", err: "port E1/2 is disabled by the breakout of port E1/1 and can't have a speed",
+			objects: []kclient.Object{disablesSpeedPortProfile},
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Spec.Profile = disablesSpeedPortProfile.Name
+				sw.Spec.PortBreakouts = map[string]string{"E1/1": "4x25G"}
+				sw.Spec.PortSpeeds = map[string]string{"E1/2": "10G"}
+			}),
+		},
+		{
+			name:    "speed of a port that isn't disabled",
+			objects: []kclient.Object{disablesSpeedPortProfile},
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Spec.Profile = disablesSpeedPortProfile.Name
+				sw.Spec.PortSpeeds = map[string]string{"E1/2": "10G"}
+			}),
+		},
+		{
 			name: "FEC on a disabled port", err: "port E1/2 does not support configuring FEC",
 			sw: swGen(sn5610FullBreakout, func(sw *wiringapi.Switch) {
 				sw.Spec.PortFECs = map[string]wiringapi.PortFECMode{"E1/2": wiringapi.PortFECModeRS}
@@ -754,6 +797,8 @@ func TestSwitchDomainsValidation(t *testing.T) {
 				ManagementSubnet:    "172.30.0.0/21",
 				ManagementDHCPStart: "172.30.4.0",
 				IncludeCumulus:      true,
+				// keeps the test only profiles from the objects
+				AllowExtraSwitchProfiles: true,
 			}
 			scheme := runtime.NewScheme()
 			require.NoError(t, wiringapi.AddToScheme(scheme))
