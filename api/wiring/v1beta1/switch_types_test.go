@@ -543,17 +543,12 @@ func TestSwitchDomainsValidation(t *testing.T) {
 		sw.Spec.Redundancy = wiringapi.SwitchRedundancy{Group: "eslag-1", Type: meta.RedundancyTypeESLAG}
 	}
 
-	// 27 odd ports at 8x and one at 4x make 256 ports, the 2 bonus ports aren't counted on top of it
-	sn5610Breakouts := func(extra bool) func(sw *wiringapi.Switch) {
-		return func(sw *wiringapi.Switch) {
-			sw.Spec.Profile = switchprofile.CumulusNvidiaSN5610.Name
-			sw.Spec.PortBreakouts = map[string]string{"E1/55": "4x200G"}
-			for port := 1; port <= 53; port += 2 {
-				sw.Spec.PortBreakouts[fmt.Sprintf("E1/%d", port)] = "8x100G"
-			}
-			if extra {
-				sw.Spec.PortBreakouts["E1/57"] = "2x400G"
-			}
+	// all odd ports at 8x make 256 ports as they disable the even ones, the 2 bonus ports aren't counted on top of it
+	sn5610FullBreakout := func(sw *wiringapi.Switch) {
+		sw.Spec.Profile = switchprofile.CumulusNvidiaSN5610.Name
+		sw.Spec.PortBreakouts = map[string]string{}
+		for port := 1; port <= 63; port += 2 {
+			sw.Spec.PortBreakouts[fmt.Sprintf("E1/%d", port)] = "8x100G"
 		}
 	}
 
@@ -730,12 +725,18 @@ func TestSwitchDomainsValidation(t *testing.T) {
 			}),
 		},
 		{
-			name: "max ports with bonus ports",
-			sw:   swGen(sn5610Breakouts(false)),
+			name: "max ports with disabled and bonus ports",
+			sw:   swGen(sn5610FullBreakout),
 		},
 		{
-			name: "max ports exceeded", err: "switch nvidia-sn5610 has exceeded maximum ports: 257 > 256",
-			sw: swGen(sn5610Breakouts(true)),
+			name: "breakout of a disabled port", err: "port E1/2 is disabled by the breakout of port E1/1 and can't have a breakout",
+			sw: swGen(sn5610FullBreakout, func(sw *wiringapi.Switch) { sw.Spec.PortBreakouts["E1/2"] = "1x800G" }),
+		},
+		{
+			name: "FEC on a disabled port", err: "port E1/2 does not support configuring FEC",
+			sw: swGen(sn5610FullBreakout, func(sw *wiringapi.Switch) {
+				sw.Spec.PortFECs = map[string]wiringapi.PortFECMode{"E1/2": wiringapi.PortFECModeRS}
+			}),
 		},
 		{
 			name: "bcm mutate annotation without rules on non-bcm switch",

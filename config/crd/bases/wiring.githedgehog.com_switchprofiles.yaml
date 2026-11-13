@@ -177,6 +177,14 @@ spec:
                             description: Defines a switch port profile breakout mode
                               configuration
                             properties:
+                              disablesPortOffsets:
+                                description: DisablesPortOffsets defines the ports
+                                  disabled by the breakout mode as offsets from the
+                                  port number (e.g. 1 for the next port), the disabled
+                                  ports can't be used or configured
+                                items:
+                                  type: string
+                                type: array
                               offsets:
                                 description: Offsets defines the breakout NOS port
                                   name offset from the port NOS Name for each breakout

@@ -855,6 +855,13 @@ func TestSwitchProfileValidateCumulus(t *testing.T) {
 			sp.PortProfiles["QSFP28-100G"].Breakout.Supported[mode] = wiringapi.SwitchProfilePortProfileBreakoutMode{Offsets: offsets}
 		}
 	}
+	setDisables := func(mode string, offsets ...string) func(sp *wiringapi.SwitchProfileSpec) {
+		return func(sp *wiringapi.SwitchProfileSpec) {
+			breakout := sp.PortProfiles["QSFP28-100G"].Breakout.Supported[mode]
+			breakout.DisablesPortOffsets = offsets
+			sp.PortProfiles["QSFP28-100G"].Breakout.Supported[mode] = breakout
+		}
+	}
 
 	for _, tt := range []struct {
 		name string
@@ -928,6 +935,30 @@ func TestSwitchProfileValidateCumulus(t *testing.T) {
 			f:    setPort("M1", func(p *wiringapi.SwitchProfilePort) { p.Bonus = true }),
 			err:  true,
 		},
+		{
+			name: "disables-next-port",
+			f:    setDisables("4x25G", "1"),
+		},
+		{
+			name: "disables-previous-port",
+			f:    setDisables("4x25G", "-1"),
+			err:  true, // E1/1 would disable non-existent E1/0
+		},
+		{
+			name: "disables-missing-port",
+			f:    setDisables("4x25G", "1", "3"),
+			err:  true, // E1/3 would disable non-existent E1/6
+		},
+		{
+			name: "disables-itself",
+			f:    setDisables("4x25G", "0"),
+			err:  true,
+		},
+		{
+			name: "disables-empty-offset",
+			f:    setDisables("4x25G", ""),
+			err:  true,
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			sp := cumulusTestProfile()
@@ -948,4 +979,44 @@ func TestSwitchProfileValidateCumulus(t *testing.T) {
 			require.NoError(t, err)
 		})
 	}
+}
+
+func TestSwitchProfileDisabledPorts(t *testing.T) {
+	sp := cumulusTestProfile()
+	breakout := sp.PortProfiles["QSFP28-100G"].Breakout.Supported["4x25G"]
+	breakout.DisablesPortOffsets = []string{"1"}
+	sp.PortProfiles["QSFP28-100G"].Breakout.Supported["4x25G"] = breakout
+
+	sw := &wiringapi.SwitchSpec{PortBreakouts: map[string]string{"E1/1": "4x25G"}}
+
+	disabled, err := sp.GetDisabledAPIPorts(sw)
+	require.NoError(t, err)
+	require.Equal(t, map[string]string{"E1/2": "E1/1"}, disabled)
+
+	api2nos, err := sp.GetAPI2NOSPortsFor(sw)
+	require.NoError(t, err)
+	require.Equal(t, "swp1s3", api2nos["E1/1/4"])
+	require.NotContains(t, api2nos, "E1/2")
+	require.NotContains(t, api2nos, "E1/2/1")
+	require.Equal(t, "swp3", api2nos["E1/3"])
+
+	available, err := sp.GetAvailableAPIPorts(sw)
+	require.NoError(t, err)
+	require.True(t, available["E1/1/4"])
+	require.NotContains(t, available, "E1/2/1")
+
+	fec, err := sp.GetFECConfigurablePorts(sw)
+	require.NoError(t, err)
+	require.NotContains(t, fec, "E1/2")
+	require.NotContains(t, fec, "E1/2/1")
+
+	autoNegAllowed, _, err := sp.GetAutoNegsDefaultsFor(sw)
+	require.NoError(t, err)
+	require.Contains(t, autoNegAllowed, "E1/1/1")
+	require.NotContains(t, autoNegAllowed, "E1/2/1")
+
+	// nothing is disabled with the default breakouts
+	disabled, err = sp.GetDisabledAPIPorts(&wiringapi.SwitchSpec{})
+	require.NoError(t, err)
+	require.Empty(t, disabled)
 }

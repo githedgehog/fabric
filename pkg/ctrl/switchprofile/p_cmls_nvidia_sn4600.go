@@ -118,9 +118,10 @@ var CumulusNvidiaSN4600 = wiringapi.SwitchProfile{
 						"2x25G":  {Offsets: []string{"0", "1"}},
 						"2x50G":  {Offsets: []string{"0", "1"}},
 						"2x100G": {Offsets: []string{"0", "1"}},
-						"4x10G":  {Offsets: []string{"0", "1", "2", "3"}},
-						"4x25G":  {Offsets: []string{"0", "1", "2", "3"}},
-						"4x50G":  {Offsets: []string{"0", "1", "2", "3"}},
+						// TODO verify it disables the next port, HW manual says "above or below"
+						"4x10G": {Offsets: []string{"0", "1", "2", "3"}, DisablesPortOffsets: []string{"1"}},
+						"4x25G": {Offsets: []string{"0", "1", "2", "3"}, DisablesPortOffsets: []string{"1"}},
+						"4x50G": {Offsets: []string{"0", "1", "2", "3"}, DisablesPortOffsets: []string{"1"}},
 					},
 				},
 				AutoNegAllowed: true,
