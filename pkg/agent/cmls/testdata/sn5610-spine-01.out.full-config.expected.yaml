@@ -13,6 +13,10 @@
           address:
             172.30.8.0/32: {}
         type: loopback
+      swp1:
+        link:
+          breakout:
+            2x: {}
       swp1s0:
         ipv6:
           state: disabled
@@ -121,6 +125,10 @@
         qos:
           pfc-watchdog:
             state: enable
+      swp9:
+        link:
+          breakout:
+            8x: {}
       swp9s0:
         ipv6:
           state: disabled
@@ -185,6 +193,10 @@
         qos:
           pfc-watchdog:
             state: enable
+      swp10:
+        link:
+          breakout:
+            disabled: {}
       swp11:
         ipv6:
           state: disabled

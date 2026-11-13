@@ -6,6 +6,10 @@
             172.30.0.7/21: {}
         type: eth
         vrf: mgmt
+      swp1:
+        link:
+          breakout:
+            2x: {}
       swp1s0:
         ipv6:
           state: disabled
@@ -78,6 +82,10 @@
             up: {}
         lldp:
           state: enabled
+      swp9:
+        link:
+          breakout:
+            8x: {}
       swp9s0:
         ipv6:
           state: disabled
@@ -142,6 +150,10 @@
             up: {}
         lldp:
           state: enabled
+      swp10:
+        link:
+          breakout:
+            disabled: {}
       swp11:
         ipv6:
           state: disabled
