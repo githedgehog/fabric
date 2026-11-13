@@ -408,8 +408,14 @@ func (sp *SwitchProfile) Validate(_ context.Context, _ kclient.Reader, _ *meta.F
 							return nil, fmt.Errorf("port %q breakout %q: %w", name, mode, err)
 						}
 
-						if disabledPort, ok := sp.Spec.Ports[disabled]; !ok || disabledPort.Management {
+						disabledPort, ok := sp.Spec.Ports[disabled]
+						if !ok || disabledPort.Management {
 							return nil, fmt.Errorf("port %q breakout %q disables non-existent data port %q", name, mode, disabled) //nolint:err113
+						}
+
+						// group speeds and max ports would still apply to such ports
+						if disabledPort.Group != "" || disabledPort.Bonus {
+							return nil, fmt.Errorf("port %q breakout %q can't disable port %q in a port group or bonus port", name, mode, disabled) //nolint:err113
 						}
 					}
 				}

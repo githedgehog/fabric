@@ -974,6 +974,14 @@ func TestSwitchProfileValidateCumulus(t *testing.T) {
 			f:    setDisables("1x100G", "1"),
 			err:  true,
 		},
+		{
+			name: "disables-bonus-port",
+			f: func(sp *wiringapi.SwitchProfileSpec) {
+				setDisables("4x25G", "1")(sp)
+				setPort("E1/4", func(p *wiringapi.SwitchProfilePort) { p.Bonus = true })(sp)
+			},
+			err: true, // E1/3 would disable bonus E1/4
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			sp := cumulusTestProfile()
