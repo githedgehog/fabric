@@ -24,7 +24,7 @@
             state: enable
       
       
-      swp1:
+      swp1s0:
         link:
           state:
             up: {}
