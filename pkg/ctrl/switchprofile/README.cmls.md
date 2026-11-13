@@ -17,6 +17,9 @@ even one, use separate port profiles with the `-odd` and `-even` suffixes (`wiri
 `wiringapi.EvenPortProfileSuffix`) and keep only the supported breakout modes in each of them. The limitation itself
 isn't enforced, so describe it in the profile notes.
 
+Ports that Cumulus docs call bonus ports, e.g. the SFP28 ports on SN5600 and SN5610 listed as "256 + 2 bonus ports", are
+marked with `Bonus` so they don't count towards the switch `MaxPorts`.
+
 The port breakouts and limitations are best copied from the NVIDIA documentation, and then verified at the CLI. The
 [NVIDIA switch documentation](https://docs.nvidia.com/networking/switches/index.html#nvidiatab-ethernet-switches) does
 get modified by NVIDIA so it won't exist forever, sadly.

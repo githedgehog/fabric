@@ -1505,7 +1505,7 @@ spec:
                     type: object
                   maxPorts:
                     description: MaxPorts defines the maximum number of ports (breakouts)
-                      allowed for the switch
+                      allowed for the switch, bonus ports aren't counted
                     type: integer
                   nosType:
                     description: NOSType defines the NOS type to be used for the switch
@@ -1613,6 +1613,10 @@ spec:
                             could be used together with the profile to generate the
                             actual NOS name (e.g. breakouts)
                           type: string
+                        bonus:
+                          description: Bonus defines if the port doesn't count towards
+                            the switch max ports (e.g. extra SFP28 ports on some switches)
+                          type: boolean
                         group:
                           description: If port isn't directly manageable, group defines
                             the group it belongs to, exclusive with profile

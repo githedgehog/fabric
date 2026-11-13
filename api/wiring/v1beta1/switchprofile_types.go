@@ -100,6 +100,8 @@ type SwitchProfilePort struct {
 	OniePortName string `json:"oniePortName,omitempty"`
 	// Pipeline defines the pipeline used by the port, on some platforms multiple ports share the same pipeline
 	Pipeline string `json:"pipeline,omitempty"`
+	// Bonus defines if the port doesn't count towards the switch max ports (e.g. extra SFP28 ports on some switches)
+	Bonus bool `json:"bonus,omitempty"`
 }
 
 // Defines a switch port group configuration
@@ -175,7 +177,7 @@ type SwitchProfileSpec struct {
 	Platform string `json:"platform,omitempty"`
 	// Pipelines defines the switch pipeline configuration
 	Pipelines map[string]SwitchProfilePipeline `json:"pipelines,omitempty"`
-	// MaxPorts defines the maximum number of ports (breakouts) allowed for the switch
+	// MaxPorts defines the maximum number of ports (breakouts) allowed for the switch, bonus ports aren't counted
 	MaxPorts uint16 `json:"maxPorts,omitempty"`
 }
 
@@ -344,6 +346,10 @@ func (sp *SwitchProfile) Validate(_ context.Context, _ kclient.Reader, _ *meta.F
 
 			if port.BaseNOSName != "" {
 				return nil, errors.Errorf("management port %q must not have a base NOS name", name)
+			}
+
+			if port.Bonus {
+				return nil, fmt.Errorf("management port %q must not be a bonus port", name) //nolint:err113
 			}
 
 			continue
