@@ -173,14 +173,19 @@ func GenerateProfilesRef(ctx context.Context, targetDir string) error {
 		resCatalog.WriteString("- ECMP RoCE QPN hashing: " + qpn + "\n")
 		resCatalog.WriteString("\n")
 
+		bonusNote := ""
+		if lo.SomeBy(lo.Values(sp.Spec.Ports), func(port wiringapi.SwitchProfilePort) bool { return port.Bonus }) {
+			bonusNote = " (bonus ports aren't counted)"
+		}
+
 		if sp.Spec.MaxPorts > 0 && len(sp.Spec.Pipelines) == 0 {
 			resCatalog.WriteString("**Hardware Resources:**\n\n")
-			fmt.Fprintf(&resCatalog, "- Maximum ports supported: **%d** (bonus ports aren't counted)\n\n", sp.Spec.MaxPorts)
+			fmt.Fprintf(&resCatalog, "- Maximum ports supported: **%d**%s\n\n", sp.Spec.MaxPorts, bonusNote)
 		}
 
 		if sp.Spec.MaxPorts > 0 && len(sp.Spec.Pipelines) > 0 {
 			resCatalog.WriteString("**Hardware Resources:**\n\n")
-			fmt.Fprintf(&resCatalog, "- Maximum ports supported: **%d**\n", sp.Spec.MaxPorts)
+			fmt.Fprintf(&resCatalog, "- Maximum ports supported: **%d**%s\n", sp.Spec.MaxPorts, bonusNote)
 			fmt.Fprintf(&resCatalog, "- Number of pipelines: **%d**\n\n", len(sp.Spec.Pipelines))
 
 			resCatalog.WriteString("**Pipelines:**\n\n")

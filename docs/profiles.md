@@ -1346,7 +1346,7 @@ Notes: Ports 49 and 51 support up to 5W transceivers, ports 50 and 52 up to 3.5W
 
 **Hardware Resources:**
 
-- Maximum ports supported: **64** (bonus ports aren't counted)
+- Maximum ports supported: **64**
 
 **Available Ports:**
 
@@ -1433,7 +1433,7 @@ Notes: Breaking out an odd port into 4 ports disables the even port next to it. 
 
 **Hardware Resources:**
 
-- Maximum ports supported: **64** (bonus ports aren't counted)
+- Maximum ports supported: **64**
 
 **Available Ports:**
 
@@ -1500,7 +1500,7 @@ Notes: Ports 1, 2, 31 and 32 support up to 5W transceivers, ports 3-30 up to 3.5
 
 **Hardware Resources:**
 
-- Maximum ports supported: **128** (bonus ports aren't counted)
+- Maximum ports supported: **128**
 
 **Available Ports:**
 
@@ -1567,7 +1567,7 @@ Notes: Breaking out an odd port into 4 ports disables the even port next to it. 
 
 **Hardware Resources:**
 
-- Maximum ports supported: **128** (bonus ports aren't counted)
+- Maximum ports supported: **128**
 
 **Available Ports:**
 
@@ -1666,7 +1666,7 @@ Notes: Breaking out an odd port into 8 ports disables the even port next to it. 
 
 **Hardware Resources:**
 
-- Maximum ports supported: **128** (bonus ports aren't counted)
+- Maximum ports supported: **128**
 
 **Available Ports:**
 
