@@ -32,7 +32,7 @@ var CumulusNvidiaSN2700 = wiringapi.SwitchProfile{
 		},
 		Notes:    "Breaking out an odd port into 4 ports disables the even port next to it. Only ports 1, 2, 31 and 32 support 5W transceivers.",
 		NOSType:  meta.NOSTypeCumulusMlx,
-		Platform: "x86-64-nv-sn2700", // TODO verify the platform string ONIE reports, likely "x86_64-mlnx_msn2700-r0" (NVIDIA ONIE CLI reference)
+		Platform: "x86_64-mlnx_msn2700-r0", // TODO verify, from NVIDIA ONIE CLI reference while the EEPROM reports generic "x86_64-mlnx_x86-r0"
 		MaxPorts: 64,
 		Ports: map[string]wiringapi.SwitchProfilePort{
 			"M1":    {NOSName: "eth0", Management: true, OniePortName: "eth0"},

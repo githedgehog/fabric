@@ -32,7 +32,7 @@ var CumulusNvidiaSN5600 = wiringapi.SwitchProfile{
 		},
 		Notes:    "Experimental, not tested on actual hardware. Transceiver orientation of bottom two rows of cages is upside down. Breaking out an odd port into 8 ports disables the even port next to it. All OSFP ports support up to 18W transceivers.",
 		NOSType:  meta.NOSTypeCumulusMlx,
-		Platform: "x86_64-nv-sn5600-r0", // TODO verify the platform string ONIE reports, likely "x86_64-nvidia_sn5600-r0" (SONiC sonic-buildimage device/mellanox)
+		Platform: "x86_64-nvidia_sn5600-r0", // TODO verify, from SONiC sonic-buildimage device/mellanox and same as the SN5610 EEPROM one
 		MaxPorts: 256,
 		Ports: map[string]wiringapi.SwitchProfilePort{
 			"M1":    {NOSName: "eth0", Management: true, OniePortName: "eth0"},

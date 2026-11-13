@@ -30,7 +30,7 @@ var CumulusNvidiaSN3700c = wiringapi.SwitchProfile{
 		},
 		Notes:    "Ports 1, 2, 31 and 32 support up to 5W transceivers, ports 3-30 up to 3.5W.",
 		NOSType:  meta.NOSTypeCumulusMlx,
-		Platform: "x86-64-nv-sn3700c", // TODO verify the platform string ONIE reports, likely "x86_64-mlnx_msn3700c-r0" (SONiC sonic-buildimage device/mellanox)
+		Platform: "x86_64-mlnx_msn3700C-r0",
 		MaxPorts: 128,
 		Ports: map[string]wiringapi.SwitchProfilePort{
 			"M1":    {NOSName: "eth0", Management: true, OniePortName: "eth0"},
