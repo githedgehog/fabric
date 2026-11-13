@@ -6,11 +6,11 @@ package cmls
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
-	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -45,6 +45,7 @@ func TestBuildConfigErrors(t *testing.T) {
 		profile   *wiringapi.SwitchProfile
 		breakouts map[string]string
 		port      string
+		subnets   []string
 		err       string
 	}{
 		{name: "no-profile", port: "E1/1", err: "switch profile is missing"},
@@ -64,6 +65,13 @@ func TestBuildConfigErrors(t *testing.T) {
 			port:      "E1/10",
 			err:       "port E1/10 isn't available",
 		},
+		{
+			name:    "vx-port-used-twice",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			subnets: []string{"vpc-01/default", "vpc-02/default"},
+			err:     "port E1/1 is used more than once",
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			agent := &agentapi.Agent{
@@ -79,13 +87,17 @@ func TestBuildConfigErrors(t *testing.T) {
 							},
 						}},
 					},
-					VPCAttachments: map[string]agentapi.VPCAttachmentSpecAnn{
-						"server-01--unbundled--leaf-01--vpc-01--default": {VPCAttachmentSpec: vpcapi.VPCAttachmentSpec{
-							Connection: "server-01--unbundled--leaf-01",
-							Subnet:     "vpc-01/default",
-						}},
-					},
+					VPCAttachments: map[string]agentapi.VPCAttachmentSpecAnn{},
 				},
+			}
+			if tt.subnets == nil {
+				tt.subnets = []string{"vpc-01/default"}
+			}
+			for _, subnet := range tt.subnets {
+				agent.Spec.VPCAttachments["server-01--"+strings.ReplaceAll(subnet, "/", "--")] = agentapi.VPCAttachmentSpecAnn{
+					Connection: "server-01--unbundled--leaf-01",
+					Subnet:     subnet,
+				}
 			}
 			if tt.profile != nil {
 				agent.Spec.SwitchProfile = tt.profile.Spec.DeepCopy()

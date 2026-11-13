@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"maps"
 	"net/netip"
 	"os"
 	"os/exec"
@@ -50,7 +51,7 @@ type ConfigIn struct {
 	VXLANSource  string
 	VPCs         []VPC
 	BGPNeighbors []BGPNeighbor
-	PortConfigs  []PortConfig
+	Ports        []*PortConfig
 	IsSpine      bool
 	IsLeaf       bool
 }
@@ -82,6 +83,7 @@ type VPC struct {
 
 type PortConfig struct {
 	Name            string
+	Used            bool
 	VRF             string
 	IP              string
 	AdaptiveRouting bool
@@ -113,6 +115,44 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 	api2nos, err := agent.Spec.SwitchProfile.GetAPI2NOSPortsFor(&agent.Spec.Switch)
 	if err != nil {
 		return nil, fmt.Errorf("getting NOS port names: %w", err)
+	}
+
+	apiPorts, err := agent.Spec.SwitchProfile.GetAvailableAPIPorts(&agent.Spec.Switch)
+	if err != nil {
+		return nil, fmt.Errorf("getting available ports: %w", err)
+	}
+	apiPortNames := slices.Collect(maps.Keys(apiPorts))
+	wiringapi.SortPortNames(apiPortNames)
+
+	ports := make([]*PortConfig, 0, len(apiPortNames))
+	portsByName := map[string]*PortConfig{}
+	for _, apiPortName := range apiPortNames {
+		name, err := nosPortName(api2nos, apiPortName)
+		if err != nil {
+			return nil, err
+		}
+
+		port := &PortConfig{Name: name}
+		ports = append(ports, port)
+		portsByName[name] = port
+	}
+
+	usePort := func(apiPortName string) (*PortConfig, error) {
+		name, err := nosPortName(api2nos, apiPortName)
+		if err != nil {
+			return nil, err
+		}
+
+		port, ok := portsByName[name]
+		if !ok {
+			return nil, fmt.Errorf("port %s isn't available with the switch profile and port breakouts", apiPortName) //nolint:err113
+		}
+		if port.Used {
+			return nil, fmt.Errorf("port %s is used more than once", apiPortName) //nolint:err113
+		}
+		port.Used = true
+
+		return port, nil
 	}
 
 	users := []User{}
@@ -150,8 +190,6 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		})
 	}
 
-	portConfigs := []PortConfig{}
-
 	neighs := []BGPNeighbor{}
 	for connName, conn := range agent.Spec.Connections {
 		if conn.Fabric == nil {
@@ -174,7 +212,7 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 				if err != nil {
 					return nil, fmt.Errorf("parsing conn %s leaf IP %s: %w", connName, link.Leaf.IP, err)
 				}
-				portName, err := nosPortName(api2nos, link.Spine.LocalPortName())
+				port, err := usePort(link.Spine.LocalPortName())
 				if err != nil {
 					return nil, fmt.Errorf("conn %s: %w", connName, err)
 				}
@@ -183,11 +221,8 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 					PeerGroup:   "underlay_leaf",
 					Description: "fabric underlay to leaf " + link.Leaf.Port,
 				})
-				portConfigs = append(portConfigs, PortConfig{
-					Name:            portName,
-					IP:              link.Spine.IP,
-					AdaptiveRouting: true,
-				})
+				port.IP = link.Spine.IP
+				port.AdaptiveRouting = true
 			}
 
 			leafIP, err := netip.ParsePrefix(agent.Spec.Switches[leafName].ProtocolIP)
@@ -214,7 +249,7 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 				if err != nil {
 					return nil, fmt.Errorf("parsing conn %s spine IP %s: %w", connName, link.Spine.IP, err)
 				}
-				portName, err := nosPortName(api2nos, link.Leaf.LocalPortName())
+				port, err := usePort(link.Leaf.LocalPortName())
 				if err != nil {
 					return nil, fmt.Errorf("conn %s: %w", connName, err)
 				}
@@ -223,11 +258,8 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 					PeerGroup:   "underlay_spine",
 					Description: "fabric underlay to spine " + link.Spine.Port,
 				})
-				portConfigs = append(portConfigs, PortConfig{
-					Name:            portName,
-					IP:              link.Leaf.IP,
-					AdaptiveRouting: true,
-				})
+				port.IP = link.Leaf.IP
+				port.AdaptiveRouting = true
 			}
 
 			spineIP, err := netip.ParsePrefix(agent.Spec.Switches[spineName].ProtocolIP)
@@ -307,16 +339,12 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 			ip = netip.PrefixFrom(p2p.Masked().Addr().Next(), p2p.Bits()).String() // even goes to the host, odd to the switch
 		}
 
-		portName, err := nosPortName(api2nos, conn.Unbundled.Link.Switch.LocalPortName())
+		port, err := usePort(conn.Unbundled.Link.Switch.LocalPortName())
 		if err != nil {
 			return nil, fmt.Errorf("vpc attachment %q: %w", attachName, err)
 		}
-
-		portConfigs = append(portConfigs, PortConfig{
-			Name: portName,
-			VRF:  vpcName,
-			IP:   ip,
-		})
+		port.VRF = vpcName
+		port.IP = ip
 	}
 
 	slices.SortFunc(neighs, func(a, b BGPNeighbor) int {
@@ -324,10 +352,6 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		return strings.Compare(a.IP, b.IP)
 	})
 	slices.SortFunc(vpcs, func(a, b VPC) int {
-		return strings.Compare(a.Name, b.Name)
-	})
-	slices.SortFunc(portConfigs, func(a, b PortConfig) int {
-		// not ideal, but gives stable ordering
 		return strings.Compare(a.Name, b.Name)
 	})
 
@@ -343,7 +367,7 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		VXLANSource:  vtepIP.Addr().String(),
 		VPCs:         vpcs,
 		BGPNeighbors: neighs,
-		PortConfigs:  portConfigs,
+		Ports:        ports,
 		IsSpine:      isSpine,
 		IsLeaf:       isLeaf,
 

@@ -6,7 +6,8 @@
             {{ $.ManagementIP }}: {}
         type: eth
         vrf: mgmt
-      swp1-64:
+      {{ range $port := $.Ports }}
+      {{ $port.Name }}:
         ipv6:
           state: disabled
         link:
@@ -14,6 +15,7 @@
             up: {}
         lldp:
           state: enabled
+      {{ end }}
     system:
       aaa:
         class:

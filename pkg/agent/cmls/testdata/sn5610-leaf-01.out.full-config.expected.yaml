@@ -14,7 +14,8 @@
             172.30.8.2/32: {}
             172.30.12.0/32: {}
         type: loopback
-      swp1-64:
+      
+      swp1:
         ipv6:
           state: disabled
         lldp:
@@ -22,17 +23,74 @@
         qos:
           pfc-watchdog:
             state: enable
-      
+        
       
       swp2s0:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
         link:
           state:
             up: {}
         vrf: vpc-03
         
         
+        
+      
+      swp2s1:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp2s2:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp2s3:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp3s0:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
       
       swp3s1:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
         link:
           state:
             up: {}
@@ -43,8 +101,27 @@
             10.99.0.1/31: {}
         
         
+        
+      
+      swp4:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
       
       swp5:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
         link:
           state:
             up: {}
@@ -59,8 +136,17 @@
           adaptive-routing:
             state: enabled
         
+        
       
       swp6:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
         link:
           state:
             up: {}
@@ -75,16 +161,17 @@
           adaptive-routing:
             state: enabled
         
-      
-      swp65:
-        link:
-          state:
-            up: {}
-        vrf: vpc-02
-        
         
       
       swp7:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
         link:
           state:
             up: {}
@@ -99,8 +186,17 @@
           adaptive-routing:
             state: enabled
         
+        
       
       swp8:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
         link:
           state:
             up: {}
@@ -115,7 +211,654 @@
           adaptive-routing:
             state: enabled
         
+        
       
+      swp9s0:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp9s1:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp9s2:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp9s3:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp9s4:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp9s5:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp9s6:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp9s7:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp11:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp12:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp13:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp14:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp15:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp16:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp17:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp18:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp19:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp20:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp21:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp22:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp23:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp24:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp25:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp26:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp27:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp28:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp29:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp30:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp31:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp32:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp33:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp34:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp35:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp36:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp37:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp38:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp39:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp40:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp41:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp42:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp43:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp44:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp45:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp46:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp47:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp48:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp49:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp50:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp51:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp52:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp53:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp54:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp55:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp56:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp57:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp58:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp59:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp60:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp61:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp62:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp63:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp64:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+      
+      swp65:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
+        link:
+          state:
+            up: {}
+        vrf: vpc-02
+        
+        
+        
+      
+      swp66:
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        
       
     evpn:
       state: enabled
