@@ -1293,12 +1293,11 @@ func (sp *SwitchProfileSpec) GetAvailableAPIPorts(sw *SwitchSpec) (map[string]bo
 	return ports, nil
 }
 
-// GetFECConfigurablePorts returns the set of API port names on which FEC may be configured.
-// It is GetAvailableAPIPorts (speed/group base names and breakout sub-port names) plus the
-// base name of any breakout port that is NOT broken out (its configured mode has a single
-// lane, e.g. "E1/53" at 1x100G), which may be addressed directly. A broken-out (multi-lane)
-// port keeps only its sub-port names, so its base name is rejected and the explicit sub-port
-// name (e.g. "E1/53/1") must be used.
+// GetFECConfigurablePorts returns the set of API port names on which FEC may be configured. It is GetAvailableAPIPorts
+// (speed/group base names and breakout sub-port names, without the disabled ports) plus the base name of any available
+// breakout port that isn't broken out (its configured mode has a single port, e.g. "E1/53" at 1x100G), which may be
+// addressed directly. A broken-out port keeps only its sub-port names, so its base name is rejected and the explicit
+// sub-port name (e.g. "E1/53/1") must be used.
 func (sp *SwitchProfileSpec) GetFECConfigurablePorts(sw *SwitchSpec) (map[string]bool, error) {
 	if sw == nil {
 		sw = &SwitchSpec{}
@@ -1309,17 +1308,8 @@ func (sp *SwitchProfileSpec) GetFECConfigurablePorts(sw *SwitchSpec) (map[string
 		return nil, err
 	}
 
-	disabled, err := sp.GetDisabledAPIPorts(sw)
-	if err != nil {
-		return nil, err
-	}
-
 	for portName, port := range sp.Ports {
 		if port.Management || port.Profile == "" {
-			continue
-		}
-
-		if _, ok := disabled[portName]; ok {
 			continue
 		}
 
@@ -1333,8 +1323,9 @@ func (sp *SwitchProfileSpec) GetFECConfigurablePorts(sw *SwitchSpec) (map[string
 			mode = b
 		}
 
-		if bm, ok := profile.Breakout.Supported[mode]; ok && len(bm.Offsets) == 1 {
-			ports[portName] = true // not broken out: base name is directly addressable
+		// not broken out and not disabled: base name is directly addressable
+		if bm, ok := profile.Breakout.Supported[mode]; ok && len(bm.Offsets) == 1 && ports[portName+"/1"] {
+			ports[portName] = true
 		}
 	}
 
