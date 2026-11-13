@@ -84,6 +84,7 @@ type VPC struct {
 type PortConfig struct {
 	Name            string
 	Breakout        string
+	Speed           string
 	Used            bool
 	VRF             string
 	IP              string
@@ -129,6 +130,14 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		return nil, fmt.Errorf("getting disabled ports: %w", err)
 	}
 
+	// all ports get explicit speeds, the configured or default one for the speed ports and the breakout mode one for the
+	// breakout ports, as NVUE breakout only sets the number of ports, e.g. 4x on a SN5610 800G port allows up to 200G
+	// per port (2 lanes each by default)
+	speeds := maps.Clone(agent.Spec.Switch.PortSpeeds)
+	if speeds == nil {
+		speeds = map[string]string{}
+	}
+
 	// broken out ports are configured with the breakout mode, e.g. 4x, and their sub-ports with the rest of the config,
 	// ports disabled by the breakout of another port have to be explicitly disabled
 	breakouts := map[string]string{}
@@ -143,7 +152,16 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 			continue
 		}
 
-		breakout := agent.Spec.SwitchProfile.PortProfiles[port.Profile].Breakout
+		profile := agent.Spec.SwitchProfile.PortProfiles[port.Profile]
+		if profile.Speed != nil {
+			if _, ok := speeds[portName]; !ok {
+				speeds[portName] = profile.Speed.Default
+			}
+
+			continue
+		}
+
+		breakout := profile.Breakout
 		if breakout == nil {
 			continue
 		}
@@ -152,9 +170,15 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		if !ok {
 			mode = breakout.Default
 		}
-		if offsets := len(breakout.Supported[mode].Offsets); offsets > 1 {
+		offsets := len(breakout.Supported[mode].Offsets)
+		if offsets > 1 {
 			breakouts[portName] = fmt.Sprintf("%dx", offsets)
 			apiPortNames = append(apiPortNames, portName)
+		}
+
+		_, speed, _ := strings.Cut(mode, "x")
+		for idx := range offsets {
+			speeds[fmt.Sprintf("%s/%d", portName, idx+1)] = speed
 		}
 	}
 	wiringapi.SortPortNames(apiPortNames)
@@ -176,9 +200,13 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 			return nil, err
 		}
 
-		port := &PortConfig{Name: name}
+		port := &PortConfig{Name: name, Speed: speeds[apiPortName]}
+		delete(speeds, apiPortName)
 		ports = append(ports, port)
 		portsByName[name] = port
+	}
+	for portName := range speeds {
+		return nil, fmt.Errorf("port %s speed can't be configured, port isn't available", portName) //nolint:err113
 	}
 
 	usePort := func(apiPortName string) (*PortConfig, error) {

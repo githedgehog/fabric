@@ -44,6 +44,7 @@ func TestBuildConfigErrors(t *testing.T) {
 		name      string
 		profile   *wiringapi.SwitchProfile
 		breakouts map[string]string
+		speeds    map[string]string
 		port      string
 		subnets   []string
 		err       string
@@ -72,13 +73,20 @@ func TestBuildConfigErrors(t *testing.T) {
 			subnets: []string{"vpc-01/default", "vpc-02/default"},
 			err:     "port E1/1 is used more than once",
 		},
+		{
+			name:    "sn5610-speed-on-breakout-port",
+			profile: &switchprofile.CumulusNvidiaSN5610,
+			speeds:  map[string]string{"E1/2": "400G"},
+			port:    "E1/1",
+			err:     "port E1/2 speed can't be configured",
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			agent := &agentapi.Agent{
 				Name: "leaf-01",
 				Spec: agentapi.AgentSpec{
 					Config: agentapi.AgentSpecConfig{ControlVIP: "172.30.0.1/32"},
-					Switch: wiringapi.SwitchSpec{ProtocolIP: "172.30.8.1/32", PortBreakouts: tt.breakouts},
+					Switch: wiringapi.SwitchSpec{ProtocolIP: "172.30.8.1/32", PortBreakouts: tt.breakouts, PortSpeeds: tt.speeds},
 					Connections: map[string]wiringapi.ConnectionSpec{
 						"server-01--unbundled--leaf-01": {Unbundled: &wiringapi.ConnUnbundled{
 							Link: wiringapi.ServerToSwitchLink{

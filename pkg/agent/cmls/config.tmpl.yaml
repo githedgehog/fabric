@@ -31,10 +31,16 @@
           pfc-watchdog:
             state: enable
         {{- end }}
-        {{- if $port.Used }}
+        {{- if or $port.Speed $port.Used }}
         link:
+          {{- if $port.Speed }}
+          speed: {{ $port.Speed }}
+          {{- end }}
+          {{- if $port.Used }}
           state:
             up: {}
+          {{- end }}
+        {{- end }}
         {{- if $port.VRF }}
         vrf: {{ $port.VRF }}
         {{- end }}
@@ -47,7 +53,6 @@
         router:
           adaptive-routing:
             state: enabled
-        {{- end }}
         {{- end }}
       {{- end }}
     evpn:

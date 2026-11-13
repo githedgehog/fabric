@@ -16,6 +16,9 @@
         ipv6:
           state: disabled
         link:
+          {{- if $port.Speed }}
+          speed: {{ $port.Speed }}
+          {{- end }}
           state:
             up: {}
         lldp:
