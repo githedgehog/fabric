@@ -1,0 +1,120 @@
+- set:
+    interface:
+      eth0:
+        ipv4:
+          address:
+            172.30.0.9/21: {}
+        type: eth
+        vrf: mgmt
+      swp1-64:
+        ipv6:
+          state: disabled
+        link:
+          state:
+            up: {}
+        lldp:
+          state: enabled
+    system:
+      aaa:
+        class:
+          nvapply:
+            action: allow
+            command-path:
+              /:
+                permission: all
+          nvshow:
+            action: allow
+            command-path:
+              /:
+                permission: ro
+          sudo:
+            action: allow
+            command-path:
+              /:
+                permission: all
+        role:
+          nvue-admin:
+            class:
+              nvapply: {}
+          nvue-monitor:
+            class:
+              nvshow: {}
+          system-admin:
+            class:
+              nvapply: {}
+              sudo: {}
+        user:
+          
+            admin:
+              hashed-password: $5$8nAYPGcl4l6G7Av1$Qi4/gnM0yPtGv9kjpMh78NuNSfQWy7vR1rulHpurL36
+              role: system-admin
+              ssh:
+                authorized-key:
+                  
+                    key-0:
+                      key: AAAAC3NzaC1lZDI1NTE5AAAAIGpF2+9I1Nj4BcN7y6DjzTbq1VcUYIRGyfzId5ZoBEFj
+                      type: ssh-ed25519
+                  
+                    key-1:
+                      key: AAAAC3NzaC1lZDI1NTE5AAAAIILr33oUspqfHiKC9BaenkKG3nIznbi/Ep3mmsMZjS4U
+                      type: ssh-ed25519
+                  
+          
+            op:
+              hashed-password: $5$8nAYPGcl4l6G7Av1$Qi4/gnM0yPtGv9kjpMh78NuNSfQWy7vR1rulHpurL36
+              role: nvue-monitor
+              ssh:
+                authorized-key:
+                  
+                    key-0:
+                      key: AAAAC3NzaC1lZDI1NTE5AAAAIGpF2+9I1Nj4BcN7y6DjzTbq1VcUYIRGyfzId5ZoBEFj
+                      type: ssh-ed25519
+                  
+                    key-1:
+                      key: AAAAC3NzaC1lZDI1NTE5AAAAIILr33oUspqfHiKC9BaenkKG3nIznbi/Ep3mmsMZjS4U
+                      type: ssh-ed25519
+                  
+          
+      api:
+        state: enabled
+      config:
+        auto-save:
+          state: enabled
+      control-plane:
+        acl:
+          acl-default-dos:
+            inbound: {}
+          acl-default-whitelist:
+            inbound: {}
+      docker:
+        vrf: mgmt
+      hostname: leaf-01
+      lldp:
+        state: enabled
+        tx-hold-multiplier: 24
+        tx-interval: 5
+      ntp:
+        listen:
+          eth0: {}
+        server:
+          172.30.0.1:
+            iburst: enabled
+        state: enabled
+        vrf: mgmt
+      ssh-server:
+        allow-users:
+          
+            admin: {}
+          
+            op: {}
+          
+        permit-root-login: disabled
+        state: enabled
+      wjh:
+        channel:
+          forwarding:
+            trigger:
+              l2: {}
+              l3: {}
+              tunnel: {}
+        state: enabled
