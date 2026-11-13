@@ -963,7 +963,9 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 				}
 			}
 
-			totalPorts += ports
+			if !port.Bonus {
+				totalPorts += ports
+			}
 			if port.Pipeline != "" {
 				pipelinePorts[port.Pipeline] += ports
 				pipelinePortNames[port.Pipeline] = append(pipelinePortNames[port.Pipeline], name)

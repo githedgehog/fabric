@@ -101,8 +101,8 @@ var CumulusNvidiaSN5610 = wiringapi.SwitchProfile{
 			"E1/62": {NOSName: "swp62", Label: "62", Profile: "OSFP-800G" + wiringapi.EvenPortProfileSuffix},
 			"E1/63": {NOSName: "swp63", Label: "63", Profile: "OSFP-800G" + wiringapi.OddPortProfileSuffix},
 			"E1/64": {NOSName: "swp64", Label: "64", Profile: "OSFP-800G" + wiringapi.EvenPortProfileSuffix},
-			"E1/65": {NOSName: "swp65", Label: "65", Profile: "SFP28-25G"},
-			"E1/66": {NOSName: "swp66", Label: "66", Profile: "SFP28-25G"},
+			"E1/65": {NOSName: "swp65", Label: "65", Profile: "SFP28-25G", Bonus: true},
+			"E1/66": {NOSName: "swp66", Label: "66", Profile: "SFP28-25G", Bonus: true},
 		},
 		// TODO verify, 8x10G isn't documented
 		PortProfiles: map[string]wiringapi.SwitchProfilePortProfile{

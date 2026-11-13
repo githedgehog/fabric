@@ -4,6 +4,7 @@
 package v1beta1_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -542,6 +543,20 @@ func TestSwitchDomainsValidation(t *testing.T) {
 		sw.Spec.Redundancy = wiringapi.SwitchRedundancy{Group: "eslag-1", Type: meta.RedundancyTypeESLAG}
 	}
 
+	// 27 odd ports at 8x and one at 4x make 256 ports, the 2 bonus ports aren't counted on top of it
+	sn5610Breakouts := func(extra bool) func(sw *wiringapi.Switch) {
+		return func(sw *wiringapi.Switch) {
+			sw.Spec.Profile = switchprofile.CumulusNvidiaSN5610.Name
+			sw.Spec.PortBreakouts = map[string]string{"E1/55": "4x200G"}
+			for port := 1; port <= 53; port += 2 {
+				sw.Spec.PortBreakouts[fmt.Sprintf("E1/%d", port)] = "8x100G"
+			}
+			if extra {
+				sw.Spec.PortBreakouts["E1/57"] = "2x400G"
+			}
+		}
+	}
+
 	eslagGroup := withName("eslag-1", &wiringapi.SwitchGroup{})
 	eslagGroup.Default()
 
@@ -713,6 +728,14 @@ func TestSwitchDomainsValidation(t *testing.T) {
 				sw.Spec.Profile = switchprofile.CumulusVX.Name
 				sw.Annotations = map[string]string{wiringapi.AnnotationSwitchBCMMutate: `{"rules": ["keep@acl/x"]}`}
 			}),
+		},
+		{
+			name: "max ports with bonus ports",
+			sw:   swGen(sn5610Breakouts(false)),
+		},
+		{
+			name: "max ports exceeded", err: "switch nvidia-sn5610 has exceeded maximum ports: 257 > 256",
+			sw: swGen(sn5610Breakouts(true)),
 		},
 		{
 			name: "bcm mutate annotation without rules on non-bcm switch",

@@ -3877,6 +3877,7 @@ _Appears in:_
 | `management` _boolean_ | Management defines if port is a management port, it's a special case and it can't have a group or profile |  |  |
 | `oniePortName` _string_ | OniePortName defines the ONIE port name for management ports only |  |  |
 | `pipeline` _string_ | Pipeline defines the pipeline used by the port, on some platforms multiple ports share the same pipeline |  |  |
+| `bonus` _boolean_ | Bonus defines if the port doesn't count towards the switch max ports (e.g. extra SFP28 ports on some switches) |  |  |
 
 
 #### SwitchProfilePortGroup
@@ -3992,7 +3993,7 @@ _Appears in:_
 | `nosType` _NOSType_ | NOSType defines the NOS type to be used for the switch |  |  |
 | `platform` _string_ | Platform is what expected to be request by ONIE and displayed in the NOS |  |  |
 | `pipelines` _object (keys:string, values:[SwitchProfilePipeline](#switchprofilepipeline))_ | Pipelines defines the switch pipeline configuration |  |  |
-| `maxPorts` _integer_ | MaxPorts defines the maximum number of ports (breakouts) allowed for the switch |  |  |
+| `maxPorts` _integer_ | MaxPorts defines the maximum number of ports (breakouts) allowed for the switch, bonus ports aren't counted |  |  |
 
 
 #### SwitchProfileStatus

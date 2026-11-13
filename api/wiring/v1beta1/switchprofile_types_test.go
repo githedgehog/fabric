@@ -919,6 +919,15 @@ func TestSwitchProfileValidateCumulus(t *testing.T) {
 			f:    setOffsets("1x100G", ""),
 			err:  true,
 		},
+		{
+			name: "bonus",
+			f:    setPort("E1/5", func(p *wiringapi.SwitchProfilePort) { p.Bonus = true }),
+		},
+		{
+			name: "management-bonus",
+			f:    setPort("M1", func(p *wiringapi.SwitchProfilePort) { p.Bonus = true }),
+			err:  true,
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			sp := cumulusTestProfile()
