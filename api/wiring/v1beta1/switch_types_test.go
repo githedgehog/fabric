@@ -578,6 +578,18 @@ func TestSwitchDomainsValidation(t *testing.T) {
 		},
 	})
 
+	serverConn := func(port string) *wiringapi.Connection {
+		conn := withName("server-01--unbundled--leaf-01", &wiringapi.Connection{Spec: wiringapi.ConnectionSpec{
+			Unbundled: &wiringapi.ConnUnbundled{Link: wiringapi.ServerToSwitchLink{
+				Server: wiringapi.BasePortName{Port: "server-01/enp2s1"},
+				Switch: wiringapi.BasePortName{Port: "leaf-01/" + port},
+			}},
+		}})
+		conn.Default()
+
+		return conn
+	}
+
 	eslagGroup := withName("eslag-1", &wiringapi.SwitchGroup{})
 	eslagGroup.Default()
 
@@ -774,6 +786,21 @@ func TestSwitchDomainsValidation(t *testing.T) {
 				sw.Spec.Profile = disablesSpeedPortProfile.Name
 				sw.Spec.PortSpeeds = map[string]string{"E1/2": "10G"}
 			}),
+		},
+		{
+			name: "breakout disabling a connected port", err: "port E1/2 used by connection server-01--unbundled--leaf-01 isn't available",
+			objects: []kclient.Object{serverConn("E1/2")},
+			sw:      swGen(func(sw *wiringapi.Switch) { sw.Spec.Profile = switchprofile.CumulusNvidiaSN5610.Name }, sn5610FullBreakout),
+		},
+		{
+			name: "breakout removing a connected sub-port", err: "port E1/1/2 used by connection server-01--unbundled--leaf-01 isn't available",
+			objects: []kclient.Object{serverConn("E1/1/2")},
+			sw:      swGen(func(sw *wiringapi.Switch) { sw.Spec.Profile = switchprofile.CumulusNvidiaSN5610.Name }),
+		},
+		{
+			name:    "breakout keeping a connected sub-port",
+			objects: []kclient.Object{serverConn("E1/1/2")},
+			sw:      swGen(sn5610FullBreakout),
 		},
 		{
 			name: "FEC on a disabled port", err: "port E1/2 does not support configuring FEC",

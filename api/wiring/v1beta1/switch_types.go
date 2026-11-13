@@ -887,6 +887,35 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 			}
 		}
 
+		// breakouts could remove or disable ports used by the existing connections
+		api2nos, err := sp.Spec.GetAPI2NOSPortsFor(&sw.Spec)
+		if err != nil {
+			return nil, fmt.Errorf("getting NOS port mapping: %w", err)
+		}
+
+		conns := &ConnectionList{}
+		if err := kube.List(ctx, conns, kclient.InNamespace(sw.Namespace), MatchingLabelsForListLabelSwitch(sw.Name)); err != nil {
+			return nil, fmt.Errorf("listing connections: %w", err)
+		}
+
+		for _, conn := range conns.Items {
+			_, _, ports, _, err := conn.Spec.Endpoints()
+			if err != nil {
+				return nil, fmt.Errorf("getting connection %s endpoints: %w", conn.Name, err)
+			}
+
+			for _, port := range ports {
+				portName, ok := strings.CutPrefix(port, sw.Name+"/")
+				if !ok {
+					continue
+				}
+
+				if _, ok := api2nos[portName]; !ok {
+					return nil, fmt.Errorf("port %s used by connection %s isn't available with the switch port breakouts", portName, conn.Name) //nolint:err113
+				}
+			}
+		}
+
 		autoNegAllowed, _, err := sp.Spec.GetAutoNegsDefaultsFor(&sw.Spec)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get auto negotiation defaults")
