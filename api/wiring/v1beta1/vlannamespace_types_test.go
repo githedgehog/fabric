@@ -48,7 +48,7 @@ func TestDefaultNormalizesRanges(t *testing.T) {
 func TestValidate(t *testing.T) {
 	cfg := &meta.FabricConfig{
 		VPCIRBVLANRanges:       []meta.VLANRange{{From: 3000, To: 3199}},
-		TH5WorkaroundVLANRange: []meta.VLANRange{{From: 3900, To: 3999}},
+		TH5WorkaroundVLANRange: []meta.VLANRange{{From: 3900, To: 3966}},
 	}
 	for _, tt := range []struct {
 		name   string
@@ -62,7 +62,12 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			name:   "th5-collision",
-			vlanNS: vlanNSGen("ns-1", []meta.VLANRange{{From: 3500, To: 4500}}),
+			vlanNS: vlanNSGen("ns-1", []meta.VLANRange{{From: 3500, To: 3950}}),
+			err:    true,
+		},
+		{
+			name:   "bcm-reserved-collision",
+			vlanNS: vlanNSGen("ns-2", []meta.VLANRange{{From: 4000, To: 4050}}),
 			err:    true,
 		},
 		{
