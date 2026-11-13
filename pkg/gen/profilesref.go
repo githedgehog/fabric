@@ -67,7 +67,7 @@ func GenerateProfilesRef(ctx context.Context, targetDir string) error {
 	}
 
 	def := switchprofile.NewDefaultSwitchProfiles()
-	err := def.RegisterAll(ctx, nil, &meta.FabricConfig{})
+	err := def.RegisterAll(ctx, nil, &meta.FabricConfig{IncludeCumulus: true})
 	if err != nil {
 		return fmt.Errorf("registering default switch profiles: %w", err)
 	}
@@ -84,7 +84,7 @@ func GenerateProfilesRef(ctx context.Context, targetDir string) error {
 	var resCatalogSwitches strings.Builder
 	resCatalogSwitches.WriteString(switchTableHeader)
 	for _, sp := range sps {
-		if sp.Name == switchprofile.VS.Name {
+		if slices.Contains(meta.VirtualSwitchProfiles, sp.Name) {
 			continue
 		}
 
@@ -138,7 +138,7 @@ func GenerateProfilesRef(ctx context.Context, targetDir string) error {
 			resCatalog.WriteString("Other names: " + strings.Join(sp.Spec.OtherNames, ", ") + "\n\n")
 		}
 
-		if sp.Name == switchprofile.VS.Name {
+		if slices.Contains(meta.VirtualSwitchProfiles, sp.Name) {
 			resCatalog.WriteString("This is a virtual switch profile. It's for testing/demo purpose only with limited features and performance.\n\n")
 		}
 
@@ -166,8 +166,17 @@ func GenerateProfilesRef(ctx context.Context, targetDir string) error {
 		resCatalog.WriteString("- L3VNI: " + strconv.FormatBool(sp.Spec.Features.L3VNI) + "\n")
 		resCatalog.WriteString("- RoCE: " + strconv.FormatBool(sp.Spec.Features.RoCE) + "\n")
 		resCatalog.WriteString("- ESLAG: " + strconv.FormatBool(sp.Spec.Features.ESLAG) + "\n")
-		resCatalog.WriteString("- ECMP RoCE QPN hashing: " + strconv.FormatBool(sp.Spec.Features.ECMPRoCEQPN) + "\n")
+		qpn := strconv.FormatBool(sp.Spec.Features.ECMPRoCEQPN)
+		if slices.Contains(meta.NOSTypesCumulus, sp.Spec.NOSType) {
+			qpn = notApplicable
+		}
+		resCatalog.WriteString("- ECMP RoCE QPN hashing: " + qpn + "\n")
 		resCatalog.WriteString("\n")
+
+		if sp.Spec.MaxPorts > 0 && len(sp.Spec.Pipelines) == 0 {
+			resCatalog.WriteString("**Hardware Resources:**\n\n")
+			fmt.Fprintf(&resCatalog, "- Maximum ports supported: **%d** (bonus ports aren't counted)\n\n", sp.Spec.MaxPorts)
+		}
 
 		if sp.Spec.MaxPorts > 0 && len(sp.Spec.Pipelines) > 0 {
 			resCatalog.WriteString("**Hardware Resources:**\n\n")
@@ -216,7 +225,7 @@ func GenerateProfilesRef(ctx context.Context, targetDir string) error {
 
 		for _, port := range portsSummary {
 			fmt.Fprintf(&resCatalog, "| %s | %s | %s | %s | %s | %s |\n",
-				port.Name, port.Label, port.Type, port.Group, port.Default, port.Supported)
+				port.Name, port.Label, escapeMarkdown(port.Type), port.Group, port.Default, escapeMarkdown(port.Supported))
 		}
 
 		resCatalog.WriteString("\n\n")
@@ -235,6 +244,10 @@ func GenerateProfilesRef(ctx context.Context, targetDir string) error {
 	}
 
 	return nil
+}
+
+func escapeMarkdown(s string) string {
+	return strings.ReplaceAll(s, "*", `\*`)
 }
 
 // TODO replace with a proper roles handling in switch profiles
@@ -263,6 +276,7 @@ func getRolesHint(sp *wiringapi.SwitchProfile) string {
 const (
 	materialCheckIcon = ":material-check:"
 	materialCloseIcon = ":material-close:"
+	notApplicable     = "N/A"
 )
 
 func generateFeatureMatrix(sps []*wiringapi.SwitchProfile) string {
@@ -312,6 +326,13 @@ func generateFeatureMatrix(sps []*wiringapi.SwitchProfile) string {
 
 		featuresValue := reflect.ValueOf(sp.Spec.Features)
 		for _, fieldName := range fieldNames {
+			// Cumulus has no RoCE queue pair hash field
+			if fieldName == "ECMPRoCEQPN" && slices.Contains(meta.NOSTypesCumulus, sp.Spec.NOSType) {
+				result.WriteString(" | " + notApplicable)
+
+				continue
+			}
+
 			fieldValue := featuresValue.FieldByName(fieldName).Bool()
 			icon := materialCloseIcon
 			if fieldValue {

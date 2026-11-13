@@ -21,6 +21,13 @@ features and port naming scheme.
 | [Edgecore DCS501 (AS7712-32X)](#edgecore-dcs501) | **spine** | Broadcom TH | 32xQSFP28-100G |
 | [Edgecore EPS202 (AS4630-54PE)](#edgecore-eps202) | **spine**, **leaf (limited)** | Broadcom TD3-X3 | 48xRJ45-1G, 4xSFP28-25G, 2xQSFP28-100G |
 | [Edgecore EPS203 (AS4630-54NPE)](#edgecore-eps203) | **leaf (limited)** | Broadcom TD3-X3 | 36xRJ45-2.5G, 12xRJ45-10G, 4xSFP28-25G, 2xQSFP28-100G |
+| [NVIDIA SN2201](#nvidia-sn2201) | **spine**, **leaf** | NVIDIA Spectrum | 48xRJ45-1G, 4xQSFP28-100G |
+| [NVIDIA SN2700](#nvidia-sn2700) | **spine**, **leaf** | NVIDIA Spectrum | 32xQSFP28-100G |
+| [NVIDIA SN3700C](#nvidia-sn3700c) | **spine**, **leaf** | NVIDIA Spectrum-2 | 32xQSFP28-100G |
+| [NVIDIA SN4600](#nvidia-sn4600) | **spine**, **leaf** | NVIDIA Spectrum-3 | 64xQSFP56-200G |
+| [NVIDIA SN4700](#nvidia-sn4700) | **spine**, **leaf** | NVIDIA Spectrum-3 | 32xQSFPDD-400G |
+| [NVIDIA SN5600](#nvidia-sn5600) | **spine**, **leaf** | NVIDIA Spectrum-4 | 64xOSFP-800G, 1xSFP28-25G |
+| [NVIDIA SN5610](#nvidia-sn5610) | **spine**, **leaf** | NVIDIA Spectrum-4 | 64xOSFP-800G, 2xSFP28-25G |
 | [Supermicro SSE-C4632SB](#supermicro-sse-c4632sb) | **spine**, **leaf** | Broadcom TD3-X7 3.2T | 32xQSFP28-100G, 1xSFP28-10G |
 | [UfiSpace S9300](#ufispace-s9300) | **spine**, **leaf** | Broadcom TD4-X11 | 32xQSFP56DD-400G, 2xSFP28-10G |
 
@@ -40,6 +47,7 @@ The following table shows which features are supported by each switch profile:
 | [Celestica DS4000 (Silverstone2)](#celestica-ds4000) | :material-close: | :material-check: | :material-close: | :material-close: | :material-check: | :material-close: | :material-close: | :material-check: |
 | [Celestica DS4101 (Greystone)](#celestica-ds4101) | :material-close: | :material-check: | :material-close: | :material-close: | :material-check: | :material-close: | :material-check: | :material-check: |
 | [Celestica DS5000 (Moonstone)](#celestica-ds5000) | :material-check: | :material-check: | :material-close: | :material-check: | :material-check: | :material-close: | :material-check: | :material-check: |
+| [Cumulus VX](#cumulus-vx) | :material-check: | :material-close: | :material-check: | :material-check: | :material-check: | :material-check: | N/A | :material-close: |
 | [Dell S5232F-ON](#dell-s5232f-on) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: |
 | [Dell S5248F-ON](#dell-s5248f-on) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: |
 | [Dell Z9332F-ON](#dell-z9332f-on) | :material-close: | :material-check: | :material-close: | :material-close: | :material-check: | :material-close: | :material-close: | :material-check: |
@@ -49,6 +57,13 @@ The following table shows which features are supported by each switch profile:
 | [Edgecore DCS501 (AS7712-32X)](#edgecore-dcs501) | :material-close: | :material-check: | :material-close: | :material-close: | :material-close: | :material-close: | :material-close: | :material-close: |
 | [Edgecore EPS202 (AS4630-54PE)](#edgecore-eps202) | :material-close: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: | :material-close: | :material-check: |
 | [Edgecore EPS203 (AS4630-54NPE)](#edgecore-eps203) | :material-close: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: | :material-close: | :material-check: |
+| [NVIDIA SN2201](#nvidia-sn2201) | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-close: | N/A | :material-close: |
+| [NVIDIA SN2700](#nvidia-sn2700) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | N/A | :material-close: |
+| [NVIDIA SN3700C](#nvidia-sn3700c) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | N/A | :material-close: |
+| [NVIDIA SN4600](#nvidia-sn4600) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | N/A | :material-close: |
+| [NVIDIA SN4700](#nvidia-sn4700) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | N/A | :material-close: |
+| [NVIDIA SN5600](#nvidia-sn5600) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | N/A | :material-close: |
+| [NVIDIA SN5610](#nvidia-sn5610) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | N/A | :material-close: |
 | [Supermicro SSE-C4632SB](#supermicro-sse-c4632sb) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: |
 | [UfiSpace S9300](#ufispace-s9300) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: |
 | [Virtual Switch](#virtual-switch) | :material-check: | :material-close: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-close: |
@@ -523,6 +538,101 @@ Label column is a port label on a physical switch.
 | E1/64 | 64 | Breakout |  | 1x800G | 1x100G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x400G, 2x50G, 4x100G, 4x200G, 8x100G |
 | E1/65 | 65 | Direct |  | 25G | 1G, 10G, 25G |
 | E1/66 | 66 | Direct |  | 25G | 1G, 10G, 25G |
+
+
+## Cumulus VX
+
+Profile Name (to use in switch object `.spec.profile`): **cumulus-vx**
+
+This is a virtual switch profile. It's for testing/demo purpose only with limited features and performance.
+
+**Supported roles**: **spine**, **leaf**
+
+Switch Silicon: **vs**
+
+Ports Summary: **64xSFP28-10G**
+
+**Supported features:**
+
+- Subinterfaces: true
+- ACLs: false
+- L2VNI: true
+- L3VNI: true
+- RoCE: true
+- ESLAG: true
+- ECMP RoCE QPN hashing: N/A
+
+**Available Ports:**
+
+Label column is a port label on a physical switch.
+
+| Port | Label | Type | Group | Default | Supported |
+|------|-------|------|-------|---------|-----------|
+| M1 |  | Management |  |  |  |
+| E1/1 | 1 | Direct |  | 10G | 1G, 10G |
+| E1/2 | 2 | Direct |  | 10G | 1G, 10G |
+| E1/3 | 3 | Direct |  | 10G | 1G, 10G |
+| E1/4 | 4 | Direct |  | 10G | 1G, 10G |
+| E1/5 | 5 | Direct |  | 10G | 1G, 10G |
+| E1/6 | 6 | Direct |  | 10G | 1G, 10G |
+| E1/7 | 7 | Direct |  | 10G | 1G, 10G |
+| E1/8 | 8 | Direct |  | 10G | 1G, 10G |
+| E1/9 | 9 | Direct |  | 10G | 1G, 10G |
+| E1/10 | 10 | Direct |  | 10G | 1G, 10G |
+| E1/11 | 11 | Direct |  | 10G | 1G, 10G |
+| E1/12 | 12 | Direct |  | 10G | 1G, 10G |
+| E1/13 | 13 | Direct |  | 10G | 1G, 10G |
+| E1/14 | 14 | Direct |  | 10G | 1G, 10G |
+| E1/15 | 15 | Direct |  | 10G | 1G, 10G |
+| E1/16 | 16 | Direct |  | 10G | 1G, 10G |
+| E1/17 | 17 | Direct |  | 10G | 1G, 10G |
+| E1/18 | 18 | Direct |  | 10G | 1G, 10G |
+| E1/19 | 19 | Direct |  | 10G | 1G, 10G |
+| E1/20 | 20 | Direct |  | 10G | 1G, 10G |
+| E1/21 | 21 | Direct |  | 10G | 1G, 10G |
+| E1/22 | 22 | Direct |  | 10G | 1G, 10G |
+| E1/23 | 23 | Direct |  | 10G | 1G, 10G |
+| E1/24 | 24 | Direct |  | 10G | 1G, 10G |
+| E1/25 | 25 | Direct |  | 10G | 1G, 10G |
+| E1/26 | 26 | Direct |  | 10G | 1G, 10G |
+| E1/27 | 27 | Direct |  | 10G | 1G, 10G |
+| E1/28 | 28 | Direct |  | 10G | 1G, 10G |
+| E1/29 | 29 | Direct |  | 10G | 1G, 10G |
+| E1/30 | 30 | Direct |  | 10G | 1G, 10G |
+| E1/31 | 31 | Direct |  | 10G | 1G, 10G |
+| E1/32 | 32 | Direct |  | 10G | 1G, 10G |
+| E1/33 | 33 | Direct |  | 10G | 1G, 10G |
+| E1/34 | 34 | Direct |  | 10G | 1G, 10G |
+| E1/35 | 35 | Direct |  | 10G | 1G, 10G |
+| E1/36 | 36 | Direct |  | 10G | 1G, 10G |
+| E1/37 | 37 | Direct |  | 10G | 1G, 10G |
+| E1/38 | 38 | Direct |  | 10G | 1G, 10G |
+| E1/39 | 39 | Direct |  | 10G | 1G, 10G |
+| E1/40 | 40 | Direct |  | 10G | 1G, 10G |
+| E1/41 | 41 | Direct |  | 10G | 1G, 10G |
+| E1/42 | 42 | Direct |  | 10G | 1G, 10G |
+| E1/43 | 43 | Direct |  | 10G | 1G, 10G |
+| E1/44 | 44 | Direct |  | 10G | 1G, 10G |
+| E1/45 | 45 | Direct |  | 10G | 1G, 10G |
+| E1/46 | 46 | Direct |  | 10G | 1G, 10G |
+| E1/47 | 47 | Direct |  | 10G | 1G, 10G |
+| E1/48 | 48 | Direct |  | 10G | 1G, 10G |
+| E1/49 | 49 | Direct |  | 10G | 1G, 10G |
+| E1/50 | 50 | Direct |  | 10G | 1G, 10G |
+| E1/51 | 51 | Direct |  | 10G | 1G, 10G |
+| E1/52 | 52 | Direct |  | 10G | 1G, 10G |
+| E1/53 | 53 | Direct |  | 10G | 1G, 10G |
+| E1/54 | 54 | Direct |  | 10G | 1G, 10G |
+| E1/55 | 55 | Direct |  | 10G | 1G, 10G |
+| E1/56 | 56 | Direct |  | 10G | 1G, 10G |
+| E1/57 | 57 | Direct |  | 10G | 1G, 10G |
+| E1/58 | 58 | Direct |  | 10G | 1G, 10G |
+| E1/59 | 59 | Direct |  | 10G | 1G, 10G |
+| E1/60 | 60 | Direct |  | 10G | 1G, 10G |
+| E1/61 | 61 | Direct |  | 10G | 1G, 10G |
+| E1/62 | 62 | Direct |  | 10G | 1G, 10G |
+| E1/63 | 63 | Direct |  | 10G | 1G, 10G |
+| E1/64 | 64 | Direct |  | 10G | 1G, 10G |
 
 
 ## Dell S5232F-ON
@@ -1210,6 +1320,594 @@ Label column is a port label on a physical switch.
 | E1/52 | 52 | Direct |  | 25G | 1G, 10G, 25G |
 | E1/53 | 53 | Breakout |  | 1x100G | 1x100G, 1x40G, 4x10G, 4x25G |
 | E1/54 | 54 | Breakout |  | 1x100G | 1x100G, 1x40G, 4x10G, 4x25G |
+
+
+## NVIDIA SN2201
+
+Profile Name (to use in switch object `.spec.profile`): **nvidia-sn2201**
+
+**Supported roles**: **spine**, **leaf**
+
+Switch Silicon: **NVIDIA Spectrum**
+
+Ports Summary: **48xRJ45-1G, 4xQSFP28-100G**
+
+Notes: Ports 49 and 51 support up to 5W transceivers, ports 50 and 52 up to 3.5W
+
+**Supported features:**
+
+- Subinterfaces: true
+- ACLs: true
+- L2VNI: true
+- L3VNI: true
+- RoCE: false
+- ESLAG: false
+- ECMP RoCE QPN hashing: N/A
+
+**Hardware Resources:**
+
+- Maximum ports supported: **64** (bonus ports aren't counted)
+
+**Available Ports:**
+
+Label column is a port label on a physical switch.
+
+| Port | Label | Type | Group | Default | Supported |
+|------|-------|------|-------|---------|-----------|
+| M1 |  | Management |  |  |  |
+| E1/1 | 1 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/2 | 2 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/3 | 3 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/4 | 4 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/5 | 5 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/6 | 6 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/7 | 7 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/8 | 8 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/9 | 9 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/10 | 10 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/11 | 11 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/12 | 12 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/13 | 13 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/14 | 14 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/15 | 15 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/16 | 16 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/17 | 17 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/18 | 18 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/19 | 19 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/20 | 20 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/21 | 21 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/22 | 22 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/23 | 23 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/24 | 24 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/25 | 25 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/26 | 26 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/27 | 27 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/28 | 28 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/29 | 29 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/30 | 30 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/31 | 31 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/32 | 32 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/33 | 33 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/34 | 34 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/35 | 35 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/36 | 36 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/37 | 37 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/38 | 38 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/39 | 39 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/40 | 40 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/41 | 41 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/42 | 42 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/43 | 43 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/44 | 44 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/45 | 45 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/46 | 46 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/47 | 47 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/48 | 48 | Direct |  | 1G | 1G, AutoNeg supported (default: true) |
+| E1/49 | 49 | Breakout |  | 1x100G | 1x100G, 1x25G, 1x40G, 1x50G, 2x25G, 2x40G, 2x50G, 4x10G |
+| E1/50 | 50 | Breakout |  | 1x100G | 1x100G, 1x25G, 1x40G, 1x50G, 2x25G, 2x40G, 2x50G, 4x10G |
+| E1/51 | 51 | Breakout |  | 1x100G | 1x100G, 1x25G, 1x40G, 1x50G, 2x25G, 2x40G, 2x50G, 4x10G |
+| E1/52 | 52 | Breakout |  | 1x100G | 1x100G, 1x25G, 1x40G, 1x50G, 2x25G, 2x40G, 2x50G, 4x10G |
+
+
+## NVIDIA SN2700
+
+Profile Name (to use in switch object `.spec.profile`): **nvidia-sn2700**
+
+**Supported roles**: **spine**, **leaf**
+
+Switch Silicon: **NVIDIA Spectrum**
+
+Ports Summary: **32xQSFP28-100G**
+
+Notes: Breaking out an odd port into 4 ports disables the even port next to it. Only ports 1, 2, 31 and 32 support 5W transceivers
+
+**Supported features:**
+
+- Subinterfaces: true
+- ACLs: true
+- L2VNI: true
+- L3VNI: true
+- RoCE: true
+- ESLAG: false
+- ECMP RoCE QPN hashing: N/A
+
+**Hardware Resources:**
+
+- Maximum ports supported: **64** (bonus ports aren't counted)
+
+**Available Ports:**
+
+Label column is a port label on a physical switch.
+
+| Port | Label | Type | Group | Default | Supported |
+|------|-------|------|-------|---------|-----------|
+| M1 |  | Management |  |  |  |
+| E1/1 | 1 | Breakout (mode with \* disables E1/2) |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x50G, 2x25G, 2x50G, 4x10G\*, 4x1G\*, 4x25G\* |
+| E1/2 | 2 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x50G, 2x25G, 2x50G |
+| E1/3 | 3 | Breakout (mode with \* disables E1/4) |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x50G, 2x25G, 2x50G, 4x10G\*, 4x1G\*, 4x25G\* |
+| E1/4 | 4 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x50G, 2x25G, 2x50G |
+| E1/5 | 5 | Breakout (mode with \* disables E1/6) |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x50G, 2x25G, 2x50G, 4x10G\*, 4x1G\*, 4x25G\* |
+| E1/6 | 6 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x50G, 2x25G, 2x50G |
+| E1/7 | 7 | Breakout (mode with \* disables E1/8) |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x50G, 2x25G, 2x50G, 4x10G\*, 4x1G\*, 4x25G\* |
+| E1/8 | 8 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x50G, 2x25G, 2x50G |
+| E1/9 | 9 | Breakout (mode with \* disables E1/10) |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x50G, 2x25G, 2x50G, 4x10G\*, 4x1G\*, 4x25G\* |
+| E1/10 | 10 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x50G, 2x25G, 2x50G |
+| E1/11 | 11 | Breakout (mode with \* disables E1/12) |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x50G, 2x25G, 2x50G, 4x10G\*, 4x1G\*, 4x25G\* |
+| E1/12 | 12 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x50G, 2x25G, 2x50G |
+| E1/13 | 13 | Breakout (mode with \* disables E1/14) |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x50G, 2x25G, 2x50G, 4x10G\*, 4x1G\*, 4x25G\* |
+| E1/14 | 14 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x50G, 2x25G, 2x50G |
+| E1/15 | 15 | Breakout (mode with \* disables E1/16) |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x50G, 2x25G, 2x50G, 4x10G\*, 4x1G\*, 4x25G\* |
+| E1/16 | 16 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x50G, 2x25G, 2x50G |
+| E1/17 | 17 | Breakout (mode with \* disables E1/18) |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x50G, 2x25G, 2x50G, 4x10G\*, 4x1G\*, 4x25G\* |
+| E1/18 | 18 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x50G, 2x25G, 2x50G |
+| E1/19 | 19 | Breakout (mode with \* disables E1/20) |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x50G, 2x25G, 2x50G, 4x10G\*, 4x1G\*, 4x25G\* |
+| E1/20 | 20 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x50G, 2x25G, 2x50G |
+| E1/21 | 21 | Breakout (mode with \* disables E1/22) |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x50G, 2x25G, 2x50G, 4x10G\*, 4x1G\*, 4x25G\* |
+| E1/22 | 22 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x50G, 2x25G, 2x50G |
+| E1/23 | 23 | Breakout (mode with \* disables E1/24) |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x50G, 2x25G, 2x50G, 4x10G\*, 4x1G\*, 4x25G\* |
+| E1/24 | 24 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x50G, 2x25G, 2x50G |
+| E1/25 | 25 | Breakout (mode with \* disables E1/26) |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x50G, 2x25G, 2x50G, 4x10G\*, 4x1G\*, 4x25G\* |
+| E1/26 | 26 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x50G, 2x25G, 2x50G |
+| E1/27 | 27 | Breakout (mode with \* disables E1/28) |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x50G, 2x25G, 2x50G, 4x10G\*, 4x1G\*, 4x25G\* |
+| E1/28 | 28 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x50G, 2x25G, 2x50G |
+| E1/29 | 29 | Breakout (mode with \* disables E1/30) |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x50G, 2x25G, 2x50G, 4x10G\*, 4x1G\*, 4x25G\* |
+| E1/30 | 30 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x50G, 2x25G, 2x50G |
+| E1/31 | 31 | Breakout (mode with \* disables E1/32) |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x50G, 2x25G, 2x50G, 4x10G\*, 4x1G\*, 4x25G\* |
+| E1/32 | 32 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x50G, 2x25G, 2x50G |
+
+
+## NVIDIA SN3700C
+
+Profile Name (to use in switch object `.spec.profile`): **nvidia-sn3700c**
+
+**Supported roles**: **spine**, **leaf**
+
+Switch Silicon: **NVIDIA Spectrum-2**
+
+Ports Summary: **32xQSFP28-100G**
+
+Notes: Ports 1, 2, 31 and 32 support up to 5W transceivers, ports 3-30 up to 3.5W
+
+**Supported features:**
+
+- Subinterfaces: true
+- ACLs: true
+- L2VNI: true
+- L3VNI: true
+- RoCE: true
+- ESLAG: true
+- ECMP RoCE QPN hashing: N/A
+
+**Hardware Resources:**
+
+- Maximum ports supported: **128** (bonus ports aren't counted)
+
+**Available Ports:**
+
+Label column is a port label on a physical switch.
+
+| Port | Label | Type | Group | Default | Supported |
+|------|-------|------|-------|---------|-----------|
+| M1 |  | Management |  |  |  |
+| E1/1 | 1 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x40G, 1x50G, 2x25G, 2x50G, 4x10G, 4x1G, 4x25G |
+| E1/2 | 2 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x40G, 1x50G, 2x25G, 2x50G, 4x10G, 4x1G, 4x25G |
+| E1/3 | 3 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x40G, 1x50G, 2x25G, 2x50G, 4x10G, 4x1G, 4x25G |
+| E1/4 | 4 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x40G, 1x50G, 2x25G, 2x50G, 4x10G, 4x1G, 4x25G |
+| E1/5 | 5 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x40G, 1x50G, 2x25G, 2x50G, 4x10G, 4x1G, 4x25G |
+| E1/6 | 6 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x40G, 1x50G, 2x25G, 2x50G, 4x10G, 4x1G, 4x25G |
+| E1/7 | 7 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x40G, 1x50G, 2x25G, 2x50G, 4x10G, 4x1G, 4x25G |
+| E1/8 | 8 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x40G, 1x50G, 2x25G, 2x50G, 4x10G, 4x1G, 4x25G |
+| E1/9 | 9 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x40G, 1x50G, 2x25G, 2x50G, 4x10G, 4x1G, 4x25G |
+| E1/10 | 10 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x40G, 1x50G, 2x25G, 2x50G, 4x10G, 4x1G, 4x25G |
+| E1/11 | 11 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x40G, 1x50G, 2x25G, 2x50G, 4x10G, 4x1G, 4x25G |
+| E1/12 | 12 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x40G, 1x50G, 2x25G, 2x50G, 4x10G, 4x1G, 4x25G |
+| E1/13 | 13 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x40G, 1x50G, 2x25G, 2x50G, 4x10G, 4x1G, 4x25G |
+| E1/14 | 14 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x40G, 1x50G, 2x25G, 2x50G, 4x10G, 4x1G, 4x25G |
+| E1/15 | 15 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x40G, 1x50G, 2x25G, 2x50G, 4x10G, 4x1G, 4x25G |
+| E1/16 | 16 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x40G, 1x50G, 2x25G, 2x50G, 4x10G, 4x1G, 4x25G |
+| E1/17 | 17 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x40G, 1x50G, 2x25G, 2x50G, 4x10G, 4x1G, 4x25G |
+| E1/18 | 18 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x40G, 1x50G, 2x25G, 2x50G, 4x10G, 4x1G, 4x25G |
+| E1/19 | 19 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x40G, 1x50G, 2x25G, 2x50G, 4x10G, 4x1G, 4x25G |
+| E1/20 | 20 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x40G, 1x50G, 2x25G, 2x50G, 4x10G, 4x1G, 4x25G |
+| E1/21 | 21 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x40G, 1x50G, 2x25G, 2x50G, 4x10G, 4x1G, 4x25G |
+| E1/22 | 22 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x40G, 1x50G, 2x25G, 2x50G, 4x10G, 4x1G, 4x25G |
+| E1/23 | 23 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x40G, 1x50G, 2x25G, 2x50G, 4x10G, 4x1G, 4x25G |
+| E1/24 | 24 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x40G, 1x50G, 2x25G, 2x50G, 4x10G, 4x1G, 4x25G |
+| E1/25 | 25 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x40G, 1x50G, 2x25G, 2x50G, 4x10G, 4x1G, 4x25G |
+| E1/26 | 26 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x40G, 1x50G, 2x25G, 2x50G, 4x10G, 4x1G, 4x25G |
+| E1/27 | 27 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x40G, 1x50G, 2x25G, 2x50G, 4x10G, 4x1G, 4x25G |
+| E1/28 | 28 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x40G, 1x50G, 2x25G, 2x50G, 4x10G, 4x1G, 4x25G |
+| E1/29 | 29 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x40G, 1x50G, 2x25G, 2x50G, 4x10G, 4x1G, 4x25G |
+| E1/30 | 30 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x40G, 1x50G, 2x25G, 2x50G, 4x10G, 4x1G, 4x25G |
+| E1/31 | 31 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x40G, 1x50G, 2x25G, 2x50G, 4x10G, 4x1G, 4x25G |
+| E1/32 | 32 | Breakout |  | 1x100G | 1x100G, 1x10G, 1x1G, 1x25G, 1x40G, 1x50G, 2x25G, 2x50G, 4x10G, 4x1G, 4x25G |
+
+
+## NVIDIA SN4600
+
+Profile Name (to use in switch object `.spec.profile`): **nvidia-sn4600**
+
+**Supported roles**: **spine**, **leaf**
+
+Switch Silicon: **NVIDIA Spectrum-3**
+
+Ports Summary: **64xQSFP56-200G**
+
+Notes: Breaking out an odd port into 4 ports disables the even port next to it. All ports support up to 5W transceivers, ports 49-50, 53-54, 57-58 and 61-62 up to 6.5W
+
+**Supported features:**
+
+- Subinterfaces: true
+- ACLs: true
+- L2VNI: true
+- L3VNI: true
+- RoCE: true
+- ESLAG: true
+- ECMP RoCE QPN hashing: N/A
+
+**Hardware Resources:**
+
+- Maximum ports supported: **128** (bonus ports aren't counted)
+
+**Available Ports:**
+
+Label column is a port label on a physical switch.
+
+| Port | Label | Type | Group | Default | Supported |
+|------|-------|------|-------|---------|-----------|
+| M1 |  | Management |  |  |  |
+| E1/1 | 1 | Breakout (mode with \* disables E1/2) |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G, 4x10G\*, 4x25G\*, 4x50G\* |
+| E1/2 | 2 | Breakout |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G |
+| E1/3 | 3 | Breakout (mode with \* disables E1/4) |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G, 4x10G\*, 4x25G\*, 4x50G\* |
+| E1/4 | 4 | Breakout |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G |
+| E1/5 | 5 | Breakout (mode with \* disables E1/6) |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G, 4x10G\*, 4x25G\*, 4x50G\* |
+| E1/6 | 6 | Breakout |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G |
+| E1/7 | 7 | Breakout (mode with \* disables E1/8) |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G, 4x10G\*, 4x25G\*, 4x50G\* |
+| E1/8 | 8 | Breakout |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G |
+| E1/9 | 9 | Breakout (mode with \* disables E1/10) |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G, 4x10G\*, 4x25G\*, 4x50G\* |
+| E1/10 | 10 | Breakout |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G |
+| E1/11 | 11 | Breakout (mode with \* disables E1/12) |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G, 4x10G\*, 4x25G\*, 4x50G\* |
+| E1/12 | 12 | Breakout |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G |
+| E1/13 | 13 | Breakout (mode with \* disables E1/14) |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G, 4x10G\*, 4x25G\*, 4x50G\* |
+| E1/14 | 14 | Breakout |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G |
+| E1/15 | 15 | Breakout (mode with \* disables E1/16) |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G, 4x10G\*, 4x25G\*, 4x50G\* |
+| E1/16 | 16 | Breakout |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G |
+| E1/17 | 17 | Breakout (mode with \* disables E1/18) |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G, 4x10G\*, 4x25G\*, 4x50G\* |
+| E1/18 | 18 | Breakout |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G |
+| E1/19 | 19 | Breakout (mode with \* disables E1/20) |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G, 4x10G\*, 4x25G\*, 4x50G\* |
+| E1/20 | 20 | Breakout |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G |
+| E1/21 | 21 | Breakout (mode with \* disables E1/22) |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G, 4x10G\*, 4x25G\*, 4x50G\* |
+| E1/22 | 22 | Breakout |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G |
+| E1/23 | 23 | Breakout (mode with \* disables E1/24) |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G, 4x10G\*, 4x25G\*, 4x50G\* |
+| E1/24 | 24 | Breakout |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G |
+| E1/25 | 25 | Breakout (mode with \* disables E1/26) |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G, 4x10G\*, 4x25G\*, 4x50G\* |
+| E1/26 | 26 | Breakout |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G |
+| E1/27 | 27 | Breakout (mode with \* disables E1/28) |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G, 4x10G\*, 4x25G\*, 4x50G\* |
+| E1/28 | 28 | Breakout |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G |
+| E1/29 | 29 | Breakout (mode with \* disables E1/30) |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G, 4x10G\*, 4x25G\*, 4x50G\* |
+| E1/30 | 30 | Breakout |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G |
+| E1/31 | 31 | Breakout (mode with \* disables E1/32) |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G, 4x10G\*, 4x25G\*, 4x50G\* |
+| E1/32 | 32 | Breakout |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G |
+| E1/33 | 33 | Breakout (mode with \* disables E1/34) |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G, 4x10G\*, 4x25G\*, 4x50G\* |
+| E1/34 | 34 | Breakout |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G |
+| E1/35 | 35 | Breakout (mode with \* disables E1/36) |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G, 4x10G\*, 4x25G\*, 4x50G\* |
+| E1/36 | 36 | Breakout |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G |
+| E1/37 | 37 | Breakout (mode with \* disables E1/38) |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G, 4x10G\*, 4x25G\*, 4x50G\* |
+| E1/38 | 38 | Breakout |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G |
+| E1/39 | 39 | Breakout (mode with \* disables E1/40) |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G, 4x10G\*, 4x25G\*, 4x50G\* |
+| E1/40 | 40 | Breakout |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G |
+| E1/41 | 41 | Breakout (mode with \* disables E1/42) |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G, 4x10G\*, 4x25G\*, 4x50G\* |
+| E1/42 | 42 | Breakout |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G |
+| E1/43 | 43 | Breakout (mode with \* disables E1/44) |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G, 4x10G\*, 4x25G\*, 4x50G\* |
+| E1/44 | 44 | Breakout |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G |
+| E1/45 | 45 | Breakout (mode with \* disables E1/46) |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G, 4x10G\*, 4x25G\*, 4x50G\* |
+| E1/46 | 46 | Breakout |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G |
+| E1/47 | 47 | Breakout (mode with \* disables E1/48) |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G, 4x10G\*, 4x25G\*, 4x50G\* |
+| E1/48 | 48 | Breakout |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G |
+| E1/49 | 49 | Breakout (mode with \* disables E1/50) |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G, 4x10G\*, 4x25G\*, 4x50G\* |
+| E1/50 | 50 | Breakout |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G |
+| E1/51 | 51 | Breakout (mode with \* disables E1/52) |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G, 4x10G\*, 4x25G\*, 4x50G\* |
+| E1/52 | 52 | Breakout |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G |
+| E1/53 | 53 | Breakout (mode with \* disables E1/54) |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G, 4x10G\*, 4x25G\*, 4x50G\* |
+| E1/54 | 54 | Breakout |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G |
+| E1/55 | 55 | Breakout (mode with \* disables E1/56) |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G, 4x10G\*, 4x25G\*, 4x50G\* |
+| E1/56 | 56 | Breakout |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G |
+| E1/57 | 57 | Breakout (mode with \* disables E1/58) |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G, 4x10G\*, 4x25G\*, 4x50G\* |
+| E1/58 | 58 | Breakout |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G |
+| E1/59 | 59 | Breakout (mode with \* disables E1/60) |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G, 4x10G\*, 4x25G\*, 4x50G\* |
+| E1/60 | 60 | Breakout |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G |
+| E1/61 | 61 | Breakout (mode with \* disables E1/62) |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G, 4x10G\*, 4x25G\*, 4x50G\* |
+| E1/62 | 62 | Breakout |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G |
+| E1/63 | 63 | Breakout (mode with \* disables E1/64) |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G, 4x10G\*, 4x25G\*, 4x50G\* |
+| E1/64 | 64 | Breakout |  | 1x200G | 1x100G, 1x200G, 1x25G, 1x50G, 2x100G, 2x10G, 2x1G, 2x25G, 2x50G |
+
+
+## NVIDIA SN4700
+
+Profile Name (to use in switch object `.spec.profile`): **nvidia-sn4700**
+
+**Supported roles**: **spine**, **leaf**
+
+Switch Silicon: **NVIDIA Spectrum-3**
+
+Ports Summary: **32xQSFPDD-400G**
+
+Notes: Breaking out an odd port into 8 ports disables the even port next to it. Auto-negotiation isn't supported with 400G transceivers, speed must be set explicitly. All ports support up to 12W transceivers
+
+**Supported features:**
+
+- Subinterfaces: true
+- ACLs: true
+- L2VNI: true
+- L3VNI: true
+- RoCE: true
+- ESLAG: true
+- ECMP RoCE QPN hashing: N/A
+
+**Hardware Resources:**
+
+- Maximum ports supported: **128** (bonus ports aren't counted)
+
+**Available Ports:**
+
+Label column is a port label on a physical switch.
+
+| Port | Label | Type | Group | Default | Supported |
+|------|-------|------|-------|---------|-----------|
+| M1 |  | Management |  |  |  |
+| E1/1 | 1 | Breakout (mode with \* disables E1/2) |  | 1x400G | 1x100G, 1x10G, 1x1G, 1x200G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x25G, 2x50G, 4x100G, 4x10G, 4x1G, 4x25G, 4x50G, 8x50G\* |
+| E1/2 | 2 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x1G, 1x200G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x25G, 2x50G, 4x100G, 4x10G, 4x1G, 4x25G, 4x50G |
+| E1/3 | 3 | Breakout (mode with \* disables E1/4) |  | 1x400G | 1x100G, 1x10G, 1x1G, 1x200G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x25G, 2x50G, 4x100G, 4x10G, 4x1G, 4x25G, 4x50G, 8x50G\* |
+| E1/4 | 4 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x1G, 1x200G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x25G, 2x50G, 4x100G, 4x10G, 4x1G, 4x25G, 4x50G |
+| E1/5 | 5 | Breakout (mode with \* disables E1/6) |  | 1x400G | 1x100G, 1x10G, 1x1G, 1x200G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x25G, 2x50G, 4x100G, 4x10G, 4x1G, 4x25G, 4x50G, 8x50G\* |
+| E1/6 | 6 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x1G, 1x200G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x25G, 2x50G, 4x100G, 4x10G, 4x1G, 4x25G, 4x50G |
+| E1/7 | 7 | Breakout (mode with \* disables E1/8) |  | 1x400G | 1x100G, 1x10G, 1x1G, 1x200G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x25G, 2x50G, 4x100G, 4x10G, 4x1G, 4x25G, 4x50G, 8x50G\* |
+| E1/8 | 8 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x1G, 1x200G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x25G, 2x50G, 4x100G, 4x10G, 4x1G, 4x25G, 4x50G |
+| E1/9 | 9 | Breakout (mode with \* disables E1/10) |  | 1x400G | 1x100G, 1x10G, 1x1G, 1x200G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x25G, 2x50G, 4x100G, 4x10G, 4x1G, 4x25G, 4x50G, 8x50G\* |
+| E1/10 | 10 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x1G, 1x200G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x25G, 2x50G, 4x100G, 4x10G, 4x1G, 4x25G, 4x50G |
+| E1/11 | 11 | Breakout (mode with \* disables E1/12) |  | 1x400G | 1x100G, 1x10G, 1x1G, 1x200G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x25G, 2x50G, 4x100G, 4x10G, 4x1G, 4x25G, 4x50G, 8x50G\* |
+| E1/12 | 12 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x1G, 1x200G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x25G, 2x50G, 4x100G, 4x10G, 4x1G, 4x25G, 4x50G |
+| E1/13 | 13 | Breakout (mode with \* disables E1/14) |  | 1x400G | 1x100G, 1x10G, 1x1G, 1x200G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x25G, 2x50G, 4x100G, 4x10G, 4x1G, 4x25G, 4x50G, 8x50G\* |
+| E1/14 | 14 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x1G, 1x200G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x25G, 2x50G, 4x100G, 4x10G, 4x1G, 4x25G, 4x50G |
+| E1/15 | 15 | Breakout (mode with \* disables E1/16) |  | 1x400G | 1x100G, 1x10G, 1x1G, 1x200G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x25G, 2x50G, 4x100G, 4x10G, 4x1G, 4x25G, 4x50G, 8x50G\* |
+| E1/16 | 16 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x1G, 1x200G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x25G, 2x50G, 4x100G, 4x10G, 4x1G, 4x25G, 4x50G |
+| E1/17 | 17 | Breakout (mode with \* disables E1/18) |  | 1x400G | 1x100G, 1x10G, 1x1G, 1x200G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x25G, 2x50G, 4x100G, 4x10G, 4x1G, 4x25G, 4x50G, 8x50G\* |
+| E1/18 | 18 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x1G, 1x200G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x25G, 2x50G, 4x100G, 4x10G, 4x1G, 4x25G, 4x50G |
+| E1/19 | 19 | Breakout (mode with \* disables E1/20) |  | 1x400G | 1x100G, 1x10G, 1x1G, 1x200G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x25G, 2x50G, 4x100G, 4x10G, 4x1G, 4x25G, 4x50G, 8x50G\* |
+| E1/20 | 20 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x1G, 1x200G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x25G, 2x50G, 4x100G, 4x10G, 4x1G, 4x25G, 4x50G |
+| E1/21 | 21 | Breakout (mode with \* disables E1/22) |  | 1x400G | 1x100G, 1x10G, 1x1G, 1x200G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x25G, 2x50G, 4x100G, 4x10G, 4x1G, 4x25G, 4x50G, 8x50G\* |
+| E1/22 | 22 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x1G, 1x200G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x25G, 2x50G, 4x100G, 4x10G, 4x1G, 4x25G, 4x50G |
+| E1/23 | 23 | Breakout (mode with \* disables E1/24) |  | 1x400G | 1x100G, 1x10G, 1x1G, 1x200G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x25G, 2x50G, 4x100G, 4x10G, 4x1G, 4x25G, 4x50G, 8x50G\* |
+| E1/24 | 24 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x1G, 1x200G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x25G, 2x50G, 4x100G, 4x10G, 4x1G, 4x25G, 4x50G |
+| E1/25 | 25 | Breakout (mode with \* disables E1/26) |  | 1x400G | 1x100G, 1x10G, 1x1G, 1x200G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x25G, 2x50G, 4x100G, 4x10G, 4x1G, 4x25G, 4x50G, 8x50G\* |
+| E1/26 | 26 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x1G, 1x200G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x25G, 2x50G, 4x100G, 4x10G, 4x1G, 4x25G, 4x50G |
+| E1/27 | 27 | Breakout (mode with \* disables E1/28) |  | 1x400G | 1x100G, 1x10G, 1x1G, 1x200G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x25G, 2x50G, 4x100G, 4x10G, 4x1G, 4x25G, 4x50G, 8x50G\* |
+| E1/28 | 28 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x1G, 1x200G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x25G, 2x50G, 4x100G, 4x10G, 4x1G, 4x25G, 4x50G |
+| E1/29 | 29 | Breakout (mode with \* disables E1/30) |  | 1x400G | 1x100G, 1x10G, 1x1G, 1x200G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x25G, 2x50G, 4x100G, 4x10G, 4x1G, 4x25G, 4x50G, 8x50G\* |
+| E1/30 | 30 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x1G, 1x200G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x25G, 2x50G, 4x100G, 4x10G, 4x1G, 4x25G, 4x50G |
+| E1/31 | 31 | Breakout (mode with \* disables E1/32) |  | 1x400G | 1x100G, 1x10G, 1x1G, 1x200G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x25G, 2x50G, 4x100G, 4x10G, 4x1G, 4x25G, 4x50G, 8x50G\* |
+| E1/32 | 32 | Breakout |  | 1x400G | 1x100G, 1x10G, 1x1G, 1x200G, 1x25G, 1x400G, 1x40G, 1x50G, 2x100G, 2x200G, 2x25G, 2x50G, 4x100G, 4x10G, 4x1G, 4x25G, 4x50G |
+
+
+## NVIDIA SN5600
+
+Profile Name (to use in switch object `.spec.profile`): **nvidia-sn5600**
+
+**Supported roles**: **spine**, **leaf**
+
+Switch Silicon: **NVIDIA Spectrum-4**
+
+Ports Summary: **64xOSFP-800G, 1xSFP28-25G**
+
+Notes: Experimental, not tested on actual hardware. Transceiver orientation of bottom two rows of cages is upside down. Breaking out an odd port into 8 ports disables the even port next to it. All OSFP ports support up to 18W transceivers
+
+**Supported features:**
+
+- Subinterfaces: true
+- ACLs: true
+- L2VNI: true
+- L3VNI: true
+- RoCE: true
+- ESLAG: true
+- ECMP RoCE QPN hashing: N/A
+
+**Hardware Resources:**
+
+- Maximum ports supported: **256** (bonus ports aren't counted)
+
+**Available Ports:**
+
+Label column is a port label on a physical switch.
+
+| Port | Label | Type | Group | Default | Supported |
+|------|-------|------|-------|---------|-----------|
+| M1 |  | Management |  |  |  |
+| E1/1 | 1 | Breakout (mode with \* disables E1/2) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/2 | 2 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/3 | 3 | Breakout (mode with \* disables E1/4) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/4 | 4 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/5 | 5 | Breakout (mode with \* disables E1/6) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/6 | 6 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/7 | 7 | Breakout (mode with \* disables E1/8) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/8 | 8 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/9 | 9 | Breakout (mode with \* disables E1/10) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/10 | 10 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/11 | 11 | Breakout (mode with \* disables E1/12) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/12 | 12 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/13 | 13 | Breakout (mode with \* disables E1/14) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/14 | 14 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/15 | 15 | Breakout (mode with \* disables E1/16) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/16 | 16 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/17 | 17 | Breakout (mode with \* disables E1/18) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/18 | 18 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/19 | 19 | Breakout (mode with \* disables E1/20) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/20 | 20 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/21 | 21 | Breakout (mode with \* disables E1/22) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/22 | 22 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/23 | 23 | Breakout (mode with \* disables E1/24) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/24 | 24 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/25 | 25 | Breakout (mode with \* disables E1/26) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/26 | 26 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/27 | 27 | Breakout (mode with \* disables E1/28) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/28 | 28 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/29 | 29 | Breakout (mode with \* disables E1/30) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/30 | 30 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/31 | 31 | Breakout (mode with \* disables E1/32) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/32 | 32 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/33 | 33 | Breakout (mode with \* disables E1/34) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/34 | 34 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/35 | 35 | Breakout (mode with \* disables E1/36) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/36 | 36 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/37 | 37 | Breakout (mode with \* disables E1/38) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/38 | 38 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/39 | 39 | Breakout (mode with \* disables E1/40) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/40 | 40 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/41 | 41 | Breakout (mode with \* disables E1/42) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/42 | 42 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/43 | 43 | Breakout (mode with \* disables E1/44) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/44 | 44 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/45 | 45 | Breakout (mode with \* disables E1/46) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/46 | 46 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/47 | 47 | Breakout (mode with \* disables E1/48) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/48 | 48 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/49 | 49 | Breakout (mode with \* disables E1/50) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/50 | 50 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/51 | 51 | Breakout (mode with \* disables E1/52) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/52 | 52 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/53 | 53 | Breakout (mode with \* disables E1/54) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/54 | 54 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/55 | 55 | Breakout (mode with \* disables E1/56) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/56 | 56 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/57 | 57 | Breakout (mode with \* disables E1/58) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/58 | 58 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/59 | 59 | Breakout (mode with \* disables E1/60) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/60 | 60 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/61 | 61 | Breakout (mode with \* disables E1/62) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/62 | 62 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/63 | 63 | Breakout (mode with \* disables E1/64) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/64 | 64 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/65 | 65 | Direct (bonus) |  | 25G | 1G, 10G, 25G |
+
+
+## NVIDIA SN5610
+
+Profile Name (to use in switch object `.spec.profile`): **nvidia-sn5610**
+
+**Supported roles**: **spine**, **leaf**
+
+Switch Silicon: **NVIDIA Spectrum-4**
+
+Ports Summary: **64xOSFP-800G, 2xSFP28-25G**
+
+Notes: Transceiver orientation of bottom two rows of cages is upside down. Breaking out an odd port into 8 ports disables the even port next to it. All OSFP ports support up to 18W transceivers
+
+**Supported features:**
+
+- Subinterfaces: true
+- ACLs: true
+- L2VNI: true
+- L3VNI: true
+- RoCE: true
+- ESLAG: true
+- ECMP RoCE QPN hashing: N/A
+
+**Hardware Resources:**
+
+- Maximum ports supported: **256** (bonus ports aren't counted)
+
+**Available Ports:**
+
+Label column is a port label on a physical switch.
+
+| Port | Label | Type | Group | Default | Supported |
+|------|-------|------|-------|---------|-----------|
+| M1 |  | Management |  |  |  |
+| E1/1 | 1 | Breakout (mode with \* disables E1/2) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/2 | 2 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/3 | 3 | Breakout (mode with \* disables E1/4) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/4 | 4 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/5 | 5 | Breakout (mode with \* disables E1/6) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/6 | 6 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/7 | 7 | Breakout (mode with \* disables E1/8) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/8 | 8 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/9 | 9 | Breakout (mode with \* disables E1/10) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/10 | 10 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/11 | 11 | Breakout (mode with \* disables E1/12) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/12 | 12 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/13 | 13 | Breakout (mode with \* disables E1/14) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/14 | 14 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/15 | 15 | Breakout (mode with \* disables E1/16) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/16 | 16 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/17 | 17 | Breakout (mode with \* disables E1/18) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/18 | 18 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/19 | 19 | Breakout (mode with \* disables E1/20) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/20 | 20 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/21 | 21 | Breakout (mode with \* disables E1/22) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/22 | 22 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/23 | 23 | Breakout (mode with \* disables E1/24) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/24 | 24 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/25 | 25 | Breakout (mode with \* disables E1/26) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/26 | 26 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/27 | 27 | Breakout (mode with \* disables E1/28) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/28 | 28 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/29 | 29 | Breakout (mode with \* disables E1/30) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/30 | 30 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/31 | 31 | Breakout (mode with \* disables E1/32) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/32 | 32 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/33 | 33 | Breakout (mode with \* disables E1/34) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/34 | 34 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/35 | 35 | Breakout (mode with \* disables E1/36) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/36 | 36 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/37 | 37 | Breakout (mode with \* disables E1/38) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/38 | 38 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/39 | 39 | Breakout (mode with \* disables E1/40) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/40 | 40 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/41 | 41 | Breakout (mode with \* disables E1/42) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/42 | 42 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/43 | 43 | Breakout (mode with \* disables E1/44) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/44 | 44 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/45 | 45 | Breakout (mode with \* disables E1/46) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/46 | 46 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/47 | 47 | Breakout (mode with \* disables E1/48) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/48 | 48 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/49 | 49 | Breakout (mode with \* disables E1/50) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/50 | 50 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/51 | 51 | Breakout (mode with \* disables E1/52) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/52 | 52 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/53 | 53 | Breakout (mode with \* disables E1/54) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/54 | 54 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/55 | 55 | Breakout (mode with \* disables E1/56) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/56 | 56 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/57 | 57 | Breakout (mode with \* disables E1/58) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/58 | 58 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/59 | 59 | Breakout (mode with \* disables E1/60) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/60 | 60 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/61 | 61 | Breakout (mode with \* disables E1/62) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/62 | 62 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/63 | 63 | Breakout (mode with \* disables E1/64) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
+| E1/64 | 64 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
+| E1/65 | 65 | Direct (bonus) |  | 25G | 1G, 10G, 25G |
+| E1/66 | 66 | Direct (bonus) |  | 25G | 1G, 10G, 25G |
 
 
 ## Supermicro SSE-C4632SB
