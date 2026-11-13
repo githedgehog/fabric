@@ -33,7 +33,7 @@ var CumulusNvidiaSN5610 = wiringapi.SwitchProfile{
 		},
 		Notes:    "Transceiver orientation of bottom two rows of cages is upside down. Breaking out an odd port into 8 ports disables the even port next to it. All OSFP ports support up to 18W transceivers.",
 		NOSType:  meta.NOSTypeCumulusMlx,
-		Platform: "x86_64-nv-sn5610-r0", // TODO verify the platform string ONIE reports, likely "x86_64-nvidia_sn5610-r0" (third-party GitHub doc, SONiC only has "x86_64-nvidia_sn5610n-r0" for SN5610N)
+		Platform: "x86_64-nvidia_sn5610-r0",
 		MaxPorts: 256,
 		Ports: map[string]wiringapi.SwitchProfilePort{
 			"M1":    {NOSName: "eth0", Management: true, OniePortName: "eth0"},
@@ -104,7 +104,7 @@ var CumulusNvidiaSN5610 = wiringapi.SwitchProfile{
 			"E1/65": {NOSName: "swp65", Label: "65", Profile: "SFP28-25G", Bonus: true},
 			"E1/66": {NOSName: "swp66", Label: "66", Profile: "SFP28-25G", Bonus: true},
 		},
-		// TODO verify, 8x10G isn't documented
+		// TODO verify, 8x10G isn't documented, the config applies but it's not tested with transceivers
 		PortProfiles: map[string]wiringapi.SwitchProfilePortProfile{
 			"SFP28-25G": {
 				Speed: &wiringapi.SwitchProfilePortProfileSpeed{

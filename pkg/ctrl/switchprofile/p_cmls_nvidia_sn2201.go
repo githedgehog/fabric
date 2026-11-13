@@ -31,7 +31,7 @@ var CumulusNvidiaSN2201 = wiringapi.SwitchProfile{
 		},
 		Notes:    "Ports 49 and 51 support up to 5W transceivers, ports 50 and 52 up to 3.5W.",
 		NOSType:  meta.NOSTypeCumulusMlx,
-		Platform: "x86-64-nv-sn2201", // TODO verify the platform string ONIE reports, likely "x86_64-nvidia_sn2201-r0" (SONiC sonic-buildimage device/mellanox)
+		Platform: "x86_64-nvidia_sn2201-r0",
 		MaxPorts: 64,
 		Ports: map[string]wiringapi.SwitchProfilePort{
 			"M1":    {NOSName: "eth0", Management: true, OniePortName: "eth0"},
