@@ -28,7 +28,6 @@ var CumulusVX = wiringapi.SwitchProfile{
 			// TODO check if some limitations
 			// MaxPathsEBGP: 16,
 		},
-		// TODO update with actual values, it's obviously incorrect right now but it doesn't matter for the initial research
 		Ports: map[string]wiringapi.SwitchProfilePort{
 			"M1":    {NOSName: "eth0", Management: true, OniePortName: "eth0"},
 			"E1/1":  {NOSName: "swp1", Label: "1", Profile: "SFP28-10G"},
