@@ -657,11 +657,11 @@ func (sp *SwitchProfileSpec) breakoutNOSName(portName string, port SwitchProfile
 
 	nosNameBaseStr, cut := strings.CutPrefix(port.BaseNOSName, BCMDataPortNOSNamePrefix)
 	if !cut {
-		return "", errors.Errorf("port %q base NOS name %q is invalid (no expected prefix)", portName, port.NOSName)
+		return "", errors.Errorf("port %q base NOS name %q is invalid (no expected prefix)", portName, port.BaseNOSName)
 	}
 	nosNameBase, err := strconv.Atoi(nosNameBaseStr)
 	if err != nil {
-		return "", errors.Errorf("port %q base NOS name %q is invalid (suffix isn't a number)", portName, port.NOSName)
+		return "", errors.Errorf("port %q base NOS name %q is invalid (suffix isn't a number)", portName, port.BaseNOSName)
 	}
 
 	offset, err := strconv.Atoi(offsets[idx])
