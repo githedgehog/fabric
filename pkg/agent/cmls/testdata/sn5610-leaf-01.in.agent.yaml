@@ -150,7 +150,7 @@ spec:
               port: leaf-01/E1/6
             spine:
               ip: 172.30.128.2/31
-              port: spine-01/E1/2
+              port: spine-01/E1/2/1
     spine-02--fabric--leaf-01:
       fabric:
         links:
@@ -259,6 +259,7 @@ spec:
     portBreakouts:
       E1/2: 4x100G
       E1/3: 2x400G
+      E1/5: 1x400G
       E1/9: 8x100G
     profile: nvidia-sn5610
     protocolIP: 172.30.8.2/32
