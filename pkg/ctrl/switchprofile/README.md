@@ -5,6 +5,9 @@ Fabric to ensure the consistency of the switch usages and configurations.
 
 `SwitchProfile` structure is explained in the API package as part of the `SwitchProfile` object definition.
 
+Cumulus switch profiles, their port naming and the common notes about the NVIDIA switches are in
+[README.cmls.md](README.cmls.md).
+
 ## How to add a new SwitchProfile
 
 To add a new `SwitchProfile`, you need to change the Fabric config in the `ConfigMap` object named `fabric-config` in
