@@ -539,6 +539,11 @@ func (sp *SwitchProfile) Validate(_ context.Context, _ kclient.Reader, _ *meta.F
 					return nil, errors.Wrapf(err, "profile %q breakout %q is invalid", name, mode)
 				}
 
+				number, _, _ := strings.Cut(mode, "x")
+				if number != strconv.Itoa(len(offsets.Offsets)) {
+					return nil, fmt.Errorf("profile %q breakout %q must have %s offsets, got %d", name, mode, number, len(offsets.Offsets)) //nolint:err113
+				}
+
 				for idx, offset := range offsets.Offsets {
 					if num, err := strconv.Atoi(offset); err != nil || num < 0 {
 						return nil, fmt.Errorf("profile %q breakout %q offset %q must be a zero or positive integer", name, mode, offset) //nolint:err113

@@ -881,6 +881,12 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 			}
 		}
 
+		for name := range sw.Spec.PortSpeeds {
+			if by, ok := disabledPorts[name]; ok {
+				return nil, fmt.Errorf("port %s is disabled by the breakout of port %s and can't have a speed", name, by) //nolint:err113
+			}
+		}
+
 		autoNegAllowed, _, err := sp.Spec.GetAutoNegsDefaultsFor(&sw.Spec)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get auto negotiation defaults")
