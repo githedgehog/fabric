@@ -24,7 +24,15 @@
             state: enable
       
       
-      port-invalid-uint:
+      swp2s0:
+        link:
+          state:
+            up: {}
+        vrf: vpc-03
+        
+        
+      
+      swp3s1:
         link:
           state:
             up: {}
@@ -33,14 +41,6 @@
         ipv4:
           address:
             10.99.0.1/31: {}
-        
-        
-      
-      swp2:
-        link:
-          state:
-            up: {}
-        vrf: vpc-03
         
         
       

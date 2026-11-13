@@ -13,7 +13,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"slices"
-	"strconv"
 	"strings"
 	"text/template"
 	"time"
@@ -107,6 +106,15 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		return nil, fmt.Errorf("parsing VTEP IP: %w", err)
 	}
 
+	if agent.Spec.SwitchProfile == nil {
+		return nil, fmt.Errorf("switch profile is missing") //nolint:err113
+	}
+
+	api2nos, err := agent.Spec.SwitchProfile.GetAPI2NOSPortsFor(&agent.Spec.Switch)
+	if err != nil {
+		return nil, fmt.Errorf("getting NOS port names: %w", err)
+	}
+
 	users := []User{}
 	for _, user := range agent.Spec.Users {
 		role := ""
@@ -166,13 +174,17 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 				if err != nil {
 					return nil, fmt.Errorf("parsing conn %s leaf IP %s: %w", connName, link.Leaf.IP, err)
 				}
+				portName, err := nosPortName(api2nos, link.Spine.LocalPortName())
+				if err != nil {
+					return nil, fmt.Errorf("conn %s: %w", connName, err)
+				}
 				neighs = append(neighs, BGPNeighbor{
 					IP:          leafIP.Addr().String(),
 					PeerGroup:   "underlay_leaf",
 					Description: "fabric underlay to leaf " + link.Leaf.Port,
 				})
 				portConfigs = append(portConfigs, PortConfig{
-					Name:            swp(link.Spine.LocalPortName()),
+					Name:            portName,
 					IP:              link.Spine.IP,
 					AdaptiveRouting: true,
 				})
@@ -202,13 +214,17 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 				if err != nil {
 					return nil, fmt.Errorf("parsing conn %s spine IP %s: %w", connName, link.Spine.IP, err)
 				}
+				portName, err := nosPortName(api2nos, link.Leaf.LocalPortName())
+				if err != nil {
+					return nil, fmt.Errorf("conn %s: %w", connName, err)
+				}
 				neighs = append(neighs, BGPNeighbor{
 					IP:          spineIP.Addr().String(),
 					PeerGroup:   "underlay_spine",
 					Description: "fabric underlay to spine " + link.Spine.Port,
 				})
 				portConfigs = append(portConfigs, PortConfig{
-					Name:            swp(link.Leaf.LocalPortName()),
+					Name:            portName,
 					IP:              link.Leaf.IP,
 					AdaptiveRouting: true,
 				})
@@ -291,8 +307,13 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 			ip = netip.PrefixFrom(p2p.Masked().Addr().Next(), p2p.Bits()).String() // even goes to the host, odd to the switch
 		}
 
+		portName, err := nosPortName(api2nos, conn.Unbundled.Link.Switch.LocalPortName())
+		if err != nil {
+			return nil, fmt.Errorf("vpc attachment %q: %w", attachName, err)
+		}
+
 		portConfigs = append(portConfigs, PortConfig{
-			Name: swp(conn.Unbundled.Link.Switch.LocalPortName()),
+			Name: portName,
 			VRF:  vpcName,
 			IP:   ip,
 		})
@@ -346,17 +367,13 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 	return cfgBuf, nil
 }
 
-func swp(in string) string {
-	if portStr, ok := strings.CutPrefix(in, "E1/"); ok {
-		port, err := strconv.ParseUint(portStr, 10, 16)
-		if err != nil {
-			return "port-invalid-uint"
-		}
-
-		return fmt.Sprintf("swp%d", port)
+func nosPortName(api2nos map[string]string, apiPortName string) (string, error) {
+	name, ok := api2nos[apiPortName]
+	if !ok {
+		return "", fmt.Errorf("port %s isn't available with the switch profile and port breakouts", apiPortName) //nolint:err113
 	}
 
-	return "port-invalid-prefix"
+	return name, nil
 }
 
 //go:embed ztp_script.tmpl.sh

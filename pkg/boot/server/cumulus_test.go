@@ -20,6 +20,7 @@ import (
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/boot"
 	"go.githedgehog.com/fabric/pkg/ctrl"
+	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
 	corev1 "k8s.io/api/core/v1"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -90,8 +91,9 @@ func TestHandleCumulusZTP(t *testing.T) {
 			&agentapi.Agent{
 				Name: "leaf-1", Namespace: kmetav1.NamespaceDefault,
 				Spec: agentapi.AgentSpec{
-					Config: agentapi.AgentSpecConfig{ControlVIP: "172.30.0.1/32"},
-					Switch: wiringapi.SwitchSpec{ProtocolIP: "172.30.8.1/32"},
+					Config:        agentapi.AgentSpecConfig{ControlVIP: "172.30.0.1/32"},
+					Switch:        wiringapi.SwitchSpec{ProtocolIP: "172.30.8.1/32"},
+					SwitchProfile: switchprofile.CumulusVX.Spec.DeepCopy(),
 				},
 			},
 			&corev1.Secret{

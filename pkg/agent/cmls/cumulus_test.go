@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
+	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,8 +22,9 @@ func TestBuildZTPFor(t *testing.T) {
 		Name:          "leaf-1",
 		ManagedFields: []kmetav1.ManagedFieldsEntry{{Manager: "fabric-ctrl"}},
 		Spec: agentapi.AgentSpec{
-			Config: agentapi.AgentSpecConfig{ControlVIP: "172.30.0.1/32"},
-			Switch: wiringapi.SwitchSpec{ProtocolIP: "172.30.8.1/32"},
+			Config:        agentapi.AgentSpecConfig{ControlVIP: "172.30.0.1/32"},
+			Switch:        wiringapi.SwitchSpec{ProtocolIP: "172.30.8.1/32"},
+			SwitchProfile: switchprofile.CumulusVX.Spec.DeepCopy(),
 		},
 		Status: agentapi.AgentStatus{RunID: "old-run-id"},
 	}
@@ -35,6 +37,64 @@ func TestBuildZTPFor(t *testing.T) {
 
 	_, err = BuildZTPFor(agent.DeepCopy(), []byte("kubeconfig"), "")
 	require.ErrorContains(t, err, "agent version is empty")
+}
+
+func TestBuildConfigErrors(t *testing.T) {
+	for _, tt := range []struct {
+		name      string
+		profile   *wiringapi.SwitchProfile
+		breakouts map[string]string
+		port      string
+		err       string
+	}{
+		{name: "no-profile", port: "E1/1", err: "switch profile is missing"},
+		{name: "vx-missing-port", profile: &switchprofile.CumulusVX, port: "E1/65", err: "port E1/65 isn't available"},
+		{name: "vx-sub-port", profile: &switchprofile.CumulusVX, port: "E1/1/1", err: "port E1/1/1 isn't available"},
+		{
+			name:      "sn5610-sub-port-out-of-mode",
+			profile:   &switchprofile.CumulusNvidiaSN5610,
+			breakouts: map[string]string{"E1/3": "2x400G"},
+			port:      "E1/3/3",
+			err:       "port E1/3/3 isn't available",
+		},
+		{
+			name:      "sn5610-disabled-port",
+			profile:   &switchprofile.CumulusNvidiaSN5610,
+			breakouts: map[string]string{"E1/9": "8x100G"},
+			port:      "E1/10",
+			err:       "port E1/10 isn't available",
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			agent := &agentapi.Agent{
+				Name: "leaf-01",
+				Spec: agentapi.AgentSpec{
+					Config: agentapi.AgentSpecConfig{ControlVIP: "172.30.0.1/32"},
+					Switch: wiringapi.SwitchSpec{ProtocolIP: "172.30.8.1/32", PortBreakouts: tt.breakouts},
+					Connections: map[string]wiringapi.ConnectionSpec{
+						"server-01--unbundled--leaf-01": {Unbundled: &wiringapi.ConnUnbundled{
+							Link: wiringapi.ServerToSwitchLink{
+								Server: wiringapi.BasePortName{Port: "server-01/enp2s1"},
+								Switch: wiringapi.BasePortName{Port: "leaf-01/" + tt.port},
+							},
+						}},
+					},
+					VPCAttachments: map[string]agentapi.VPCAttachmentSpecAnn{
+						"server-01--unbundled--leaf-01--vpc-01--default": {VPCAttachmentSpec: vpcapi.VPCAttachmentSpec{
+							Connection: "server-01--unbundled--leaf-01",
+							Subnet:     "vpc-01/default",
+						}},
+					},
+				},
+			}
+			if tt.profile != nil {
+				agent.Spec.SwitchProfile = tt.profile.Spec.DeepCopy()
+			}
+
+			_, err := buildConfigFor(fullCfgTmpl, agent)
+			require.ErrorContains(t, err, tt.err)
+		})
+	}
 }
 
 const testdataDir = "testdata"
