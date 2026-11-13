@@ -1189,10 +1189,19 @@ func (sp *SwitchProfileSpec) GetBreakoutDefaults(sw *SwitchSpec) (map[string]str
 		return nil, errors.Errorf("switch spec is nil")
 	}
 
+	disabled, err := sp.GetDisabledAPIPorts(sw)
+	if err != nil {
+		return nil, err
+	}
+
 	def := map[string]string{}
 
 	for portName, port := range sp.Ports {
 		if port.Management || port.Profile == "" {
+			continue
+		}
+
+		if _, ok := disabled[portName]; ok {
 			continue
 		}
 

@@ -1025,6 +1025,10 @@ func TestSwitchProfileDisabledPorts(t *testing.T) {
 	require.Contains(t, autoNegAllowed, "E1/1/1")
 	require.NotContains(t, autoNegAllowed, "E1/2/1")
 
+	breakouts, err := sp.GetBreakoutDefaults(sw)
+	require.NoError(t, err)
+	require.Equal(t, map[string]string{"E1/1": "4x25G", "E1/3": "1x100G"}, breakouts)
+
 	// nothing is disabled with the default breakouts
 	disabled, err = sp.GetDisabledAPIPorts(&wiringapi.SwitchSpec{})
 	require.NoError(t, err)
