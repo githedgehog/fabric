@@ -50,6 +50,8 @@ type Registry struct {
 	PlatformMetrics    PlatformMetrics
 	CriticalResources  CRMMetrics
 
+	RoCEEnabled prometheus.Gauge
+
 	AgentMetrics AgentMetrics
 }
 
@@ -103,6 +105,13 @@ type InterfaceCounters struct {
 	QueueTransmitPktsPerSecond   *prometheus.GaugeVec
 	QueueWatermark               *prometheus.GaugeVec
 	QueueWREDDroppedPkts         *prometheus.GaugeVec
+	QueuePFCStormDetected        *prometheus.GaugeVec
+	QueuePFCStormRestored        *prometheus.GaugeVec
+	QueuePFCRxDroppedPkts        *prometheus.GaugeVec
+	QueuePFCTxDroppedPkts        *prometheus.GaugeVec
+	PFCEnabled                   *prometheus.GaugeVec
+	PFCPauseFramesRx             *prometheus.GaugeVec
+	PFCPauseFramesTx             *prometheus.GaugeVec
 }
 
 type TransceiverMetrics struct {
@@ -295,6 +304,16 @@ func NewRegistry() *Registry {
 		}, []string{"interface", "queue", "transceiver"})
 	}
 
+	newInterfacePriorityGaugeVec := func(name string, help string) *prometheus.GaugeVec {
+		return autoreg.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace:   MetricNamespace,
+			Subsystem:   MetricSubsystem,
+			Name:        name,
+			Help:        help,
+			ConstLabels: labels,
+		}, []string{"interface", "priority", "transceiver"})
+	}
+
 	newTransceiverGaugeVec := func(name string, help string) *prometheus.GaugeVec {
 		return autoreg.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace:   MetricNamespace,
@@ -460,6 +479,13 @@ func NewRegistry() *Registry {
 			QueueTransmitPktsPerSecond:   newInterfaceQueueGaugeVec("interface_queue_transmit_pkts_per_second", "Queue transmit packets per second"),
 			QueueWatermark:               newInterfaceQueueGaugeVec("interface_queue_watermark", "Queue watermark"),
 			QueueWREDDroppedPkts:         newInterfaceQueueGaugeVec("interface_queue_wred_dropped_pkts", "Queue WRED dropped packets"),
+			QueuePFCStormDetected:        newInterfaceQueueGaugeVec("interface_queue_pfc_storm_detected", "Number of PFC storms detected on the queue by the PFC watchdog"),
+			QueuePFCStormRestored:        newInterfaceQueueGaugeVec("interface_queue_pfc_storm_restored", "Number of PFC storms on the queue the PFC watchdog restored from"),
+			QueuePFCRxDroppedPkts:        newInterfaceQueueGaugeVec("interface_queue_pfc_rx_dropped_pkts", "Packets received on the queue dropped by the PFC watchdog"),
+			QueuePFCTxDroppedPkts:        newInterfaceQueueGaugeVec("interface_queue_pfc_tx_dropped_pkts", "Packets to transmit on the queue dropped by the PFC watchdog"),
+			PFCEnabled:                   newInterfacePriorityGaugeVec("interface_pfc_enabled", "Whether PFC is enabled for the priority"),
+			PFCPauseFramesRx:             newInterfacePriorityGaugeVec("interface_pfc_pause_frames_rx", "PFC pause frames received for the priority"),
+			PFCPauseFramesTx:             newInterfacePriorityGaugeVec("interface_pfc_pause_frames_tx", "PFC pause frames transmitted for the priority"),
 		},
 		TransceiverMetrics: TransceiverMetrics{
 			AlarmRxPowerHi:   newTransceiverGaugeVec("transceiver_alarm_rx_power_hi", "Alarm rx power hi"),
@@ -592,6 +618,13 @@ func NewRegistry() *Registry {
 				SnatEntriesUsed:              newCRMStatsGaugeVec("critical_resource_snat_entries_used", "Number of used SNAT entries"),
 			},
 		},
+		RoCEEnabled: autoreg.NewGauge(prometheus.GaugeOpts{
+			Namespace:   MetricNamespace,
+			Subsystem:   MetricSubsystem,
+			Name:        "roce_enabled",
+			Help:        "Whether the switch is running in RoCE mode",
+			ConstLabels: labels,
+		}),
 		AgentMetrics: AgentMetrics{
 			HeartbeatsTotal: autoreg.NewCounter(prometheus.CounterOpts{
 				Namespace:   MetricNamespace,
