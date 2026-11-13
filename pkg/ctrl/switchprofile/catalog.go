@@ -58,6 +58,7 @@ var sonicCLSPlusSwitchProfiles = []wiringapi.SwitchProfile{
 }
 
 var cumulusSwitchProfiles = []wiringapi.SwitchProfile{
+	CumulusNvidiaSN2201,
 	CumulusNvidiaSN3700c,
 	CumulusVX,
 }
