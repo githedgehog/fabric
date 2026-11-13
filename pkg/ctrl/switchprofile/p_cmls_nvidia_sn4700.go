@@ -90,7 +90,7 @@ var CumulusNvidiaSN4700 = wiringapi.SwitchProfile{
 						"4x25G":  {Offsets: []string{"0", "1", "2", "3"}},
 						"4x50G":  {Offsets: []string{"0", "1", "2", "3"}},
 						"4x100G": {Offsets: []string{"0", "1", "2", "3"}},
-						"8x50G":  {Offsets: []string{"0", "1", "2", "3", "4", "5", "6", "7"}},
+						"8x50G":  {Offsets: []string{"0", "1", "2", "3", "4", "5", "6", "7"}, DisablesPortOffsets: []string{"1"}},
 					},
 				},
 				AutoNegAllowed: true,

@@ -132,6 +132,8 @@ type SwitchProfilePortProfileBreakout struct {
 type SwitchProfilePortProfileBreakoutMode struct {
 	// Offsets defines the breakout NOS port name offset from the port NOS Name for each breakout mode
 	Offsets []string `json:"offsets,omitempty"`
+	// DisablesPortOffsets defines the ports disabled by the breakout mode as offsets from the port number (e.g. 1 for the next port), the disabled ports can't be used or configured
+	DisablesPortOffsets []string `json:"disablesPortOffsets,omitempty"`
 }
 
 // Defines a switch port profile configuration
@@ -398,6 +400,19 @@ func (sp *SwitchProfile) Validate(_ context.Context, _ kclient.Reader, _ *meta.F
 
 			if profile.Breakout != nil {
 				isBreakout = true
+
+				for mode, breakout := range profile.Breakout.Supported {
+					for _, offset := range breakout.DisablesPortOffsets {
+						disabled, err := offsetPortName(name, offset)
+						if err != nil {
+							return nil, fmt.Errorf("port %q breakout %q: %w", name, mode, err)
+						}
+
+						if disabledPort, ok := sp.Spec.Ports[disabled]; !ok || disabledPort.Management {
+							return nil, fmt.Errorf("port %q breakout %q disables non-existent data port %q", name, mode, disabled) //nolint:err113
+						}
+					}
+				}
 			}
 		}
 
@@ -652,6 +667,73 @@ func (sp *SwitchProfileSpec) breakoutNOSName(portName string, port SwitchProfile
 	return fmt.Sprintf("%s%d", BCMDataPortNOSNamePrefix, nosNameBase+offset), nil
 }
 
+// offsetPortName returns the name of the port offset from the given one by the port number, e.g. E1/2 for E1/1 and "1"
+func offsetPortName(portName string, offsetStr string) (string, error) {
+	offset, err := strconv.Atoi(offsetStr)
+	if err != nil || offset == 0 {
+		return "", fmt.Errorf("disabled port offset %q must be a non-zero integer", offsetStr) //nolint:err113
+	}
+
+	prefix, numStr, ok := strings.Cut(portName, "/")
+	if !ok {
+		return "", fmt.Errorf("port %q name has no port number", portName) //nolint:err113
+	}
+
+	num, err := strconv.Atoi(numStr)
+	if err != nil {
+		return "", fmt.Errorf("port %q name has an invalid port number: %w", portName, err)
+	}
+
+	return fmt.Sprintf("%s/%d", prefix, num+offset), nil
+}
+
+// GetDisabledAPIPorts returns the ports disabled by the current breakout modes of other ports, mapped to the port
+// disabling them
+func (sp *SwitchProfileSpec) GetDisabledAPIPorts(sw *SwitchSpec) (map[string]string, error) {
+	if sp == nil {
+		return nil, fmt.Errorf("switch profile spec is nil") //nolint:err113
+	}
+	if sw == nil {
+		sw = &SwitchSpec{}
+	}
+
+	disabled := map[string]string{}
+
+	for portName, port := range sp.Ports {
+		if port.Management || port.Profile == "" {
+			continue
+		}
+
+		profile, ok := sp.PortProfiles[port.Profile]
+		if !ok {
+			return nil, fmt.Errorf("port %q references non-existent profile %q", portName, port.Profile) //nolint:err113
+		}
+		if profile.Breakout == nil {
+			continue
+		}
+
+		mode := profile.Breakout.Default
+		if swMode, ok := sw.PortBreakouts[portName]; ok {
+			mode = swMode
+		}
+
+		breakout, ok := profile.Breakout.Supported[mode]
+		if !ok {
+			return nil, fmt.Errorf("port %q has a breakout %q not supported by profile %q", portName, mode, port.Profile) //nolint:err113
+		}
+		for _, offset := range breakout.DisablesPortOffsets {
+			disabledName, err := offsetPortName(portName, offset)
+			if err != nil {
+				return nil, err
+			}
+
+			disabled[disabledName] = portName
+		}
+	}
+
+	return disabled, nil
+}
+
 var allowedPortSpeeds = map[string]bool{
 	"1G":   true,
 	"2.5G": true,
@@ -718,12 +800,21 @@ func (sp *SwitchProfileSpec) GetAPI2NOSPortsFor(sw *SwitchSpec) (map[string]stri
 		return nil, errors.Errorf("switch spec is nil")
 	}
 
+	disabled, err := sp.GetDisabledAPIPorts(sw)
+	if err != nil {
+		return nil, err
+	}
+
 	ports := map[string]string{}
 
 	for portName, port := range sp.Ports {
 		if port.Management {
 			ports[portName] = port.NOSName
 
+			continue
+		}
+
+		if _, ok := disabled[portName]; ok {
 			continue
 		}
 
@@ -1002,10 +1093,19 @@ func (sp *SwitchProfileSpec) GetAutoNegsDefaultsFor(sw *SwitchSpec) (map[string]
 		return nil, nil, errors.Errorf("switch spec is nil")
 	}
 
+	disabled, err := sp.GetDisabledAPIPorts(sw)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	allowed, def := map[string]bool{}, map[string]bool{}
 
 	for portName, port := range sp.Ports {
 		if port.Management {
+			continue
+		}
+
+		if _, ok := disabled[portName]; ok {
 			continue
 		}
 
@@ -1090,10 +1190,19 @@ func (sp *SwitchProfileSpec) GetAvailableAPIPorts(sw *SwitchSpec) (map[string]bo
 		sw = &SwitchSpec{}
 	}
 
+	disabled, err := sp.GetDisabledAPIPorts(sw)
+	if err != nil {
+		return nil, err
+	}
+
 	ports := map[string]bool{}
 
 	for portName, port := range sp.Ports {
 		if port.Management {
+			continue
+		}
+
+		if _, ok := disabled[portName]; ok {
 			continue
 		}
 
@@ -1147,8 +1256,17 @@ func (sp *SwitchProfileSpec) GetFECConfigurablePorts(sw *SwitchSpec) (map[string
 		return nil, err
 	}
 
+	disabled, err := sp.GetDisabledAPIPorts(sw)
+	if err != nil {
+		return nil, err
+	}
+
 	for portName, port := range sp.Ports {
 		if port.Management || port.Profile == "" {
+			continue
+		}
+
+		if _, ok := disabled[portName]; ok {
 			continue
 		}
 

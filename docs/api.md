@@ -3947,6 +3947,7 @@ _Appears in:_
 | Field | Description | Default | Validation |
 | --- | --- | --- | --- |
 | `offsets` _string array_ | Offsets defines the breakout NOS port name offset from the port NOS Name for each breakout mode |  |  |
+| `disablesPortOffsets` _string array_ | DisablesPortOffsets defines the ports disabled by the breakout mode as offsets from the port number (e.g. 1 for the next port), the disabled ports can't be used or configured |  |  |
 
 
 #### SwitchProfilePortProfileSpeed

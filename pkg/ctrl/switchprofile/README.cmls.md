@@ -14,8 +14,10 @@ offsets of a breakout mode must be exactly `"0"` to `"n-1"`. A mode with a singl
 
 When breaking out a port limits the breakouts of the port next to it, e.g. an odd port at the max breakout disables the
 even one, use separate port profiles with the `-odd` and `-even` suffixes (`wiringapi.OddPortProfileSuffix` and
-`wiringapi.EvenPortProfileSuffix`) and keep only the supported breakout modes in each of them. The limitation itself
-isn't enforced, so describe it in the profile notes.
+`wiringapi.EvenPortProfileSuffix`) and keep only the supported breakout modes in each of them. Set
+`DisablesPortOffsets` on the breakout modes that disable other ports to the offsets of their port numbers (e.g. `["1"]`
+for the next port). The disabled ports aren't available for connections and configuration, don't count towards
+`MaxPorts`, and the switch can't set their breakouts explicitly. Describe the limitation in the profile notes as well.
 
 Ports that Cumulus docs call bonus ports, e.g. the SFP28 ports on SN5600 and SN5610 listed as "256 + 2 bonus ports", are
 marked with `Bonus` so they don't count towards the switch `MaxPorts`.

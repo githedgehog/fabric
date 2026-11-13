@@ -870,6 +870,17 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 			}
 		}
 
+		disabledPorts, err := sp.Spec.GetDisabledAPIPorts(&sw.Spec)
+		if err != nil {
+			return nil, fmt.Errorf("getting disabled ports: %w", err)
+		}
+
+		for name := range sw.Spec.PortBreakouts {
+			if by, ok := disabledPorts[name]; ok {
+				return nil, fmt.Errorf("port %s is disabled by the breakout of port %s and can't have a breakout", name, by) //nolint:err113
+			}
+		}
+
 		autoNegAllowed, _, err := sp.Spec.GetAutoNegsDefaultsFor(&sw.Spec)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get auto negotiation defaults")
@@ -934,6 +945,10 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 		pipelinePortNames := map[string][]string{}
 		for name, port := range sp.Spec.Ports {
 			if port.Management {
+				continue
+			}
+
+			if _, ok := disabledPorts[name]; ok {
 				continue
 			}
 
