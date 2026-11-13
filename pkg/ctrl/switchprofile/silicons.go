@@ -4,7 +4,8 @@
 package switchprofile
 
 const (
-	SiliconVS                  = "vs"
+	SiliconVS = "vs"
+
 	SiliconBroadcomTD3_X3      = "Broadcom TD3-X3"      //nolint:revive,staticcheck
 	SiliconBroadcomTD3_X5      = "Broadcom TD3-X5 2.0T" //nolint:revive,staticcheck
 	SiliconBroadcomTD3_X7_2_0T = "Broadcom TD3-X7 2.0T" //nolint:revive,staticcheck
@@ -14,4 +15,9 @@ const (
 	SiliconBroadcomTH3         = "Broadcom TH3"
 	SiliconBroadcomTH4G        = "Broadcom TH4G"
 	SiliconBroadcomTH5         = "Broadcom TH5"
+
+	SiliconNVIDIASpectrum  = "NVIDIA Spectrum"
+	SiliconNVIDIASpectrum2 = "NVIDIA Spectrum-2"
+	SiliconNVIDIASpectrum3 = "NVIDIA Spectrum-3"
+	SiliconNVIDIASpectrum4 = "NVIDIA Spectrum-4"
 )
