@@ -178,16 +178,18 @@ func GenerateProfilesRef(ctx context.Context, targetDir string) error {
 			bonusNote = " (bonus ports aren't counted)"
 		}
 
-		if sp.Spec.MaxPorts > 0 && len(sp.Spec.Pipelines) == 0 {
+		if sp.Spec.MaxPorts > 0 || len(sp.Spec.Pipelines) > 0 {
 			resCatalog.WriteString("**Hardware Resources:**\n\n")
-			fmt.Fprintf(&resCatalog, "- Maximum ports supported: **%d**%s\n\n", sp.Spec.MaxPorts, bonusNote)
+			if sp.Spec.MaxPorts > 0 {
+				fmt.Fprintf(&resCatalog, "- Maximum ports supported: **%d**%s\n", sp.Spec.MaxPorts, bonusNote)
+			}
+			if len(sp.Spec.Pipelines) > 0 {
+				fmt.Fprintf(&resCatalog, "- Number of pipelines: **%d**\n", len(sp.Spec.Pipelines))
+			}
+			resCatalog.WriteString("\n")
 		}
 
-		if sp.Spec.MaxPorts > 0 && len(sp.Spec.Pipelines) > 0 {
-			resCatalog.WriteString("**Hardware Resources:**\n\n")
-			fmt.Fprintf(&resCatalog, "- Maximum ports supported: **%d**%s\n", sp.Spec.MaxPorts, bonusNote)
-			fmt.Fprintf(&resCatalog, "- Number of pipelines: **%d**\n\n", len(sp.Spec.Pipelines))
-
+		if len(sp.Spec.Pipelines) > 0 {
 			resCatalog.WriteString("**Pipelines:**\n\n")
 			resCatalog.WriteString("| Pipeline | Max Ports | Front Panel Ports |\n")
 			resCatalog.WriteString("|----------|-----------|-------------------|\n")

@@ -1042,6 +1042,23 @@ Notes: Upper 16 ports supply maximum of 24W, lower 16 ports supply maximum of 14
 - ESLAG: true
 - ECMP RoCE QPN hashing: true
 
+**Hardware Resources:**
+
+- Number of pipelines: **8**
+
+**Pipelines:**
+
+| Pipeline | Max Ports | Front Panel Ports |
+|----------|-----------|-------------------|
+| 1 | 18 | 1, 2, 3, 4 |
+| 2 | 18 | 5, 6, 7, 8 |
+| 3 | 18 | 9, 10, 11, 12 |
+| 4 | 18 | 13, 14, 15, 16 |
+| 5 | 18 | 17, 18, 19, 20 |
+| 6 | 18 | 21, 22, 23, 24 |
+| 7 | 18 | 25, 26, 27, 28 |
+| 8 | 18 | 29, 30, 31, 32 |
+
 **Available Ports:**
 
 Label column is a port label on a physical switch.
@@ -1993,6 +2010,23 @@ Notes: To prevent overheating only 8 ZR transceivers in ports 0,4,8,12,16,20,24,
 - RoCE: true
 - ESLAG: true
 - ECMP RoCE QPN hashing: true
+
+**Hardware Resources:**
+
+- Number of pipelines: **8**
+
+**Pipelines:**
+
+| Pipeline | Max Ports | Front Panel Ports |
+|----------|-----------|-------------------|
+| 1 | 18 | 0, 1, 2, 3 |
+| 2 | 18 | 4, 5, 6, 7 |
+| 3 | 18 | 8, 9, 10, 11 |
+| 4 | 18 | 12, 13, 14, 15 |
+| 5 | 18 | 16, 17, 18, 19 |
+| 6 | 18 | 20, 21, 22, 23 |
+| 7 | 18 | 24, 25, 26, 27 |
+| 8 | 18 | 28, 29, 30, 31 |
 
 **Available Ports:**
 
