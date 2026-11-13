@@ -578,6 +578,27 @@ func TestSwitchDomainsValidation(t *testing.T) {
 		},
 	})
 
+	// E1/1 is in port group 3 and has no profile of its own, the profile is on the group
+	groupedPortProfile := withName("grouped-port", &wiringapi.SwitchProfile{
+		Spec: wiringapi.SwitchProfileSpec{
+			DisplayName:   "Test",
+			SwitchSilicon: "test",
+			Features:      wiringapi.SwitchProfileFeatures{Subinterfaces: true, ACLs: true, L2VNI: true, L3VNI: true},
+			NOSType:       meta.NOSTypeCumulusMlx,
+			Platform:      "test",
+			Ports: map[string]wiringapi.SwitchProfilePort{
+				"M1":   {NOSName: "eth0", Management: true, OniePortName: "eth0"},
+				"E1/1": {NOSName: "Ethernet8", Label: "9", Group: "3"},
+			},
+			PortGroups: map[string]wiringapi.SwitchProfilePortGroup{
+				"3": {NOSName: "Ethernet8", Profile: "SFP28-25G"},
+			},
+			PortProfiles: map[string]wiringapi.SwitchProfilePortProfile{
+				"SFP28-25G": {Speed: &wiringapi.SwitchProfilePortProfileSpeed{Default: "25G", Supported: []string{"10G", "25G"}}},
+			},
+		},
+	})
+
 	serverConn := func(port string) *wiringapi.Connection {
 		conn := withName("server-01--unbundled--leaf-01", &wiringapi.Connection{Spec: wiringapi.ConnectionSpec{
 			Unbundled: &wiringapi.ConnUnbundled{Link: wiringapi.ServerToSwitchLink{
@@ -806,6 +827,22 @@ func TestSwitchDomainsValidation(t *testing.T) {
 			name: "FEC on a disabled port", err: "port E1/2 does not support configuring FEC",
 			sw: swGen(sn5610FullBreakout, func(sw *wiringapi.Switch) {
 				sw.Spec.PortFECs = map[string]wiringapi.PortFECMode{"E1/2": wiringapi.PortFECModeRS}
+			}),
+		},
+		{
+			name: "speed of a port in a port group", err: "port E1/1 is in port group 3, set its speed with portGroupSpeeds",
+			objects: []kclient.Object{groupedPortProfile},
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Spec.Profile = groupedPortProfile.Name
+				sw.Spec.PortSpeeds = map[string]string{"E1/1": "10G"}
+			}),
+		},
+		{
+			name: "breakout of a port in a port group", err: "port E1/1 is in port group 3 and has no breakout",
+			objects: []kclient.Object{groupedPortProfile},
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Spec.Profile = groupedPortProfile.Name
+				sw.Spec.PortBreakouts = map[string]string{"E1/1": "4x10G"}
 			}),
 		},
 		{
