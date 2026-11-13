@@ -6,7 +6,7 @@
             {{ $.ManagementIP }}: {}
         type: eth
         vrf: mgmt
-      {{ range $port := $.Ports }}
+      {{- range $port := $.Ports }}
       {{ $port.Name }}:
         ipv6:
           state: disabled
@@ -15,7 +15,7 @@
             up: {}
         lldp:
           state: enabled
-      {{ end }}
+      {{- end }}
     system:
       aaa:
         class:
@@ -46,18 +46,18 @@
               nvapply: {}
               sudo: {}
         user:
-          {{ range $user := $.Users }}
+          {{- range $user := $.Users }}
             {{ $user.Name }}:
               hashed-password: {{ $user.HashedPassword }}
               role: {{ $user.Role }}
               ssh:
                 authorized-key:
-                  {{ range $id, $key := $user.SSHKeys }}
+                  {{- range $id, $key := $user.SSHKeys }}
                     key-{{ $id }}:
                       key: {{ $key.Key }}
                       type: {{ $key.Type }}
-                  {{ end }}
-          {{ end }}
+                  {{- end }}
+          {{- end }}
       api:
         state: enabled
       config:
@@ -86,9 +86,9 @@
         vrf: mgmt
       ssh-server:
         allow-users:
-          {{ range $user := $.Users }}
+          {{- range $user := $.Users }}
             {{ $user.Name }}: {}
-          {{ end }}
+          {{- end }}
         permit-root-login: disabled
         state: enabled
       wjh:

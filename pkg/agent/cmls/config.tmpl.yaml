@@ -12,9 +12,11 @@
         ipv4:
           address:
             {{ $.ProtocolIP }}: {}
-            {{ if $.VTEPIP }}{{ $.VTEPIP }}: {}{{ end }}
+            {{- if $.VTEPIP }}
+            {{ $.VTEPIP }}: {}
+            {{- end }}
         type: loopback
-      {{ range $port := $.Ports }}
+      {{- range $port := $.Ports }}
       {{ $port.Name }}:
         ipv6:
           state: disabled
@@ -23,26 +25,28 @@
         qos:
           pfc-watchdog:
             state: enable
-        {{ if $port.Used }}
+        {{- if $port.Used }}
         link:
           state:
             up: {}
-        {{ if $port.VRF }}vrf: {{ $port.VRF }}{{ end }}
-        {{ if $port.IP }}
+        {{- if $port.VRF }}
+        vrf: {{ $port.VRF }}
+        {{- end }}
+        {{- if $port.IP }}
         ipv4:
           address:
             {{ $port.IP }}: {}
-        {{ end }}
-        {{ if $port.AdaptiveRouting }}
+        {{- end }}
+        {{- if $port.AdaptiveRouting }}
         router:
           adaptive-routing:
             state: enabled
-        {{ end }}
-        {{ end }}
-      {{ end }}
+        {{- end }}
+        {{- end }}
+      {{- end }}
     evpn:
       state: enabled
-    {{ if $.IsLeaf }}
+    {{- if $.IsLeaf }}
     nve:
       vxlan:
         arp-nd-suppress: enabled
@@ -55,7 +59,7 @@
         source:
           address: {{ $.VXLANSource }}
         state: enabled
-    {{ end }}
+    {{- end }}
     qos:
       pfc:
         default-global:
@@ -184,17 +188,19 @@
                 multihop-ttl: 2
                 remote-as: external
                 update-source: lo
-            {{ if $.BGPNeighbors }}
+            {{- if $.BGPNeighbors }}
             neighbor:
-              {{ range $neigh := $.BGPNeighbors }}
+              {{- range $neigh := $.BGPNeighbors }}
               {{ $neigh.IP }}:
-                {{ if $neigh.Description }}description: {{ $neigh.Description }}{{ end }}
+                {{- if $neigh.Description }}
+                description: {{ $neigh.Description }}
+                {{- end }}
                 peer-group: {{ $neigh.PeerGroup }}
                 type: numbered
-              {{ end }}
-            {{ end }}
+              {{- end }}
+            {{- end }}
             state: enabled
-      {{ range $vpc := $.VPCs }}
+      {{- range $vpc := $.VPCs }}
       {{ $vpc.Name }}:
         evpn:
           state: enabled
@@ -211,13 +217,13 @@
                 route-export:
                   to-evpn:
                     state: enabled
-                {{ if $vpc.RouteSumm }}
+                {{- if $vpc.RouteSumm }}
                 aggregate-route:
-                  {{ range $route := $vpc.RouteSumm }}
+                  {{- range $route := $vpc.RouteSumm }}
                   {{ $route }}:
                     summary-only: enabled
-                  {{ end }}
-                {{ end }}
+                  {{- end }}
+                {{- end }}
                 state: enabled
               l2vpn-evpn:
                 state: enabled
@@ -226,7 +232,7 @@
                 aspath-ignore: enabled
             rd: {{ $.RouterID }}:{{ $vpc.VNI }}
             state: enabled
-      {{ end }}
+      {{- end }}
     system:
       aaa:
         class:
@@ -257,18 +263,18 @@
               nvapply: {}
               sudo: {}
         user:
-          {{ range $user := $.Users }}
+          {{- range $user := $.Users }}
             {{ $user.Name }}:
               hashed-password: {{ $user.HashedPassword }}
               role: {{ $user.Role }}
               ssh:
                 authorized-key:
-                  {{ range $id, $key := $user.SSHKeys }}
+                  {{- range $id, $key := $user.SSHKeys }}
                     key-{{ $id }}:
                       key: {{ $key.Key }}
                       type: {{ $key.Type }}
-                  {{ end }}
-          {{ end }}
+                  {{- end }}
+          {{- end }}
       api:
         state: enabled
       config:
@@ -315,9 +321,9 @@
         vrf: mgmt
       ssh-server:
         allow-users:
-          {{ range $user := $.Users }}
+          {{- range $user := $.Users }}
             {{ $user.Name }}: {}
-          {{ end }}
+          {{- end }}
         permit-root-login: disabled
         state: enabled
       wjh:

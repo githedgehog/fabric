@@ -6,7 +6,6 @@
             172.30.0.9/21: {}
         type: eth
         vrf: mgmt
-      
       swp1:
         ipv6:
           state: disabled
@@ -15,7 +14,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp2s0:
         ipv6:
           state: disabled
@@ -24,7 +22,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp2s1:
         ipv6:
           state: disabled
@@ -33,7 +30,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp2s2:
         ipv6:
           state: disabled
@@ -42,7 +38,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp2s3:
         ipv6:
           state: disabled
@@ -51,7 +46,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp3s0:
         ipv6:
           state: disabled
@@ -60,7 +54,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp3s1:
         ipv6:
           state: disabled
@@ -69,7 +62,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp4:
         ipv6:
           state: disabled
@@ -78,7 +70,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp5:
         ipv6:
           state: disabled
@@ -87,7 +78,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp6:
         ipv6:
           state: disabled
@@ -96,7 +86,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp7:
         ipv6:
           state: disabled
@@ -105,7 +94,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp8:
         ipv6:
           state: disabled
@@ -114,7 +102,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp9s0:
         ipv6:
           state: disabled
@@ -123,7 +110,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp9s1:
         ipv6:
           state: disabled
@@ -132,7 +118,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp9s2:
         ipv6:
           state: disabled
@@ -141,7 +126,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp9s3:
         ipv6:
           state: disabled
@@ -150,7 +134,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp9s4:
         ipv6:
           state: disabled
@@ -159,7 +142,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp9s5:
         ipv6:
           state: disabled
@@ -168,7 +150,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp9s6:
         ipv6:
           state: disabled
@@ -177,7 +158,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp9s7:
         ipv6:
           state: disabled
@@ -186,7 +166,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp11:
         ipv6:
           state: disabled
@@ -195,7 +174,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp12:
         ipv6:
           state: disabled
@@ -204,7 +182,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp13:
         ipv6:
           state: disabled
@@ -213,7 +190,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp14:
         ipv6:
           state: disabled
@@ -222,7 +198,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp15:
         ipv6:
           state: disabled
@@ -231,7 +206,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp16:
         ipv6:
           state: disabled
@@ -240,7 +214,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp17:
         ipv6:
           state: disabled
@@ -249,7 +222,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp18:
         ipv6:
           state: disabled
@@ -258,7 +230,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp19:
         ipv6:
           state: disabled
@@ -267,7 +238,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp20:
         ipv6:
           state: disabled
@@ -276,7 +246,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp21:
         ipv6:
           state: disabled
@@ -285,7 +254,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp22:
         ipv6:
           state: disabled
@@ -294,7 +262,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp23:
         ipv6:
           state: disabled
@@ -303,7 +270,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp24:
         ipv6:
           state: disabled
@@ -312,7 +278,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp25:
         ipv6:
           state: disabled
@@ -321,7 +286,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp26:
         ipv6:
           state: disabled
@@ -330,7 +294,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp27:
         ipv6:
           state: disabled
@@ -339,7 +302,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp28:
         ipv6:
           state: disabled
@@ -348,7 +310,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp29:
         ipv6:
           state: disabled
@@ -357,7 +318,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp30:
         ipv6:
           state: disabled
@@ -366,7 +326,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp31:
         ipv6:
           state: disabled
@@ -375,7 +334,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp32:
         ipv6:
           state: disabled
@@ -384,7 +342,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp33:
         ipv6:
           state: disabled
@@ -393,7 +350,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp34:
         ipv6:
           state: disabled
@@ -402,7 +358,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp35:
         ipv6:
           state: disabled
@@ -411,7 +366,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp36:
         ipv6:
           state: disabled
@@ -420,7 +374,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp37:
         ipv6:
           state: disabled
@@ -429,7 +382,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp38:
         ipv6:
           state: disabled
@@ -438,7 +390,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp39:
         ipv6:
           state: disabled
@@ -447,7 +398,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp40:
         ipv6:
           state: disabled
@@ -456,7 +406,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp41:
         ipv6:
           state: disabled
@@ -465,7 +414,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp42:
         ipv6:
           state: disabled
@@ -474,7 +422,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp43:
         ipv6:
           state: disabled
@@ -483,7 +430,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp44:
         ipv6:
           state: disabled
@@ -492,7 +438,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp45:
         ipv6:
           state: disabled
@@ -501,7 +446,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp46:
         ipv6:
           state: disabled
@@ -510,7 +454,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp47:
         ipv6:
           state: disabled
@@ -519,7 +462,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp48:
         ipv6:
           state: disabled
@@ -528,7 +470,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp49:
         ipv6:
           state: disabled
@@ -537,7 +478,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp50:
         ipv6:
           state: disabled
@@ -546,7 +486,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp51:
         ipv6:
           state: disabled
@@ -555,7 +494,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp52:
         ipv6:
           state: disabled
@@ -564,7 +502,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp53:
         ipv6:
           state: disabled
@@ -573,7 +510,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp54:
         ipv6:
           state: disabled
@@ -582,7 +518,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp55:
         ipv6:
           state: disabled
@@ -591,7 +526,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp56:
         ipv6:
           state: disabled
@@ -600,7 +534,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp57:
         ipv6:
           state: disabled
@@ -609,7 +542,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp58:
         ipv6:
           state: disabled
@@ -618,7 +550,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp59:
         ipv6:
           state: disabled
@@ -627,7 +558,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp60:
         ipv6:
           state: disabled
@@ -636,7 +566,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp61:
         ipv6:
           state: disabled
@@ -645,7 +574,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp62:
         ipv6:
           state: disabled
@@ -654,7 +582,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp63:
         ipv6:
           state: disabled
@@ -663,7 +590,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp64:
         ipv6:
           state: disabled
@@ -672,7 +598,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp65:
         ipv6:
           state: disabled
@@ -681,7 +606,6 @@
             up: {}
         lldp:
           state: enabled
-      
       swp66:
         ipv6:
           state: disabled
@@ -690,7 +614,6 @@
             up: {}
         lldp:
           state: enabled
-      
     system:
       aaa:
         class:
@@ -721,37 +644,28 @@
               nvapply: {}
               sudo: {}
         user:
-          
             admin:
               hashed-password: $5$8nAYPGcl4l6G7Av1$Qi4/gnM0yPtGv9kjpMh78NuNSfQWy7vR1rulHpurL36
               role: system-admin
               ssh:
                 authorized-key:
-                  
                     key-0:
                       key: AAAAC3NzaC1lZDI1NTE5AAAAIGpF2+9I1Nj4BcN7y6DjzTbq1VcUYIRGyfzId5ZoBEFj
                       type: ssh-ed25519
-                  
                     key-1:
                       key: AAAAC3NzaC1lZDI1NTE5AAAAIILr33oUspqfHiKC9BaenkKG3nIznbi/Ep3mmsMZjS4U
                       type: ssh-ed25519
-                  
-          
             op:
               hashed-password: $5$8nAYPGcl4l6G7Av1$Qi4/gnM0yPtGv9kjpMh78NuNSfQWy7vR1rulHpurL36
               role: nvue-monitor
               ssh:
                 authorized-key:
-                  
                     key-0:
                       key: AAAAC3NzaC1lZDI1NTE5AAAAIGpF2+9I1Nj4BcN7y6DjzTbq1VcUYIRGyfzId5ZoBEFj
                       type: ssh-ed25519
-                  
                     key-1:
                       key: AAAAC3NzaC1lZDI1NTE5AAAAIILr33oUspqfHiKC9BaenkKG3nIznbi/Ep3mmsMZjS4U
                       type: ssh-ed25519
-                  
-          
       api:
         state: enabled
       config:
@@ -780,11 +694,8 @@
         vrf: mgmt
       ssh-server:
         allow-users:
-          
             admin: {}
-          
             op: {}
-          
         permit-root-login: disabled
         state: enabled
       wjh:
