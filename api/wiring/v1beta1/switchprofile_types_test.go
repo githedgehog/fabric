@@ -1019,4 +1019,20 @@ func TestSwitchProfileDisabledPorts(t *testing.T) {
 	disabled, err = sp.GetDisabledAPIPorts(&wiringapi.SwitchSpec{})
 	require.NoError(t, err)
 	require.Empty(t, disabled)
+
+	bonus := sp.Ports["E1/5"]
+	bonus.Bonus = true
+	sp.Ports["E1/5"] = bonus
+
+	summary, err := sp.GetPortsSummary()
+	require.NoError(t, err)
+	summaryByName := map[string]wiringapi.SwitchProfilePortSummary{}
+	for _, s := range summary {
+		summaryByName[s.Name] = s
+	}
+	require.Equal(t, "Breakout (mode with * disables E1/2)", summaryByName["E1/1"].Type)
+	require.Equal(t, "1x100G, 1x40G, 2x50G, 4x25G*", summaryByName["E1/1"].Supported)
+	require.Equal(t, "Breakout (mode with * disables E1/4)", summaryByName["E1/3"].Type)
+	require.Equal(t, "Direct", summaryByName["E1/4"].Type)
+	require.Equal(t, "Direct (bonus)", summaryByName["E1/5"].Type)
 }

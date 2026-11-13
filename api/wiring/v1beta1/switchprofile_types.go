@@ -1042,9 +1042,38 @@ func (sp *SwitchProfileSpec) GetPortsSummary() ([]SwitchProfilePortSummary, erro
 					def = profile.Breakout.Default
 					modes := lo.Keys(profile.Breakout.Supported)
 					slices.Sort(modes)
+
+					// modes disabling other ports are marked with * and the disabled ports are listed in the type
+					disabled := []string{}
+					for idx, mode := range modes {
+						offsets := profile.Breakout.Supported[mode].DisablesPortOffsets
+						if len(offsets) == 0 {
+							continue
+						}
+
+						modes[idx] += "*"
+						for _, offset := range offsets {
+							disabledName, err := offsetPortName(portName, offset)
+							if err != nil {
+								return nil, err
+							}
+							if !slices.Contains(disabled, disabledName) {
+								disabled = append(disabled, disabledName)
+							}
+						}
+					}
 					supported = strings.Join(modes, ", ")
+
+					if len(disabled) > 0 {
+						SortPortNames(disabled)
+						t += " (mode with * disables " + strings.Join(disabled, ", ") + ")"
+					}
 				}
 			}
+		}
+
+		if port.Bonus {
+			t += " (bonus)"
 		}
 
 		summary := SwitchProfilePortSummary{
