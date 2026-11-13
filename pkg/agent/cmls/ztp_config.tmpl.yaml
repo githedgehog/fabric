@@ -8,6 +8,11 @@
         vrf: mgmt
       {{- range $port := $.Ports }}
       {{ $port.Name }}:
+        {{- if $port.Breakout }}
+        link:
+          breakout:
+            {{ $port.Breakout }}: {}
+        {{- else }}
         ipv6:
           state: disabled
         link:
@@ -15,6 +20,7 @@
             up: {}
         lldp:
           state: enabled
+        {{- end }}
       {{- end }}
     system:
       aaa:

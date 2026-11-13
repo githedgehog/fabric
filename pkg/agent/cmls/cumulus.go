@@ -83,6 +83,7 @@ type VPC struct {
 
 type PortConfig struct {
 	Name            string
+	Breakout        string
 	Used            bool
 	VRF             string
 	IP              string
@@ -122,11 +123,54 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		return nil, fmt.Errorf("getting available ports: %w", err)
 	}
 	apiPortNames := slices.Collect(maps.Keys(apiPorts))
+
+	disabled, err := agent.Spec.SwitchProfile.GetDisabledAPIPorts(&agent.Spec.Switch)
+	if err != nil {
+		return nil, fmt.Errorf("getting disabled ports: %w", err)
+	}
+
+	// broken out ports are configured with the breakout mode, e.g. 4x, and their sub-ports with the rest of the config,
+	// ports disabled by the breakout of another port have to be explicitly disabled
+	breakouts := map[string]string{}
+	for portName, port := range agent.Spec.SwitchProfile.Ports {
+		if _, ok := disabled[portName]; ok {
+			breakouts[portName] = "disabled"
+			apiPortNames = append(apiPortNames, portName)
+
+			continue
+		}
+		if port.Profile == "" {
+			continue
+		}
+
+		breakout := agent.Spec.SwitchProfile.PortProfiles[port.Profile].Breakout
+		if breakout == nil {
+			continue
+		}
+
+		mode, ok := agent.Spec.Switch.PortBreakouts[portName]
+		if !ok {
+			mode = breakout.Default
+		}
+		if offsets := len(breakout.Supported[mode].Offsets); offsets > 1 {
+			breakouts[portName] = fmt.Sprintf("%dx", offsets)
+			apiPortNames = append(apiPortNames, portName)
+		}
+	}
 	wiringapi.SortPortNames(apiPortNames)
 
 	ports := make([]*PortConfig, 0, len(apiPortNames))
 	portsByName := map[string]*PortConfig{}
 	for _, apiPortName := range apiPortNames {
+		if breakout, ok := breakouts[apiPortName]; ok {
+			ports = append(ports, &PortConfig{
+				Name:     agent.Spec.SwitchProfile.Ports[apiPortName].NOSName,
+				Breakout: breakout,
+			})
+
+			continue
+		}
+
 		name, err := nosPortName(api2nos, apiPortName)
 		if err != nil {
 			return nil, err

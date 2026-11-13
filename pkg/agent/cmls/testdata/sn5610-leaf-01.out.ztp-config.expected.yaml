@@ -14,6 +14,10 @@
             up: {}
         lldp:
           state: enabled
+      swp2:
+        link:
+          breakout:
+            4x: {}
       swp2s0:
         ipv6:
           state: disabled
@@ -46,6 +50,10 @@
             up: {}
         lldp:
           state: enabled
+      swp3:
+        link:
+          breakout:
+            2x: {}
       swp3s0:
         ipv6:
           state: disabled
@@ -102,6 +110,10 @@
             up: {}
         lldp:
           state: enabled
+      swp9:
+        link:
+          breakout:
+            8x: {}
       swp9s0:
         ipv6:
           state: disabled
@@ -166,6 +178,10 @@
             up: {}
         lldp:
           state: enabled
+      swp10:
+        link:
+          breakout:
+            disabled: {}
       swp11:
         ipv6:
           state: disabled

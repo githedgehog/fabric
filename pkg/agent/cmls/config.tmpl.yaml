@@ -18,6 +18,11 @@
         type: loopback
       {{- range $port := $.Ports }}
       {{ $port.Name }}:
+        {{- if $port.Breakout }}
+        link:
+          breakout:
+            {{ $port.Breakout }}: {}
+        {{- else }}
         ipv6:
           state: disabled
         lldp:
@@ -25,6 +30,7 @@
         qos:
           pfc-watchdog:
             state: enable
+        {{- end }}
         {{- if $port.Used }}
         link:
           state:

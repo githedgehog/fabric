@@ -22,6 +22,10 @@
         qos:
           pfc-watchdog:
             state: enable
+      swp2:
+        link:
+          breakout:
+            4x: {}
       swp2s0:
         ipv6:
           state: disabled
@@ -58,6 +62,10 @@
         qos:
           pfc-watchdog:
             state: enable
+      swp3:
+        link:
+          breakout:
+            2x: {}
       swp3s0:
         ipv6:
           state: disabled
@@ -157,6 +165,10 @@
         router:
           adaptive-routing:
             state: enabled
+      swp9:
+        link:
+          breakout:
+            8x: {}
       swp9s0:
         ipv6:
           state: disabled
@@ -221,6 +233,10 @@
         qos:
           pfc-watchdog:
             state: enable
+      swp10:
+        link:
+          breakout:
+            disabled: {}
       swp11:
         ipv6:
           state: disabled
