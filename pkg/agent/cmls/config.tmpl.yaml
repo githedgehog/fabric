@@ -31,8 +31,11 @@
           pfc-watchdog:
             state: enable
         {{- end }}
-        {{- if or $port.Speed $port.Used }}
+        {{- if or $port.AutoNeg $port.Speed $port.Used }}
         link:
+          {{- if $port.AutoNeg }}
+          auto-negotiate: {{ $port.AutoNeg }}
+          {{- end }}
           {{- if $port.Speed }}
           speed: {{ $port.Speed }}
           {{- end }}

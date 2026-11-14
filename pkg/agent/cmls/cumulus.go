@@ -85,6 +85,7 @@ type PortConfig struct {
 	Name            string
 	Breakout        string
 	Speed           string
+	AutoNeg         string
 	Used            bool
 	VRF             string
 	IP              string
@@ -183,6 +184,12 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 	}
 	wiringapi.SortPortNames(apiPortNames)
 
+	autoNegAllowed, autoNegDefault, err := agent.Spec.SwitchProfile.GetAutoNegsDefaultsFor(&agent.Spec.Switch)
+	if err != nil {
+		return nil, fmt.Errorf("getting auto-negotiation defaults: %w", err)
+	}
+	autoNegs := maps.Clone(agent.Spec.Switch.PortAutoNegs)
+
 	ports := make([]*PortConfig, 0, len(apiPortNames))
 	portsByName := map[string]*PortConfig{}
 	for _, apiPortName := range apiPortNames {
@@ -202,11 +209,29 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 
 		port := &PortConfig{Name: name, Speed: speeds[apiPortName]}
 		delete(speeds, apiPortName)
+
+		autoNeg, ok := autoNegs[apiPortName]
+		delete(autoNegs, apiPortName)
+		if autoNegAllowed[apiPortName] {
+			if !ok {
+				autoNeg = autoNegDefault[apiPortName]
+			}
+			port.AutoNeg = "disabled"
+			if autoNeg {
+				port.AutoNeg = "enabled"
+			}
+		} else if ok {
+			return nil, fmt.Errorf("port %s auto-negotiation can't be configured", apiPortName) //nolint:err113
+		}
+
 		ports = append(ports, port)
 		portsByName[name] = port
 	}
 	for portName := range speeds {
 		return nil, fmt.Errorf("port %s speed can't be configured, port isn't available", portName) //nolint:err113
+	}
+	for portName := range autoNegs {
+		return nil, fmt.Errorf("port %s auto-negotiation can't be configured, port isn't available", portName) //nolint:err113
 	}
 
 	usePort := func(apiPortName string) (*PortConfig, error) {

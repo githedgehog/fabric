@@ -256,6 +256,8 @@ spec:
       samplingInterval: 30
       recoveryInterval: 300
     ip: 172.30.0.9/21
+    portAutoNegs:
+      E1/5/1: false
     portBreakouts:
       E1/2: 4x100G
       E1/3: 2x400G
