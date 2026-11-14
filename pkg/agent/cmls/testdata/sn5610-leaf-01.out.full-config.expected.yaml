@@ -894,6 +894,7 @@
           pfc-watchdog:
             state: enable
         link:
+          auto-negotiate: enabled
           speed: 25G
           state:
             up: {}
@@ -907,6 +908,7 @@
           pfc-watchdog:
             state: enable
         link:
+          auto-negotiate: enabled
           speed: 10G
     evpn:
       state: enabled

@@ -1823,7 +1823,7 @@ Label column is a port label on a physical switch.
 | E1/62 | 62 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
 | E1/63 | 63 | Breakout (mode with \* disables E1/64) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
 | E1/64 | 64 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
-| E1/65 | 65 | Direct (bonus) |  | 25G | 1G, 10G, 25G |
+| E1/65 | 65 | Direct (bonus) |  | 25G | 1G, 10G, 25G, AutoNeg supported (default: true) |
 
 
 ## NVIDIA SN5610
@@ -1923,8 +1923,8 @@ Label column is a port label on a physical switch.
 | E1/62 | 62 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
 | E1/63 | 63 | Breakout (mode with \* disables E1/64) |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G, 8x100G\*, 8x10G\*, 8x25G\*, 8x50G\* |
 | E1/64 | 64 | Breakout |  | 1x800G | 1x100G, 1x10G, 1x200G, 1x25G, 1x400G, 1x50G, 1x800G, 2x100G, 2x200G, 2x25G, 2x400G, 2x50G, 4x100G, 4x10G, 4x200G, 4x25G, 4x50G |
-| E1/65 | 65 | Direct (bonus) |  | 25G | 1G, 10G, 25G |
-| E1/66 | 66 | Direct (bonus) |  | 25G | 1G, 10G, 25G |
+| E1/65 | 65 | Direct (bonus) |  | 25G | 1G, 10G, 25G, AutoNeg supported (default: true) |
+| E1/66 | 66 | Direct (bonus) |  | 25G | 1G, 10G, 25G, AutoNeg supported (default: true) |
 
 
 ## Supermicro SSE-C4632SB

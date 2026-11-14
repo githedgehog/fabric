@@ -732,6 +732,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 25G
           state:
             up: {}
@@ -741,6 +742,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 25G
           state:
             up: {}

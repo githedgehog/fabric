@@ -111,6 +111,8 @@ var CumulusNvidiaSN5610 = wiringapi.SwitchProfile{
 					Default:   "25G",
 					Supported: []string{"1G", "10G", "25G"},
 				},
+				AutoNegAllowed: true,
+				AutoNegDefault: true,
 			},
 			"OSFP-800G" + wiringapi.OddPortProfileSuffix: {
 				Breakout: &wiringapi.SwitchProfilePortProfileBreakout{
