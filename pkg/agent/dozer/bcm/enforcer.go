@@ -92,7 +92,6 @@ const (
 	ActionWeightInterfaceVLANIPsUpdate
 	ActionWeightInterfacePortChannelSwitchedAccessUpdate
 	ActionWeightInterfacePortChannelSwitchedTrunkUpdate
-	ActionWeightInterfaceEthernetBaseUpdate
 	ActionWeightInterfaceVLANAnycastGatewayUpdate
 	ActionWeightInterfaceNATZoneUpdate
 	ActionWeightPortChannelConfigMACUpdate
@@ -115,6 +114,10 @@ const (
 	//   - adding hostBGP (false->true): delete the access/trunk VLAN, then create the subinterface.
 	ActionWeightInterfaceEthernetSwitchedAccessDelete
 	ActionWeightInterfaceEthernetSwitchedTrunkDelete
+	// Ethernet base (PortChannel membership, FEC) updates sit after the subinterface deletes: SONiC
+	// rejects membership while a subinterface still exists on the port, so a port that drops its
+	// subinterfaces and joins a PortChannel in the same generation must delete them first:
+	ActionWeightInterfaceEthernetBaseUpdate
 	ActionWeightInterfaceEthernetSwitchedAccessUpdate
 	ActionWeightInterfaceEthernetSwitchedTrunkUpdate
 	ActionWeightInterfaceSubinterfaceUpdate

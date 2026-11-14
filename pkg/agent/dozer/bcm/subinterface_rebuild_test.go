@@ -159,6 +159,24 @@ func TestWithoutRebuiltSubinterfacesKeepsDesired(t *testing.T) {
 	require.Equal(t, rebuildSpec(nil, true), desired)
 }
 
+// a port that loses its subinterfaces and becomes a PortChannel member in the same generation must
+// have its membership update sent only after the subinterface deletes, otherwise SONiC rejects it
+func TestCalculateActionsPortChannelMembershipAfterSubinterfaceDelete(t *testing.T) {
+	actual := rebuildSpec(nil, true)
+	desired := rebuildSpec(nil, false)
+	desired.Interfaces[rebuildIface].PortChannel = new("PortChannel1")
+
+	actions, err := Processor().CalculateActions(t.Context(), actual, desired)
+	require.NoError(t, err)
+
+	ethPath := "/interfaces/interface[name=" + rebuildIface + "]/ethernet"
+	ethUpdate := actionIndex(actions, ActionWeightInterfaceEthernetBaseUpdate, ethPath)
+	subDelete := actionIndex(actions, ActionWeightInterfaceSubinterfaceDelete, rebuildSubPath)
+	require.NotEqual(t, -1, ethUpdate, "ethernet base update")
+	require.NotEqual(t, -1, subDelete, "subinterface delete")
+	require.Less(t, subDelete, ethUpdate)
+}
+
 func TestCalculateActionsRebuildsAllSubinterfacesOfPort(t *testing.T) {
 	const secondSubName = rebuildIface + ".2025"
 	const secondSubPath = "/interfaces/interface[name=" + rebuildIface + "]/subinterfaces/subinterface[index=2025]"
