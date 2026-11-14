@@ -11,6 +11,7 @@
           state: disabled
         link:
           auto-negotiate: enabled
+          fec: 'auto'
           speed: 800G
           state:
             up: {}
@@ -25,6 +26,7 @@
           state: disabled
         link:
           auto-negotiate: enabled
+          fec: 'rs'
           speed: 100G
           state:
             up: {}
@@ -99,6 +101,7 @@
           state: disabled
         link:
           auto-negotiate: disabled
+          fec: 'baser'
           speed: 400G
           state:
             up: {}
@@ -777,6 +780,7 @@
           state: disabled
         link:
           auto-negotiate: enabled
+          fec: 'off'
           speed: 10G
           state:
             up: {}

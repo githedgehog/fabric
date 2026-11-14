@@ -24,6 +24,7 @@
             state: enable
         link:
           auto-negotiate: enabled
+          fec: 'auto'
           speed: 800G
       swp2:
         link:
@@ -39,6 +40,7 @@
             state: enable
         link:
           auto-negotiate: enabled
+          fec: 'rs'
           speed: 100G
           state:
             up: {}
@@ -129,6 +131,7 @@
             state: enable
         link:
           auto-negotiate: disabled
+          fec: 'baser'
           speed: 400G
           state:
             up: {}
@@ -909,6 +912,7 @@
             state: enable
         link:
           auto-negotiate: enabled
+          fec: 'off'
           speed: 10G
     evpn:
       state: enabled

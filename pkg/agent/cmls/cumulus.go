@@ -86,6 +86,7 @@ type PortConfig struct {
 	Breakout        string
 	Speed           string
 	AutoNeg         string
+	FEC             string
 	Used            bool
 	VRF             string
 	IP              string
@@ -232,6 +233,44 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 	}
 	for portName := range autoNegs {
 		return nil, fmt.Errorf("port %s auto-negotiation can't be configured, port isn't available", portName) //nolint:err113
+	}
+
+	// FEC is only set where configured, other ports keep the NVUE default (auto), the base name of a non broken out
+	// breakout port is an alias of its only sub-port
+	fecConfigurable, err := agent.Spec.SwitchProfile.GetFECConfigurablePorts(&agent.Spec.Switch)
+	if err != nil {
+		return nil, fmt.Errorf("getting FEC configurable ports: %w", err)
+	}
+	for apiPortName, fec := range agent.Spec.Switch.PortFECs {
+		if !fecConfigurable[apiPortName] {
+			return nil, fmt.Errorf("port %s FEC can't be configured", apiPortName) //nolint:err113
+		}
+
+		name, err := nosPortName(api2nos, apiPortName)
+		if err != nil {
+			return nil, err
+		}
+
+		port, ok := portsByName[name]
+		if !ok {
+			return nil, fmt.Errorf("port %s FEC can't be configured, port isn't available", apiPortName) //nolint:err113
+		}
+		if port.FEC != "" {
+			return nil, fmt.Errorf("port %s FEC is configured more than once", apiPortName) //nolint:err113
+		}
+
+		switch fec {
+		case wiringapi.PortFECModeRS:
+			port.FEC = "rs"
+		case wiringapi.PortFECModeFC:
+			port.FEC = "baser"
+		case wiringapi.PortFECModeAuto:
+			port.FEC = "auto"
+		case wiringapi.PortFECModeDisabled:
+			port.FEC = "off"
+		default:
+			return nil, fmt.Errorf("port %s FEC mode %q is invalid", apiPortName, fec) //nolint:err113
+		}
 	}
 
 	usePort := func(apiPortName string) (*PortConfig, error) {

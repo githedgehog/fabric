@@ -46,6 +46,7 @@ func TestBuildConfigErrors(t *testing.T) {
 		breakouts map[string]string
 		speeds    map[string]string
 		autoNegs  map[string]bool
+		fecs      map[string]wiringapi.PortFECMode
 		port      string
 		subnets   []string
 		err       string
@@ -95,13 +96,35 @@ func TestBuildConfigErrors(t *testing.T) {
 			port:     "E1/1",
 			err:      "port E1/2 auto-negotiation can't be configured, port isn't available",
 		},
+		{
+			name:      "sn5610-fec-on-breakout-port",
+			profile:   &switchprofile.CumulusNvidiaSN5610,
+			breakouts: map[string]string{"E1/2": "4x100G"},
+			fecs:      map[string]wiringapi.PortFECMode{"E1/2": wiringapi.PortFECModeRS},
+			port:      "E1/1",
+			err:       "port E1/2 FEC can't be configured",
+		},
+		{
+			name:    "sn5610-fec-on-port-and-sub-port",
+			profile: &switchprofile.CumulusNvidiaSN5610,
+			fecs:    map[string]wiringapi.PortFECMode{"E1/2": wiringapi.PortFECModeRS, "E1/2/1": wiringapi.PortFECModeFC},
+			port:    "E1/1",
+			err:     "FEC is configured more than once",
+		},
+		{
+			name:    "sn5610-fec-invalid",
+			profile: &switchprofile.CumulusNvidiaSN5610,
+			fecs:    map[string]wiringapi.PortFECMode{"E1/2": "bad"},
+			port:    "E1/1",
+			err:     `port E1/2 FEC mode "bad" is invalid`,
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			agent := &agentapi.Agent{
 				Name: "leaf-01",
 				Spec: agentapi.AgentSpec{
 					Config: agentapi.AgentSpecConfig{ControlVIP: "172.30.0.1/32"},
-					Switch: wiringapi.SwitchSpec{ProtocolIP: "172.30.8.1/32", PortBreakouts: tt.breakouts, PortSpeeds: tt.speeds, PortAutoNegs: tt.autoNegs},
+					Switch: wiringapi.SwitchSpec{ProtocolIP: "172.30.8.1/32", PortBreakouts: tt.breakouts, PortSpeeds: tt.speeds, PortAutoNegs: tt.autoNegs, PortFECs: tt.fecs},
 					Connections: map[string]wiringapi.ConnectionSpec{
 						"server-01--unbundled--leaf-01": {Unbundled: &wiringapi.ConnUnbundled{
 							Link: wiringapi.ServerToSwitchLink{
