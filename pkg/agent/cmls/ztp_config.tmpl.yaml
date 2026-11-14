@@ -19,6 +19,9 @@
           {{- if $port.AutoNeg }}
           auto-negotiate: {{ $port.AutoNeg }}
           {{- end }}
+          {{- if $port.FEC }}
+          fec: '{{ $port.FEC }}'
+          {{- end }}
           {{- if $port.Speed }}
           speed: {{ $port.Speed }}
           {{- end }}

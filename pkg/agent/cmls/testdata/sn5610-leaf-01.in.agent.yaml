@@ -263,6 +263,11 @@ spec:
       E1/3: 2x400G
       E1/5: 1x400G
       E1/9: 8x100G
+    portFECs:
+      E1/1/1: auto
+      E1/2/1: rs
+      E1/5: fc
+      E1/66: disabled
     portSpeeds:
       E1/66: 10G
     profile: nvidia-sn5610
