@@ -14,6 +14,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 400G
           state:
             up: {}
@@ -23,6 +24,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 400G
           state:
             up: {}
@@ -32,6 +34,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -41,6 +44,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -50,6 +54,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -59,6 +64,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -68,6 +74,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -77,6 +84,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -86,6 +94,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -99,6 +108,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 100G
           state:
             up: {}
@@ -108,6 +118,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 100G
           state:
             up: {}
@@ -117,6 +128,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 100G
           state:
             up: {}
@@ -126,6 +138,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 100G
           state:
             up: {}
@@ -135,6 +148,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 100G
           state:
             up: {}
@@ -144,6 +158,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 100G
           state:
             up: {}
@@ -153,6 +168,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 100G
           state:
             up: {}
@@ -162,6 +178,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 100G
           state:
             up: {}
@@ -175,6 +192,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -184,6 +202,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -193,6 +212,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -202,6 +222,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -211,6 +232,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -220,6 +242,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -229,6 +252,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -238,6 +262,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -247,6 +272,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -256,6 +282,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -265,6 +292,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -274,6 +302,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -283,6 +312,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -292,6 +322,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -301,6 +332,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -310,6 +342,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -319,6 +352,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -328,6 +362,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -337,6 +372,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -346,6 +382,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -355,6 +392,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -364,6 +402,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -373,6 +412,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -382,6 +422,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -391,6 +432,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -400,6 +442,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -409,6 +452,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -418,6 +462,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -427,6 +472,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -436,6 +482,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -445,6 +492,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -454,6 +502,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -463,6 +512,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -472,6 +522,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -481,6 +532,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -490,6 +542,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -499,6 +552,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -508,6 +562,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -517,6 +572,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -526,6 +582,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -535,6 +592,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -544,6 +602,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -553,6 +612,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -562,6 +622,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -571,6 +632,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -580,6 +642,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -589,6 +652,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -598,6 +662,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -607,6 +672,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -616,6 +682,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -625,6 +692,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -634,6 +702,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -643,6 +712,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
@@ -652,6 +722,7 @@
         ipv6:
           state: disabled
         link:
+          auto-negotiate: enabled
           speed: 800G
           state:
             up: {}

@@ -16,6 +16,9 @@
         ipv6:
           state: disabled
         link:
+          {{- if $port.AutoNeg }}
+          auto-negotiate: {{ $port.AutoNeg }}
+          {{- end }}
           {{- if $port.Speed }}
           speed: {{ $port.Speed }}
           {{- end }}
