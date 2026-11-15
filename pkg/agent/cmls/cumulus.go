@@ -6,6 +6,7 @@ package cmls
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"maps"
@@ -626,10 +627,13 @@ func Enforce(ctx context.Context, _ /* processor */ dozer.Processor, agent *agen
 		return fmt.Errorf("replacing config: %w", err)
 	}
 
-	// Diff exit code is 1 if it's non-empty
-	if err := run(ctx, "nv-diff", "nv", "config", "diff", "applied"); err != nil {
-		// return fmt.Errorf("diffing config: %w", err)
-		slog.Debug("Diff", "err", err.Error())
+	// diff exits with 0 if there is nothing to apply and with 1 if there are changes
+	if err := run(ctx, "nv-diff", "nv", "config", "diff", "applied"); err == nil {
+		slog.Debug("Config is already applied")
+
+		return nil
+	} else if exitErr := (&exec.ExitError{}); !errors.As(err, &exitErr) || exitErr.ExitCode() != 1 {
+		return fmt.Errorf("diffing config: %w", err)
 	}
 
 	if err := run(ctx, "nv-apply", "nv", "config", "apply", "-y"); err != nil {
