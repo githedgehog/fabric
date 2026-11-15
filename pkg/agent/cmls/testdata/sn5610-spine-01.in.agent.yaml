@@ -143,6 +143,7 @@ spec:
       flapThreshold: 3
       samplingInterval: 30
       recoveryInterval: 300
+    enableAllPorts: true
     ip: 172.30.0.7/21
     portBreakouts:
       E1/1: 2x400G
