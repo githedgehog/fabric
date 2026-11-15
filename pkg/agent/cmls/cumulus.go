@@ -28,6 +28,7 @@ import (
 	"go.githedgehog.com/fabric/pkg/agent/switchstate"
 	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
 	"go.githedgehog.com/fabric/pkg/util/logutil"
+	"go.githedgehog.com/fabric/pkg/version"
 )
 
 const (
@@ -621,7 +622,7 @@ func Enforce(ctx context.Context, _ /* processor */ dozer.Processor, agent *agen
 		return fmt.Errorf("writing config file: %w", err)
 	}
 
-	// TODO use API instead and probably create a revision named after agent generation + agent version?
+	// TODO use API instead
 
 	if err := run(ctx, "nv-replace", "nv", "config", "replace", cfgPath); err != nil {
 		return fmt.Errorf("replacing config: %w", err)
@@ -636,7 +637,8 @@ func Enforce(ctx context.Context, _ /* processor */ dozer.Processor, agent *agen
 		return fmt.Errorf("diffing config: %w", err)
 	}
 
-	if err := run(ctx, "nv-apply", "nv", "config", "apply", "-y"); err != nil {
+	msg := fmt.Sprintf("hh gen %d %s", agent.Generation, version.Version)
+	if err := run(ctx, "nv-apply", "nv", "config", "apply", "-y", "-m", msg); err != nil {
 		return fmt.Errorf("applying config: %w", err)
 	}
 
@@ -674,12 +676,12 @@ func (c *CumulusProcessor) UpdateSwitchState(ctx context.Context, agent *agentap
 	if err != nil {
 		return fmt.Errorf("reading os-release: %w", err)
 	}
-	version := ""
+	nosVersion := ""
 	for line := range strings.Lines(string(osReleaseData)) {
 		if after, ok := strings.CutPrefix(line, "VERSION="); ok {
 			after = strings.TrimSpace(after)
 			if len(after) > 2 {
-				version = after[1 : len(after)-1]
+				nosVersion = after[1 : len(after)-1]
 			}
 
 			break
@@ -687,7 +689,7 @@ func (c *CumulusProcessor) UpdateSwitchState(ctx context.Context, agent *agentap
 	}
 
 	swState.NOS = agentapi.SwitchStateNOS{
-		SoftwareVersion: version,
+		SoftwareVersion: nosVersion,
 	}
 
 	reg.SaveSwitchState(swState)
