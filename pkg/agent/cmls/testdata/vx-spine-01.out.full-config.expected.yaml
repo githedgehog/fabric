@@ -78,7 +78,7 @@
           address:
             172.30.128.6/31: {}
       swp5:
-        description: Unused
+        description: Gateway gateway-1/enp2s1 spine-01--gateway--gateway-1
         ipv6:
           state: disabled
         lldp:
@@ -89,7 +89,7 @@
         link:
           speed: 10G
           state:
-            down: {}
+            up: {}
       swp6:
         description: Unused
         ipv6:
