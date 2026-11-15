@@ -33,6 +33,7 @@ func TestBuildZTPFor(t *testing.T) {
 	ztp, err := BuildZTPFor(agent.DeepCopy(), []byte("kubeconfig"), "v1.2.3+dev")
 	require.NoError(t, err)
 	require.Contains(t, ztp.String(), `wget -O agent "http://172.30.0.1:32000/agent?version=v1.2.3%2Bdev"`)
+	require.Contains(t, ztp.String(), `nv config apply -y -m 'hh ztp v1.2.3+dev'`)
 	require.NotContains(t, ztp.String(), "old-run-id")
 	require.NotContains(t, ztp.String(), "managedFields")
 

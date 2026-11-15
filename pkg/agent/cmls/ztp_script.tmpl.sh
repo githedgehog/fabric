@@ -50,7 +50,7 @@ EOF
 
   nv config replace config-ztp.yaml
   nv config diff || true
-  nv config apply -y
+  nv config apply -y -m 'hh ztp {{ $.AgentVersion }}'
 
   echo "$(date) INFO: Configuration applied successfully"
 
