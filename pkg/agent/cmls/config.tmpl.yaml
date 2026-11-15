@@ -30,8 +30,6 @@
         qos:
           pfc-watchdog:
             state: enable
-        {{- end }}
-        {{- if or $port.AutoNeg $port.FEC $port.Speed $port.Used }}
         link:
           {{- if $port.AutoNeg }}
           auto-negotiate: {{ $port.AutoNeg }}
@@ -42,10 +40,12 @@
           {{- if $port.Speed }}
           speed: {{ $port.Speed }}
           {{- end }}
-          {{- if $port.Used }}
           state:
+            {{- if $port.Used }}
             up: {}
-          {{- end }}
+            {{- else }}
+            down: {}
+            {{- end }}
         {{- end }}
         {{- if $port.VRF }}
         vrf: {{ $port.VRF }}

@@ -26,6 +26,8 @@
           auto-negotiate: enabled
           fec: 'auto'
           speed: 800G
+          state:
+            down: {}
       swp2:
         link:
           breakout:
@@ -56,6 +58,8 @@
         link:
           auto-negotiate: enabled
           speed: 100G
+          state:
+            down: {}
       swp2s2:
         ipv6:
           state: disabled
@@ -67,6 +71,8 @@
         link:
           auto-negotiate: enabled
           speed: 100G
+          state:
+            down: {}
       swp2s3:
         ipv6:
           state: disabled
@@ -78,6 +84,8 @@
         link:
           auto-negotiate: enabled
           speed: 100G
+          state:
+            down: {}
       swp3:
         link:
           breakout:
@@ -93,6 +101,8 @@
         link:
           auto-negotiate: enabled
           speed: 400G
+          state:
+            down: {}
       swp3s1:
         ipv6:
           state: disabled
@@ -121,6 +131,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp5:
         ipv6:
           state: disabled
@@ -204,6 +216,8 @@
         link:
           auto-negotiate: enabled
           speed: 100G
+          state:
+            down: {}
       swp9s1:
         ipv6:
           state: disabled
@@ -215,6 +229,8 @@
         link:
           auto-negotiate: enabled
           speed: 100G
+          state:
+            down: {}
       swp9s2:
         ipv6:
           state: disabled
@@ -226,6 +242,8 @@
         link:
           auto-negotiate: enabled
           speed: 100G
+          state:
+            down: {}
       swp9s3:
         ipv6:
           state: disabled
@@ -237,6 +255,8 @@
         link:
           auto-negotiate: enabled
           speed: 100G
+          state:
+            down: {}
       swp9s4:
         ipv6:
           state: disabled
@@ -248,6 +268,8 @@
         link:
           auto-negotiate: enabled
           speed: 100G
+          state:
+            down: {}
       swp9s5:
         ipv6:
           state: disabled
@@ -259,6 +281,8 @@
         link:
           auto-negotiate: enabled
           speed: 100G
+          state:
+            down: {}
       swp9s6:
         ipv6:
           state: disabled
@@ -270,6 +294,8 @@
         link:
           auto-negotiate: enabled
           speed: 100G
+          state:
+            down: {}
       swp9s7:
         ipv6:
           state: disabled
@@ -281,6 +307,8 @@
         link:
           auto-negotiate: enabled
           speed: 100G
+          state:
+            down: {}
       swp10:
         link:
           breakout:
@@ -296,6 +324,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp12:
         ipv6:
           state: disabled
@@ -307,6 +337,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp13:
         ipv6:
           state: disabled
@@ -318,6 +350,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp14:
         ipv6:
           state: disabled
@@ -329,6 +363,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp15:
         ipv6:
           state: disabled
@@ -340,6 +376,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp16:
         ipv6:
           state: disabled
@@ -351,6 +389,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp17:
         ipv6:
           state: disabled
@@ -362,6 +402,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp18:
         ipv6:
           state: disabled
@@ -373,6 +415,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp19:
         ipv6:
           state: disabled
@@ -384,6 +428,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp20:
         ipv6:
           state: disabled
@@ -395,6 +441,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp21:
         ipv6:
           state: disabled
@@ -406,6 +454,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp22:
         ipv6:
           state: disabled
@@ -417,6 +467,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp23:
         ipv6:
           state: disabled
@@ -428,6 +480,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp24:
         ipv6:
           state: disabled
@@ -439,6 +493,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp25:
         ipv6:
           state: disabled
@@ -450,6 +506,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp26:
         ipv6:
           state: disabled
@@ -461,6 +519,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp27:
         ipv6:
           state: disabled
@@ -472,6 +532,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp28:
         ipv6:
           state: disabled
@@ -483,6 +545,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp29:
         ipv6:
           state: disabled
@@ -494,6 +558,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp30:
         ipv6:
           state: disabled
@@ -505,6 +571,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp31:
         ipv6:
           state: disabled
@@ -516,6 +584,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp32:
         ipv6:
           state: disabled
@@ -527,6 +597,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp33:
         ipv6:
           state: disabled
@@ -538,6 +610,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp34:
         ipv6:
           state: disabled
@@ -549,6 +623,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp35:
         ipv6:
           state: disabled
@@ -560,6 +636,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp36:
         ipv6:
           state: disabled
@@ -571,6 +649,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp37:
         ipv6:
           state: disabled
@@ -582,6 +662,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp38:
         ipv6:
           state: disabled
@@ -593,6 +675,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp39:
         ipv6:
           state: disabled
@@ -604,6 +688,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp40:
         ipv6:
           state: disabled
@@ -615,6 +701,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp41:
         ipv6:
           state: disabled
@@ -626,6 +714,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp42:
         ipv6:
           state: disabled
@@ -637,6 +727,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp43:
         ipv6:
           state: disabled
@@ -648,6 +740,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp44:
         ipv6:
           state: disabled
@@ -659,6 +753,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp45:
         ipv6:
           state: disabled
@@ -670,6 +766,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp46:
         ipv6:
           state: disabled
@@ -681,6 +779,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp47:
         ipv6:
           state: disabled
@@ -692,6 +792,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp48:
         ipv6:
           state: disabled
@@ -703,6 +805,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp49:
         ipv6:
           state: disabled
@@ -714,6 +818,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp50:
         ipv6:
           state: disabled
@@ -725,6 +831,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp51:
         ipv6:
           state: disabled
@@ -736,6 +844,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp52:
         ipv6:
           state: disabled
@@ -747,6 +857,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp53:
         ipv6:
           state: disabled
@@ -758,6 +870,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp54:
         ipv6:
           state: disabled
@@ -769,6 +883,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp55:
         ipv6:
           state: disabled
@@ -780,6 +896,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp56:
         ipv6:
           state: disabled
@@ -791,6 +909,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp57:
         ipv6:
           state: disabled
@@ -802,6 +922,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp58:
         ipv6:
           state: disabled
@@ -813,6 +935,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp59:
         ipv6:
           state: disabled
@@ -824,6 +948,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp60:
         ipv6:
           state: disabled
@@ -835,6 +961,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp61:
         ipv6:
           state: disabled
@@ -846,6 +974,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp62:
         ipv6:
           state: disabled
@@ -857,6 +987,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp63:
         ipv6:
           state: disabled
@@ -868,6 +1000,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp64:
         ipv6:
           state: disabled
@@ -879,6 +1013,8 @@
         link:
           auto-negotiate: enabled
           speed: 800G
+          state:
+            down: {}
       swp65:
         ipv6:
           state: disabled
@@ -905,6 +1041,8 @@
           auto-negotiate: enabled
           fec: 'off'
           speed: 10G
+          state:
+            down: {}
     evpn:
       state: enabled
     nve:

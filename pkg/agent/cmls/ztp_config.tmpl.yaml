@@ -26,7 +26,11 @@
           speed: {{ $port.Speed }}
           {{- end }}
           state:
+            {{- if $port.Used }}
             up: {}
+            {{- else }}
+            down: {}
+            {{- end }}
         lldp:
           state: enabled
         {{- end }}

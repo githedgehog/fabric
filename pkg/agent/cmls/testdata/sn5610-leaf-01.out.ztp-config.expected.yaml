@@ -14,7 +14,7 @@
           fec: 'auto'
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp2:
@@ -39,7 +39,7 @@
           auto-negotiate: enabled
           speed: 100G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp2s2:
@@ -49,7 +49,7 @@
           auto-negotiate: enabled
           speed: 100G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp2s3:
@@ -59,7 +59,7 @@
           auto-negotiate: enabled
           speed: 100G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp3:
@@ -73,7 +73,7 @@
           auto-negotiate: enabled
           speed: 400G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp3s1:
@@ -93,7 +93,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp5:
@@ -148,7 +148,7 @@
           auto-negotiate: enabled
           speed: 100G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp9s1:
@@ -158,7 +158,7 @@
           auto-negotiate: enabled
           speed: 100G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp9s2:
@@ -168,7 +168,7 @@
           auto-negotiate: enabled
           speed: 100G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp9s3:
@@ -178,7 +178,7 @@
           auto-negotiate: enabled
           speed: 100G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp9s4:
@@ -188,7 +188,7 @@
           auto-negotiate: enabled
           speed: 100G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp9s5:
@@ -198,7 +198,7 @@
           auto-negotiate: enabled
           speed: 100G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp9s6:
@@ -208,7 +208,7 @@
           auto-negotiate: enabled
           speed: 100G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp9s7:
@@ -218,7 +218,7 @@
           auto-negotiate: enabled
           speed: 100G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp10:
@@ -232,7 +232,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp12:
@@ -242,7 +242,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp13:
@@ -252,7 +252,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp14:
@@ -262,7 +262,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp15:
@@ -272,7 +272,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp16:
@@ -282,7 +282,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp17:
@@ -292,7 +292,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp18:
@@ -302,7 +302,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp19:
@@ -312,7 +312,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp20:
@@ -322,7 +322,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp21:
@@ -332,7 +332,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp22:
@@ -342,7 +342,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp23:
@@ -352,7 +352,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp24:
@@ -362,7 +362,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp25:
@@ -372,7 +372,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp26:
@@ -382,7 +382,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp27:
@@ -392,7 +392,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp28:
@@ -402,7 +402,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp29:
@@ -412,7 +412,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp30:
@@ -422,7 +422,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp31:
@@ -432,7 +432,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp32:
@@ -442,7 +442,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp33:
@@ -452,7 +452,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp34:
@@ -462,7 +462,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp35:
@@ -472,7 +472,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp36:
@@ -482,7 +482,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp37:
@@ -492,7 +492,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp38:
@@ -502,7 +502,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp39:
@@ -512,7 +512,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp40:
@@ -522,7 +522,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp41:
@@ -532,7 +532,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp42:
@@ -542,7 +542,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp43:
@@ -552,7 +552,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp44:
@@ -562,7 +562,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp45:
@@ -572,7 +572,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp46:
@@ -582,7 +582,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp47:
@@ -592,7 +592,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp48:
@@ -602,7 +602,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp49:
@@ -612,7 +612,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp50:
@@ -622,7 +622,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp51:
@@ -632,7 +632,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp52:
@@ -642,7 +642,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp53:
@@ -652,7 +652,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp54:
@@ -662,7 +662,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp55:
@@ -672,7 +672,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp56:
@@ -682,7 +682,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp57:
@@ -692,7 +692,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp58:
@@ -702,7 +702,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp59:
@@ -712,7 +712,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp60:
@@ -722,7 +722,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp61:
@@ -732,7 +732,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp62:
@@ -742,7 +742,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp63:
@@ -752,7 +752,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp64:
@@ -762,7 +762,7 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
       swp65:
@@ -783,7 +783,7 @@
           fec: 'off'
           speed: 10G
           state:
-            up: {}
+            down: {}
         lldp:
           state: enabled
     system:
