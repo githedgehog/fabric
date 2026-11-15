@@ -44,7 +44,7 @@
           speed: {{ $port.Speed }}
           {{- end }}
           state:
-            {{- if or $port.Used $.EnableAllPorts }}
+            {{- if $port.Up }}
             up: {}
             {{- else }}
             down: {}
