@@ -4,6 +4,7 @@
 package cmls
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -167,7 +168,7 @@ func TestBuildConfig(t *testing.T) {
 		{name: "vx-leaf-01", profile: switchprofile.CumulusVX}, // route summ, p2p link on an attachment
 		// SN5610 with breakouts, incl. an 8x one that disables the next port
 		{name: "sn5610-spine-01", profile: switchprofile.CumulusNvidiaSN5610}, // fabric links on a broken out port and on a 1x sub-port
-		{name: "sn5610-leaf-01", profile: switchprofile.CumulusNvidiaSN5610},  // servers on a breakout sub-port and a bonus port, fabric link on an explicit 1x port
+		{name: "sn5610-leaf-01", profile: switchprofile.CumulusNvidiaSN5610},  // servers on a breakout sub-port and a bonus port, fabric link on an explicit 1x port, user w/o SSH keys
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			agData, err := os.ReadFile(filepath.Join(testdataDir, tt.name+".in.agent.yaml"))
@@ -188,8 +189,31 @@ func TestBuildConfig(t *testing.T) {
 				require.NoError(t, err, "building %s config", cfg.name)
 
 				requireGolden(t, tt.name+".out."+cfg.name+"-config", actual.Bytes())
+
+				var parsed any
+				require.NoError(t, kyaml.Unmarshal(actual.Bytes(), &parsed), "parsing %s config", cfg.name)
+				requireNoNulls(t, parsed, "")
 			}
 		})
+	}
+}
+
+// requireNoNulls fails on a null anywhere in a generated config, as NVUE rejects a set with a null value, which is what
+// a template key with nothing rendered under it becomes
+func requireNoNulls(t *testing.T, v any, path string) {
+	t.Helper()
+
+	switch v := v.(type) {
+	case nil:
+		require.Fail(t, "null value in config", "at %s", path)
+	case map[string]any:
+		for k, child := range v {
+			requireNoNulls(t, child, path+"/"+k)
+		}
+	case []any:
+		for i, child := range v {
+			requireNoNulls(t, child, fmt.Sprintf("%s[%d]", path, i))
+		}
 	}
 }
 
