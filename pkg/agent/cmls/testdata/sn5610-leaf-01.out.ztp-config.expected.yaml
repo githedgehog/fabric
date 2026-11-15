@@ -830,14 +830,6 @@
             op:
               hashed-password: $5$8nAYPGcl4l6G7Av1$Qi4/gnM0yPtGv9kjpMh78NuNSfQWy7vR1rulHpurL36
               role: nvue-monitor
-              ssh:
-                authorized-key:
-                    key-0:
-                      key: AAAAC3NzaC1lZDI1NTE5AAAAIGpF2+9I1Nj4BcN7y6DjzTbq1VcUYIRGyfzId5ZoBEFj
-                      type: ssh-ed25519
-                    key-1:
-                      key: AAAAC3NzaC1lZDI1NTE5AAAAIILr33oUspqfHiKC9BaenkKG3nIznbi/Ep3mmsMZjS4U
-                      type: ssh-ed25519
       api:
         state: enabled
       config:

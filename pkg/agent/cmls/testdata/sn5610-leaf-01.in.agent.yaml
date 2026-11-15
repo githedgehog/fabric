@@ -332,9 +332,6 @@ spec:
     - name: op
       password: $5$8nAYPGcl4l6G7Av1$Qi4/gnM0yPtGv9kjpMh78NuNSfQWy7vR1rulHpurL36
       role: operator
-      sshKeys:
-        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGpF2+9I1Nj4BcN7y6DjzTbq1VcUYIRGyfzId5ZoBEFj
-        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIILr33oUspqfHiKC9BaenkKG3nIznbi/Ep3mmsMZjS4U
   version:
     alloyRepo: 172.30.0.1:31000/githedgehog/fabricator/alloy-bin
     alloyVersion: v1.13.1
