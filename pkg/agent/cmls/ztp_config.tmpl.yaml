@@ -13,6 +13,9 @@
           breakout:
             {{ $port.Breakout }}: {}
         {{- else }}
+        {{- if and $.EnableAllPorts (not $port.Used) }}
+        description: Unused
+        {{- end }}
         ipv6:
           state: disabled
         link:
@@ -26,7 +29,7 @@
           speed: {{ $port.Speed }}
           {{- end }}
           state:
-            {{- if $port.Used }}
+            {{- if or $port.Used $.EnableAllPorts }}
             up: {}
             {{- else }}
             down: {}

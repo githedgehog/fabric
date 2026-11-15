@@ -44,22 +44,23 @@ var ztpCfgTmpl string
 var fullCfgTmpl string
 
 type ConfigIn struct {
-	Hostname     string
-	Users        []User
-	NTPServer    string
-	ManagementIP string
-	ProtocolIP   string
-	VTEPIP       string
-	ASN          uint32
-	HostSubnet   string
-	RouterID     string
-	VXLANSource  string
-	VPCs         []VPC
-	BGPNeighbors []BGPNeighbor
-	Ports        []*PortConfig
-	IsSpine      bool
-	IsLeaf       bool
-	IsSpectrum4  bool
+	Hostname       string
+	Users          []User
+	NTPServer      string
+	ManagementIP   string
+	ProtocolIP     string
+	VTEPIP         string
+	ASN            uint32
+	HostSubnet     string
+	RouterID       string
+	VXLANSource    string
+	VPCs           []VPC
+	BGPNeighbors   []BGPNeighbor
+	Ports          []*PortConfig
+	IsSpine        bool
+	IsLeaf         bool
+	IsSpectrum4    bool
+	EnableAllPorts bool
 }
 
 type User struct {
@@ -506,21 +507,22 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 	})
 
 	cfgIn := ConfigIn{
-		Hostname:     agent.Name,
-		Users:        users,
-		NTPServer:    controlVIP.Addr().String(),
-		ManagementIP: agent.Spec.Switch.IP,
-		ProtocolIP:   agent.Spec.Switch.ProtocolIP,
-		VTEPIP:       agent.Spec.Switch.VTEPIP,
-		ASN:          agent.Spec.Switch.ASN,
-		RouterID:     protocolIP.Addr().String(),
-		VXLANSource:  vtepIP.Addr().String(),
-		VPCs:         vpcs,
-		BGPNeighbors: neighs,
-		Ports:        ports,
-		IsSpine:      isSpine,
-		IsLeaf:       isLeaf,
-		IsSpectrum4:  isSpectrum4,
+		Hostname:       agent.Name,
+		Users:          users,
+		NTPServer:      controlVIP.Addr().String(),
+		ManagementIP:   agent.Spec.Switch.IP,
+		ProtocolIP:     agent.Spec.Switch.ProtocolIP,
+		VTEPIP:         agent.Spec.Switch.VTEPIP,
+		ASN:            agent.Spec.Switch.ASN,
+		RouterID:       protocolIP.Addr().String(),
+		VXLANSource:    vtepIP.Addr().String(),
+		VPCs:           vpcs,
+		BGPNeighbors:   neighs,
+		Ports:          ports,
+		IsSpine:        isSpine,
+		IsLeaf:         isLeaf,
+		IsSpectrum4:    isSpectrum4,
+		EnableAllPorts: agent.Spec.Switch.EnableAllPorts,
 
 		// TODO remove hard-coded value and properly handle
 		HostSubnet: "10.0.0.0/8",

@@ -37,6 +37,7 @@
           adaptive-routing:
             state: enabled
       swp1s1:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -48,7 +49,7 @@
           auto-negotiate: enabled
           speed: 400G
           state:
-            down: {}
+            up: {}
       swp2:
         ipv6:
           state: disabled
@@ -98,6 +99,7 @@
           address:
             172.30.128.6/31: {}
       swp5:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -109,8 +111,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp6:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -122,8 +125,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp7:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -135,8 +139,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp8:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -148,12 +153,13 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp9:
         link:
           breakout:
             8x: {}
       swp9s0:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -165,8 +171,9 @@
           auto-negotiate: enabled
           speed: 100G
           state:
-            down: {}
+            up: {}
       swp9s1:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -178,8 +185,9 @@
           auto-negotiate: enabled
           speed: 100G
           state:
-            down: {}
+            up: {}
       swp9s2:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -191,8 +199,9 @@
           auto-negotiate: enabled
           speed: 100G
           state:
-            down: {}
+            up: {}
       swp9s3:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -204,8 +213,9 @@
           auto-negotiate: enabled
           speed: 100G
           state:
-            down: {}
+            up: {}
       swp9s4:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -217,8 +227,9 @@
           auto-negotiate: enabled
           speed: 100G
           state:
-            down: {}
+            up: {}
       swp9s5:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -230,8 +241,9 @@
           auto-negotiate: enabled
           speed: 100G
           state:
-            down: {}
+            up: {}
       swp9s6:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -243,8 +255,9 @@
           auto-negotiate: enabled
           speed: 100G
           state:
-            down: {}
+            up: {}
       swp9s7:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -256,12 +269,13 @@
           auto-negotiate: enabled
           speed: 100G
           state:
-            down: {}
+            up: {}
       swp10:
         link:
           breakout:
             disabled: {}
       swp11:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -273,8 +287,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp12:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -286,8 +301,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp13:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -299,8 +315,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp14:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -312,8 +329,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp15:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -325,8 +343,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp16:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -338,8 +357,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp17:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -351,8 +371,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp18:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -364,8 +385,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp19:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -377,8 +399,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp20:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -390,8 +413,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp21:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -403,8 +427,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp22:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -416,8 +441,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp23:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -429,8 +455,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp24:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -442,8 +469,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp25:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -455,8 +483,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp26:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -468,8 +497,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp27:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -481,8 +511,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp28:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -494,8 +525,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp29:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -507,8 +539,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp30:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -520,8 +553,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp31:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -533,8 +567,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp32:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -546,8 +581,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp33:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -559,8 +595,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp34:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -572,8 +609,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp35:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -585,8 +623,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp36:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -598,8 +637,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp37:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -611,8 +651,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp38:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -624,8 +665,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp39:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -637,8 +679,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp40:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -650,8 +693,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp41:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -663,8 +707,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp42:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -676,8 +721,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp43:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -689,8 +735,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp44:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -702,8 +749,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp45:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -715,8 +763,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp46:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -728,8 +777,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp47:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -741,8 +791,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp48:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -754,8 +805,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp49:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -767,8 +819,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp50:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -780,8 +833,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp51:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -793,8 +847,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp52:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -806,8 +861,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp53:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -819,8 +875,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp54:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -832,8 +889,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp55:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -845,8 +903,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp56:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -858,8 +917,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp57:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -871,8 +931,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp58:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -884,8 +945,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp59:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -897,8 +959,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp60:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -910,8 +973,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp61:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -923,8 +987,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp62:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -936,8 +1001,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp63:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -949,8 +1015,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp64:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -962,8 +1029,9 @@
           auto-negotiate: enabled
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp65:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -975,8 +1043,9 @@
           auto-negotiate: enabled
           speed: 25G
           state:
-            down: {}
+            up: {}
       swp66:
+        description: Unused
         ipv6:
           state: disabled
         lldp:
@@ -988,7 +1057,7 @@
           auto-negotiate: enabled
           speed: 25G
           state:
-            down: {}
+            up: {}
     evpn:
       state: enabled
     qos:
