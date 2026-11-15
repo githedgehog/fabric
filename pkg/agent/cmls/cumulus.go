@@ -342,6 +342,25 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		})
 	}
 
+	// TODO configure the IPs and BGP sessions, only the ports are brought up for now
+	for connName, conn := range agent.Spec.Connections {
+		if conn.Gateway == nil {
+			continue
+		}
+
+		for _, link := range conn.Gateway.Links {
+			if link.Switch.DeviceName() != agent.Name {
+				continue
+			}
+
+			port, err := usePort(link.Switch.LocalPortName())
+			if err != nil {
+				return nil, fmt.Errorf("conn %s: %w", connName, err)
+			}
+			port.Description = fmt.Sprintf("Gateway %s %s", link.Gateway.Port, connName)
+		}
+	}
+
 	neighs := []BGPNeighbor{}
 	for connName, conn := range agent.Spec.Connections {
 		if conn.Fabric == nil {
