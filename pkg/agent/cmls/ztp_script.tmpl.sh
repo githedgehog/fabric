@@ -36,6 +36,14 @@ function ping_until_reachable(){
 }
 
 function do_ztp() {
+  # Stop the agent of a previous install so it doesn't apply its config in the meantime and gets restarted with the
+  # new binary and config, its state is dropped for the new install to start clean, e.g. with a new install ID
+
+  systemctl stop hedgehog-agent.service 2>/dev/null || true
+  rm -rf /etc/hedgehog
+
+  # Apply minimal ZTP config
+
   cat > config-ztp.yaml <<'EOF'
 {{ $.InitialConfig }}
 EOF
