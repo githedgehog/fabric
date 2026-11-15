@@ -63,9 +63,6 @@
         ipv4:
           address:
             172.30.128.2/31: {}
-        router:
-          adaptive-routing:
-            state: enabled
       swp3:
         ipv6:
           state: disabled
@@ -82,9 +79,6 @@
         ipv4:
           address:
             172.30.128.4/31: {}
-        router:
-          adaptive-routing:
-            state: enabled
       swp4:
         ipv6:
           state: disabled
@@ -101,9 +95,6 @@
         ipv4:
           address:
             172.30.128.6/31: {}
-        router:
-          adaptive-routing:
-            state: enabled
       swp5:
         ipv6:
           state: disabled
