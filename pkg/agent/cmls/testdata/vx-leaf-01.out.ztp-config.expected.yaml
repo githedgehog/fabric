@@ -17,6 +17,7 @@
         lldp:
           state: enabled
       swp2:
+        description: Unbundled server-01 server-01--unbundled--leaf-01
         ipv6:
           state: disabled
         link:
@@ -26,6 +27,7 @@
         lldp:
           state: enabled
       swp3:
+        description: Unbundled server-03 server-03--unbundled--leaf-01
         ipv6:
           state: disabled
         link:
@@ -35,6 +37,7 @@
         lldp:
           state: enabled
       swp4:
+        description: Unbundled server-04 server-04--unbundled--leaf-01
         ipv6:
           state: disabled
         link:
@@ -44,6 +47,7 @@
         lldp:
           state: enabled
       swp5:
+        description: Fabric spine-01/E1/1 spine-01--fabric--leaf-01
         ipv6:
           state: disabled
         link:
@@ -53,6 +57,7 @@
         lldp:
           state: enabled
       swp6:
+        description: Fabric spine-01/E1/2 spine-01--fabric--leaf-01
         ipv6:
           state: disabled
         link:
@@ -62,6 +67,7 @@
         lldp:
           state: enabled
       swp7:
+        description: Fabric spine-02/E1/1 spine-02--fabric--leaf-01
         ipv6:
           state: disabled
         link:
@@ -71,6 +77,7 @@
         lldp:
           state: enabled
       swp8:
+        description: Fabric spine-02/E1/2 spine-02--fabric--leaf-01
         ipv6:
           state: disabled
         link:

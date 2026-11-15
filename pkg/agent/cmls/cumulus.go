@@ -95,6 +95,7 @@ type PortConfig struct {
 	AutoNeg         string
 	FEC             string
 	Used            bool
+	Description     string
 	VRF             string
 	IP              string
 	AdaptiveRouting bool
@@ -372,6 +373,7 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 					PeerGroup:   "underlay_leaf",
 					Description: "fabric underlay to leaf " + link.Leaf.Port,
 				})
+				port.Description = fmt.Sprintf("Fabric %s %s", link.Leaf.Port, connName)
 				port.IP = link.Spine.IP
 				port.AdaptiveRouting = adaptiveRouting(port)
 			}
@@ -409,6 +411,7 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 					PeerGroup:   "underlay_spine",
 					Description: "fabric underlay to spine " + link.Spine.Port,
 				})
+				port.Description = fmt.Sprintf("Fabric %s %s", link.Spine.Port, connName)
 				port.IP = link.Leaf.IP
 				port.AdaptiveRouting = adaptiveRouting(port)
 			}
@@ -494,8 +497,15 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		if err != nil {
 			return nil, fmt.Errorf("vpc attachment %q: %w", attachName, err)
 		}
+		port.Description = fmt.Sprintf("Unbundled %s %s", conn.Unbundled.Link.Server.DeviceName(), attach.Connection)
 		port.VRF = vpcName
 		port.IP = ip
+	}
+
+	for _, port := range ports {
+		if port.Breakout == "" && !port.Used {
+			port.Description = "Unused"
+		}
 	}
 
 	slices.SortFunc(neighs, func(a, b BGPNeighbor) int {

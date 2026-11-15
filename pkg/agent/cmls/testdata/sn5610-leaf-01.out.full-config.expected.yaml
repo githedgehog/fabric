@@ -34,6 +34,7 @@
           breakout:
             4x: {}
       swp2s0:
+        description: Unbundled server-01 server-01--unbundled--leaf-01
         ipv6:
           state: disabled
         lldp:
@@ -109,6 +110,7 @@
           state:
             down: {}
       swp3s1:
+        description: Unbundled server-03 server-03--unbundled--leaf-01
         ipv6:
           state: disabled
         lldp:
@@ -140,6 +142,7 @@
           state:
             down: {}
       swp5:
+        description: Fabric spine-01/E1/1 spine-01--fabric--leaf-01
         ipv6:
           state: disabled
         lldp:
@@ -160,6 +163,7 @@
           adaptive-routing:
             state: enabled
       swp6:
+        description: Fabric spine-01/E1/2/1 spine-01--fabric--leaf-01
         ipv6:
           state: disabled
         lldp:
@@ -176,6 +180,7 @@
           address:
             172.30.128.3/31: {}
       swp7:
+        description: Fabric spine-02/E1/1 spine-02--fabric--leaf-01
         ipv6:
           state: disabled
         lldp:
@@ -192,6 +197,7 @@
           address:
             172.30.128.11/31: {}
       swp8:
+        description: Fabric spine-02/E1/2 spine-02--fabric--leaf-01
         ipv6:
           state: disabled
         lldp:
@@ -1084,6 +1090,7 @@
           state:
             down: {}
       swp65:
+        description: Unbundled server-04 server-04--unbundled--leaf-01
         ipv6:
           state: disabled
         lldp:
