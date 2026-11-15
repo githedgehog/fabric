@@ -688,13 +688,6 @@
     evpn:
       state: enabled
     qos:
-      pfc:
-        default-global:
-          port-buffer: 363000
-          switch-priority:
-            '3': {}
-          xoff-threshold: 75000
-          xon-threshold: 75000
       roce:
         mode: lossless
         state: enabled

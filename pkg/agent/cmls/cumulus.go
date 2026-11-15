@@ -25,6 +25,7 @@ import (
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/switchstate"
+	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
 	"go.githedgehog.com/fabric/pkg/util/logutil"
 )
 
@@ -54,6 +55,7 @@ type ConfigIn struct {
 	Ports        []*PortConfig
 	IsSpine      bool
 	IsLeaf       bool
+	IsSpectrum4  bool
 }
 
 type User struct {
@@ -506,6 +508,10 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		Ports:        ports,
 		IsSpine:      isSpine,
 		IsLeaf:       isLeaf,
+
+		// PFC buffers from the NVIDIA Spectrum-X deployment guide for EVPN, other silicons use the ones calculated by
+		// Cumulus as the fixed ones don't fit them, e.g. exceed the SN2201 port headroom max
+		IsSpectrum4: agent.Spec.SwitchProfile.SwitchSilicon == switchprofile.SiliconNVIDIASpectrum4,
 
 		// TODO remove hard-coded value and properly handle
 		HostSubnet: "10.0.0.0/8",

@@ -78,6 +78,7 @@
         state: enabled
     {{- end }}
     qos:
+      {{- if $.IsSpectrum4 }}
       pfc:
         default-global:
           port-buffer: 363000
@@ -85,6 +86,7 @@
             '3': {}
           xoff-threshold: 75000
           xon-threshold: 75000
+      {{- end }}
       roce:
         mode: lossless
         state: enabled
