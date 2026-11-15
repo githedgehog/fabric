@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"maps"
 	"net/netip"
@@ -32,7 +33,8 @@ import (
 )
 
 const (
-	cfgFile = "last-config.yaml"
+	cfgFile  = "last-config.yaml"
+	diffFile = "last-diff.yaml"
 )
 
 //go:embed ztp_config.tmpl.yaml
@@ -629,12 +631,16 @@ func Enforce(ctx context.Context, _ /* processor */ dozer.Processor, agent *agen
 	}
 
 	// diff exits with 0 if there is nothing to apply and with 1 if there are changes
-	if err := run(ctx, "nv-diff", "nv", "config", "diff", "applied"); err == nil {
+	diff, diffErr := runOutput(ctx, "nv-diff", "nv", "config", "diff", "applied")
+	if err := os.WriteFile(filepath.Join(basedir, diffFile), diff, 0o644); err != nil { //nolint:gosec
+		return fmt.Errorf("writing diff file: %w", err)
+	}
+	if diffErr == nil {
 		slog.Debug("Config is already applied")
 
 		return nil
-	} else if exitErr := (&exec.ExitError{}); !errors.As(err, &exitErr) || exitErr.ExitCode() != 1 {
-		return fmt.Errorf("diffing config: %w", err)
+	} else if exitErr := (&exec.ExitError{}); !errors.As(diffErr, &exitErr) || exitErr.ExitCode() != 1 {
+		return fmt.Errorf("diffing config: %w", diffErr)
 	}
 
 	msg := fmt.Sprintf("hh gen %d %s", agent.Generation, version.Version)
@@ -655,6 +661,19 @@ func run(ctx context.Context, name, command string, arg ...string) error {
 	}
 
 	return nil
+}
+
+func runOutput(ctx context.Context, name, command string, arg ...string) ([]byte, error) {
+	out := &bytes.Buffer{}
+	cmd := exec.CommandContext(ctx, command, arg...)
+	cmd.Stdout = io.MultiWriter(out, logutil.NewSink(ctx, slog.Debug, name+": "))
+	cmd.Stderr = logutil.NewSink(ctx, slog.Debug, name+": ")
+
+	if err := cmd.Run(); err != nil {
+		return out.Bytes(), fmt.Errorf("running %s: %w", name, err)
+	}
+
+	return out.Bytes(), nil
 }
 
 // TODO proper impl by reading from API
