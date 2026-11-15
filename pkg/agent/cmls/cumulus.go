@@ -118,6 +118,14 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		return nil, fmt.Errorf("switch profile is missing") //nolint:err113
 	}
 
+	// PFC buffers from the NVIDIA Spectrum-X deployment guide for EVPN and adaptive routing are only set on Spectrum-4,
+	// other silicons use the PFC buffers calculated by Cumulus as the fixed ones don't fit them, e.g. exceed the SN2201
+	// port headroom max, and adaptive routing is only supported on Spectrum-4 ports at 200G and 400G
+	isSpectrum4 := agent.Spec.SwitchProfile.SwitchSilicon == switchprofile.SiliconNVIDIASpectrum4
+	adaptiveRouting := func(port *PortConfig) bool {
+		return isSpectrum4 && (port.Speed == "200G" || port.Speed == "400G")
+	}
+
 	api2nos, err := agent.Spec.SwitchProfile.GetAPI2NOSPortsFor(&agent.Spec.Switch)
 	if err != nil {
 		return nil, fmt.Errorf("getting NOS port names: %w", err)
@@ -360,7 +368,7 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 					Description: "fabric underlay to leaf " + link.Leaf.Port,
 				})
 				port.IP = link.Spine.IP
-				port.AdaptiveRouting = true
+				port.AdaptiveRouting = adaptiveRouting(port)
 			}
 
 			leafIP, err := netip.ParsePrefix(agent.Spec.Switches[leafName].ProtocolIP)
@@ -397,7 +405,7 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 					Description: "fabric underlay to spine " + link.Spine.Port,
 				})
 				port.IP = link.Leaf.IP
-				port.AdaptiveRouting = true
+				port.AdaptiveRouting = adaptiveRouting(port)
 			}
 
 			spineIP, err := netip.ParsePrefix(agent.Spec.Switches[spineName].ProtocolIP)
@@ -508,10 +516,7 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		Ports:        ports,
 		IsSpine:      isSpine,
 		IsLeaf:       isLeaf,
-
-		// PFC buffers from the NVIDIA Spectrum-X deployment guide for EVPN, other silicons use the ones calculated by
-		// Cumulus as the fixed ones don't fit them, e.g. exceed the SN2201 port headroom max
-		IsSpectrum4: agent.Spec.SwitchProfile.SwitchSilicon == switchprofile.SiliconNVIDIASpectrum4,
+		IsSpectrum4:  isSpectrum4,
 
 		// TODO remove hard-coded value and properly handle
 		HostSubnet: "10.0.0.0/8",

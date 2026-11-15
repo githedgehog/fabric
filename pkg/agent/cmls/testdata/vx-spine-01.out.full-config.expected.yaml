@@ -28,9 +28,6 @@
         ipv4:
           address:
             172.30.128.0/31: {}
-        router:
-          adaptive-routing:
-            state: enabled
       swp2:
         ipv6:
           state: disabled
@@ -46,9 +43,6 @@
         ipv4:
           address:
             172.30.128.2/31: {}
-        router:
-          adaptive-routing:
-            state: enabled
       swp3:
         ipv6:
           state: disabled
@@ -64,9 +58,6 @@
         ipv4:
           address:
             172.30.128.4/31: {}
-        router:
-          adaptive-routing:
-            state: enabled
       swp4:
         ipv6:
           state: disabled
@@ -82,9 +73,6 @@
         ipv4:
           address:
             172.30.128.6/31: {}
-        router:
-          adaptive-routing:
-            state: enabled
       swp5:
         ipv6:
           state: disabled
@@ -762,9 +750,6 @@
                 description: enable_w_ecmp_origination
                 set:
                   ext-community-bw: multipaths
-      adaptive-routing:
-        state: enabled
-        profile: profile-custom
     vrf:
       default:
         router:
@@ -891,24 +876,6 @@
       config:
         auto-save:
           state: enabled
-        snippet:
-          adaptive_routing_conf-snippet:
-            file: /etc/cumulus/switchd.d/ar_profile_custom.conf
-            content: |
-              ar.p.m = 0
-              ar.ctl = 400
-              ar.ctm = 800
-              ar.cth = 2000
-              ar.srt = 10
-              ar.srf = 10
-              ar.p.bit = 0
-              ar.p.frt = 4
-              ar.p.but = 0
-              ar.p.sfe = FALSE
-              ar.p.ste = FALSE
-              ar.p.ef = FALSE
-              ar.ecs = 512
-              ar.ibm = ingress
       control-plane:
         acl:
           acl-default-dos:

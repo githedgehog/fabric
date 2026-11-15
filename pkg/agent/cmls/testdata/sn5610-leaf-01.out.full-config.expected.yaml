@@ -157,9 +157,6 @@
         ipv4:
           address:
             172.30.128.3/31: {}
-        router:
-          adaptive-routing:
-            state: enabled
       swp7:
         ipv6:
           state: disabled
@@ -176,9 +173,6 @@
         ipv4:
           address:
             172.30.128.11/31: {}
-        router:
-          adaptive-routing:
-            state: enabled
       swp8:
         ipv6:
           state: disabled
@@ -195,9 +189,6 @@
         ipv4:
           address:
             172.30.128.13/31: {}
-        router:
-          adaptive-routing:
-            state: enabled
       swp9:
         link:
           breakout:

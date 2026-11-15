@@ -161,9 +161,11 @@
                 description: enable_w_ecmp_origination
                 set:
                   ext-community-bw: multipaths
+      {{- if $.IsSpectrum4 }}
       adaptive-routing:
         state: enabled
         profile: profile-custom
+      {{- end }}
     vrf:
       default:
         router:
@@ -299,6 +301,7 @@
       config:
         auto-save:
           state: enabled
+        {{- if $.IsSpectrum4 }}
         snippet:
           adaptive_routing_conf-snippet:
             file: /etc/cumulus/switchd.d/ar_profile_custom.conf
@@ -317,6 +320,7 @@
               ar.p.ef = FALSE
               ar.ecs = 512
               ar.ibm = ingress
+        {{- end }}
       control-plane:
         acl:
           acl-default-dos:
