@@ -23,8 +23,8 @@
           breakout:
             {{ $port.Breakout }}: {}
         {{- else }}
-        {{- if not $port.Used }}
-        description: Unused
+        {{- if $port.Description }}
+        description: {{ $port.Description }}
         {{- end }}
         ipv6:
           state: disabled

@@ -11,6 +11,7 @@
           breakout:
             2x: {}
       swp1s0:
+        description: Fabric leaf-01/E1/5 spine-01--fabric--leaf-01
         ipv6:
           state: disabled
         link:
@@ -32,6 +33,7 @@
         lldp:
           state: enabled
       swp2:
+        description: Fabric leaf-01/E1/6 spine-01--fabric--leaf-01
         ipv6:
           state: disabled
         link:
@@ -42,6 +44,7 @@
         lldp:
           state: enabled
       swp3:
+        description: Fabric leaf-02/E1/4 spine-01--fabric--leaf-02
         ipv6:
           state: disabled
         link:
@@ -52,6 +55,7 @@
         lldp:
           state: enabled
       swp4:
+        description: Fabric leaf-02/E1/5 spine-01--fabric--leaf-02
         ipv6:
           state: disabled
         link:
