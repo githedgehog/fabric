@@ -524,8 +524,6 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 
 		// TODO remove hard-coded value and properly handle
 		HostSubnet: "10.0.0.0/8",
-
-		// TODO: keep ports down by default
 	}
 
 	// TODO cache template
