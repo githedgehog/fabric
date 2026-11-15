@@ -33,8 +33,9 @@ import (
 )
 
 const (
-	cfgFile  = "last-config.yaml"
-	diffFile = "last-diff.yaml"
+	cfgFile         = "last-config.yaml"
+	diffFile        = "last-diff.yaml"
+	appliedDiffFile = "last-diff-applied.yaml"
 )
 
 //go:embed ztp_config.tmpl.yaml
@@ -679,6 +680,10 @@ func Enforce(ctx context.Context, _ /* processor */ dozer.Processor, agent *agen
 	msg := fmt.Sprintf("hh gen %d %s", agent.Generation, version.Version)
 	if err := run(ctx, "nv-apply", "nv", "config", "apply", "-y", "-m", msg); err != nil {
 		return fmt.Errorf("applying config: %w", err)
+	}
+
+	if err := os.WriteFile(filepath.Join(basedir, appliedDiffFile), diff, 0o644); err != nil { //nolint:gosec
+		return fmt.Errorf("writing applied diff file: %w", err)
 	}
 
 	return nil
