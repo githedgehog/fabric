@@ -25,8 +25,8 @@ function ping_until_reachable(){
     while [ "0" != "$last_code" ] && [ "$tries" -lt "$max_tries" ]; do
         tries=$((tries+1))
         echo "$(date) INFO: ( Attempt $tries of $max_tries ) Pinging $1 Target Until Reachable."
-        ip vrf exec mgmt ping --no-vrf-switch $1 -c2 &> /dev/null
-        last_code=$?
+        last_code=0
+        ip vrf exec mgmt ping --no-vrf-switch $1 -c2 &> /dev/null || last_code=$?
         sleep 1
     done
     if [ "$tries" -eq "$max_tries" ] && [ "$last_code" -ne "0" ]; then
