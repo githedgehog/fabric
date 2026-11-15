@@ -43,6 +43,7 @@
         lldp:
           state: enabled
       swp5:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -52,6 +53,7 @@
         lldp:
           state: enabled
       swp6:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -61,6 +63,7 @@
         lldp:
           state: enabled
       swp7:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -70,6 +73,7 @@
         lldp:
           state: enabled
       swp8:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -79,6 +83,7 @@
         lldp:
           state: enabled
       swp9:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -88,6 +93,7 @@
         lldp:
           state: enabled
       swp10:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -97,6 +103,7 @@
         lldp:
           state: enabled
       swp11:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -106,6 +113,7 @@
         lldp:
           state: enabled
       swp12:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -115,6 +123,7 @@
         lldp:
           state: enabled
       swp13:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -124,6 +133,7 @@
         lldp:
           state: enabled
       swp14:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -133,6 +143,7 @@
         lldp:
           state: enabled
       swp15:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -142,6 +153,7 @@
         lldp:
           state: enabled
       swp16:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -151,6 +163,7 @@
         lldp:
           state: enabled
       swp17:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -160,6 +173,7 @@
         lldp:
           state: enabled
       swp18:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -169,6 +183,7 @@
         lldp:
           state: enabled
       swp19:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -178,6 +193,7 @@
         lldp:
           state: enabled
       swp20:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -187,6 +203,7 @@
         lldp:
           state: enabled
       swp21:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -196,6 +213,7 @@
         lldp:
           state: enabled
       swp22:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -205,6 +223,7 @@
         lldp:
           state: enabled
       swp23:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -214,6 +233,7 @@
         lldp:
           state: enabled
       swp24:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -223,6 +243,7 @@
         lldp:
           state: enabled
       swp25:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -232,6 +253,7 @@
         lldp:
           state: enabled
       swp26:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -241,6 +263,7 @@
         lldp:
           state: enabled
       swp27:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -250,6 +273,7 @@
         lldp:
           state: enabled
       swp28:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -259,6 +283,7 @@
         lldp:
           state: enabled
       swp29:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -268,6 +293,7 @@
         lldp:
           state: enabled
       swp30:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -277,6 +303,7 @@
         lldp:
           state: enabled
       swp31:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -286,6 +313,7 @@
         lldp:
           state: enabled
       swp32:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -295,6 +323,7 @@
         lldp:
           state: enabled
       swp33:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -304,6 +333,7 @@
         lldp:
           state: enabled
       swp34:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -313,6 +343,7 @@
         lldp:
           state: enabled
       swp35:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -322,6 +353,7 @@
         lldp:
           state: enabled
       swp36:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -331,6 +363,7 @@
         lldp:
           state: enabled
       swp37:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -340,6 +373,7 @@
         lldp:
           state: enabled
       swp38:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -349,6 +383,7 @@
         lldp:
           state: enabled
       swp39:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -358,6 +393,7 @@
         lldp:
           state: enabled
       swp40:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -367,6 +403,7 @@
         lldp:
           state: enabled
       swp41:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -376,6 +413,7 @@
         lldp:
           state: enabled
       swp42:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -385,6 +423,7 @@
         lldp:
           state: enabled
       swp43:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -394,6 +433,7 @@
         lldp:
           state: enabled
       swp44:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -403,6 +443,7 @@
         lldp:
           state: enabled
       swp45:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -412,6 +453,7 @@
         lldp:
           state: enabled
       swp46:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -421,6 +463,7 @@
         lldp:
           state: enabled
       swp47:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -430,6 +473,7 @@
         lldp:
           state: enabled
       swp48:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -439,6 +483,7 @@
         lldp:
           state: enabled
       swp49:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -448,6 +493,7 @@
         lldp:
           state: enabled
       swp50:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -457,6 +503,7 @@
         lldp:
           state: enabled
       swp51:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -466,6 +513,7 @@
         lldp:
           state: enabled
       swp52:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -475,6 +523,7 @@
         lldp:
           state: enabled
       swp53:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -484,6 +533,7 @@
         lldp:
           state: enabled
       swp54:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -493,6 +543,7 @@
         lldp:
           state: enabled
       swp55:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -502,6 +553,7 @@
         lldp:
           state: enabled
       swp56:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -511,6 +563,7 @@
         lldp:
           state: enabled
       swp57:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -520,6 +573,7 @@
         lldp:
           state: enabled
       swp58:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -529,6 +583,7 @@
         lldp:
           state: enabled
       swp59:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -538,6 +593,7 @@
         lldp:
           state: enabled
       swp60:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -547,6 +603,7 @@
         lldp:
           state: enabled
       swp61:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -556,6 +613,7 @@
         lldp:
           state: enabled
       swp62:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -565,6 +623,7 @@
         lldp:
           state: enabled
       swp63:
+        description: Unused
         ipv6:
           state: disabled
         link:
@@ -574,6 +633,7 @@
         lldp:
           state: enabled
       swp64:
+        description: Unused
         ipv6:
           state: disabled
         link:

@@ -23,7 +23,7 @@
           breakout:
             {{ $port.Breakout }}: {}
         {{- else }}
-        {{- if and $.EnableAllPorts (not $port.Used) }}
+        {{- if not $port.Used }}
         description: Unused
         {{- end }}
         ipv6:
