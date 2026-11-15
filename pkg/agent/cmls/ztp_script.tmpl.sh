@@ -13,7 +13,7 @@ function error() {
 }
 
 # Log all output from this script
-exec >> /var/log/autoprovision 2>&1
+exec >> /var/log/ztp.log 2>&1
 date "+%FT%T ztp starting script $0"
 
 trap error ERR
