@@ -12,9 +12,7 @@ import (
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 )
 
-// A leaf advertises only its own VTEP to the spines, unless it is attached to a gateway: the
-// gateway VTEP has to reach the rest of the fabric and cannot be matched explicitly, so such a
-// leaf falls back to advertising the whole VTEP subnet.
+// A leaf advertises only its own VTEP to the spines, plus the gateway VTEPs if it is attached to a gateway.
 func TestPlanFabricVTEPExportPolicy(t *testing.T) {
 	const (
 		self  = "leaf-01"
@@ -27,6 +25,8 @@ func TestPlanFabricVTEPExportPolicy(t *testing.T) {
 		ag.Spec.Switch.Role = role
 		ag.Spec.Switch.ProtocolIP = "172.30.11.1/32"
 		ag.Spec.Switch.VTEPIP = "172.30.12.1/32"
+		ag.Spec.Switch.Topology.Domains = []string{"default"}
+		ag.Spec.Config.Domains = map[string]wiringapi.FabricDomainSpec{"default": {GatewayASN: 65200}}
 		ag.Spec.Config.SpineLeaf = &agentapi.AgentSpecConfigSpineLeaf{}
 		ag.Spec.Config.VTEPSubnet = "172.30.12.0/24"
 		ag.Spec.Config.ProtocolSubnet = "172.30.11.0/24"
@@ -58,6 +58,7 @@ func TestPlanFabricVTEPExportPolicy(t *testing.T) {
 			Interfaces:     map[string]*dozer.SpecInterface{},
 			RouteMaps:      map[string]*dozer.SpecRouteMap{},
 			PrefixLists:    map[string]*dozer.SpecPrefixList{},
+			AsPathLists:    map[string]*dozer.SpecAsPathList{},
 			CommunityLists: map[string]*dozer.SpecCommunityList{},
 			VRFs: map[string]*dozer.SpecVRF{
 				VRFDefault: {BGP: &dozer.SpecVRFBGP{Neighbors: map[string]*dozer.SpecVRFBGPNeighbor{}}},
@@ -83,10 +84,38 @@ func TestPlanFabricVTEPExportPolicy(t *testing.T) {
 
 	t.Run("leaf with gateway", func(t *testing.T) {
 		spec := newSpec()
-		require.NoError(t, planFabricConnections(newAgent(wiringapi.SwitchRoleServerLeaf, true), spec))
+		ag := newAgent(wiringapi.SwitchRoleServerLeaf, true)
+		require.NoError(t, planFabricConnections(ag, spec))
+		require.NoError(t, planGatewayConnections(ag, spec))
 
-		require.Equal(t, []string{RouteMapLoopbackAllVTEPs}, exportPolicies(spec))
-		require.NotContains(t, spec.RouteMaps, RouteMapLoopbackVTEP)
+		require.Equal(t, []string{RouteMapLoopbackVTEP}, exportPolicies(spec))
+		require.Equal(t, &dozer.SpecRouteMapStatement{
+			Conditions: dozer.SpecRouteMapConditions{
+				MatchAsPathList: new(AsPathListGatewayOrigin),
+				MatchPrefixList: new(PrefixListAllVTEPPrefixes),
+			},
+			Result: dozer.SpecRouteMapResultAccept,
+		}, spec.RouteMaps[RouteMapLoopbackVTEP].Statements["20"])
+		require.Equal(t, []string{"^65200$"}, spec.AsPathLists[AsPathListGatewayOrigin].Members)
+
+		gw := spec.VRFs[VRFDefault].BGP.Neighbors["172.30.129.1"]
+		require.NotNil(t, gw)
+		require.Equal(t, []string{RouteMapGatewayImport}, gw.IPv4UnicastImportPolicies)
+		require.Equal(t, []string{RouteMapGatewayExport}, gw.IPv4UnicastExportPolicies)
+
+		// anything not originated by the gateway is dropped, so it is never a path between switches
+		require.Equal(t, map[string]*dozer.SpecRouteMapStatement{
+			"10": {
+				Conditions: dozer.SpecRouteMapConditions{MatchAsPathList: new(AsPathListGatewayOrigin)},
+				Result:     dozer.SpecRouteMapResultAccept,
+			},
+		}, spec.RouteMaps[RouteMapGatewayImport].Statements)
+		require.Equal(t, map[string]*dozer.SpecRouteMapStatement{
+			"10": {
+				Conditions: dozer.SpecRouteMapConditions{MatchPrefixList: new(PrefixListAllVTEPPrefixes)},
+				Result:     dozer.SpecRouteMapResultAccept,
+			},
+		}, spec.RouteMaps[RouteMapGatewayExport].Statements)
 	})
 
 	t.Run("spine", func(t *testing.T) {
