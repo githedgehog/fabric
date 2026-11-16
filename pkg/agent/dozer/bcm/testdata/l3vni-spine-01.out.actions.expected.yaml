@@ -186,6 +186,18 @@
         - _65534_
         as-path-set-name: fabric-gw-aspath
   weight: 12
+- path: /routing-policy/defined-sets/bgp-defined-sets/as-path-sets/as-path-set[as-path-set-name=gateway-origin]
+  summary: Create AS Path Lists gateway-origin
+  type: update
+  value:
+    as-path-set:
+    - as-path-set-name: gateway-origin
+      config:
+        action: PERMIT
+        as-path-set-member:
+        - ^65534$
+        as-path-set-name: gateway-origin
+  weight: 12
 - path: /interfaces/interface[name=Ethernet0]
   summary: Create Interface Ethernet0 Base
   type: update
@@ -282,6 +294,24 @@
         name: filter-attached-hosts
       name: filter-attached-hosts
   weight: 19
+- path: /routing-policy/policy-definitions/policy-definition[name=gateway-export]
+  summary: Create Route Maps Base gateway-export
+  type: update
+  value:
+    policy-definition:
+    - config:
+        name: gateway-export
+      name: gateway-export
+  weight: 19
+- path: /routing-policy/policy-definitions/policy-definition[name=gateway-import]
+  summary: Create Route Maps Base gateway-import
+  type: update
+  value:
+    policy-definition:
+    - config:
+        name: gateway-import
+      name: gateway-import
+  weight: 19
 - path: /routing-policy/policy-definitions/policy-definition[name=ipns-subnets--default]
   summary: Create Route Maps Base ipns-subnets--default
   type: update
@@ -344,6 +374,40 @@
       config:
         name: "100"
       name: "100"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=gateway-export]/statements/statement[name=10]
+  summary: Create Route Map Statement 10
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        match-prefix-set:
+          config:
+            prefix-set: all-vtep-prefixes
+      config:
+        name: "10"
+      name: "10"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=gateway-import]/statements/statement[name=10]
+  summary: Create Route Map Statement 10
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        bgp-conditions:
+          match-as-path-set:
+            config:
+              as-path-set: gateway-origin
+              match-set-options: ANY
+      config:
+        name: "10"
+      name: "10"
   weight: 21
 - path: /routing-policy/policy-definitions/policy-definition[name=ipns-subnets--default]/statements/statement[name=10]
   summary: Create Route Map Statement 10
@@ -926,6 +990,12 @@
     - afi-safis:
         afi-safi:
         - afi-safi-name: IPV4_UNICAST
+          apply-policy:
+            config:
+              export-policy:
+              - gateway-export
+              import-policy:
+              - gateway-import
           config:
             afi-safi-name: IPV4_UNICAST
             enabled: true

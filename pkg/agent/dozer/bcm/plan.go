@@ -52,6 +52,8 @@ const (
 	RouteMapLoopbackAllVTEPs     = "loopback-all-vteps"
 	RouteMapLoopbackVTEP         = "loopback-vtep"
 	RouteMapProtocolLoopbackOnly = "protocol-loopback-only"
+	RouteMapGatewayImport        = "gateway-import"
+	RouteMapGatewayExport        = "gateway-export"
 	PrefixListAny                = "any-prefix"
 	PrefixListAllVTEPPrefixes    = "all-vtep-prefixes"
 	PrefixListVTEPPrefix         = "vtep-prefix"
@@ -60,6 +62,7 @@ const (
 	LSTGroupSpineLink            = "spinelink"
 	AsPathListFabricGW           = "fabric-gw-aspath"
 	AsPathListOtherDomainSpines  = "other-domain-spines"
+	AsPathListGatewayOrigin      = "gateway-origin"
 	BGPCommListAllExternals      = "all-externals"
 	BGPCommListAllGwPrios        = "all-gw-prios"
 	MgmtIface                    = "Management0"
@@ -519,23 +522,9 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 		},
 	}
 
-	// a fabric leaf only needs to re-advertise the VTEPs of others if it is attached to a gateway, so that
-	// the gateway VTEP is propagated into the fabric; we can't match that VTEP explicitly, as it
-	// lives on the Gateway object and not on the connection
-	advertiseAllVTEPs := !agent.Spec.Switch.Role.IsLeaf()
-	if !advertiseAllVTEPs {
-		for _, conn := range agent.Spec.Connections {
-			if conn.Gateway == nil {
-				continue
-			}
-			advertiseAllVTEPs = true
-
-			break
-		}
-	}
-
+	// a gateway-attached leaf also passes on the gateway VTEPs, see planGatewayConnections
 	loopbackRouteMap := RouteMapLoopbackAllVTEPs
-	if !advertiseAllVTEPs {
+	if agent.Spec.Switch.Role.IsLeaf() {
 		loopbackRouteMap = RouteMapLoopbackVTEP
 
 		if agent.Spec.Switch.VTEPIP == "" {
@@ -918,6 +907,34 @@ func planGatewayConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			return fmt.Errorf("gateway ASN not set for domain %s", domainName) //nolint:err113
 		}
 
+		// take only what the gateway originates, so it never becomes a transit path between switches
+		spec.AsPathLists[AsPathListGatewayOrigin] = &dozer.SpecAsPathList{Members: []string{fmt.Sprintf("^%d$", gatewayASN)}}
+		spec.RouteMaps[RouteMapGatewayImport] = &dozer.SpecRouteMap{
+			Statements: map[string]*dozer.SpecRouteMapStatement{
+				"10": {
+					Conditions: dozer.SpecRouteMapConditions{MatchAsPathList: new(AsPathListGatewayOrigin)},
+					Result:     dozer.SpecRouteMapResultAccept,
+				},
+			},
+		}
+		spec.RouteMaps[RouteMapGatewayExport] = &dozer.SpecRouteMap{
+			Statements: map[string]*dozer.SpecRouteMapStatement{
+				"10": {
+					Conditions: dozer.SpecRouteMapConditions{MatchPrefixList: new(PrefixListAllVTEPPrefixes)},
+					Result:     dozer.SpecRouteMapResultAccept,
+				},
+			},
+		}
+		if agent.Spec.Switch.Role.IsLeaf() {
+			spec.RouteMaps[RouteMapLoopbackVTEP].Statements["20"] = &dozer.SpecRouteMapStatement{
+				Conditions: dozer.SpecRouteMapConditions{
+					MatchAsPathList: new(AsPathListGatewayOrigin),
+					MatchPrefixList: new(PrefixListAllVTEPPrefixes),
+				},
+				Result: dozer.SpecRouteMapResultAccept,
+			}
+		}
+
 		for _, link := range conn.Gateway.Links {
 			port := ""
 			ipStr := ""
@@ -992,13 +1009,15 @@ func planGatewayConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 
 			spec.VRFs[VRFDefault].BGP.Neighbors[ip.String()] = &dozer.SpecVRFBGPNeighbor{
-				Enabled:                 new(true),
-				Description:             new(fmt.Sprintf("Gateway %s %s", remote, connName)),
-				RemoteAS:                new(gatewayASN), // TODO load peer GW and get ASN from it
-				IPv4Unicast:             new(true),
-				L2VPNEVPN:               new(true),
-				L2VPNEVPNImportPolicies: []string{RouteMapL2VPNNeighbors},
-				BFDProfile:              bfdProfile,
+				Enabled:                   new(true),
+				Description:               new(fmt.Sprintf("Gateway %s %s", remote, connName)),
+				RemoteAS:                  new(gatewayASN), // TODO load peer GW and get ASN from it
+				IPv4Unicast:               new(true),
+				IPv4UnicastImportPolicies: []string{RouteMapGatewayImport},
+				IPv4UnicastExportPolicies: []string{RouteMapGatewayExport},
+				L2VPNEVPN:                 new(true),
+				L2VPNEVPNImportPolicies:   []string{RouteMapL2VPNNeighbors},
+				BFDProfile:                bfdProfile,
 			}
 		}
 	}

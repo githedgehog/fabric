@@ -15,6 +15,9 @@ asPathLists:
     members:
     - _65100_
     - _65534_
+  gateway-origin:
+    members:
+    - ^65534$
   other-domain-spines:
     members:
     - _65010_
@@ -245,6 +248,18 @@ routeMaps:
       "100":
         conditions: {}
         result: accept
+  gateway-export:
+    statements:
+      "10":
+        conditions:
+          matchPrefixLists: all-vtep-prefixes
+        result: accept
+  gateway-import:
+    statements:
+      "10":
+        conditions:
+          matchAsPathList: gateway-origin
+        result: accept
   ipns-subnets--default:
     statements:
       "10":
@@ -454,6 +469,10 @@ vrfs:
           description: Gateway gateway-1/enp2s1 spine-01--gateway--gateway-1
           enabled: true
           ipv4Unicast: true
+          ipv4UnicastExportPolicies:
+          - gateway-export
+          ipv4UnicastImportPolicies:
+          - gateway-import
           l2vpnEvpn: true
           l2vpnEvpnImportPolicies:
           - l2vpn-neighbors

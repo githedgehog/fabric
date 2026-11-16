@@ -705,8 +705,8 @@ func (connSpec *ConnectionSpec) ValidateDomains(switches map[string]*Switch) err
 		}
 	}
 
-	// a leaf with a gateway connection advertises every VTEP it knows to its spines, which would
-	// hand one domain's VTEPs to the other
+	// a leaf with a gateway connection passes the gateway VTEPs to all its spines, which would hand
+	// one domain's gateways to the other
 	if connSpec.Gateway != nil {
 		for _, link := range connSpec.Gateway.Links {
 			name := link.Switch.DeviceName()

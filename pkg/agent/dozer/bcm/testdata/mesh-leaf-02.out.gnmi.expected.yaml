@@ -690,6 +690,12 @@ network-instances:
             - afi-safis:
                 afi-safi:
                 - afi-safi-name: IPV4_UNICAST
+                  apply-policy:
+                    config:
+                      export-policy:
+                      - gateway-export
+                      import-policy:
+                      - gateway-import
                   config:
                     afi-safi-name: IPV4_UNICAST
                     enabled: true
@@ -910,6 +916,12 @@ routing-policy:
             as-path-set-member:
             - _65534_
             as-path-set-name: fabric-gw-aspath
+        - as-path-set-name: gateway-origin
+          config:
+            action: PERMIT
+            as-path-set-member:
+            - ^65534$
+            as-path-set-name: gateway-origin
       community-sets:
         community-set:
         - community-set-name: all-externals
@@ -1175,6 +1187,20 @@ routing-policy:
             masklength-range: 24..32
             sequence-number: 1
         name: vpc-subnets--vpc-02
+      - config:
+          mode: IPV4
+          name: vtep-prefix
+        extended-prefixes:
+          extended-prefix:
+          - config:
+              action: PERMIT
+              ip-prefix: 172.30.12.1/32
+              masklength-range: 32..32
+              sequence-number: 10
+            ip-prefix: 172.30.12.1/32
+            masklength-range: 32..32
+            sequence-number: 10
+        name: vtep-prefix
   policy-definitions:
     policy-definition:
     - config:
@@ -1197,6 +1223,38 @@ routing-policy:
           config:
             name: "100"
           name: "100"
+    - config:
+        name: gateway-export
+      name: gateway-export
+      statements:
+        statement:
+        - actions:
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            match-prefix-set:
+              config:
+                prefix-set: all-vtep-prefixes
+          config:
+            name: "10"
+          name: "10"
+    - config:
+        name: gateway-import
+      name: gateway-import
+      statements:
+        statement:
+        - actions:
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            bgp-conditions:
+              match-as-path-set:
+                config:
+                  as-path-set: gateway-origin
+                  match-set-options: ANY
+          config:
+            name: "10"
+          name: "10"
     - config:
         name: import-vrf--vpc-01
       name: import-vrf--vpc-01
@@ -1459,6 +1517,46 @@ routing-policy:
           config:
             name: "100"
           name: "100"
+    - config:
+        name: loopback-vtep
+      name: loopback-vtep
+      statements:
+        statement:
+        - actions:
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            match-prefix-set:
+              config:
+                prefix-set: vtep-prefix
+          config:
+            name: "10"
+          name: "10"
+        - actions:
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            match-prefix-set:
+              config:
+                prefix-set: static-ext-subnets
+          config:
+            name: "100"
+          name: "100"
+        - actions:
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            bgp-conditions:
+              match-as-path-set:
+                config:
+                  as-path-set: gateway-origin
+                  match-set-options: ANY
+            match-prefix-set:
+              config:
+                prefix-set: all-vtep-prefixes
+          config:
+            name: "20"
+          name: "20"
     - config:
         name: protocol-loopback-only
       name: protocol-loopback-only

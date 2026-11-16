@@ -181,7 +181,7 @@ be listed, as fabrics reach each other through externals:
     ```
     i.e. `172.30.12.0/22` above is the VTEP Subnet as defined in the Fabric config
 1. We create the following route-map, used to filter which routes are redistributed on
-spines, on mesh leaves and on leaves with a gateway attached, as we will see:
+spines and on mesh leaves, as we will see:
     ```
     route-map loopback-all-vteps permit 10
      match ip address prefix-list all-vtep-prefixes
@@ -189,9 +189,10 @@ spines, on mesh leaves and on leaves with a gateway attached, as we will see:
     route-map loopback-all-vteps permit 100
      match ip address prefix-list static-ext-subnets
     ```
-1. On a leaf with no gateway connection we create the narrower pair below, matching only
-that leaf's own VTEP. A leaf in a spine-leaf topology uses it towards the spines so that
-it does not re-advertise the VTEPs it learned from them (see
+1. On a leaf we create the narrower pair below, matching only that leaf's own VTEP (plus the
+gateway VTEPs on a leaf with a [gateway connection](#gateway-connections)). A leaf in a
+spine-leaf topology uses it towards the spines so that it does not re-advertise the VTEPs it
+learned from them (see
 [Fabric Connections](#fabric-connections-ie-spine-leaf)):
     ```
     ip prefix-list vtep-prefix seq 10 permit 172.30.12.0/32 le 32
@@ -373,12 +374,8 @@ neighbor 172.30.8.3
 !
 ```
 
-The exception is a leaf with a [gateway connection](#gateway-connections), which uses
-`loopback-all-vteps` like a spine: the gateway VTEP has to reach the rest of the fabric,
-and we cannot match it explicitly because it lives on the `Gateway` object rather than on
-the connection. The cost is that such a leaf also re-advertises the VTEPs it learned from
-the spines, on paths that are either rejected by the peer for having its own AS in the
-path, or long enough to lose bestpath selection against the direct ones.
+A leaf with a [gateway connection](#gateway-connections) also advertises the gateway VTEPs,
+so that they reach the rest of the fabric.
 
 #### Unnumbered links
 
@@ -527,9 +524,30 @@ unnumbered peering over it stays one-to-one with the physical link.
 
 Gateway connections represent a connection between a Fabric switch and a Gateway.
 For spine-leaf topologies the switch is typically a spine, while for mesh topologies
-it will necessarily be a leaf. A leaf with a gateway connection in a spine-leaf topology
-advertises all the VTEPs it knows about towards the spines, see
-[Fabric Connections](#fabric-connections-ie-spine-leaf).
+it will necessarily be a leaf.
+
+We accept only the routes the gateway originates, so that the gateway never becomes a transit
+path between switches, and send it only the VTEPs, the only underlay destinations it forwards to:
+```
+bgp as-path access-list gateway-origin permit ^65534$
+!
+route-map gateway-import permit 10
+ match as-path gateway-origin
+!
+route-map gateway-export permit 10
+ match ip address prefix-list all-vtep-prefixes
+!
+```
+
+A leaf with a gateway connection in a spine-leaf topology passes the gateway VTEPs on to the
+spines, adding a statement to the `loopback-vtep` route map of
+[Fabric Connections](#fabric-connections-ie-spine-leaf):
+```
+route-map loopback-vtep permit 20
+ match as-path gateway-origin
+ match ip address prefix-list all-vtep-prefixes
+!
+```
 
 For each link in a gateway connection, we:
 1. configure the corresponding interface on the switch, setting it to admin-up
@@ -557,6 +575,8 @@ is just the gateway ASN and never contains the switch's own.
      !
      address-family ipv4 unicast
       activate
+      route-map gateway-import in
+      route-map gateway-export out
      !
      address-family l2vpn evpn
       activate
