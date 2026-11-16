@@ -15,7 +15,7 @@
             172.30.12.0/32: {}
         type: loopback
       swp1:
-        description: Unused
+        description: External leaf-01--external
         ipv6:
           state: disabled
         lldp:
@@ -26,7 +26,7 @@
         link:
           speed: 10G
           state:
-            down: {}
+            up: {}
       swp2:
         description: Unbundled server-01 server-01--unbundled--leaf-01
         ipv6:

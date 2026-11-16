@@ -343,22 +343,31 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		})
 	}
 
-	// TODO configure the IPs and BGP sessions, only the ports are brought up for now
+	// TODO configure the gateway and external connections, only their ports are brought up for now
 	for connName, conn := range agent.Spec.Connections {
-		if conn.Gateway == nil {
-			continue
-		}
+		switch {
+		case conn.Gateway != nil:
+			for _, link := range conn.Gateway.Links {
+				if link.Switch.DeviceName() != agent.Name {
+					continue
+				}
 
-		for _, link := range conn.Gateway.Links {
-			if link.Switch.DeviceName() != agent.Name {
+				port, err := usePort(link.Switch.LocalPortName())
+				if err != nil {
+					return nil, fmt.Errorf("conn %s: %w", connName, err)
+				}
+				port.Description = fmt.Sprintf("Gateway %s %s", link.Gateway.Port, connName)
+			}
+		case conn.External != nil:
+			if conn.External.Link.Switch.DeviceName() != agent.Name {
 				continue
 			}
 
-			port, err := usePort(link.Switch.LocalPortName())
+			port, err := usePort(conn.External.Link.Switch.LocalPortName())
 			if err != nil {
 				return nil, fmt.Errorf("conn %s: %w", connName, err)
 			}
-			port.Description = fmt.Sprintf("Gateway %s %s", link.Gateway.Port, connName)
+			port.Description = "External " + connName
 		}
 	}
 
