@@ -680,6 +680,7 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 				IPv4UnicastExportPolicies: []string{RouteMapProtocolLoopbackOnly},
 				BFDProfile:                bfdProfile,
 				ExtendedNexthop:           extendedNexthop,
+				TTLSecurityHops:           new(uint8(1)),
 			}
 		}
 	}
@@ -710,7 +711,7 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			IPv4UnicastExportPolicies: []string{loopbackRouteMap},
 			L2VPNEVPN:                 new(true),
 			L2VPNEVPNImportPolicies:   []string{RouteMapL2VPNNeighbors},
-			DisableConnectedCheck:     new(true),
+			TTLSecurityHops:           new(uint8(1)),
 			UpdateSource:              new(ownProtocolIPStr),
 		}
 	}
@@ -850,6 +851,7 @@ func planMeshConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 				IPv4UnicastExportPolicies: []string{RouteMapProtocolLoopbackOnly},
 				BFDProfile:                bfdProfile,
 				ExtendedNexthop:           extendedNexthop,
+				TTLSecurityHops:           new(uint8(1)),
 			}
 		}
 	}
@@ -882,7 +884,7 @@ func planMeshConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			IPv4UnicastExportPolicies: []string{RouteMapLoopbackAllVTEPs},
 			L2VPNEVPN:                 new(true),
 			L2VPNEVPNImportPolicies:   []string{RouteMapL2VPNNeighbors},
-			DisableConnectedCheck:     new(true),
+			TTLSecurityHops:           new(uint8(1)),
 			UpdateSource:              new(ownProtocolIPStr),
 		}
 	}
@@ -2097,7 +2099,9 @@ func planDefaultVRFWithBGP(agent *agentapi.Agent, spec *dozer.Spec) error {
 		RouterID:           new(ip.String()),
 		NetworkImportCheck: new(true), // default
 		ASDot:              new(true),
-		Neighbors:          map[string]*dozer.SpecVRFBGPNeighbor{},
+		// disable fast external failover in default VRF: see README.plan.md - Loopback sessions and link failures
+		DisableFastExtFailover: true,
+		Neighbors:              map[string]*dozer.SpecVRFBGPNeighbor{},
 		IPv4Unicast: dozer.SpecVRFBGPIPv4Unicast{
 			Enabled:  true,
 			MaxPaths: new(getMaxPaths(agent)),

@@ -623,6 +623,7 @@ network-instances:
             config:
               as: 65102
               as-notation: ASDOT
+              fast-external-failover: true
               network-import-check: true
               router-id: 172.30.8.4
           neighbors:
@@ -694,6 +695,7 @@ network-instances:
             config:
               as: 65102
               as-notation: ASDOT
+              fast-external-failover: true
               network-import-check: true
               router-id: 172.30.8.4
         identifier: BGP
@@ -791,6 +793,7 @@ network-instances:
             config:
               as: 65102
               as-notation: ASDOT
+              fast-external-failover: true
               network-import-check: true
               router-id: 172.30.8.4
         identifier: BGP
@@ -879,6 +882,7 @@ network-instances:
             config:
               as: 65102
               as-notation: ASDOT
+              fast-external-failover: true
               network-import-check: true
               router-id: 172.30.8.4
         identifier: BGP
@@ -965,6 +969,7 @@ network-instances:
             config:
               as: 65102
               as-notation: ASDOT
+              fast-external-failover: false
               network-import-check: true
               router-id: 172.30.8.4
           neighbors:
@@ -989,10 +994,10 @@ network-instances:
                     enabled: true
               config:
                 description: Fabric spine-01 loopback (spine-link)
-                disable-ebgp-connected-route-check: true
                 enabled: true
                 neighbor-address: 172.30.8.0
                 peer-as: 65100
+                ttl-security-hops: 1
               neighbor-address: 172.30.8.0
               transport:
                 config:
@@ -1017,10 +1022,10 @@ network-instances:
                     enabled: true
               config:
                 description: Fabric spine-02 loopback (spine-link)
-                disable-ebgp-connected-route-check: true
                 enabled: true
                 neighbor-address: 172.30.8.1
                 peer-as: 65100
+                ttl-security-hops: 1
               neighbor-address: 172.30.8.1
               transport:
                 config:
@@ -1044,6 +1049,7 @@ network-instances:
                 enabled: true
                 neighbor-address: Ethernet4
                 peer-as: 65100
+                ttl-security-hops: 1
               enable-bfd:
                 config:
                   bfd-profile: fabric
@@ -1068,6 +1074,7 @@ network-instances:
                 enabled: true
                 neighbor-address: Ethernet5
                 peer-as: 65100
+                ttl-security-hops: 1
               enable-bfd:
                 config:
                   bfd-profile: fabric
@@ -1092,6 +1099,7 @@ network-instances:
                 enabled: true
                 neighbor-address: Ethernet6
                 peer-as: 65100
+                ttl-security-hops: 1
               enable-bfd:
                 config:
                   bfd-profile: fabric
@@ -1116,6 +1124,7 @@ network-instances:
                 enabled: true
                 neighbor-address: Ethernet7
                 peer-as: 65100
+                ttl-security-hops: 1
               enable-bfd:
                 config:
                   bfd-profile: fabric
