@@ -664,17 +664,20 @@ func Enforce(ctx context.Context, _ /* processor */ dozer.Processor, agent *agen
 		return fmt.Errorf("replacing config: %w", err)
 	}
 
-	// diff exits with 0 if there is nothing to apply and with 1 if there are changes
+	// diff exits with 0 if there is nothing to apply and with 1 if there are changes, the apply is only skipped if the
+	// output is empty too to not rely on the exit code alone
 	diff, diffErr := runOutput(ctx, "nv-diff", "nv", "config", "diff", "applied")
 	if err := os.WriteFile(filepath.Join(basedir, diffFile), diff, 0o644); err != nil { //nolint:gosec
 		return fmt.Errorf("writing diff file: %w", err)
 	}
-	if diffErr == nil {
+	if diffErr != nil {
+		if exitErr, ok := errors.AsType[*exec.ExitError](diffErr); !ok || exitErr.ExitCode() != 1 {
+			return fmt.Errorf("diffing config: %w", diffErr)
+		}
+	} else if len(bytes.TrimSpace(diff)) == 0 {
 		slog.Debug("Config is already applied")
 
 		return nil
-	} else if exitErr := (&exec.ExitError{}); !errors.As(diffErr, &exitErr) || exitErr.ExitCode() != 1 {
-		return fmt.Errorf("diffing config: %w", diffErr)
 	}
 
 	msg := fmt.Sprintf("hh gen %d %s", agent.Generation, version.Version)
