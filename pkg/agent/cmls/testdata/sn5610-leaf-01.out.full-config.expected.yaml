@@ -15,7 +15,7 @@
             172.30.12.0/32: {}
         type: loopback
       swp1:
-        description: Unused
+        description: External leaf-01--external
         ipv6:
           state: disabled
         lldp:
@@ -28,7 +28,7 @@
           fec: 'auto'
           speed: 800G
           state:
-            down: {}
+            up: {}
       swp2:
         link:
           breakout:

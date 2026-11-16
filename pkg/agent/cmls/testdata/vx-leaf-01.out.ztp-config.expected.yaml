@@ -7,13 +7,13 @@
         type: eth
         vrf: mgmt
       swp1:
-        description: Unused
+        description: External leaf-01--external
         ipv6:
           state: disabled
         link:
           speed: 10G
           state:
-            down: {}
+            up: {}
         lldp:
           state: enabled
       swp2:
