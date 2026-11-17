@@ -50,8 +50,17 @@
             down: {}
             {{- end }}
         {{- end }}
-        {{- if $port.VRF }}
-        vrf: {{ $port.VRF }}
+        {{- if $port.VLANs }}
+        bridge:
+          domain:
+            br_default:
+              {{- if $port.Untagged }}
+              untagged: {{ $port.Untagged }}
+              {{- end }}
+              vlan:
+                {{- range $vlan := $port.VLANs }}
+                '{{ $vlan }}': {}
+                {{- end }}
         {{- end }}
         {{- if $port.IP }}
         ipv4:
@@ -85,10 +94,47 @@
             down: {}
             {{- end }}
         type: bond
-        {{- if $bond.VRF }}
-        vrf: {{ $bond.VRF }}
+        {{- if $bond.VLANs }}
+        bridge:
+          domain:
+            br_default:
+              {{- if $bond.Untagged }}
+              untagged: {{ $bond.Untagged }}
+              {{- end }}
+              vlan:
+                {{- range $vlan := $bond.VLANs }}
+                '{{ $vlan }}': {}
+                {{- end }}
         {{- end }}
       {{- end }}
+      {{- range $subnet := $.Subnets }}
+      {{ $subnet.Name }}:
+        description: {{ $subnet.Description }}
+        ipv4:
+          vrr:
+            address:
+              {{ $subnet.Gateway }}: {}
+            mac-address: 00:00:00:11:11:11
+            state: enabled
+        type: svi
+        vlan: {{ $subnet.VLAN }}
+        vrf: {{ $subnet.VRF }}
+      {{- end }}
+    {{- if $.Subnets }}
+    bridge:
+      domain:
+        br_default:
+          stp:
+            state:
+              down: {}
+          untagged: none
+          vlan:
+            {{- range $subnet := $.Subnets }}
+            '{{ $subnet.VLAN }}':
+              vni:
+                '{{ $subnet.VNI }}': {}
+            {{- end }}
+    {{- end }}
     evpn:
       state: enabled
     {{- if $.IsLeaf }}
@@ -200,6 +246,10 @@
       adaptive-routing:
         state: enabled
         profile: profile-custom
+      {{- end }}
+      {{- if $.Subnets }}
+      vrr:
+        state: enabled
       {{- end }}
     vrf:
       default:

@@ -48,7 +48,11 @@
           speed: 100G
           state:
             up: {}
-        vrf: vpc-03
+        bridge:
+          domain:
+            br_default:
+              vlan:
+                '1003': {}
       swp2s1:
         description: Bundled server-05 server-05--bundled--leaf-01
         ipv6:
@@ -123,7 +127,11 @@
           speed: 400G
           state:
             up: {}
-        vrf: vpc-01
+        bridge:
+          domain:
+            br_default:
+              vlan:
+                '1001': {}
       swp4:
         description: Unused
         ipv6:
@@ -1100,7 +1108,11 @@
           speed: 25G
           state:
             up: {}
-        vrf: vpc-02
+        bridge:
+          domain:
+            br_default:
+              vlan:
+                '1002': {}
       swp66:
         description: Unused
         ipv6:
@@ -1128,6 +1140,56 @@
           state:
             down: {}
         type: bond
+      vlan1001:
+        description: VPC vpc-01/default
+        ipv4:
+          vrr:
+            address:
+              10.0.1.1/24: {}
+            mac-address: 00:00:00:11:11:11
+            state: enabled
+        type: svi
+        vlan: 1001
+        vrf: vpc-01
+      vlan1002:
+        description: VPC vpc-02/default
+        ipv4:
+          vrr:
+            address:
+              10.0.2.1/24: {}
+            mac-address: 00:00:00:11:11:11
+            state: enabled
+        type: svi
+        vlan: 1002
+        vrf: vpc-02
+      vlan1003:
+        description: VPC vpc-03/default
+        ipv4:
+          vrr:
+            address:
+              10.0.3.1/24: {}
+            mac-address: 00:00:00:11:11:11
+            state: enabled
+        type: svi
+        vlan: 1003
+        vrf: vpc-03
+    bridge:
+      domain:
+        br_default:
+          stp:
+            state:
+              down: {}
+          untagged: none
+          vlan:
+            '1001':
+              vni:
+                '301': {}
+            '1002':
+              vni:
+                '401': {}
+            '1003':
+              vni:
+                '501': {}
     evpn:
       state: enabled
     nve:
@@ -1258,6 +1320,8 @@
       adaptive-routing:
         state: enabled
         profile: profile-custom
+      vrr:
+        state: enabled
     vrf:
       default:
         router:

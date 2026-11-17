@@ -56,8 +56,7 @@ func TestBuildConfigErrors(t *testing.T) {
 		bundledID uint16   // its port channel ID
 		bundledTo []string // subnets it's attached to
 		bundled2  []string // ports of server-03 bundled connection with the same port channel ID
-		vpcs      map[string]vpcapi.VPCSpec
-		vpcVNIs   map[string]uint32
+		mutate    func(agent *agentapi.Agent)
 		err       string
 	}{
 		{name: "no-profile", port: "E1/1", err: "switch profile is missing"},
@@ -78,11 +77,114 @@ func TestBuildConfigErrors(t *testing.T) {
 			err:       "port E1/10 isn't available",
 		},
 		{
-			name:    "vx-port-used-twice",
+			name:    "vx-port-native-vlan-twice",
 			profile: &switchprofile.CumulusVX,
 			port:    "E1/1",
 			subnets: []string{"vpc-01/default", "vpc-02/default"},
-			err:     "port E1/1 is used more than once",
+			mutate: func(agent *agentapi.Agent) {
+				for name, attach := range agent.Spec.VPCAttachments {
+					attach.NativeVLAN = true
+					agent.Spec.VPCAttachments[name] = attach
+				}
+			},
+			err: "native vlan is already 1001",
+		},
+		{
+			name:    "vx-subnet-vlan-used-twice",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			subnets: []string{"vpc-01/default", "vpc-02/default"},
+			mutate:  func(agent *agentapi.Agent) { agent.Spec.VPCs["vpc-02"].Subnets["default"].VLAN = 1001 },
+			err:     "vlan 1001 is used by both subnet",
+		},
+		{
+			name:    "vx-attachment-unsupported-conn",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: func(agent *agentapi.Agent) {
+				agent.Spec.Connections["server-02--eslag--leaf-01--leaf-02"] = wiringapi.ConnectionSpec{ESLAG: &wiringapi.ConnESLAG{
+					Links: []wiringapi.ServerToSwitchLink{{
+						Server: wiringapi.BasePortName{Port: "server-02/enp2s1"},
+						Switch: wiringapi.BasePortName{Port: "leaf-01/E1/2"},
+					}},
+				}}
+				agent.Spec.VPCAttachments["server-02--vpc-01--default"] = agentapi.VPCAttachmentSpecAnn{
+					Connection: "server-02--eslag--leaf-01--leaf-02",
+					Subnet:     "vpc-01/default",
+				}
+			},
+			err: "conn server-02--eslag--leaf-01--leaf-02 type isn't supported",
+		},
+		{
+			name:    "vx-vpc-mode-unsupported",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate:  withVPC01(func(vpc *vpcapi.VPCSpec) { vpc.Mode = vpcapi.VPCModeL3VNI }),
+			err:     "vpc vpc-01: mode l3vni isn't supported",
+		},
+		{
+			name:    "vx-vpc-permit-unsupported",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate:  withVPC01(func(vpc *vpcapi.VPCSpec) { vpc.Permit = [][]string{{"default"}} }),
+			err:     "vpc vpc-01: permit lists aren't supported",
+		},
+		{
+			name:    "vx-vpc-static-routes-unsupported",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: withVPC01(func(vpc *vpcapi.VPCSpec) {
+				vpc.StaticRoutes = []vpcapi.VPCStaticRoute{{Prefix: "10.99.0.0/24", NextHops: []string{"10.0.1.10"}}}
+			}),
+			err: "vpc vpc-01: static routes aren't supported",
+		},
+		{
+			name:    "vx-subnet-host-bgp-unsupported",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate:  func(agent *agentapi.Agent) { agent.Spec.VPCs["vpc-01"].Subnets["default"].HostBGP = true },
+			err:     "vpc vpc-01: subnet default: host BGP isn't supported",
+		},
+		{
+			name:    "vx-subnet-isolated-unsupported",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate:  withVPC01(func(vpc *vpcapi.VPCSpec) { vpc.DefaultIsolated = true }),
+			err:     "vpc vpc-01: subnet default: isolated and restricted subnets aren't supported",
+		},
+		{
+			name:    "vx-subnet-restricted-unsupported",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate:  func(agent *agentapi.Agent) { agent.Spec.VPCs["vpc-01"].Subnets["default"].Restricted = new(true) },
+			err:     "vpc vpc-01: subnet default: isolated and restricted subnets aren't supported",
+		},
+		{
+			name:    "vx-vpc-peering-unsupported",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: func(agent *agentapi.Agent) {
+				agent.Spec.VPCPeerings = map[string]vpcapi.VPCPeeringSpec{"vpc-01--vpc-02": {}}
+			},
+			err: "vpc peerings aren't supported",
+		},
+		{
+			name:    "vx-external-attachment-unsupported",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: func(agent *agentapi.Agent) {
+				agent.Spec.ExternalAttachments = map[string]vpcapi.ExternalAttachmentSpec{"leaf-01--ext-01": {}}
+			},
+			err: "externals aren't supported",
+		},
+		{
+			name:    "vx-static-external-unsupported",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: func(agent *agentapi.Agent) {
+				agent.Spec.Connections["leaf-01--static-external"] = wiringapi.ConnectionSpec{StaticExternal: &wiringapi.ConnStaticExternal{}}
+			},
+			err: "conn leaf-01--static-external: static externals aren't supported",
 		},
 		{
 			name:    "sn5610-speed-on-breakout-port",
@@ -143,13 +245,21 @@ func TestBuildConfigErrors(t *testing.T) {
 			err:       "port E1/1 is used more than once",
 		},
 		{
-			name:      "vx-bundled-attached-twice",
+			name:      "vx-bundled-native-vlan-twice",
 			profile:   &switchprofile.CumulusVX,
 			port:      "E1/1",
 			bundled:   []string{"E1/2", "E1/3"},
 			bundledID: 1,
 			bundledTo: []string{"vpc-01/default", "vpc-02/default"},
-			err:       "bond bond1 is used more than once",
+			mutate: func(agent *agentapi.Agent) {
+				for name, attach := range agent.Spec.VPCAttachments {
+					if attach.Connection == "server-02--bundled--leaf-01" {
+						attach.NativeVLAN = true
+						agent.Spec.VPCAttachments[name] = attach
+					}
+				}
+			},
+			err: "native vlan is already 1001",
 		},
 		{
 			name:      "vx-bundled-port-channel-id-used-twice",
@@ -164,8 +274,22 @@ func TestBuildConfigErrors(t *testing.T) {
 			name:    "vx-vpc-no-vni",
 			profile: &switchprofile.CumulusVX,
 			port:    "E1/1",
-			vpcs:    map[string]vpcapi.VPCSpec{"vpc-01": {Subnets: map[string]*vpcapi.VPCSubnet{"default": {Subnet: "10.0.1.0/24"}}}},
+			mutate:  func(agent *agentapi.Agent) { delete(agent.Spec.Catalog.VPCVNIs, "vpc-01") },
 			err:     "vpc vpc-01: no VNI",
+		},
+		{
+			name:    "vx-subnet-no-vni",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate:  func(agent *agentapi.Agent) { delete(agent.Spec.Catalog.VPCSubnetVNIs, "vpc-01") },
+			err:     "subnet vpc-01/default: no VNI",
+		},
+		{
+			name:    "vx-attachment-vpc-not-found",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			subnets: []string{"vpc-09/default"},
+			err:     "vpc vpc-09 not found",
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
@@ -183,8 +307,14 @@ func TestBuildConfigErrors(t *testing.T) {
 						}},
 					},
 					VPCAttachments: map[string]agentapi.VPCAttachmentSpecAnn{},
-					VPCs:           tt.vpcs,
-					Catalog:        agentapi.CatalogSpec{VPCVNIs: tt.vpcVNIs},
+					VPCs: map[string]vpcapi.VPCSpec{
+						"vpc-01": {Subnets: map[string]*vpcapi.VPCSubnet{"default": {Subnet: "10.0.1.0/24", Gateway: "10.0.1.1", VLAN: 1001}}},
+						"vpc-02": {Subnets: map[string]*vpcapi.VPCSubnet{"default": {Subnet: "10.0.2.0/24", Gateway: "10.0.2.1", VLAN: 1002}}},
+					},
+					Catalog: agentapi.CatalogSpec{
+						VPCVNIs:       map[string]uint32{"vpc-01": 100, "vpc-02": 200},
+						VPCSubnetVNIs: map[string]map[string]uint32{"vpc-01": {"default": 101}, "vpc-02": {"default": 201}},
+					},
 				},
 			}
 			if tt.subnets == nil {
@@ -224,10 +354,24 @@ func TestBuildConfigErrors(t *testing.T) {
 			if tt.profile != nil {
 				agent.Spec.SwitchProfile = tt.profile.Spec.DeepCopy()
 			}
+			if tt.mutate != nil {
+				tt.mutate(agent)
+			}
 
-			_, err := buildConfigFor(fullCfgTmpl, agent)
+			err := checkSupported(agent)
+			if err == nil {
+				_, err = buildConfigFor(fullCfgTmpl, agent)
+			}
 			require.ErrorContains(t, err, tt.err)
 		})
+	}
+}
+
+func withVPC01(mutate func(vpc *vpcapi.VPCSpec)) func(agent *agentapi.Agent) {
+	return func(agent *agentapi.Agent) {
+		vpc := agent.Spec.VPCs["vpc-01"]
+		mutate(&vpc)
+		agent.Spec.VPCs["vpc-01"] = vpc
 	}
 }
 
@@ -252,6 +396,7 @@ func TestBuildConfig(t *testing.T) {
 			ag := &agentapi.Agent{}
 			require.NoError(t, kyaml.Unmarshal(agData, ag), "unmarshalling agent data")
 			ag.Spec.SwitchProfile = tt.profile.Spec.DeepCopy()
+			require.NoError(t, checkSupported(ag), "checking supported features")
 
 			for _, cfg := range []struct {
 				name string
