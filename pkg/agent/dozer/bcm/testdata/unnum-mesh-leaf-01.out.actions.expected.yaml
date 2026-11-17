@@ -2205,6 +2205,7 @@
         config:
           as: 65101
           as-notation: ASDOT
+          fast-external-failover: true
           network-import-check: true
           router-id: 172.30.8.0
   weight: 80
@@ -2226,6 +2227,7 @@
         config:
           as: 65101
           as-notation: ASDOT
+          fast-external-failover: true
           network-import-check: true
           router-id: 172.30.8.0
   weight: 80
@@ -2247,6 +2249,7 @@
         config:
           as: 65101
           as-notation: ASDOT
+          fast-external-failover: false
           network-import-check: true
           router-id: 172.30.8.0
   weight: 80
@@ -2447,10 +2450,10 @@
             enabled: true
       config:
         description: Fabric leaf-02 loopback (mesh)
-        disable-ebgp-connected-route-check: true
         enabled: true
         neighbor-address: 172.30.8.1
         peer-as: 65102
+        ttl-security-hops: 1
       neighbor-address: 172.30.8.1
       transport:
         config:
@@ -2481,10 +2484,10 @@
             enabled: true
       config:
         description: Fabric leaf-03 loopback (mesh)
-        disable-ebgp-connected-route-check: true
         enabled: true
         neighbor-address: 172.30.8.2
         peer-as: 65103
+        ttl-security-hops: 1
       neighbor-address: 172.30.8.2
       transport:
         config:
@@ -2514,6 +2517,7 @@
         enabled: true
         neighbor-address: Ethernet3
         peer-as: 65102
+        ttl-security-hops: 1
       enable-bfd:
         config:
           bfd-profile: fabric
@@ -2544,6 +2548,7 @@
         enabled: true
         neighbor-address: Ethernet4
         peer-as: 65102
+        ttl-security-hops: 1
       enable-bfd:
         config:
           bfd-profile: fabric
@@ -2574,6 +2579,7 @@
         enabled: true
         neighbor-address: Ethernet5
         peer-as: 65103
+        ttl-security-hops: 1
       enable-bfd:
         config:
           bfd-profile: fabric
@@ -2604,6 +2610,7 @@
         enabled: true
         neighbor-address: Ethernet6
         peer-as: 65103
+        ttl-security-hops: 1
       enable-bfd:
         config:
           bfd-profile: fabric

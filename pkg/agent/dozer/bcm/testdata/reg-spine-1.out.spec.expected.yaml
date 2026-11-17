@@ -308,6 +308,7 @@ vrfs:
     bgp:
       as: 65100
       asDot: true
+      disableFastExtFailover: true
       ipv4Unicast:
         enable: true
         maxPaths: 16
@@ -319,7 +320,6 @@ vrfs:
       neighbors:
         172.30.8.2:
           description: Fabric leaf-01 loopback (spine-link)
-          disableConnectedCheck: true
           enabled: true
           ipv4Unicast: true
           ipv4UnicastExportPolicies:
@@ -328,10 +328,10 @@ vrfs:
           l2vpnEvpnImportPolicies:
           - l2vpn-neighbors
           remoteAS: 65101
+          ttlSecurityHops: 1
           updateSource: 172.30.8.0
         172.30.8.3:
           description: Fabric leaf-02 loopback (spine-link)
-          disableConnectedCheck: true
           enabled: true
           ipv4Unicast: true
           ipv4UnicastExportPolicies:
@@ -340,10 +340,10 @@ vrfs:
           l2vpnEvpnImportPolicies:
           - l2vpn-neighbors
           remoteAS: 65101
+          ttlSecurityHops: 1
           updateSource: 172.30.8.0
         172.30.8.4:
           description: Fabric leaf-03 loopback (spine-link)
-          disableConnectedCheck: true
           enabled: true
           ipv4Unicast: true
           ipv4UnicastExportPolicies:
@@ -352,10 +352,10 @@ vrfs:
           l2vpnEvpnImportPolicies:
           - l2vpn-neighbors
           remoteAS: 65102
+          ttlSecurityHops: 1
           updateSource: 172.30.8.0
         172.30.8.5:
           description: Fabric leaf-04 loopback (spine-link)
-          disableConnectedCheck: true
           enabled: true
           ipv4Unicast: true
           ipv4UnicastExportPolicies:
@@ -364,10 +364,10 @@ vrfs:
           l2vpnEvpnImportPolicies:
           - l2vpn-neighbors
           remoteAS: 65103
+          ttlSecurityHops: 1
           updateSource: 172.30.8.0
         172.30.8.6:
           description: Fabric leaf-05 loopback (spine-link)
-          disableConnectedCheck: true
           enabled: true
           ipv4Unicast: true
           ipv4UnicastExportPolicies:
@@ -376,6 +376,7 @@ vrfs:
           l2vpnEvpnImportPolicies:
           - l2vpn-neighbors
           remoteAS: 65104
+          ttlSecurityHops: 1
           updateSource: 172.30.8.0
         172.30.128.1:
           bfdProfile: fabric
@@ -385,6 +386,7 @@ vrfs:
           ipv4UnicastExportPolicies:
           - protocol-loopback-only
           remoteAS: 65101
+          ttlSecurityHops: 1
         172.30.128.3:
           bfdProfile: fabric
           description: Fabric leaf-01/E1/9 spine-01--fabric--leaf-01
@@ -393,6 +395,7 @@ vrfs:
           ipv4UnicastExportPolicies:
           - protocol-loopback-only
           remoteAS: 65101
+          ttlSecurityHops: 1
         172.30.128.5:
           bfdProfile: fabric
           description: Fabric leaf-02/E1/9 spine-01--fabric--leaf-02
@@ -401,6 +404,7 @@ vrfs:
           ipv4UnicastExportPolicies:
           - protocol-loopback-only
           remoteAS: 65101
+          ttlSecurityHops: 1
         172.30.128.7:
           bfdProfile: fabric
           description: Fabric leaf-02/E1/10 spine-01--fabric--leaf-02
@@ -409,6 +413,7 @@ vrfs:
           ipv4UnicastExportPolicies:
           - protocol-loopback-only
           remoteAS: 65101
+          ttlSecurityHops: 1
         172.30.128.9:
           bfdProfile: fabric
           description: Fabric leaf-03/E1/5 spine-01--fabric--leaf-03
@@ -417,6 +422,7 @@ vrfs:
           ipv4UnicastExportPolicies:
           - protocol-loopback-only
           remoteAS: 65102
+          ttlSecurityHops: 1
         172.30.128.11:
           bfdProfile: fabric
           description: Fabric leaf-03/E1/6 spine-01--fabric--leaf-03
@@ -425,6 +431,7 @@ vrfs:
           ipv4UnicastExportPolicies:
           - protocol-loopback-only
           remoteAS: 65102
+          ttlSecurityHops: 1
         172.30.128.13:
           bfdProfile: fabric
           description: Fabric leaf-04/E1/5 spine-01--fabric--leaf-04
@@ -433,6 +440,7 @@ vrfs:
           ipv4UnicastExportPolicies:
           - protocol-loopback-only
           remoteAS: 65103
+          ttlSecurityHops: 1
         172.30.128.15:
           bfdProfile: fabric
           description: Fabric leaf-04/E1/6 spine-01--fabric--leaf-04
@@ -441,6 +449,7 @@ vrfs:
           ipv4UnicastExportPolicies:
           - protocol-loopback-only
           remoteAS: 65103
+          ttlSecurityHops: 1
         172.30.128.17:
           bfdProfile: fabric
           description: Fabric leaf-05/E1/4 spine-01--fabric--leaf-05
@@ -449,6 +458,7 @@ vrfs:
           ipv4UnicastExportPolicies:
           - protocol-loopback-only
           remoteAS: 65104
+          ttlSecurityHops: 1
         172.30.128.19:
           bfdProfile: fabric
           description: Fabric leaf-05/E1/5 spine-01--fabric--leaf-05
@@ -457,6 +467,7 @@ vrfs:
           ipv4UnicastExportPolicies:
           - protocol-loopback-only
           remoteAS: 65104
+          ttlSecurityHops: 1
         172.30.128.21:
           bfdProfile: fabric
           description: Gateway gateway-1/enp2s1 spine-01--gateway--gateway-1

@@ -268,7 +268,7 @@ var specVRFBGPEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 
 var specVRFBGPBaseEnforcerGetter = func(_ string, value *dozer.SpecVRFBGP) any {
 	return []any{
-		value.AS, value.RouterID, value.NetworkImportCheck, value.ASDot,
+		value.AS, value.RouterID, value.NetworkImportCheck, value.ASDot, value.DisableFastExtFailover,
 		// value.IPv4Unicast, // TODO it's probably not enough for some cases, check if current approach is ok
 		value.IPv4Unicast.Enabled,
 		value.IPv4Unicast.MaxPaths,
@@ -331,10 +331,11 @@ var specVRFBGPBaseEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP]{
 			Bgp: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp{
 				Global: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global{
 					Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_Config{
-						As:                 as,
-						RouterId:           value.RouterID,
-						NetworkImportCheck: value.NetworkImportCheck,
-						AsNotation:         asNotation,
+						As:                   as,
+						RouterId:             value.RouterID,
+						NetworkImportCheck:   value.NetworkImportCheck,
+						AsNotation:           asNotation,
+						FastExternalFailover: new(!value.DisableFastExtFailover),
 					},
 					AfiSafis: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_AfiSafis{
 						AfiSafi: afiSafi,
@@ -485,6 +486,7 @@ var specVRFBGPNeighborEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP
 						LocalAsReplaceAs:               value.LocalASReplaceAs,
 						PeerType:                       peerType,
 						DisableEbgpConnectedRouteCheck: value.DisableConnectedCheck,
+						TtlSecurityHops:                value.TTLSecurityHops,
 						CapabilityExtendedNexthop:      value.ExtendedNexthop,
 					},
 					AfiSafis: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis{
@@ -822,6 +824,7 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 					bgp.AS = as
 					bgp.RouterID = bgpConfig.Global.Config.RouterId
 					bgp.NetworkImportCheck = bgpConfig.Global.Config.NetworkImportCheck
+					bgp.DisableFastExtFailover = bgpConfig.Global.Config.FastExternalFailover != nil && !*bgpConfig.Global.Config.FastExternalFailover
 					if bgpConfig.Global.Config.AsNotation == oc.OpenconfigBgp_AsNotationType_ASDOT {
 						bgp.ASDot = new(true)
 					}
@@ -971,6 +974,7 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 							L2VPNEVPNAllowOwnAS:       l2VPNEVPNAllowOwnAS,
 							BFDProfile:                bfdProfile,
 							DisableConnectedCheck:     neighbor.Config.DisableEbgpConnectedRouteCheck,
+							TTLSecurityHops:           neighbor.Config.TtlSecurityHops,
 							ExtendedNexthop:           neighbor.Config.CapabilityExtendedNexthop,
 						}
 						if neighbor.Transport != nil && neighbor.Transport.Config != nil {

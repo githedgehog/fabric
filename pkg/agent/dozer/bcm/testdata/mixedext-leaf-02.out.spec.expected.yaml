@@ -866,6 +866,7 @@ vrfs:
     bgp:
       as: 65102
       asDot: true
+      disableFastExtFailover: true
       ipv4Unicast:
         enable: true
         maxPaths: 16
@@ -877,7 +878,6 @@ vrfs:
       neighbors:
         172.30.8.0:
           description: Fabric spine-01 loopback (spine-link)
-          disableConnectedCheck: true
           enabled: true
           ipv4Unicast: true
           ipv4UnicastExportPolicies:
@@ -886,10 +886,10 @@ vrfs:
           l2vpnEvpnImportPolicies:
           - l2vpn-neighbors
           remoteAS: 65100
+          ttlSecurityHops: 1
           updateSource: 172.30.8.3
         172.30.8.1:
           description: Fabric spine-02 loopback (spine-link)
-          disableConnectedCheck: true
           enabled: true
           ipv4Unicast: true
           ipv4UnicastExportPolicies:
@@ -898,6 +898,7 @@ vrfs:
           l2vpnEvpnImportPolicies:
           - l2vpn-neighbors
           remoteAS: 65100
+          ttlSecurityHops: 1
           updateSource: 172.30.8.3
         172.30.128.4:
           bfdProfile: fabric
@@ -907,6 +908,7 @@ vrfs:
           ipv4UnicastExportPolicies:
           - protocol-loopback-only
           remoteAS: 65100
+          ttlSecurityHops: 1
         172.30.128.6:
           bfdProfile: fabric
           description: Fabric spine-01/E1/4 spine-01--fabric--leaf-02
@@ -915,6 +917,7 @@ vrfs:
           ipv4UnicastExportPolicies:
           - protocol-loopback-only
           remoteAS: 65100
+          ttlSecurityHops: 1
         172.30.128.14:
           bfdProfile: fabric
           description: Fabric spine-02/E1/3 spine-02--fabric--leaf-02
@@ -923,6 +926,7 @@ vrfs:
           ipv4UnicastExportPolicies:
           - protocol-loopback-only
           remoteAS: 65100
+          ttlSecurityHops: 1
         172.30.128.16:
           bfdProfile: fabric
           description: Fabric spine-02/E1/4 spine-02--fabric--leaf-02
@@ -931,6 +935,7 @@ vrfs:
           ipv4UnicastExportPolicies:
           - protocol-loopback-only
           remoteAS: 65100
+          ttlSecurityHops: 1
       networkImportCheck: true
       routerID: 172.30.8.3
     enabled: true
