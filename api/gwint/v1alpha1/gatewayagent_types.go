@@ -82,6 +82,141 @@ type GatewayState struct {
 	Peerings map[string]PeeringStatus `json:"peerings,omitempty"`
 	// BGP is BGP status
 	BGP BGPStatus `json:"bgp,omitempty"`
+	// Interfaces state, keyed by the spec interface name
+	Interfaces map[string]GatewayStateInterface `json:"interfaces,omitempty"`
+	// Transceivers state, keyed by the spec interface name
+	Transceivers map[string]GatewayStateTransceiver `json:"transceivers,omitempty"`
+}
+
+// The gateway state types below mirror the switch ones in the agent API (same JSON names and units), but are kept
+// separate so that switch-side changes don't alter the GatewayAgent CRD.
+
+// +kubebuilder:validation:Enum=up;down;testing
+type InterfaceAdminStatus string
+
+const (
+	InterfaceAdminStatusUp      InterfaceAdminStatus = "up"
+	InterfaceAdminStatusDown    InterfaceAdminStatus = "down"
+	InterfaceAdminStatusTesting InterfaceAdminStatus = "testing"
+)
+
+// +kubebuilder:validation:Enum=up;down;testing;unknown;dormant;notPresent;lowerLayerDown
+type InterfaceOperStatus string
+
+const (
+	InterfaceOperStatusUp             InterfaceOperStatus = "up"
+	InterfaceOperStatusDown           InterfaceOperStatus = "down"
+	InterfaceOperStatusTesting        InterfaceOperStatus = "testing"
+	InterfaceOperStatusUnknown        InterfaceOperStatus = "unknown"
+	InterfaceOperStatusDormant        InterfaceOperStatus = "dormant"
+	InterfaceOperStatusNotPresent     InterfaceOperStatus = "notPresent"
+	InterfaceOperStatusLowerLayerDown InterfaceOperStatus = "lowerLayerDown"
+)
+
+type GatewayStateInterface struct {
+	AdminStatus InterfaceAdminStatus `json:"admin,omitempty"`
+	OperStatus  InterfaceOperStatus  `json:"oper,omitempty"`
+	MAC         string               `json:"mac,omitempty"`
+	// When the oper status last changed
+	LastChange *kmetav1.Time `json:"change,omitempty"`
+	// Link speed, e.g. 2.5G, 25G, 100G
+	// +kubebuilder:validation:Pattern=`^[0-9]+(\.[0-9]+)?[MGT]$`
+	Speed         string `json:"speed,omitempty"`
+	AutoNegotiate bool   `json:"auto,omitempty"`
+	// FEC mode, e.g. rs, fc, disabled
+	FEC           string                         `json:"fec,omitempty"`
+	Counters      *GatewayStateInterfaceCounters `json:"counters,omitempty"`
+	LLDPNeighbors []GatewayStateLLDPNeighbor     `json:"lldpNeighbors,omitempty"`
+	// Number of link flaps
+	// +kubebuilder:validation:Format=int64
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=4294967295
+	LinkFlapCount *uint32 `json:"linkFlapCount,omitempty"`
+}
+
+// GatewayStateInterfaceCounters are in bits, not bytes, like the switch ones
+type GatewayStateInterfaceCounters struct {
+	InBits           uint64  `json:"inb,omitempty"`
+	InBitsPerSecond  float64 `json:"inbps,omitempty"`
+	InDiscards       uint64  `json:"ind,omitempty"`
+	InErrors         uint64  `json:"ine,omitempty"`
+	InPktsPerSecond  float64 `json:"inpps,omitempty"`
+	OutBits          uint64  `json:"outb,omitempty"`
+	OutBitsPerSecond float64 `json:"outbps,omitempty"`
+	OutDiscards      uint64  `json:"outd,omitempty"`
+	OutErrors        uint64  `json:"oute,omitempty"`
+	OutPktsPerSecond float64 `json:"outpps,omitempty"`
+	// When the counters were last reset, e.g. on dataplane start
+	LastClear *kmetav1.Time `json:"clear,omitempty"`
+}
+
+type GatewayStateTransceiver struct {
+	// Human-readable module type, e.g. "OSFP112 800GBASE-DR8" or "SFP+ 10GBASE-LR"
+	Description string `json:"descr,omitempty"`
+	// Cable class, e.g. DAC or FIBER
+	CableClass string `json:"cable,omitempty"`
+	// OpenConfig form factor, e.g. SFP_PLUS, OSFP112
+	FormFactor string `json:"formFactor,omitempty"`
+	// OpenConfig connector type, e.g. LC_CONNECTOR, MPO_2x12_CONNECTOR, NO_SEPARABLE_CONNECTOR (DACs)
+	ConnectorType string `json:"connType,omitempty"`
+	// PRESENT or NOT_PRESENT
+	Present string `json:"present,omitempty"`
+	// Cable length in meters
+	CableLength float64 `json:"length,omitempty"`
+	// active, inactive or disabled
+	OperStatus string `json:"oper,omitempty"`
+	// Module temperature in Celsius
+	Temperature float64 `json:"temp,omitempty"`
+	// Module supply voltage in volts
+	Voltage      float64 `json:"voltage,omitempty"`
+	SerialNumber string  `json:"serial,omitempty"`
+	Vendor       string  `json:"vendor,omitempty"`
+	VendorPart   string  `json:"vendorPart,omitempty"`
+	VendorOUI    string  `json:"vendorOUI,omitempty"`
+	VendorRev    string  `json:"vendorRev,omitempty"`
+	Firmware     string  `json:"firmware,omitempty"`
+	// CMIS module state, e.g. Ready; CMIS modules only
+	CMISStatus string `json:"cmis,omitempty"`
+	CMISRev    string `json:"cmisRev,omitempty"`
+	// Active CMIS application selection code
+	CMISApp uint8 `json:"cmisApp,omitempty"`
+	// Per-lane state, keyed by the lane index starting from 0
+	Channels map[string]GatewayStateTransceiverChannel `json:"channels,omitempty"`
+}
+
+type GatewayStateTransceiverChannel struct {
+	// Input (rx) power in dBm
+	In *float64 `json:"in,omitempty"`
+	// Output (tx) power in dBm
+	Out *float64 `json:"out,omitempty"`
+	// Laser bias current in mA
+	Bias float64 `json:"bias,omitempty"`
+}
+
+type GatewayStateLLDPNeighbor struct {
+	ChassisID         string `json:"chassis,omitempty"`
+	SystemName        string `json:"sysName,omitempty"`
+	SystemDescription string `json:"sysDescr,omitempty"`
+	PortID            string `json:"portID,omitempty"`
+	PortDescription   string `json:"portDescr,omitempty"`
+
+	// TTL advertised by the neighbor, seconds
+	TTL uint16 `json:"ttl,omitempty"`
+	// When the neighbor entry was last updated
+	LastUpdate *kmetav1.Time `json:"updated,omitempty"`
+
+	// LLDP-MED inventory
+
+	Manufacturer string `json:"manuf,omitempty"`
+	Model        string `json:"model,omitempty"`
+	SerialNumber string `json:"serial,omitempty"`
+
+	// Derived (best-effort) values
+
+	// MAC of the neighbor port: the LLDP source MAC, or the port ID if it's a MAC address
+	MAC string `json:"mac,omitempty"`
+	// Human-readable neighbor port name: the port ID, or the port description if the port ID is a MAC address
+	Port string `json:"port,omitempty"`
 }
 
 // DataplaneStatus represents the status of the dataplane
