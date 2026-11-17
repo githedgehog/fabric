@@ -126,7 +126,7 @@ func (p *BroadcomProcessor) UpdateSwitchState(ctx context.Context, agent *agenta
 		return errors.Wrapf(err, "failed to update platform metrics")
 	}
 
-	if err := p.updateComponentMetrics(ctx, reg, swState, portMap); err != nil {
+	if err := p.updateComponentMetrics(ctx, reg, swState, agent, portMap); err != nil {
 		return errors.Wrapf(err, "failed to update component metrics")
 	}
 
@@ -1444,7 +1444,7 @@ func (p *BroadcomProcessor) updateBreakoutMetrics(ctx context.Context, _ *switch
 	return nil
 }
 
-func (p *BroadcomProcessor) updateComponentMetrics(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState, portMap map[string]string) error {
+func (p *BroadcomProcessor) updateComponentMetrics(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState, ag *agentapi.Agent, portMap map[string]string) error {
 	dev := &oc.Device{}
 	if err := p.client.Get(ctx, "/components", dev); err != nil {
 		return errors.Wrapf(err, "failed to get components")
@@ -1452,6 +1452,9 @@ func (p *BroadcomProcessor) updateComponentMetrics(ctx context.Context, reg *swi
 	if dev.Components == nil {
 		return errors.Errorf("components not found")
 	}
+
+	reg.NOSInfo.Reset()
+	reg.PlatformMetrics.Info.Reset()
 
 	for componentName, component := range dev.Components.Component {
 		if component.State != nil && component.Transceiver != nil && component.Transceiver.State != nil {
@@ -1615,6 +1618,11 @@ func (p *BroadcomProcessor) updateComponentMetrics(ctx context.Context, reg *swi
 			}
 
 			swState.NOS = st
+
+			reg.NOSInfo.WithLabelValues(string(ag.Spec.SwitchProfile.NOSType), switchstate.NormalizeNOSVersion(st.SoftwareVersion),
+				st.ProductDescription, st.SoftwareVersion, st.KernelVersion).Set(1)
+			reg.PlatformMetrics.Info.WithLabelValues(st.PlatformName, st.HwskuVersion, st.AsicVersion,
+				st.MfgName, st.HardwareVersion, st.SerialNumber).Set(1)
 		}
 
 		if component.State != nil && strings.HasPrefix(componentName, "FIRMWARE ") {
