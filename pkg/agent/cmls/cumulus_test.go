@@ -228,7 +228,7 @@ func TestBuildConfig(t *testing.T) {
 	}{
 		// l2vni vlab with 2 spines and 2 standalone leaves with unbundled servers, numbered fabric links
 		{name: "vx-spine-01", profile: switchprofile.CumulusVX},
-		{name: "vx-leaf-01", profile: switchprofile.CumulusVX}, // route summ, p2p link on an attachment
+		{name: "vx-leaf-01", profile: switchprofile.CumulusVX}, // route summ
 		// SN5610 with breakouts, incl. an 8x one that disables the next port
 		{name: "sn5610-spine-01", profile: switchprofile.CumulusNvidiaSN5610}, // fabric links on a broken out port and on a 1x sub-port, all ports enabled
 		{name: "sn5610-leaf-01", profile: switchprofile.CumulusNvidiaSN5610},  // servers on a breakout sub-port and a bonus port, fabric link on an explicit 1x port, user w/o SSH keys

@@ -24,7 +24,6 @@ import (
 	_ "embed"
 
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
-	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/switchstate"
@@ -112,7 +111,6 @@ type BondConfig struct {
 	Up          bool
 	Description string
 	VRF         string
-	IP          string
 
 	id uint16
 }
@@ -572,25 +570,12 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 
 		vpcName := attach.VPCName()
 
-		ip := ""
-		if p2pSubnet, ok := attach.Annotations[vpcapi.AnnotationVPCAttachmentP2PLink]; ok && p2pSubnet != "" {
-			p2p, err := netip.ParsePrefix(p2pSubnet)
-			if err != nil {
-				return nil, fmt.Errorf("parsing p2p subnet %q for vpc attachment %q: %w", p2pSubnet, attachName, err)
-			}
-			if !p2p.IsValid() || !p2p.Addr().Is4() || p2p.Bits() != 31 {
-				return nil, fmt.Errorf("p2p subnet %q for vpc attachment %q is not /31", p2pSubnet, attachName) //nolint:err113
-			}
-			ip = netip.PrefixFrom(p2p.Masked().Addr().Next(), p2p.Bits()).String() // even goes to the host, odd to the switch
-		}
-
 		if bond != nil {
 			if bond.Attached {
 				return nil, fmt.Errorf("vpc attachment %q: bond %s is used more than once", attachName, bond.Name) //nolint:err113
 			}
 			bond.Attached = true
 			bond.VRF = vpcName
-			bond.IP = ip
 
 			continue
 		}
@@ -601,7 +586,6 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		}
 		port.Description = fmt.Sprintf("Unbundled %s %s", conn.Unbundled.Link.Server.DeviceName(), attach.Connection)
 		port.VRF = vpcName
-		port.IP = ip
 	}
 
 	for _, port := range ports {

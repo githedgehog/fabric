@@ -124,9 +124,6 @@
           state:
             up: {}
         vrf: vpc-01
-        ipv4:
-          address:
-            10.99.0.1/31: {}
       swp4:
         description: Unused
         ipv6:

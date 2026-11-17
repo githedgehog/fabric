@@ -55,9 +55,6 @@
           state:
             up: {}
         vrf: vpc-01
-        ipv4:
-          address:
-            10.99.0.1/31: {}
       swp4:
         description: Unbundled server-04 server-04--unbundled--leaf-01
         ipv6:
@@ -878,9 +875,6 @@
             up: {}
         type: bond
         vrf: vpc-01
-        ipv4:
-          address:
-            10.99.0.3/31: {}
     evpn:
       state: enabled
     nve:
