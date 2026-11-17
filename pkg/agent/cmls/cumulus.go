@@ -52,7 +52,6 @@ type ConfigIn struct {
 	ProtocolIP   string
 	VTEPIP       string
 	ASN          uint32
-	HostSubnet   string
 	RouterID     string
 	VXLANSource  string
 	VPCs         []VPC
@@ -85,7 +84,7 @@ type BGPNeighbor struct {
 type VPC struct {
 	Name      string
 	VNI       uint32
-	Subnet    string
+	Subnets   map[int]string // subnet position in the VPC -> subnet, as NVUE only allows a single prefix per rule
 	RouteSumm []string
 }
 
@@ -535,26 +534,25 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		}
 	}
 
+	// a VRF per VPC attached to the switch or peered with one, with the VPC VNI as L3VNI
 	vpcs := []VPC{}
 	for vpcName, vpc := range agent.Spec.VPCs {
-		if len(vpc.Subnets) != 1 {
-			continue
+		vni := agent.Spec.Catalog.VPCVNIs[vpcName]
+		if vni == 0 {
+			return nil, fmt.Errorf("vpc %s: no VNI", vpcName) //nolint:err113
 		}
 
-		for subnetName, subnet := range vpc.Subnets {
-			vni, ok := agent.Spec.Catalog.GetVPCSubnetVNI(vpcName, subnetName)
-			if !ok {
-				continue
-			}
-
-			vpcs = append(vpcs, VPC{
-				Name:      vpcName,
-				VNI:       vni,
-				RouteSumm: routeSumm[vpcName],
-				// TODO make sure to only readvertise those subnets?
-				Subnet: subnet.Subnet,
-			})
+		subnets := map[int]string{}
+		for idx, subnetName := range slices.Sorted(maps.Keys(vpc.Subnets)) {
+			subnets[idx+1] = vpc.Subnets[subnetName].Subnet
 		}
+
+		vpcs = append(vpcs, VPC{
+			Name:      vpcName,
+			VNI:       vni,
+			Subnets:   subnets,
+			RouteSumm: routeSumm[vpcName],
+		})
 	}
 
 	for attachName, attach := range agent.Spec.VPCAttachments {
@@ -632,9 +630,6 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		IsSpine:      isSpine,
 		IsLeaf:       isLeaf,
 		IsSpectrum4:  isSpectrum4,
-
-		// TODO remove hard-coded value and properly handle
-		HostSubnet: "10.0.0.0/8",
 	}
 
 	// TODO cache template
