@@ -718,6 +718,122 @@ spec:
                         format: int64
                         type: integer
                     type: object
+                  interfaces:
+                    additionalProperties:
+                      properties:
+                        admin:
+                          enum:
+                          - up
+                          - down
+                          - testing
+                          type: string
+                        auto:
+                          type: boolean
+                        change:
+                          description: When the oper status last changed
+                          format: date-time
+                          type: string
+                        counters:
+                          description: GatewayStateInterfaceCounters are in bits,
+                            not bytes, like the switch ones
+                          properties:
+                            clear:
+                              description: When the counters were last reset, e.g.
+                                on dataplane start
+                              format: date-time
+                              type: string
+                            inb:
+                              format: int64
+                              type: integer
+                            inbps:
+                              type: number
+                            ind:
+                              format: int64
+                              type: integer
+                            ine:
+                              format: int64
+                              type: integer
+                            inpps:
+                              type: number
+                            outb:
+                              format: int64
+                              type: integer
+                            outbps:
+                              type: number
+                            outd:
+                              format: int64
+                              type: integer
+                            oute:
+                              format: int64
+                              type: integer
+                            outpps:
+                              type: number
+                          type: object
+                        fec:
+                          description: FEC mode, e.g. rs, fc, disabled
+                          type: string
+                        linkFlapCount:
+                          description: Number of link flaps
+                          format: int64
+                          maximum: 4294967295
+                          minimum: 0
+                          type: integer
+                        lldpNeighbors:
+                          items:
+                            properties:
+                              chassis:
+                                type: string
+                              mac:
+                                description: 'MAC of the neighbor port: the LLDP source
+                                  MAC, or the port ID if it''s a MAC address'
+                                type: string
+                              manuf:
+                                type: string
+                              model:
+                                type: string
+                              port:
+                                description: 'Human-readable neighbor port name: the
+                                  port ID, or the port description if the port ID
+                                  is a MAC address'
+                                type: string
+                              portDescr:
+                                type: string
+                              portID:
+                                type: string
+                              serial:
+                                type: string
+                              sysDescr:
+                                type: string
+                              sysName:
+                                type: string
+                              ttl:
+                                description: TTL advertised by the neighbor, seconds
+                                type: integer
+                              updated:
+                                description: When the neighbor entry was last updated
+                                format: date-time
+                                type: string
+                            type: object
+                          type: array
+                        mac:
+                          type: string
+                        oper:
+                          enum:
+                          - up
+                          - down
+                          - testing
+                          - unknown
+                          - dormant
+                          - notPresent
+                          - lowerLayerDown
+                          type: string
+                        speed:
+                          description: Link speed, e.g. 2.5G, 25G, 100G
+                          pattern: ^[0-9]+(\.[0-9]+)?[MGT]$
+                          type: string
+                      type: object
+                    description: Interfaces state, keyed by the spec interface name
+                    type: object
                   lastCollectedTime:
                     description: LastCollectedTime is the time of the last successful
                       collection of data from the dataplane API
@@ -753,6 +869,78 @@ spec:
                       type: object
                     description: Peerings is the status of the VPCs peerings where
                       key is VPC1->VPC2 and data is for one direction only
+                    type: object
+                  transceivers:
+                    additionalProperties:
+                      properties:
+                        cable:
+                          description: Cable class, e.g. DAC or FIBER
+                          type: string
+                        channels:
+                          additionalProperties:
+                            properties:
+                              bias:
+                                description: Laser bias current in mA
+                                type: number
+                              in:
+                                description: Input (rx) power in dBm
+                                type: number
+                              out:
+                                description: Output (tx) power in dBm
+                                type: number
+                            type: object
+                          description: Per-lane state, keyed by the lane index starting
+                            from 0
+                          type: object
+                        cmis:
+                          description: CMIS module state, e.g. Ready; CMIS modules
+                            only
+                          type: string
+                        cmisApp:
+                          description: Active CMIS application selection code
+                          type: integer
+                        cmisRev:
+                          type: string
+                        connType:
+                          description: OpenConfig connector type, e.g. LC_CONNECTOR,
+                            MPO_2x12_CONNECTOR, NO_SEPARABLE_CONNECTOR (DACs)
+                          type: string
+                        descr:
+                          description: Human-readable module type, e.g. "OSFP112 800GBASE-DR8"
+                            or "SFP+ 10GBASE-LR"
+                          type: string
+                        firmware:
+                          type: string
+                        formFactor:
+                          description: OpenConfig form factor, e.g. SFP_PLUS, OSFP112
+                          type: string
+                        length:
+                          description: Cable length in meters
+                          type: number
+                        oper:
+                          description: active, inactive or disabled
+                          type: string
+                        present:
+                          description: PRESENT or NOT_PRESENT
+                          type: string
+                        serial:
+                          type: string
+                        temp:
+                          description: Module temperature in Celsius
+                          type: number
+                        vendor:
+                          type: string
+                        vendorOUI:
+                          type: string
+                        vendorPart:
+                          type: string
+                        vendorRev:
+                          type: string
+                        voltage:
+                          description: Module supply voltage in volts
+                          type: number
+                      type: object
+                    description: Transceivers state, keyed by the spec interface name
                     type: object
                   vpcs:
                     additionalProperties:
