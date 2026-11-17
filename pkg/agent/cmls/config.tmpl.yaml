@@ -88,11 +88,6 @@
         {{- if $bond.VRF }}
         vrf: {{ $bond.VRF }}
         {{- end }}
-        {{- if $bond.IP }}
-        ipv4:
-          address:
-            {{ $bond.IP }}: {}
-        {{- end }}
       {{- end }}
     evpn:
       state: enabled

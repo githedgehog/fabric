@@ -363,16 +363,12 @@ spec:
       connection: server-01--unbundled--leaf-01
       subnet: vpc-03/default
     s3-v1-l1:
-      annotations:
-        fabric.githedgehog.com/p2p-link: 10.99.0.0/31
       connection: server-03--unbundled--leaf-01
       subnet: vpc-01/default
     s4-v2-l1:
       connection: server-04--unbundled--leaf-01
       subnet: vpc-02/default
     s5-v1-l1:
-      annotations:
-        fabric.githedgehog.com/p2p-link: 10.99.0.2/31
       connection: server-05--bundled--leaf-01
       subnet: vpc-01/default
   vpcPeers:
