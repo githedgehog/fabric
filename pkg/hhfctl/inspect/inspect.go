@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/dustin/go-humanize"
+	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
 	"github.com/olekukonko/tablewriter/renderer"
 	"github.com/olekukonko/tablewriter/tw"
@@ -35,6 +36,7 @@ import (
 	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	"go.githedgehog.com/fabric/pkg/util/apiutil"
 	"go.githedgehog.com/fabric/pkg/util/kubeutil"
 	coreapi "k8s.io/api/core/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -198,6 +200,49 @@ func RenderTable(headers []string, data [][]string) string {
 	}
 
 	return str.String()
+}
+
+// color leaves the text alone if stdout isn't a terminal or NO_COLOR is set
+var (
+	red    = color.New(color.FgRed).SprintFunc()
+	yellow = color.New(color.FgYellow).SprintFunc()
+	dim    = color.New(color.Faint).SprintFunc()
+)
+
+// shown instead of the time of a heartbeat that never happened
+const neverHeartbeat = "never"
+
+// switchHeader starts the section of a switch with when its state was collected, so that stale data stands out
+func switchHeader(name string, collected apiutil.Collected, now time.Time) string {
+	header := "Switch: " + name + " (never collected"
+	if !collected.Time.IsZero() {
+		header = "Switch: " + name + " (collected " + HumanizeTime(now, collected.Time.Time)
+	}
+
+	if collected.Stale {
+		return red(header+", STALE: the agent missed heartbeats)") + "\n"
+	}
+
+	return header + ")\n"
+}
+
+// checkStale returns an error for stale switch state with strict, so that the inspect fails, and only warns otherwise
+func checkStale(swName string, collected apiutil.Collected, strict bool) error {
+	if !collected.Stale {
+		return nil
+	}
+
+	last := neverHeartbeat
+	if !collected.Time.IsZero() {
+		last = collected.Time.Format(time.RFC3339)
+	}
+
+	if strict {
+		return fmt.Errorf("switch %s: state is stale, the agent missed heartbeats (last: %s)", swName, last) //nolint:err113
+	}
+	slog.Warn("Switch state is stale, the agent missed heartbeats", "switch", swName, "last", last)
+
+	return nil
 }
 
 func HumanizeTime(now, then time.Time) string {

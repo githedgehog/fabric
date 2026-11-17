@@ -64,6 +64,7 @@ type AgentState struct {
 	LastAppliedTime kmetav1.Time `json:"lastAppliedTime,omitempty"`
 	LastAppliedGen  int64        `json:"lastAppliedGen,omitempty"`
 	Notes           string       `json:"notes,omitempty"`
+	Stale           bool         `json:"stale,omitempty"`
 }
 
 type SwitchOutPort struct {
@@ -83,9 +84,12 @@ func (out *SwitchOut) MarshalText(in SwitchIn, now time.Time) (string, error) {
 		applied = HumanizeTime(now, out.State.LastAppliedTime.Time)
 	}
 
-	heartbeat := ""
+	heartbeat := neverHeartbeat
 	if !out.State.LastHeartbeat.IsZero() {
 		heartbeat = HumanizeTime(now, out.State.LastHeartbeat.Time)
+	}
+	if out.State.Stale {
+		heartbeat = red(heartbeat + " (stale)")
 	}
 
 	str.WriteString(RenderTable(
@@ -342,6 +346,7 @@ func Switch(ctx context.Context, kube kclient.Reader, in SwitchIn) (*SwitchOut, 
 
 	if skipActual {
 		slog.Warn("Skipping actual state")
+		out.State = switchStateSummary(nil)
 
 		return out, nil
 	}
@@ -463,6 +468,7 @@ func switchStateSummary(agent *agentapi.Agent) *AgentState {
 	res.DesiredGen = agent.Generation
 
 	res.LastHeartbeat = agent.Status.LastHeartbeat
+	res.Stale = agent.IsHeartbeatStale(time.Now())
 	res.LastAttemptTime = agent.Status.LastAttemptTime
 	res.LastAttemptGen = agent.Status.LastAttemptGen
 	res.LastAppliedTime = agent.Status.LastAppliedTime

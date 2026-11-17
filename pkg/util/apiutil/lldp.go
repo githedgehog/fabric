@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"time"
 
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -185,8 +186,14 @@ func (d *lldpData) nos2APIPorts(ctx context.Context, in *switchInput, swName str
 	return ports, nil
 }
 
-// GetLLDPNeighbors returns the LLDP neighbors of the switches selected by the filter, keyed by switch name and port
-func GetLLDPNeighbors(ctx context.Context, kube kclient.Reader, filter SwitchFilter, opts LLDPNeighborsOpts) (map[string]map[string]LLDPNeighborStatus, error) {
+type LLDPSwitchStatus struct {
+	// port -> neighbors
+	Neighbors map[string]LLDPNeighborStatus `json:"neighbors,omitempty"`
+	Collected Collected                     `json:"collected"`
+}
+
+// GetLLDPNeighbors returns the LLDP neighbors of the switches selected by the filter, keyed by switch name
+func GetLLDPNeighbors(ctx context.Context, kube kclient.Reader, filter SwitchFilter, opts LLDPNeighborsOpts) (map[string]*LLDPSwitchStatus, error) {
 	if err := filter.Check(ctx, kube); err != nil {
 		return nil, err
 	}
@@ -196,14 +203,17 @@ func GetLLDPNeighbors(ctx context.Context, kube kclient.Reader, filter SwitchFil
 		return nil, err
 	}
 
-	out := map[string]map[string]LLDPNeighborStatus{}
+	out := map[string]*LLDPSwitchStatus{}
 	if err := forEachSwitch(ctx, kube, filter, nil, func(in *switchInput) error {
 		neighbors, err := lldpNeighbors(ctx, data, in, opts)
 		if err != nil {
 			return fmt.Errorf("getting LLDP neighbors for switch %s: %w", in.sw.Name, err)
 		}
 
-		out[in.sw.Name] = neighbors
+		out[in.sw.Name] = &LLDPSwitchStatus{
+			Neighbors: neighbors,
+			Collected: Collected{Time: in.ag.Status.LastHeartbeat, Stale: in.ag.IsHeartbeatStale(time.Now())},
+		}
 
 		return nil
 	}); err != nil {

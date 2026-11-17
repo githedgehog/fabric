@@ -8,13 +8,10 @@ import (
 	"context"
 	"fmt"
 	"maps"
-	"os"
 	"slices"
 	"strings"
 	"time"
 
-	"github.com/fatih/color"
-	"github.com/mattn/go-isatty"
 	"go.githedgehog.com/fabric/api/agent/v1beta1"
 	"go.githedgehog.com/fabric/api/meta"
 	"go.githedgehog.com/fabric/api/valid"
@@ -40,24 +37,15 @@ type BGPIn struct {
 
 type BGPOut struct {
 	Neighbors map[string]map[string]map[string]apiutil.BGPNeighborStatus `json:"neighbors"`
+	Collected map[string]apiutil.Collected                               `json:"collected,omitempty"`
 	Errs      []error                                                    `json:"errors"`
 }
 
 func (out *BGPOut) MarshalText(in BGPIn, now time.Time) (string, error) {
-	// TODO pass to a marshal func?
-	noColor := !isatty.IsTerminal(os.Stdout.Fd())
-
-	red := color.New(color.FgRed).SprintFunc()
-	yellow := color.New(color.FgYellow).SprintFunc()
-	if noColor {
-		red = fmt.Sprint
-		yellow = fmt.Sprint
-	}
-
 	str := &strings.Builder{}
 
 	for _, swName := range slices.Sorted(maps.Keys(out.Neighbors)) {
-		str.WriteString("Switch: " + swName + "\n")
+		str.WriteString(switchHeader(swName, out.Collected[swName], now))
 
 		data := [][]string{}
 
@@ -162,6 +150,7 @@ var (
 func BGP(ctx context.Context, kube kclient.Reader, in BGPIn) (*BGPOut, error) {
 	out := &BGPOut{
 		Neighbors: map[string]map[string]map[string]apiutil.BGPNeighborStatus{},
+		Collected: map[string]apiutil.Collected{},
 	}
 
 	status, err := getBGPStatus(ctx, kube, apiutil.SwitchFilter{Names: in.Switches, Fabric: in.Fabric, Domain: in.Domain})
@@ -171,6 +160,10 @@ func BGP(ctx context.Context, kube kclient.Reader, in BGPIn) (*BGPOut, error) {
 
 	for _, swName := range slices.Sorted(maps.Keys(status)) {
 		neighs := status[swName].Neighbors
+
+		if err := checkStale(swName, status[swName].Collected, in.Strict); err != nil {
+			out.Errs = append(out.Errs, err)
+		}
 
 		if in.Strict {
 			for vrf, vrfNeighbors := range neighs {
@@ -196,6 +189,7 @@ func BGP(ctx context.Context, kube kclient.Reader, in BGPIn) (*BGPOut, error) {
 		}
 
 		out.Neighbors[swName] = neighs
+		out.Collected[swName] = status[swName].Collected
 	}
 
 	return out, nil
