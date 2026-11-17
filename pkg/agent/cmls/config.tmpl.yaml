@@ -145,25 +145,32 @@
           stale-routes-time: 180
         state: enabled
       policy:
+        {{- if $.VPCs }}
         prefix-list:
-          host_subnets:
+          {{- range $vpc := $.VPCs }}
+          vpc-subnets--{{ $vpc.Name }}:
             rule:
-              '10':
+              {{- range $seq, $subnet := $vpc.Subnets }}
+              '{{ $seq }}':
                 action: permit
                 match:
-                  {{ $.HostSubnet }}:
-                    max-prefix-len: 31
+                  {{ $subnet }}:
+                    max-prefix-len: 32
+              {{- end }}
             type: ipv4
+          {{- end }}
+        {{- end }}
         route-map:
-          host_subnets:
+          {{- range $vpc := $.VPCs }}
+          vpc-redistribute-connected--{{ $vpc.Name }}:
             rule:
               '10':
                 action:
                   permit: {}
-                description: permit_host_subnets
                 match:
-                  ip-prefix-list: host_subnets
+                  ip-prefix-list: vpc-subnets--{{ $vpc.Name }}
                   type: ipv4
+          {{- end }}
           lo_to_bgp:
             rule:
               '10':
@@ -261,7 +268,7 @@
               ipv4-unicast:
                 redistribute:
                   connected:
-                    route-map: host_subnets
+                    route-map: vpc-redistribute-connected--{{ $vpc.Name }}
                     state: enabled
                 route-export:
                   to-evpn:

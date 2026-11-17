@@ -12,6 +12,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
+	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -55,6 +56,8 @@ func TestBuildConfigErrors(t *testing.T) {
 		bundledID uint16   // its port channel ID
 		bundledTo []string // subnets it's attached to
 		bundled2  []string // ports of server-03 bundled connection with the same port channel ID
+		vpcs      map[string]vpcapi.VPCSpec
+		vpcVNIs   map[string]uint32
 		err       string
 	}{
 		{name: "no-profile", port: "E1/1", err: "switch profile is missing"},
@@ -157,6 +160,13 @@ func TestBuildConfigErrors(t *testing.T) {
 			bundled2:  []string{"E1/4", "E1/5"},
 			err:       "port channel ID 1 is already used by conn",
 		},
+		{
+			name:    "vx-vpc-no-vni",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			vpcs:    map[string]vpcapi.VPCSpec{"vpc-01": {Subnets: map[string]*vpcapi.VPCSubnet{"default": {Subnet: "10.0.1.0/24"}}}},
+			err:     "vpc vpc-01: no VNI",
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			agent := &agentapi.Agent{
@@ -173,6 +183,8 @@ func TestBuildConfigErrors(t *testing.T) {
 						}},
 					},
 					VPCAttachments: map[string]agentapi.VPCAttachmentSpecAnn{},
+					VPCs:           tt.vpcs,
+					Catalog:        agentapi.CatalogSpec{VPCVNIs: tt.vpcVNIs},
 				},
 			}
 			if tt.subnets == nil {

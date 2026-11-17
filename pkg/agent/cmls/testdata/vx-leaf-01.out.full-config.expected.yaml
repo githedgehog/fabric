@@ -921,23 +921,54 @@
         state: enabled
       policy:
         prefix-list:
-          host_subnets:
+          vpc-subnets--vpc-01:
             rule:
-              '10':
+              '1':
                 action: permit
                 match:
-                  10.0.0.0/8:
-                    max-prefix-len: 31
+                  10.0.1.0/24:
+                    max-prefix-len: 32
+            type: ipv4
+          vpc-subnets--vpc-02:
+            rule:
+              '1':
+                action: permit
+                match:
+                  10.0.2.0/24:
+                    max-prefix-len: 32
+            type: ipv4
+          vpc-subnets--vpc-03:
+            rule:
+              '1':
+                action: permit
+                match:
+                  10.0.3.0/24:
+                    max-prefix-len: 32
             type: ipv4
         route-map:
-          host_subnets:
+          vpc-redistribute-connected--vpc-01:
             rule:
               '10':
                 action:
                   permit: {}
-                description: permit_host_subnets
                 match:
-                  ip-prefix-list: host_subnets
+                  ip-prefix-list: vpc-subnets--vpc-01
+                  type: ipv4
+          vpc-redistribute-connected--vpc-02:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                match:
+                  ip-prefix-list: vpc-subnets--vpc-02
+                  type: ipv4
+          vpc-redistribute-connected--vpc-03:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                match:
+                  ip-prefix-list: vpc-subnets--vpc-03
                   type: ipv4
           lo_to_bgp:
             rule:
@@ -1037,14 +1068,14 @@
         evpn:
           state: enabled
           vni:
-            '301': {}
+            '300': {}
         router:
           bgp:
             address-family:
               ipv4-unicast:
                 redistribute:
                   connected:
-                    route-map: host_subnets
+                    route-map: vpc-redistribute-connected--vpc-01
                     state: enabled
                 route-export:
                   to-evpn:
@@ -1060,20 +1091,20 @@
             path-selection:
               multipath:
                 aspath-ignore: enabled
-            rd: 172.30.8.2:301
+            rd: 172.30.8.2:300
             state: enabled
       vpc-02:
         evpn:
           state: enabled
           vni:
-            '401': {}
+            '400': {}
         router:
           bgp:
             address-family:
               ipv4-unicast:
                 redistribute:
                   connected:
-                    route-map: host_subnets
+                    route-map: vpc-redistribute-connected--vpc-02
                     state: enabled
                 route-export:
                   to-evpn:
@@ -1084,20 +1115,20 @@
             path-selection:
               multipath:
                 aspath-ignore: enabled
-            rd: 172.30.8.2:401
+            rd: 172.30.8.2:400
             state: enabled
       vpc-03:
         evpn:
           state: enabled
           vni:
-            '501': {}
+            '500': {}
         router:
           bgp:
             address-family:
               ipv4-unicast:
                 redistribute:
                   connected:
-                    route-map: host_subnets
+                    route-map: vpc-redistribute-connected--vpc-03
                     state: enabled
                 route-export:
                   to-evpn:
@@ -1111,7 +1142,7 @@
             path-selection:
               multipath:
                 aspath-ignore: enabled
-            rd: 172.30.8.2:501
+            rd: 172.30.8.2:500
             state: enabled
     system:
       aaa:

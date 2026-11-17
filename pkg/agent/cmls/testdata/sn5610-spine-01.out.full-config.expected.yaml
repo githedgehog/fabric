@@ -1102,25 +1102,7 @@
           stale-routes-time: 180
         state: enabled
       policy:
-        prefix-list:
-          host_subnets:
-            rule:
-              '10':
-                action: permit
-                match:
-                  10.0.0.0/8:
-                    max-prefix-len: 31
-            type: ipv4
         route-map:
-          host_subnets:
-            rule:
-              '10':
-                action:
-                  permit: {}
-                description: permit_host_subnets
-                match:
-                  ip-prefix-list: host_subnets
-                  type: ipv4
           lo_to_bgp:
             rule:
               '10':
