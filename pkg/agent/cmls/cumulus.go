@@ -383,7 +383,7 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		}
 	}
 
-	// bundled connections are LACP bonds named after their port channel IDs, the same as the SONiC port channels
+	// bundled connections are LACP bonds named after their port channel IDs
 	bonds := []*BondConfig{}
 	bondsByConn := map[string]*BondConfig{}
 	bondsByID := map[uint16]string{}
