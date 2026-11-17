@@ -25,6 +25,8 @@ spec:
       vpc-01: 3002
       vpc-02: 3003
       vpc-03: 3004
+    portChannelIDs:
+      server-05--bundled--leaf-01: 1
     staticExternalSubnetOffsets:
       leaf-01--ext-sp-01: 0
     subnetIDs:
@@ -136,6 +138,18 @@ spec:
             port: server-04/enp2s1
           switch:
             port: leaf-01/E1/4
+    server-05--bundled--leaf-01:
+      bundled:
+        fallback: true
+        links:
+          - server:
+              port: server-05/enp2s1
+            switch:
+              port: leaf-01/E1/9
+          - server:
+              port: server-05/enp2s2
+            switch:
+              port: leaf-01/E1/10
     spine-01--fabric--leaf-01:
       fabric:
         links:
@@ -356,6 +370,11 @@ spec:
     s4-v2-l1:
       connection: server-04--unbundled--leaf-01
       subnet: vpc-02/default
+    s5-v1-l1:
+      annotations:
+        fabric.githedgehog.com/p2p-link: 10.99.0.2/31
+      connection: server-05--bundled--leaf-01
+      subnet: vpc-01/default
   vpcPeers:
     vpc-01--vpc-03:
       permit:

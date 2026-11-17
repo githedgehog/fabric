@@ -35,7 +35,7 @@
         lldp:
           state: enabled
       swp2s1:
-        description: Unused
+        description: Bundled server-05 server-05--bundled--leaf-01
         ipv6:
           state: disabled
         link:
@@ -46,7 +46,7 @@
         lldp:
           state: enabled
       swp2s2:
-        description: Unused
+        description: Bundled server-05 server-05--bundled--leaf-01
         ipv6:
           state: disabled
         link:
@@ -862,6 +862,18 @@
             down: {}
         lldp:
           state: enabled
+      bond1:
+        bond:
+          member:
+            swp2s1: {}
+            swp2s2: {}
+        description: Bundled server-05 server-05--bundled--leaf-01
+        ipv6:
+          state: disabled
+        link:
+          state:
+            down: {}
+        type: bond
     system:
       aaa:
         class:

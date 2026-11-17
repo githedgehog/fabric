@@ -64,6 +64,36 @@
             state: enabled
         {{- end }}
       {{- end }}
+      {{- range $bond := $.Bonds }}
+      {{ $bond.Name }}:
+        bond:
+          {{- if $bond.LACPBypass }}
+          lacp-bypass: enabled
+          {{- end }}
+          member:
+            {{- range $member := $bond.Members }}
+            {{ $member.Name }}: {}
+            {{- end }}
+        description: {{ $bond.Description }}
+        ipv6:
+          state: disabled
+        link:
+          state:
+            {{- if $bond.Up }}
+            up: {}
+            {{- else }}
+            down: {}
+            {{- end }}
+        type: bond
+        {{- if $bond.VRF }}
+        vrf: {{ $bond.VRF }}
+        {{- end }}
+        {{- if $bond.IP }}
+        ipv4:
+          address:
+            {{ $bond.IP }}: {}
+        {{- end }}
+      {{- end }}
     evpn:
       state: enabled
     {{- if $.IsLeaf }}

@@ -137,7 +137,7 @@
           address:
             172.30.128.13/31: {}
       swp9:
-        description: Unused
+        description: Bundled server-05 server-05--bundled--leaf-01
         ipv6:
           state: disabled
         lldp:
@@ -148,9 +148,9 @@
         link:
           speed: 10G
           state:
-            down: {}
+            up: {}
       swp10:
-        description: Unused
+        description: Bundled server-05 server-05--bundled--leaf-01
         ipv6:
           state: disabled
         lldp:
@@ -161,7 +161,7 @@
         link:
           speed: 10G
           state:
-            down: {}
+            up: {}
       swp11:
         description: Unused
         ipv6:
@@ -864,6 +864,23 @@
           speed: 10G
           state:
             down: {}
+      bond1:
+        bond:
+          lacp-bypass: enabled
+          member:
+            swp9: {}
+            swp10: {}
+        description: Bundled server-05 server-05--bundled--leaf-01
+        ipv6:
+          state: disabled
+        link:
+          state:
+            up: {}
+        type: bond
+        vrf: vpc-01
+        ipv4:
+          address:
+            10.99.0.3/31: {}
     evpn:
       state: enabled
     nve:
