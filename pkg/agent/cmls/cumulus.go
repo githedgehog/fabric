@@ -24,6 +24,7 @@ import (
 	_ "embed"
 
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
+	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/switchstate"
@@ -58,6 +59,7 @@ type ConfigIn struct {
 	BGPNeighbors []BGPNeighbor
 	Ports        []*PortConfig
 	Bonds        []*BondConfig
+	Subnets      []*SubnetConfig
 	IsSpine      bool
 	IsLeaf       bool
 	IsSpectrum4  bool
@@ -97,9 +99,9 @@ type PortConfig struct {
 	Used            bool
 	Up              bool
 	Description     string
-	VRF             string
 	IP              string
 	AdaptiveRouting bool
+	BridgeMember
 }
 
 type BondConfig struct {
@@ -109,9 +111,42 @@ type BondConfig struct {
 	Attached    bool
 	Up          bool
 	Description string
-	VRF         string
+	BridgeMember
 
 	id uint16
+}
+
+// BridgeMember is a port or bond carrying the VLANs of the VPC subnets attached to it
+type BridgeMember struct {
+	VLANs    []uint16
+	Untagged uint16
+}
+
+func (m *BridgeMember) attach(vlan uint16, native bool) error {
+	if slices.Contains(m.VLANs, vlan) {
+		return fmt.Errorf("vlan %d is attached more than once", vlan) //nolint:err113
+	}
+	m.VLANs = append(m.VLANs, vlan)
+	slices.Sort(m.VLANs)
+
+	if native {
+		if m.Untagged != 0 {
+			return fmt.Errorf("native vlan is already %d", m.Untagged) //nolint:err113
+		}
+		m.Untagged = vlan
+	}
+
+	return nil
+}
+
+// SubnetConfig is an attached VPC subnet: a VLAN mapped to the subnet VNI and an SVI with the anycast gateway
+type SubnetConfig struct {
+	Name        string
+	VLAN        uint16
+	VNI         uint32
+	VRF         string
+	Gateway     string
+	Description string
 }
 
 func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
@@ -555,36 +590,95 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		})
 	}
 
-	for attachName, attach := range agent.Spec.VPCAttachments {
+	// attached VPC subnets are VLANs mapped to the subnet VNIs with an SVI in the VPC VRF, carried by the ports and
+	// bonds of the attached connections
+	subnetsByName := map[string]*SubnetConfig{}
+	subnetsByVLAN := map[uint16]string{}
+	unbundledPorts := map[string]*PortConfig{}
+	for _, attachName := range slices.Sorted(maps.Keys(agent.Spec.VPCAttachments)) {
+		attach := agent.Spec.VPCAttachments[attachName]
 		conn, ok := agent.Spec.Connections[attach.Connection]
 		if !ok {
 			continue
 		}
 
-		bond := bondsByConn[attach.Connection]
-		if bond == nil && (conn.Unbundled == nil || conn.Unbundled.Link.Switch.DeviceName() != agent.Name) {
-			continue
-		}
-
-		vpcName := attach.VPCName()
-
-		if bond != nil {
-			if bond.Attached {
-				return nil, fmt.Errorf("vpc attachment %q: bond %s is used more than once", attachName, bond.Name) //nolint:err113
-			}
+		var member *BridgeMember
+		if bond := bondsByConn[attach.Connection]; bond != nil {
 			bond.Attached = true
-			bond.VRF = vpcName
+			member = &bond.BridgeMember
+		} else if conn.Unbundled != nil && conn.Unbundled.Link.Switch.DeviceName() == agent.Name {
+			port, ok := unbundledPorts[attach.Connection]
+			if !ok {
+				var err error
+				port, err = usePort(conn.Unbundled.Link.Switch.LocalPortName())
+				if err != nil {
+					return nil, fmt.Errorf("vpc attachment %q: %w", attachName, err)
+				}
+				port.Description = fmt.Sprintf("Unbundled %s %s", conn.Unbundled.Link.Server.DeviceName(), attach.Connection)
+				unbundledPorts[attach.Connection] = port
+			}
+			member = &port.BridgeMember
+		} else {
+			_, _, connPorts, _, err := conn.Endpoints()
+			if err != nil {
+				return nil, fmt.Errorf("vpc attachment %q: getting conn %s endpoints: %w", attachName, attach.Connection, err)
+			}
+			if slices.ContainsFunc(connPorts, func(port string) bool { return strings.HasPrefix(port, agent.Name+"/") }) {
+				return nil, fmt.Errorf("vpc attachment %q: conn %s type isn't supported", attachName, attach.Connection) //nolint:err113
+			}
 
 			continue
 		}
 
-		port, err := usePort(conn.Unbundled.Link.Switch.LocalPortName())
-		if err != nil {
+		subnetCfg, ok := subnetsByName[attach.Subnet]
+		if !ok {
+			vpcName, subnetName := attach.VPCName(), attach.SubnetName()
+			vpc, ok := agent.Spec.VPCs[vpcName]
+			if !ok {
+				return nil, fmt.Errorf("vpc attachment %q: vpc %s not found", attachName, vpcName) //nolint:err113
+			}
+			subnet, ok := vpc.Subnets[subnetName]
+			if !ok || subnet == nil {
+				return nil, fmt.Errorf("vpc attachment %q: subnet %s not found", attachName, attach.Subnet) //nolint:err113
+			}
+			vni, ok := agent.Spec.Catalog.GetVPCSubnetVNI(vpcName, subnetName)
+			if !ok || vni == 0 {
+				return nil, fmt.Errorf("vpc attachment %q: subnet %s: no VNI", attachName, attach.Subnet) //nolint:err113
+			}
+			if subnet.VLAN == 0 {
+				return nil, fmt.Errorf("vpc attachment %q: subnet %s: no VLAN", attachName, attach.Subnet) //nolint:err113
+			}
+			if other, ok := subnetsByVLAN[subnet.VLAN]; ok {
+				return nil, fmt.Errorf("vpc attachment %q: vlan %d is used by both subnet %s and %s", attachName, subnet.VLAN, attach.Subnet, other) //nolint:err113
+			}
+			prefix, err := netip.ParsePrefix(subnet.Subnet)
+			if err != nil {
+				return nil, fmt.Errorf("vpc attachment %q: parsing subnet %s: %w", attachName, subnet.Subnet, err)
+			}
+			gateway, err := netip.ParseAddr(subnet.Gateway)
+			if err != nil {
+				return nil, fmt.Errorf("vpc attachment %q: parsing gateway %s: %w", attachName, subnet.Gateway, err)
+			}
+
+			subnetCfg = &SubnetConfig{
+				Name:        fmt.Sprintf("vlan%d", subnet.VLAN),
+				VLAN:        subnet.VLAN,
+				VNI:         vni,
+				VRF:         vpcName,
+				Gateway:     netip.PrefixFrom(gateway, prefix.Bits()).String(),
+				Description: "VPC " + attach.Subnet,
+			}
+			subnetsByName[attach.Subnet] = subnetCfg
+			subnetsByVLAN[subnet.VLAN] = attach.Subnet
+		}
+
+		if err := member.attach(subnetCfg.VLAN, attach.NativeVLAN); err != nil {
 			return nil, fmt.Errorf("vpc attachment %q: %w", attachName, err)
 		}
-		port.Description = fmt.Sprintf("Unbundled %s %s", conn.Unbundled.Link.Server.DeviceName(), attach.Connection)
-		port.VRF = vpcName
 	}
+	subnets := slices.SortedFunc(maps.Values(subnetsByName), func(a, b *SubnetConfig) int {
+		return cmp.Compare(a.VLAN, b.VLAN)
+	})
 
 	for _, port := range ports {
 		if port.Breakout != "" {
@@ -627,6 +721,7 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		BGPNeighbors: neighs,
 		Ports:        ports,
 		Bonds:        bonds,
+		Subnets:      subnets,
 		IsSpine:      isSpine,
 		IsLeaf:       isLeaf,
 		IsSpectrum4:  isSpectrum4,
@@ -664,6 +759,50 @@ type ZTPIn struct {
 	KubeConfig    string
 	AgentConfig   string
 	AgentVersion  string
+}
+
+// checkSupported rejects the features the full config can't express yet, the ZTP config doesn't include them, so it's
+// only checked when enforcing
+func checkSupported(agent *agentapi.Agent) error {
+	for _, vpcName := range slices.Sorted(maps.Keys(agent.Spec.VPCs)) {
+		vpc := agent.Spec.VPCs[vpcName]
+		if vpc.Mode != vpcapi.VPCModeL2VNI {
+			return fmt.Errorf("vpc %s: mode %s isn't supported", vpcName, vpc.Mode) //nolint:err113
+		}
+		if len(vpc.Permit) > 0 {
+			return fmt.Errorf("vpc %s: permit lists aren't supported", vpcName) //nolint:err113
+		}
+		if len(vpc.StaticRoutes) > 0 {
+			return fmt.Errorf("vpc %s: static routes aren't supported", vpcName) //nolint:err113
+		}
+
+		for _, subnetName := range slices.Sorted(maps.Keys(vpc.Subnets)) {
+			subnet := vpc.Subnets[subnetName]
+			if subnet == nil {
+				continue
+			}
+			if subnet.HostBGP {
+				return fmt.Errorf("vpc %s: subnet %s: host BGP isn't supported", vpcName, subnetName) //nolint:err113
+			}
+			if vpc.IsSubnetIsolated(subnetName) || vpc.IsSubnetRestricted(subnetName) {
+				return fmt.Errorf("vpc %s: subnet %s: isolated and restricted subnets aren't supported", vpcName, subnetName) //nolint:err113
+			}
+		}
+	}
+
+	if len(agent.Spec.VPCPeerings) > 0 {
+		return fmt.Errorf("vpc peerings aren't supported") //nolint:err113
+	}
+	if len(agent.Spec.ExternalAttachments) > 0 || len(agent.Spec.ExternalPeerings) > 0 {
+		return fmt.Errorf("externals aren't supported") //nolint:err113
+	}
+	for _, connName := range slices.Sorted(maps.Keys(agent.Spec.Connections)) {
+		if agent.Spec.Connections[connName].StaticExternal != nil {
+			return fmt.Errorf("conn %s: static externals aren't supported", connName) //nolint:err113
+		}
+	}
+
+	return nil
 }
 
 func BuildZTPFor(agent *agentapi.Agent, kubeConfig []byte, agentVersion string) (*bytes.Buffer, error) {
@@ -709,6 +848,10 @@ func BuildZTPFor(agent *agentapi.Agent, kubeConfig []byte, agentVersion string) 
 }
 
 func Enforce(ctx context.Context, _ /* processor */ dozer.Processor, agent *agentapi.Agent, basedir string, dryRun bool) error {
+	if err := checkSupported(agent); err != nil {
+		return err
+	}
+
 	cfgBuf, err := buildConfigFor(fullCfgTmpl, agent)
 	if err != nil {
 		return fmt.Errorf("building full config: %w", err)

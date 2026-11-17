@@ -180,62 +180,6 @@ spec:
               ip: 172.30.128.12/31
               port: spine-02/E1/2
   description: VS-01
-  externalAttachments:
-    leaf-01--ext-snp-02:
-      connection: leaf-01--external
-      external: ext-snp-02
-      neighbor: {}
-      static:
-        ip: 100.1.20.2/24
-        remoteIP: 100.1.20.1
-        vlan: 20
-      switch: {}
-      inboundACL:
-        statements:
-          - seq: 15
-            action: permit
-            protocol: tcp
-            srcPrefix: any
-            dstPrefix: 10.50.10.3/32
-            portRangeBegin: 22
-            portRangeEnd: 22
-          - seq: 20
-            action: deny
-            protocol: udp
-            srcPrefix: any
-            dstPrefix: 10.50.10.3/32
-            portRangeBegin: 4789
-            portRangeEnd: 4789
-          - seq: 25
-            action: discard
-            protocol: tcp
-            srcPrefix: any
-            dstPrefix: 10.50.10.3/32
-          - seq: 30
-            action: transit
-            protocol: udp
-            srcPrefix: any
-            dstPrefix: 10.50.10.3/32
-    leaf-01--ext-sp-01:
-      connection: leaf-01--external
-      external: ext-sp-01
-      neighbor: {}
-      static:
-        proxy: true
-        remoteIP: 100.1.10.1
-        vlan: 10
-      switch: {}
-  externalPeerings:
-    vpc-02--ext-snp-02:
-      permit:
-        external:
-          name: ext-snp-02
-          prefixes:
-            - prefix: 0.0.0.0/0
-        vpc:
-          name: vpc-02
-          subnets:
-            - default
   externals:
     ext-snp-02:
       ipv4Namespace: default
@@ -378,11 +322,6 @@ spec:
     s4-v2-l1:
       connection: server-04--unbundled--leaf-01
       subnet: vpc-02/default
-  vpcPeers:
-    vpc-01--vpc-03:
-      permit:
-        - vpc-01: {}
-          vpc-03: {}
   vpcs:
     vpc-01:
       ipv4Namespace: default

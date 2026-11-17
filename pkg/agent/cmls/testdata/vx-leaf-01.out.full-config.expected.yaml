@@ -40,7 +40,11 @@
           speed: 10G
           state:
             up: {}
-        vrf: vpc-03
+        bridge:
+          domain:
+            br_default:
+              vlan:
+                '1003': {}
       swp3:
         description: Unbundled server-03 server-03--unbundled--leaf-01
         ipv6:
@@ -54,7 +58,12 @@
           speed: 10G
           state:
             up: {}
-        vrf: vpc-01
+        bridge:
+          domain:
+            br_default:
+              vlan:
+                '1001': {}
+                '1011': {}
       swp4:
         description: Unbundled server-04 server-04--unbundled--leaf-01
         ipv6:
@@ -68,7 +77,12 @@
           speed: 10G
           state:
             up: {}
-        vrf: vpc-02
+        bridge:
+          domain:
+            br_default:
+              untagged: 1002
+              vlan:
+                '1002': {}
       swp5:
         description: Fabric spine-01/E1/1 spine-01--fabric--leaf-01
         ipv6:
@@ -874,7 +888,75 @@
           state:
             up: {}
         type: bond
+        bridge:
+          domain:
+            br_default:
+              vlan:
+                '1001': {}
+      vlan1001:
+        description: VPC vpc-01/default
+        ipv4:
+          vrr:
+            address:
+              10.0.1.1/24: {}
+            mac-address: 00:00:00:11:11:11
+            state: enabled
+        type: svi
+        vlan: 1001
         vrf: vpc-01
+      vlan1002:
+        description: VPC vpc-02/default
+        ipv4:
+          vrr:
+            address:
+              10.0.2.1/24: {}
+            mac-address: 00:00:00:11:11:11
+            state: enabled
+        type: svi
+        vlan: 1002
+        vrf: vpc-02
+      vlan1003:
+        description: VPC vpc-03/default
+        ipv4:
+          vrr:
+            address:
+              10.0.3.1/24: {}
+            mac-address: 00:00:00:11:11:11
+            state: enabled
+        type: svi
+        vlan: 1003
+        vrf: vpc-03
+      vlan1011:
+        description: VPC vpc-01/subnet-02
+        ipv4:
+          vrr:
+            address:
+              10.0.11.1/24: {}
+            mac-address: 00:00:00:11:11:11
+            state: enabled
+        type: svi
+        vlan: 1011
+        vrf: vpc-01
+    bridge:
+      domain:
+        br_default:
+          stp:
+            state:
+              down: {}
+          untagged: none
+          vlan:
+            '1001':
+              vni:
+                '301': {}
+            '1002':
+              vni:
+                '401': {}
+            '1003':
+              vni:
+                '501': {}
+            '1011':
+              vni:
+                '302': {}
     evpn:
       state: enabled
     nve:
@@ -927,6 +1009,11 @@
                 action: permit
                 match:
                   10.0.1.0/24:
+                    max-prefix-len: 32
+              '2':
+                action: permit
+                match:
+                  10.0.11.0/24:
                     max-prefix-len: 32
             type: ipv4
           vpc-subnets--vpc-02:
@@ -995,6 +1082,8 @@
                 description: enable_w_ecmp_origination
                 set:
                   ext-community-bw: multipaths
+      vrr:
+        state: enabled
     vrf:
       default:
         router:
