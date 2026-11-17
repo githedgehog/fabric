@@ -87,23 +87,23 @@
         lldp:
           state: enabled
       swp9:
-        description: Unused
+        description: Bundled server-05 server-05--bundled--leaf-01
         ipv6:
           state: disabled
         link:
           speed: 10G
           state:
-            down: {}
+            up: {}
         lldp:
           state: enabled
       swp10:
-        description: Unused
+        description: Bundled server-05 server-05--bundled--leaf-01
         ipv6:
           state: disabled
         link:
           speed: 10G
           state:
-            down: {}
+            up: {}
         lldp:
           state: enabled
       swp11:
@@ -646,6 +646,19 @@
             down: {}
         lldp:
           state: enabled
+      bond1:
+        bond:
+          lacp-bypass: enabled
+          member:
+            swp9: {}
+            swp10: {}
+        description: Bundled server-05 server-05--bundled--leaf-01
+        ipv6:
+          state: disabled
+        link:
+          state:
+            up: {}
+        type: bond
     system:
       aaa:
         class:

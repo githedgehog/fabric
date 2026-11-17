@@ -5,6 +5,7 @@ package cmls
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -58,6 +59,7 @@ type ConfigIn struct {
 	VPCs         []VPC
 	BGPNeighbors []BGPNeighbor
 	Ports        []*PortConfig
+	Bonds        []*BondConfig
 	IsSpine      bool
 	IsLeaf       bool
 	IsSpectrum4  bool
@@ -100,6 +102,19 @@ type PortConfig struct {
 	VRF             string
 	IP              string
 	AdaptiveRouting bool
+}
+
+type BondConfig struct {
+	Name        string
+	Members     []*PortConfig
+	LACPBypass  bool
+	Attached    bool
+	Up          bool
+	Description string
+	VRF         string
+	IP          string
+
+	id uint16
 }
 
 func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
@@ -371,6 +386,56 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		}
 	}
 
+	// bundled connections are LACP bonds named after their port channel IDs, the same as the SONiC port channels
+	bonds := []*BondConfig{}
+	bondsByConn := map[string]*BondConfig{}
+	bondsByID := map[uint16]string{}
+	for connName, conn := range agent.Spec.Connections {
+		if conn.Bundled == nil {
+			continue
+		}
+
+		bond := &BondConfig{LACPBypass: conn.Bundled.Fallback}
+		memberPortNames := []string{}
+		for _, link := range conn.Bundled.Links {
+			if link.Switch.DeviceName() != agent.Name {
+				continue
+			}
+
+			memberPortNames = append(memberPortNames, link.Switch.LocalPortName())
+			bond.Description = fmt.Sprintf("Bundled %s %s", link.Server.DeviceName(), connName)
+		}
+		if len(memberPortNames) == 0 {
+			continue
+		}
+
+		bond.id = agent.Spec.Catalog.PortChannelIDs[connName]
+		if bond.id == 0 {
+			return nil, fmt.Errorf("conn %s: no port channel ID", connName) //nolint:err113
+		}
+		if other, ok := bondsByID[bond.id]; ok {
+			return nil, fmt.Errorf("conn %s: port channel ID %d is already used by conn %s", connName, bond.id, other) //nolint:err113
+		}
+		bondsByID[bond.id] = connName
+		bond.Name = fmt.Sprintf("bond%d", bond.id)
+
+		wiringapi.SortPortNames(memberPortNames)
+		for _, memberPortName := range memberPortNames {
+			port, err := usePort(memberPortName)
+			if err != nil {
+				return nil, fmt.Errorf("conn %s: %w", connName, err)
+			}
+			port.Description = bond.Description
+			bond.Members = append(bond.Members, port)
+		}
+
+		bonds = append(bonds, bond)
+		bondsByConn[connName] = bond
+	}
+	slices.SortFunc(bonds, func(a, b *BondConfig) int {
+		return cmp.Compare(a.id, b.id)
+	})
+
 	neighs := []BGPNeighbor{}
 	for connName, conn := range agent.Spec.Connections {
 		if conn.Fabric == nil {
@@ -500,11 +565,8 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 			continue
 		}
 
-		if conn.Unbundled == nil {
-			continue
-		}
-
-		if conn.Unbundled.Link.Switch.DeviceName() != agent.Name {
+		bond := bondsByConn[attach.Connection]
+		if bond == nil && (conn.Unbundled == nil || conn.Unbundled.Link.Switch.DeviceName() != agent.Name) {
 			continue
 		}
 
@@ -520,6 +582,17 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 				return nil, fmt.Errorf("p2p subnet %q for vpc attachment %q is not /31", p2pSubnet, attachName) //nolint:err113
 			}
 			ip = netip.PrefixFrom(p2p.Masked().Addr().Next(), p2p.Bits()).String() // even goes to the host, odd to the switch
+		}
+
+		if bond != nil {
+			if bond.Attached {
+				return nil, fmt.Errorf("vpc attachment %q: bond %s is used more than once", attachName, bond.Name) //nolint:err113
+			}
+			bond.Attached = true
+			bond.VRF = vpcName
+			bond.IP = ip
+
+			continue
 		}
 
 		port, err := usePort(conn.Unbundled.Link.Switch.LocalPortName())
@@ -539,6 +612,14 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		port.Up = port.Used || agent.Spec.Switch.EnableAllPorts
 		if !port.Used {
 			port.Description = "Unused"
+		}
+	}
+
+	// bonds and their members are only up when attached, the same as the unbundled ports
+	for _, bond := range bonds {
+		bond.Up = bond.Attached || agent.Spec.Switch.EnableAllPorts
+		for _, port := range bond.Members {
+			port.Up = bond.Up
 		}
 	}
 
@@ -563,6 +644,7 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		VPCs:         vpcs,
 		BGPNeighbors: neighs,
 		Ports:        ports,
+		Bonds:        bonds,
 		IsSpine:      isSpine,
 		IsLeaf:       isLeaf,
 		IsSpectrum4:  isSpectrum4,

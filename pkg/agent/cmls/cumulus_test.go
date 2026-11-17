@@ -51,6 +51,10 @@ func TestBuildConfigErrors(t *testing.T) {
 		fecs      map[string]wiringapi.PortFECMode
 		port      string
 		subnets   []string
+		bundled   []string // ports of server-02 bundled connection
+		bundledID uint16   // its port channel ID
+		bundledTo []string // subnets it's attached to
+		bundled2  []string // ports of server-03 bundled connection with the same port channel ID
 		err       string
 	}{
 		{name: "no-profile", port: "E1/1", err: "switch profile is missing"},
@@ -120,6 +124,39 @@ func TestBuildConfigErrors(t *testing.T) {
 			port:    "E1/1",
 			err:     `port E1/2 FEC mode "bad" is invalid`,
 		},
+		{
+			name:    "vx-bundled-no-port-channel-id",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			bundled: []string{"E1/2", "E1/3"},
+			err:     "conn server-02--bundled--leaf-01: no port channel ID",
+		},
+		{
+			name:      "vx-bundled-port-used-twice",
+			profile:   &switchprofile.CumulusVX,
+			port:      "E1/1",
+			bundled:   []string{"E1/1", "E1/2"},
+			bundledID: 1,
+			err:       "port E1/1 is used more than once",
+		},
+		{
+			name:      "vx-bundled-attached-twice",
+			profile:   &switchprofile.CumulusVX,
+			port:      "E1/1",
+			bundled:   []string{"E1/2", "E1/3"},
+			bundledID: 1,
+			bundledTo: []string{"vpc-01/default", "vpc-02/default"},
+			err:       "bond bond1 is used more than once",
+		},
+		{
+			name:      "vx-bundled-port-channel-id-used-twice",
+			profile:   &switchprofile.CumulusVX,
+			port:      "E1/1",
+			bundled:   []string{"E1/2", "E1/3"},
+			bundledID: 1,
+			bundled2:  []string{"E1/4", "E1/5"},
+			err:       "port channel ID 1 is already used by conn",
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			agent := &agentapi.Agent{
@@ -144,6 +181,31 @@ func TestBuildConfigErrors(t *testing.T) {
 			for _, subnet := range tt.subnets {
 				agent.Spec.VPCAttachments["server-01--"+strings.ReplaceAll(subnet, "/", "--")] = agentapi.VPCAttachmentSpecAnn{
 					Connection: "server-01--unbundled--leaf-01",
+					Subnet:     subnet,
+				}
+			}
+			agent.Spec.Catalog.PortChannelIDs = map[string]uint16{}
+			for server, ports := range map[string][]string{"server-02": tt.bundled, "server-03": tt.bundled2} {
+				if ports == nil {
+					continue
+				}
+
+				bundled := &wiringapi.ConnBundled{}
+				for idx, port := range ports {
+					bundled.Links = append(bundled.Links, wiringapi.ServerToSwitchLink{
+						Server: wiringapi.BasePortName{Port: fmt.Sprintf("%s/enp2s%d", server, idx+1)},
+						Switch: wiringapi.BasePortName{Port: "leaf-01/" + port},
+					})
+				}
+				connName := server + "--bundled--leaf-01"
+				agent.Spec.Connections[connName] = wiringapi.ConnectionSpec{Bundled: bundled}
+				if tt.bundledID != 0 {
+					agent.Spec.Catalog.PortChannelIDs[connName] = tt.bundledID
+				}
+			}
+			for _, subnet := range tt.bundledTo {
+				agent.Spec.VPCAttachments["server-02--"+strings.ReplaceAll(subnet, "/", "--")] = agentapi.VPCAttachmentSpecAnn{
+					Connection: "server-02--bundled--leaf-01",
 					Subnet:     subnet,
 				}
 			}

@@ -25,6 +25,8 @@ spec:
       vpc-01: 3002
       vpc-02: 3003
       vpc-03: 3004
+    portChannelIDs:
+      server-05--bundled--leaf-01: 1
     staticExternalSubnetOffsets:
       leaf-01--ext-sp-01: 0
     subnetIDs:
@@ -136,6 +138,17 @@ spec:
             port: server-04/enp2s1
           switch:
             port: leaf-01/E1/65
+    server-05--bundled--leaf-01:
+      bundled:
+        links:
+          - server:
+              port: server-05/enp2s1
+            switch:
+              port: leaf-01/E1/2/2
+          - server:
+              port: server-05/enp2s2
+            switch:
+              port: leaf-01/E1/2/3
     spine-01--fabric--leaf-01:
       fabric:
         links:
