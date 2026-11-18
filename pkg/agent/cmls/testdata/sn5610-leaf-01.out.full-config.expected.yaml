@@ -1583,6 +1583,13 @@
               ar.p.ef = FALSE
               ar.ecs = 512
               ar.ibm = ingress
+          ifupdown2_eni:
+            vlan1001: |
+              address-virtual-ipv6-addrgen off
+            vlan1002: |
+              address-virtual-ipv6-addrgen off
+            vlan1003: |
+              address-virtual-ipv6-addrgen off
       control-plane:
         acl:
           acl-default-dos:

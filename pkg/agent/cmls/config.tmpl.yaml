@@ -431,8 +431,9 @@
       config:
         auto-save:
           state: enabled
-        {{- if $.IsSpectrum4 }}
+        {{- if or $.IsSpectrum4 $.Subnets }}
         snippet:
+          {{- if $.IsSpectrum4 }}
           adaptive_routing_conf-snippet:
             file: /etc/cumulus/switchd.d/ar_profile_custom.conf
             content: |
@@ -450,6 +451,14 @@
               ar.p.ef = FALSE
               ar.ecs = 512
               ar.ibm = ingress
+          {{- end }}
+          {{- if $.Subnets }}
+          ifupdown2_eni:
+            {{- range $subnet := $.Subnets }}
+            {{ $subnet.Name }}: |
+              address-virtual-ipv6-addrgen off
+            {{- end }}
+          {{- end }}
         {{- end }}
       control-plane:
         acl:
