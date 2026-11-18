@@ -1153,6 +1153,8 @@
               10.0.1.1/24: {}
             mac-address: 00:00:00:11:11:11
             state: enabled
+        ipv6:
+          state: disabled
         type: svi
         vlan: 1001
         vrf: vpc-01
@@ -1166,6 +1168,8 @@
               10.0.2.1/24: {}
             mac-address: 00:00:00:11:11:11
             state: enabled
+        ipv6:
+          state: disabled
         type: svi
         vlan: 1002
         vrf: vpc-02
@@ -1179,6 +1183,8 @@
               10.0.3.1/24: {}
             mac-address: 00:00:00:11:11:11
             state: enabled
+        ipv6:
+          state: disabled
         type: svi
         vlan: 1003
         vrf: vpc-03
