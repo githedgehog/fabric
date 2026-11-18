@@ -1471,6 +1471,24 @@
                 aspath-ignore: enabled
             rd: 172.30.8.2:500
             state: enabled
+    service:
+      dhcp-relay:
+        mgmt:
+          agent:
+            remote-id: cumulus:leaf-01
+            state: enabled
+          downstream-interface:
+            vlan1003:
+              server-group-name: hh
+          gateway-interface:
+            eth0:
+              address: auto
+          server-group:
+            hh:
+              server:
+                172.30.0.1: {}
+              upstream-interface:
+                eth0: {}
     system:
       aaa:
         class:

@@ -339,6 +339,30 @@
             rd: {{ $.RouterID }}:{{ $vpc.VNI }}
             state: enabled
       {{- end }}
+    {{- if $.DHCPServer }}
+    service:
+      dhcp-relay:
+        mgmt:
+          agent:
+            remote-id: cumulus:{{ $.Hostname }}
+            state: enabled
+          downstream-interface:
+            {{- range $subnet := $.Subnets }}
+            {{- if $subnet.DHCP }}
+            {{ $subnet.Name }}:
+              server-group-name: hh
+            {{- end }}
+            {{- end }}
+          gateway-interface:
+            eth0:
+              address: auto
+          server-group:
+            hh:
+              server:
+                {{ $.DHCPServer }}: {}
+              upstream-interface:
+                eth0: {}
+    {{- end }}
     system:
       aaa:
         class:
