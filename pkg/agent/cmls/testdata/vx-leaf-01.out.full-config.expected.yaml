@@ -1333,6 +1333,8 @@
                       key: AAAAC3NzaC1lZDI1NTE5AAAAIILr33oUspqfHiKC9BaenkKG3nIznbi/Ep3mmsMZjS4U
                       type: ssh-ed25519
       api:
+        listening-address:
+          127.0.0.1: {}
         state: enabled
       config:
         auto-save:
@@ -1364,6 +1366,8 @@
             op: {}
         permit-root-login: disabled
         state: enabled
+        vrf:
+          mgmt: {}
       wjh:
         channel:
           forwarding:

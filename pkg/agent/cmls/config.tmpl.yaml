@@ -425,6 +425,8 @@
               {{- end }}
           {{- end }}
       api:
+        listening-address:
+          127.0.0.1: {}
         state: enabled
       config:
         auto-save:
@@ -477,6 +479,8 @@
           {{- end }}
         permit-root-login: disabled
         state: enabled
+        vrf:
+          mgmt: {}
       wjh:
         channel:
           forwarding:
