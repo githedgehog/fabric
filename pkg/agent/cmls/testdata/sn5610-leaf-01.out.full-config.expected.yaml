@@ -1146,6 +1146,8 @@
       vlan1001:
         description: VPC vpc-01/default
         ipv4:
+          address:
+            172.30.8.2/32: {}
           vrr:
             address:
               10.0.1.1/24: {}
@@ -1157,6 +1159,8 @@
       vlan1002:
         description: VPC vpc-02/default
         ipv4:
+          address:
+            172.30.8.2/32: {}
           vrr:
             address:
               10.0.2.1/24: {}
@@ -1168,6 +1172,8 @@
       vlan1003:
         description: VPC vpc-03/default
         ipv4:
+          address:
+            172.30.8.2/32: {}
           vrr:
             address:
               10.0.3.1/24: {}
