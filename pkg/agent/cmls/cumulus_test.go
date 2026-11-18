@@ -301,6 +301,13 @@ func TestBuildConfigErrors(t *testing.T) {
 			err:     "vpc vpc-01: no VNI",
 		},
 		{
+			name:    "vx-vpc-vni-not-multiple-of-100",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate:  func(agent *agentapi.Agent) { agent.Spec.Catalog.VPCVNIs["vpc-02"] = 250 },
+			err:     "vpc vpc-02: VNI 250 isn't a multiple of 100 below 4000000",
+		},
+		{
 			name:    "vx-subnet-no-vni",
 			profile: &switchprofile.CumulusVX,
 			port:    "E1/1",

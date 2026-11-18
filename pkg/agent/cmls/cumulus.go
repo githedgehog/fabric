@@ -87,11 +87,18 @@ type BGPNeighbor struct {
 }
 
 type VPC struct {
-	Name      string
-	VNI       uint32
-	Subnets   map[int]string // subnet position in the VPC -> subnet, as NVUE only allows a single prefix per rule
-	RouteSumm []string
-	Peers     []string
+	Name        string
+	VNI         uint32
+	Subnets     map[uint32]string // subnet VNI % 100 -> subnet, as NVUE only allows a single prefix per rule
+	RouteSumm   []string
+	Peers       []VPCPeer
+	PeerSubnets map[uint32]string // subnet VNI -> subnet of all peered VPCs
+}
+
+// VPCPeer is a peered VPC, only its own subnets are imported from its VRF
+type VPCPeer struct {
+	Name   string
+	RuleID uint32
 }
 
 type PortConfig struct {
@@ -575,8 +582,39 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		}
 	}
 
-	// peered VPCs import the routes from each other's VRF, without filtering them yet
-	peers := map[string][]string{}
+	vpcVNIs := map[string]uint32{}
+	vpcSubnets := map[string]map[uint32]string{} // vpc -> subnet VNI -> subnet
+	for vpcName, vpc := range agent.Spec.VPCs {
+		vni := agent.Spec.Catalog.VPCVNIs[vpcName]
+		if vni == 0 {
+			return nil, fmt.Errorf("vpc %s: no VNI", vpcName) //nolint:err113
+		}
+		// VNI / 100 is the import route-map rule ID of the VPC, 50000 and up are reserved
+		if vni%100 != 0 || vni/100 >= 40000 {
+			return nil, fmt.Errorf("vpc %s: VNI %d isn't a multiple of 100 below 4000000", vpcName, vni) //nolint:err113
+		}
+		vpcVNIs[vpcName] = vni
+
+		vpcSubnets[vpcName] = map[uint32]string{}
+		for subnetName, subnet := range vpc.Subnets {
+			subnetVNI, ok := agent.Spec.Catalog.GetVPCSubnetVNI(vpcName, subnetName)
+			if !ok || subnetVNI == 0 {
+				return nil, fmt.Errorf("subnet %s/%s: no VNI", vpcName, subnetName) //nolint:err113
+			}
+			vpcSubnets[vpcName][subnetVNI] = subnet.Subnet
+		}
+	}
+
+	// peered VPCs import only each other's own subnets from each other's VRFs, so peering isn't transitive
+	peers := map[string][]VPCPeer{}
+	peerSubnets := map[string]map[uint32]string{}
+	addPeer := func(vpcName, peerName string) {
+		peers[vpcName] = append(peers[vpcName], VPCPeer{Name: peerName, RuleID: 10000 + vpcVNIs[peerName]/100})
+		if peerSubnets[vpcName] == nil {
+			peerSubnets[vpcName] = map[uint32]string{}
+		}
+		maps.Copy(peerSubnets[vpcName], vpcSubnets[peerName])
+	}
 	for _, peeringName := range slices.Sorted(maps.Keys(agent.Spec.VPCPeerings)) {
 		peering := agent.Spec.VPCPeerings[peeringName]
 		vpc1, vpc2, err := peering.VPCs()
@@ -588,29 +626,25 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 				return nil, fmt.Errorf("vpc peering %s: vpc %s not found", peeringName, vpcName) //nolint:err113
 			}
 		}
-		peers[vpc1] = append(peers[vpc1], vpc2)
-		peers[vpc2] = append(peers[vpc2], vpc1)
+		addPeer(vpc1, vpc2)
+		addPeer(vpc2, vpc1)
 	}
 
 	// a VRF per VPC attached to the switch or peered with one, with the VPC VNI as L3VNI
 	vpcs := []VPC{}
-	for vpcName, vpc := range agent.Spec.VPCs {
-		vni := agent.Spec.Catalog.VPCVNIs[vpcName]
-		if vni == 0 {
-			return nil, fmt.Errorf("vpc %s: no VNI", vpcName) //nolint:err113
-		}
-
-		subnets := map[int]string{}
-		for idx, subnetName := range slices.Sorted(maps.Keys(vpc.Subnets)) {
-			subnets[idx+1] = vpc.Subnets[subnetName].Subnet
+	for vpcName := range agent.Spec.VPCs {
+		subnets := map[uint32]string{}
+		for subnetVNI, subnet := range vpcSubnets[vpcName] {
+			subnets[subnetVNI%100] = subnet
 		}
 
 		vpcs = append(vpcs, VPC{
-			Name:      vpcName,
-			VNI:       vni,
-			Subnets:   subnets,
-			RouteSumm: routeSumm[vpcName],
-			Peers:     slices.Sorted(slices.Values(peers[vpcName])),
+			Name:        vpcName,
+			VNI:         vpcVNIs[vpcName],
+			Subnets:     subnets,
+			RouteSumm:   routeSumm[vpcName],
+			Peers:       slices.SortedFunc(slices.Values(peers[vpcName]), func(a, b VPCPeer) int { return cmp.Compare(a.Name, b.Name) }),
+			PeerSubnets: peerSubnets[vpcName],
 		})
 	}
 
