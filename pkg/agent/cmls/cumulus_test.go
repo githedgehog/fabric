@@ -323,12 +323,33 @@ func TestBuildConfigErrors(t *testing.T) {
 			subnets: []string{"vpc-09/default"},
 			err:     "vpc vpc-09 not found",
 		},
+		{
+			name:    "vx-svi-workaround-subnet-invalid",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate:  func(agent *agentapi.Agent) { agent.Spec.Config.CumulusSVIWorkaroundSubnet = "172.30.96.0" },
+			err:     "parsing Cumulus SVI workaround subnet",
+		},
+		{
+			name:    "vx-svi-workaround-subnet-ipv6",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate:  func(agent *agentapi.Agent) { agent.Spec.Config.CumulusSVIWorkaroundSubnet = "fd00::/64" },
+			err:     "parsing Cumulus SVI workaround subnet: fd00::/64 isn't IPv4",
+		},
+		{
+			name:    "vx-svi-workaround-subnet-too-small",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate:  func(agent *agentapi.Agent) { agent.Spec.Config.CumulusSVIWorkaroundSubnet = "172.30.96.0/24" },
+			err:     "vlan 1001 doesn't fit Cumulus SVI workaround subnet 172.30.96.0/24",
+		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			agent := &agentapi.Agent{
 				Name: "leaf-01",
 				Spec: agentapi.AgentSpec{
-					Config: agentapi.AgentSpecConfig{ControlVIP: "172.30.0.1/32"},
+					Config: agentapi.AgentSpecConfig{ControlVIP: "172.30.0.1/32", CumulusSVIWorkaroundSubnet: "172.30.96.0/19"},
 					Switch: wiringapi.SwitchSpec{ProtocolIP: "172.30.8.1/32", PortBreakouts: tt.breakouts, PortSpeeds: tt.speeds, PortAutoNegs: tt.autoNegs, PortFECs: tt.fecs},
 					Connections: map[string]wiringapi.ConnectionSpec{
 						"server-01--unbundled--leaf-01": {Unbundled: &wiringapi.ConnUnbundled{

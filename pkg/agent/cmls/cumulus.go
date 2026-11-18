@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"cmp"
 	"context"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -24,6 +25,7 @@ import (
 	_ "embed"
 
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
+	fmeta "go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
@@ -148,6 +150,7 @@ type SubnetConfig struct {
 	VNI         uint32
 	VRF         string
 	Gateway     string
+	IP          string
 	Description string
 	DHCP        bool
 }
@@ -611,6 +614,16 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		})
 	}
 
+	// the DHCP relay sends a reply out of the first interface with the IP from the link selection it got, so the SVIs
+	// need unique IPs of their own, taken as base + VLAN
+	sviSubnet, err := netip.ParsePrefix(cmp.Or(agent.Spec.Config.CumulusSVIWorkaroundSubnet, fmeta.DefaultCumulusSVIWorkaroundSubnet))
+	if err != nil {
+		return nil, fmt.Errorf("parsing Cumulus SVI workaround subnet: %w", err)
+	}
+	if !sviSubnet.Addr().Is4() {
+		return nil, fmt.Errorf("parsing Cumulus SVI workaround subnet: %s isn't IPv4", sviSubnet) //nolint:err113
+	}
+
 	// attached VPC subnets are VLANs mapped to the subnet VNIs with an SVI in the VPC VRF, carried by the ports and
 	// bonds of the attached connections
 	subnetsByName := map[string]*SubnetConfig{}
@@ -680,6 +693,11 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 			if err != nil {
 				return nil, fmt.Errorf("vpc attachment %q: parsing gateway %s: %w", attachName, subnet.Gateway, err)
 			}
+			sviBase := sviSubnet.Masked().Addr().As4()
+			sviIP := netip.AddrFrom4([4]byte(binary.BigEndian.AppendUint32(nil, binary.BigEndian.Uint32(sviBase[:])+uint32(subnet.VLAN))))
+			if !sviSubnet.Contains(sviIP) {
+				return nil, fmt.Errorf("vpc attachment %q: vlan %d doesn't fit Cumulus SVI workaround subnet %s", attachName, subnet.VLAN, sviSubnet) //nolint:err113
+			}
 
 			subnetCfg = &SubnetConfig{
 				Name:        fmt.Sprintf("vlan%d", subnet.VLAN),
@@ -687,6 +705,7 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 				VNI:         vni,
 				VRF:         vpcName,
 				Gateway:     netip.PrefixFrom(gateway, prefix.Bits()).String(),
+				IP:          netip.PrefixFrom(sviIP, 32).String(),
 				Description: "VPC " + attach.Subnet,
 				DHCP:        subnet.DHCP.Enable,
 			}

@@ -79,6 +79,7 @@ spec:
       targets: {}
     baseVPCCommunity: "50000:0"
     controlVIP: 172.30.0.1/32
+    cumulusSVIWorkaroundSubnet: 172.30.96.0/19
     defaultMaxPathsEBGP: 64
     domains:
       default:
