@@ -62,6 +62,7 @@ type ConfigIn struct {
 	Ports        []*PortConfig
 	Bonds        []*BondConfig
 	Subnets      []*SubnetConfig
+	SubnetACLs   []*SubnetConfig
 	DHCPServer   string
 	IsSpine      bool
 	IsLeaf       bool
@@ -160,6 +161,8 @@ type SubnetConfig struct {
 	IP          string
 	Description string
 	DHCP        bool
+	ACL         string
+	Deny        map[uint32]string // subnet ID -> peered VPC subnet this one isn't permitted to reach
 }
 
 func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
@@ -742,6 +745,8 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 				IP:          netip.PrefixFrom(sviIP, 32).String(),
 				Description: "VPC " + attach.Subnet,
 				DHCP:        subnet.DHCP.Enable,
+				ACL:         fmt.Sprintf("vpc-filtering--%s--%s", vpcName, subnetName),
+				Deny:        map[uint32]string{},
 			}
 			subnetsByName[attach.Subnet] = subnetCfg
 			subnetsByVLAN[subnet.VLAN] = attach.Subnet
@@ -751,6 +756,23 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 			return nil, fmt.Errorf("vpc attachment %q: %w", attachName, err)
 		}
 	}
+
+	// the routes are imported for the whole peered VPCs, so the traffic to the peered subnets that aren't permitted is
+	// dropped on the ingress of the attached subnets
+	for _, peeringName := range slices.Sorted(maps.Keys(agent.Spec.VPCPeerings)) {
+		peering := agent.Spec.VPCPeerings[peeringName]
+		vpc1, vpc2, err := peering.VPCs()
+		if err != nil {
+			return nil, fmt.Errorf("vpc peering %s: %w", peeringName, err)
+		}
+		if err := denyPeerSubnets(agent, subnetsByName, peering, vpc1, vpc2); err != nil {
+			return nil, fmt.Errorf("vpc peering %s: %w", peeringName, err)
+		}
+		if err := denyPeerSubnets(agent, subnetsByName, peering, vpc2, vpc1); err != nil {
+			return nil, fmt.Errorf("vpc peering %s: %w", peeringName, err)
+		}
+	}
+
 	subnets := slices.SortedFunc(maps.Values(subnetsByName), func(a, b *SubnetConfig) int {
 		return cmp.Compare(a.VLAN, b.VLAN)
 	})
@@ -797,6 +819,7 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		Ports:        ports,
 		Bonds:        bonds,
 		Subnets:      subnets,
+		SubnetACLs:   slices.DeleteFunc(slices.Clone(subnets), func(subnet *SubnetConfig) bool { return len(subnet.Deny) == 0 }),
 		IsSpine:      isSpine,
 		IsLeaf:       isLeaf,
 		IsSpectrum4:  isSpectrum4,
@@ -841,6 +864,45 @@ type ZTPIn struct {
 	AgentVersion  string
 }
 
+// denyPeerSubnets adds the subnets of the peer VPC that aren't permitted to the attached subnets of the VPC, the subnet
+// lists of a permit entry default to all subnets
+func denyPeerSubnets(agent *agentapi.Agent, subnetsByName map[string]*SubnetConfig, peering vpcapi.VPCPeeringSpec, vpcName, peerName string) error {
+	peer := agent.Spec.VPCs[peerName]
+	for subnetName := range agent.Spec.VPCs[vpcName].Subnets {
+		subnetCfg, ok := subnetsByName[vpcName+"/"+subnetName]
+		if !ok {
+			continue
+		}
+
+		permitted := map[string]bool{}
+		for _, permit := range peering.Permit {
+			if own := permit[vpcName].Subnets; len(own) > 0 && !slices.Contains(own, subnetName) {
+				continue
+			}
+			peerSubnets := permit[peerName].Subnets
+			if len(peerSubnets) == 0 {
+				peerSubnets = slices.Collect(maps.Keys(peer.Subnets))
+			}
+			for _, peerSubnetName := range peerSubnets {
+				permitted[peerSubnetName] = true
+			}
+		}
+
+		for peerSubnetName, peerSubnet := range peer.Subnets {
+			if permitted[peerSubnetName] {
+				continue
+			}
+			subnetID := agent.Spec.Catalog.SubnetIDs[peerSubnet.Subnet]
+			if subnetID < 100 || subnetID >= 65000 {
+				return fmt.Errorf("subnet %s/%s: subnet ID %d isn't between 100 and 65000", peerName, peerSubnetName, subnetID) //nolint:err113
+			}
+			subnetCfg.Deny[subnetID] = peerSubnet.Subnet
+		}
+	}
+
+	return nil
+}
+
 // checkSupported rejects the features the full config can't express yet, the ZTP config doesn't include them, so it's
 // only checked when enforcing
 func checkSupported(agent *agentapi.Agent) error {
@@ -877,13 +939,6 @@ func checkSupported(agent *agentapi.Agent) error {
 		peering := agent.Spec.VPCPeerings[peeringName]
 		if peering.Remote != "" {
 			return fmt.Errorf("vpc peering %s: remote peerings aren't supported", peeringName) //nolint:err113
-		}
-		for _, permit := range peering.Permit {
-			for _, peer := range permit {
-				if len(peer.Subnets) > 0 {
-					return fmt.Errorf("vpc peering %s: permitting only some subnets isn't supported", peeringName) //nolint:err113
-				}
-			}
 		}
 	}
 	for _, connName := range slices.Sorted(maps.Keys(agent.Spec.Connections)) {

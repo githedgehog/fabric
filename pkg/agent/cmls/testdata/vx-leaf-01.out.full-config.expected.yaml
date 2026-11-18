@@ -1,4 +1,29 @@
 - set:
+    acl:
+      vpc-filtering--vpc-01--default:
+        rule:
+          '102':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: 10.0.3.0/24
+          '65535':
+            action:
+              permit: {}
+        type: ipv4
+      vpc-filtering--vpc-03--default:
+        rule:
+          '100':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: 10.0.1.0/24
+          '65535':
+            action:
+              permit: {}
+        type: ipv4
     interface:
       eth0:
         ipv6:
@@ -897,6 +922,9 @@
               vlan:
                 '1001': {}
       vlan1001:
+        acl:
+          vpc-filtering--vpc-01--default:
+            inbound: {}
         description: VPC vpc-01/default
         ipv4:
           address:
@@ -927,6 +955,9 @@
         vlan: 1002
         vrf: vpc-02
       vlan1003:
+        acl:
+          vpc-filtering--vpc-03--default:
+            inbound: {}
         description: VPC vpc-03/default
         ipv4:
           address:

@@ -1,4 +1,23 @@
 - set:
+    {{- if $.SubnetACLs }}
+    acl:
+      {{- range $subnet := $.SubnetACLs }}
+      {{ $subnet.ACL }}:
+        rule:
+          {{- range $id, $prefix := $subnet.Deny }}
+          '{{ $id }}':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: {{ $prefix }}
+          {{- end }}
+          '65535':
+            action:
+              permit: {}
+        type: ipv4
+      {{- end }}
+    {{- end }}
     interface:
       eth0:
         ipv6:
@@ -113,6 +132,11 @@
       {{- end }}
       {{- range $subnet := $.Subnets }}
       {{ $subnet.Name }}:
+        {{- if $subnet.Deny }}
+        acl:
+          {{ $subnet.ACL }}:
+            inbound: {}
+        {{- end }}
         description: {{ $subnet.Description }}
         ipv4:
           address:

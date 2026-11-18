@@ -379,7 +379,9 @@ spec:
   vpcPeers:
     vpc-01--vpc-03:
       permit:
-        - vpc-01: {}
+        - vpc-01:
+            subnets:
+              - subnet-02
           vpc-03: {}
   vpcs:
     vpc-01:
