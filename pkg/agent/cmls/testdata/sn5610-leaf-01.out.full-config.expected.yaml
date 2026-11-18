@@ -51,6 +51,7 @@
         bridge:
           domain:
             br_default:
+              untagged: none
               vlan:
                 '1003': {}
       swp2s1:
@@ -130,6 +131,7 @@
         bridge:
           domain:
             br_default:
+              untagged: none
               vlan:
                 '1001': {}
       swp4:
@@ -1111,6 +1113,7 @@
         bridge:
           domain:
             br_default:
+              untagged: none
               vlan:
                 '1002': {}
       swp66:

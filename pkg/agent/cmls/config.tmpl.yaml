@@ -56,6 +56,8 @@
             br_default:
               {{- if $port.Untagged }}
               untagged: {{ $port.Untagged }}
+              {{- else }}
+              untagged: none
               {{- end }}
               vlan:
                 {{- range $vlan := $port.VLANs }}
@@ -100,6 +102,8 @@
             br_default:
               {{- if $bond.Untagged }}
               untagged: {{ $bond.Untagged }}
+              {{- else }}
+              untagged: none
               {{- end }}
               vlan:
                 {{- range $vlan := $bond.VLANs }}
