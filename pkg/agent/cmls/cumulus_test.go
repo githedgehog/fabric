@@ -167,13 +167,38 @@ func TestBuildConfigErrors(t *testing.T) {
 			err:     "vpc vpc-01: subnet default: isolated and restricted subnets aren't supported",
 		},
 		{
-			name:    "vx-vpc-peering-unsupported",
+			name:    "vx-vpc-peering-remote-unsupported",
 			profile: &switchprofile.CumulusVX,
 			port:    "E1/1",
 			mutate: func(agent *agentapi.Agent) {
-				agent.Spec.VPCPeerings = map[string]vpcapi.VPCPeeringSpec{"vpc-01--vpc-02": {}}
+				agent.Spec.VPCPeerings = map[string]vpcapi.VPCPeeringSpec{"vpc-01--vpc-02": {
+					Remote: "border",
+					Permit: []map[string]vpcapi.VPCPeer{{"vpc-01": {}, "vpc-02": {}}},
+				}}
 			},
-			err: "vpc peerings aren't supported",
+			err: "vpc peering vpc-01--vpc-02: remote peerings aren't supported",
+		},
+		{
+			name:    "vx-vpc-peering-subnets-unsupported",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: func(agent *agentapi.Agent) {
+				agent.Spec.VPCPeerings = map[string]vpcapi.VPCPeeringSpec{"vpc-01--vpc-02": {
+					Permit: []map[string]vpcapi.VPCPeer{{"vpc-01": {Subnets: []string{"default"}}, "vpc-02": {}}},
+				}}
+			},
+			err: "vpc peering vpc-01--vpc-02: permitting only some subnets isn't supported",
+		},
+		{
+			name:    "vx-vpc-peering-vpc-not-found",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: func(agent *agentapi.Agent) {
+				agent.Spec.VPCPeerings = map[string]vpcapi.VPCPeeringSpec{"vpc-01--vpc-09": {
+					Permit: []map[string]vpcapi.VPCPeer{{"vpc-01": {}, "vpc-09": {}}},
+				}}
+			},
+			err: "vpc peering vpc-01--vpc-09: vpc vpc-09 not found",
 		},
 		{
 			name:    "vx-external-attachment-unsupported",

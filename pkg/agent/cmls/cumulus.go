@@ -89,6 +89,7 @@ type VPC struct {
 	VNI       uint32
 	Subnets   map[int]string // subnet position in the VPC -> subnet, as NVUE only allows a single prefix per rule
 	RouteSumm []string
+	Peers     []string
 }
 
 type PortConfig struct {
@@ -571,6 +572,23 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		}
 	}
 
+	// peered VPCs import the routes from each other's VRF, without filtering them yet
+	peers := map[string][]string{}
+	for _, peeringName := range slices.Sorted(maps.Keys(agent.Spec.VPCPeerings)) {
+		peering := agent.Spec.VPCPeerings[peeringName]
+		vpc1, vpc2, err := peering.VPCs()
+		if err != nil {
+			return nil, fmt.Errorf("vpc peering %s: %w", peeringName, err)
+		}
+		for _, vpcName := range []string{vpc1, vpc2} {
+			if _, ok := agent.Spec.VPCs[vpcName]; !ok {
+				return nil, fmt.Errorf("vpc peering %s: vpc %s not found", peeringName, vpcName) //nolint:err113
+			}
+		}
+		peers[vpc1] = append(peers[vpc1], vpc2)
+		peers[vpc2] = append(peers[vpc2], vpc1)
+	}
+
 	// a VRF per VPC attached to the switch or peered with one, with the VPC VNI as L3VNI
 	vpcs := []VPC{}
 	for vpcName, vpc := range agent.Spec.VPCs {
@@ -589,6 +607,7 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 			VNI:       vni,
 			Subnets:   subnets,
 			RouteSumm: routeSumm[vpcName],
+			Peers:     slices.Sorted(slices.Values(peers[vpcName])),
 		})
 	}
 
@@ -801,8 +820,18 @@ func checkSupported(agent *agentapi.Agent) error {
 		}
 	}
 
-	if len(agent.Spec.VPCPeerings) > 0 {
-		return fmt.Errorf("vpc peerings aren't supported") //nolint:err113
+	for _, peeringName := range slices.Sorted(maps.Keys(agent.Spec.VPCPeerings)) {
+		peering := agent.Spec.VPCPeerings[peeringName]
+		if peering.Remote != "" {
+			return fmt.Errorf("vpc peering %s: remote peerings aren't supported", peeringName) //nolint:err113
+		}
+		for _, permit := range peering.Permit {
+			for _, peer := range permit {
+				if len(peer.Subnets) > 0 {
+					return fmt.Errorf("vpc peering %s: permitting only some subnets isn't supported", peeringName) //nolint:err113
+				}
+			}
+		}
 	}
 	if len(agent.Spec.ExternalAttachments) > 0 || len(agent.Spec.ExternalPeerings) > 0 {
 		return fmt.Errorf("externals aren't supported") //nolint:err113
