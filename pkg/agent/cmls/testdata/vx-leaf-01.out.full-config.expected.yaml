@@ -900,7 +900,7 @@
         description: VPC vpc-01/default
         ipv4:
           address:
-            172.30.8.2/32: {}
+            172.30.99.233/32: {}
           vrr:
             address:
               10.0.1.1/24: {}
@@ -913,7 +913,7 @@
         description: VPC vpc-02/default
         ipv4:
           address:
-            172.30.8.2/32: {}
+            172.30.99.234/32: {}
           vrr:
             address:
               10.0.2.1/24: {}
@@ -926,7 +926,7 @@
         description: VPC vpc-03/default
         ipv4:
           address:
-            172.30.8.2/32: {}
+            172.30.99.235/32: {}
           vrr:
             address:
               10.0.3.1/24: {}
@@ -939,7 +939,7 @@
         description: VPC vpc-01/subnet-02
         ipv4:
           address:
-            172.30.8.2/32: {}
+            172.30.99.243/32: {}
           vrr:
             address:
               10.0.11.1/24: {}
