@@ -179,15 +179,17 @@ func TestBuildConfigErrors(t *testing.T) {
 			err: "vpc peering vpc-01--vpc-02: remote peerings aren't supported",
 		},
 		{
-			name:    "vx-vpc-peering-subnets-unsupported",
+			name:    "vx-vpc-peering-subnet-no-id",
 			profile: &switchprofile.CumulusVX,
 			port:    "E1/1",
 			mutate: func(agent *agentapi.Agent) {
 				agent.Spec.VPCPeerings = map[string]vpcapi.VPCPeeringSpec{"vpc-01--vpc-02": {
-					Permit: []map[string]vpcapi.VPCPeer{{"vpc-01": {Subnets: []string{"default"}}, "vpc-02": {}}},
+					Permit: []map[string]vpcapi.VPCPeer{{"vpc-01": {}, "vpc-02": {Subnets: []string{"default"}}}},
 				}}
+				agent.Spec.VPCs["vpc-02"].Subnets["other"] = &vpcapi.VPCSubnet{Subnet: "10.0.12.0/24", Gateway: "10.0.12.1", VLAN: 1012}
+				agent.Spec.Catalog.VPCSubnetVNIs["vpc-02"]["other"] = 202
 			},
-			err: "vpc peering vpc-01--vpc-02: permitting only some subnets isn't supported",
+			err: "vpc peering vpc-01--vpc-02: subnet vpc-02/other: subnet ID 0 isn't between 100 and 65000",
 		},
 		{
 			name:    "vx-vpc-peering-vpc-not-found",
