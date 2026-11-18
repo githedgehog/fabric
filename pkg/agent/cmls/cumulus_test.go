@@ -146,6 +146,13 @@ func TestBuildConfigErrors(t *testing.T) {
 			err:     "vpc vpc-01: subnet default: host BGP isn't supported",
 		},
 		{
+			name:    "vx-subnet-dhcp-relay-unsupported",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate:  func(agent *agentapi.Agent) { agent.Spec.VPCs["vpc-01"].Subnets["default"].DHCP.Relay = "10.99.0.1" },
+			err:     "vpc vpc-01: subnet default: DHCP relay to other servers isn't supported",
+		},
+		{
 			name:    "vx-subnet-isolated-unsupported",
 			profile: &switchprofile.CumulusVX,
 			port:    "E1/1",

@@ -60,6 +60,7 @@ type ConfigIn struct {
 	Ports        []*PortConfig
 	Bonds        []*BondConfig
 	Subnets      []*SubnetConfig
+	DHCPServer   string
 	IsSpine      bool
 	IsLeaf       bool
 	IsSpectrum4  bool
@@ -147,6 +148,7 @@ type SubnetConfig struct {
 	VRF         string
 	Gateway     string
 	Description string
+	DHCP        bool
 }
 
 func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
@@ -667,6 +669,7 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 				VRF:         vpcName,
 				Gateway:     netip.PrefixFrom(gateway, prefix.Bits()).String(),
 				Description: "VPC " + attach.Subnet,
+				DHCP:        subnet.DHCP.Enable,
 			}
 			subnetsByName[attach.Subnet] = subnetCfg
 			subnetsByVLAN[subnet.VLAN] = attach.Subnet
@@ -727,6 +730,11 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		IsSpectrum4:  isSpectrum4,
 	}
 
+	// the DHCP requests from the subnets with DHCP enabled are relayed to the control node over the management network
+	if slices.ContainsFunc(subnets, func(subnet *SubnetConfig) bool { return subnet.DHCP }) {
+		cfgIn.DHCPServer = controlVIP.Addr().String()
+	}
+
 	// TODO cache template
 	cfgTmpl, err := template.New("cumulus_config").Parse(tmpl)
 	if err != nil {
@@ -783,6 +791,9 @@ func checkSupported(agent *agentapi.Agent) error {
 			}
 			if subnet.HostBGP {
 				return fmt.Errorf("vpc %s: subnet %s: host BGP isn't supported", vpcName, subnetName) //nolint:err113
+			}
+			if subnet.DHCP.Relay != "" || subnet.DHCP.RelayVPC != "" {
+				return fmt.Errorf("vpc %s: subnet %s: DHCP relay to other servers isn't supported", vpcName, subnetName) //nolint:err113
 			}
 			if vpc.IsSubnetIsolated(subnetName) || vpc.IsSubnetRestricted(subnetName) {
 				return fmt.Errorf("vpc %s: subnet %s: isolated and restricted subnets aren't supported", vpcName, subnetName) //nolint:err113
