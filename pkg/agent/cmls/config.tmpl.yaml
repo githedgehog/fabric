@@ -115,6 +115,9 @@
       {{ $subnet.Name }}:
         description: {{ $subnet.Description }}
         ipv4:
+          {{- /* dhcrelay drops requests from interfaces without IPv4, VRR keeps the gateway on the vlanN-v0 one */}}
+          address:
+            {{ $.ProtocolIP }}: {}
           vrr:
             address:
               {{ $subnet.Gateway }}: {}
