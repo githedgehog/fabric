@@ -852,9 +852,6 @@ func checkSupported(agent *agentapi.Agent) error {
 			}
 		}
 	}
-	if len(agent.Spec.ExternalAttachments) > 0 || len(agent.Spec.ExternalPeerings) > 0 {
-		return fmt.Errorf("externals aren't supported") //nolint:err113
-	}
 	for _, connName := range slices.Sorted(maps.Keys(agent.Spec.Connections)) {
 		if agent.Spec.Connections[connName].StaticExternal != nil {
 			return fmt.Errorf("conn %s: static externals aren't supported", connName) //nolint:err113
