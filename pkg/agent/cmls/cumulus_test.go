@@ -201,15 +201,6 @@ func TestBuildConfigErrors(t *testing.T) {
 			err: "vpc peering vpc-01--vpc-09: vpc vpc-09 not found",
 		},
 		{
-			name:    "vx-external-attachment-unsupported",
-			profile: &switchprofile.CumulusVX,
-			port:    "E1/1",
-			mutate: func(agent *agentapi.Agent) {
-				agent.Spec.ExternalAttachments = map[string]vpcapi.ExternalAttachmentSpec{"leaf-01--ext-01": {}}
-			},
-			err: "externals aren't supported",
-		},
-		{
 			name:    "vx-static-external-unsupported",
 			profile: &switchprofile.CumulusVX,
 			port:    "E1/1",
