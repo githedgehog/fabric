@@ -202,6 +202,33 @@
         {{- if $.VPCs }}
         prefix-list:
           {{- range $vpc := $.VPCs }}
+          vpc-not-subnets--{{ $vpc.Name }}:
+            rule:
+              {{- range $seq, $subnet := $vpc.Subnets }}
+              '{{ $seq }}':
+                action: deny
+                match:
+                  {{ $subnet }}:
+                    max-prefix-len: 32
+              {{- end }}
+              '65535':
+                action: permit
+                match:
+                  0.0.0.0/0:
+                    max-prefix-len: 32
+            type: ipv4
+          {{- if $vpc.PeerSubnets }}
+          vpc-peers--{{ $vpc.Name }}:
+            rule:
+              {{- range $seq, $subnet := $vpc.PeerSubnets }}
+              '{{ $seq }}':
+                action: permit
+                match:
+                  {{ $subnet }}:
+                    max-prefix-len: 32
+              {{- end }}
+            type: ipv4
+          {{- end }}
           vpc-subnets--{{ $vpc.Name }}:
             rule:
               {{- range $seq, $subnet := $vpc.Subnets }}
@@ -216,6 +243,28 @@
         {{- end }}
         route-map:
           {{- range $vpc := $.VPCs }}
+          {{- if $vpc.Peers }}
+          import-vrf--{{ $vpc.Name }}:
+            rule:
+              {{- range $peer := $vpc.Peers }}
+              '{{ $peer.RuleID }}':
+                action:
+                  deny: {}
+                match:
+                  ip-prefix-list: vpc-not-subnets--{{ $peer.Name }}
+                  source-vrf: {{ $peer.Name }}
+                  type: ipv4
+              {{- end }}
+              '50000':
+                action:
+                  permit: {}
+                match:
+                  ip-prefix-list: vpc-peers--{{ $vpc.Name }}
+                  type: ipv4
+              '65535':
+                action:
+                  deny: {}
+          {{- end }}
           vpc-redistribute-connected--{{ $vpc.Name }}:
             rule:
               '10':
@@ -336,8 +385,9 @@
                   from-vrf:
                     list:
                       {{- range $peer := $vpc.Peers }}
-                      {{ $peer }}: {}
+                      {{ $peer.Name }}: {}
                       {{- end }}
+                    route-map: import-vrf--{{ $vpc.Name }}
                     state: enabled
                 {{- end }}
                 {{- if $vpc.RouteSumm }}
