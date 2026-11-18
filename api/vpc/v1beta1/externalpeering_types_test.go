@@ -12,6 +12,7 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	"go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	"go.githedgehog.com/fabric/pkg/util/testutil"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -85,6 +86,7 @@ func TestExternalPeeringValidation(t *testing.T) {
 		peering *v1beta1.ExternalPeering
 		objects []kclient.Object
 		err     bool
+		errMsg  string
 	}{
 		{
 			name:    "valid external peering",
@@ -131,6 +133,29 @@ func TestExternalPeeringValidation(t *testing.T) {
 			err:     true,
 		},
 		{
+			name: "external prefix is not a prefix",
+			peering: extPeeringGen("ext-peer-05", func(peering *v1beta1.ExternalPeering) {
+				peering.Spec.Permit.External.Prefixes = []v1beta1.ExternalPeeringSpecPrefix{
+					{Prefix: "10.10.0.1"},
+				}
+			}),
+			objects: baseObjs,
+			err:     true,
+		},
+		{
+			// defaulting sorts the prefixes, so the error can't point at the index the user wrote
+			name: "external prefix out of order is not a prefix",
+			peering: extPeeringGen("ext-peer-05", func(peering *v1beta1.ExternalPeering) {
+				peering.Spec.Permit.External.Prefixes = []v1beta1.ExternalPeeringSpecPrefix{
+					{Prefix: "10.10.0.1"},
+					{Prefix: "0.0.0.0/0"},
+				}
+			}),
+			objects: baseObjs,
+			err:     true,
+			errMsg:  `spec.permit.external.prefixes: Invalid value: "10.10.0.1"`,
+		},
+		{
 			name: "vpc does not exist",
 			peering: extPeeringGen("ext-peer-06", func(peering *v1beta1.ExternalPeering) {
 				peering.Spec.Permit.VPC.Name = "vpc-456"
@@ -161,6 +186,16 @@ func TestExternalPeeringValidation(t *testing.T) {
 			}),
 			objects: baseObjs,
 			err:     true,
+		},
+		{
+			// defaulting sorts the subnets, so the error can't point at the index the user wrote
+			name: "vpc subnet out of order does not exist on referenced vpc",
+			peering: extPeeringGen("ext-peer-09", func(peering *v1beta1.ExternalPeering) {
+				peering.Spec.Permit.VPC.Subnets = []string{"subnet-z", "subnet-a"}
+			}),
+			objects: baseObjs,
+			err:     true,
+			errMsg:  `spec.permit.vpc.subnets: Not found: "subnet-z"`,
 		},
 		{
 			name: "works with empty vpc subnets list",
@@ -214,7 +249,10 @@ func TestExternalPeeringValidation(t *testing.T) {
 				},
 			})
 			if test.err {
-				require.Error(t, err, "expected error but got none")
+				testutil.RequireFieldError(t, err, test.peering)
+				if test.errMsg != "" {
+					require.ErrorContains(t, err, test.errMsg)
+				}
 			} else {
 				require.NoError(t, err, "unexpected error during validation")
 			}

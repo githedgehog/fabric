@@ -14,6 +14,7 @@ import (
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
+	"go.githedgehog.com/fabric/pkg/util/testutil"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -386,7 +387,7 @@ func TestHydrationValidation(t *testing.T) {
 
 			err := test.dut.HydrationValidation(ctx, kube, fabricCfg)
 			if test.expectError {
-				require.Error(t, err)
+				testutil.RequireFieldError(t, err, test.dut)
 			} else {
 				require.NoError(t, err)
 			}
@@ -615,7 +616,7 @@ func TestSwitchDomainsValidation(t *testing.T) {
 		{name: "shared leaf", sw: swGen(domains("plane-b", "default"))},
 		{name: "spine", sw: swGen(spine(65099), domains("plane-b"))},
 		{
-			name: "spine with the ASN of another domain", err: "spine leaf-01 ASN 65100 is not the spine ASN 65099 of domain plane-b",
+			name: "spine with the ASN of another domain", err: "spec.asn: Invalid value: 65100: not the spine ASN 65099 of domain plane-b",
 			sw: swGen(spine(65100), domains("plane-b")),
 		},
 		{
@@ -623,7 +624,7 @@ func TestSwitchDomainsValidation(t *testing.T) {
 			sw: swGen(spine(65099), domains("plane-b", "default")),
 		},
 		{
-			name: "domain not in fabric", err: "domain plane-c not found in fabric default",
+			name: "domain not in fabric", err: `spec.topology.domains: Invalid value: "plane-c": domain plane-c not found in fabric default`,
 			sw: swGen(domains("plane-c")),
 		},
 		{
@@ -671,7 +672,7 @@ func TestSwitchDomainsValidation(t *testing.T) {
 			err: "switches of redundancy group eslag-1 must be in the same domains, switch leaf-02 is in domains []",
 		},
 		{
-			name: "invalid boot MAC", err: `invalid boot MAC: parsing MAC "not-a-mac"`,
+			name: "invalid boot MAC", err: `spec.boot.mac: Invalid value: "not-a-mac": parsing MAC "not-a-mac"`,
 			sw: swGen(func(sw *wiringapi.Switch) { sw.Spec.Boot.MAC = "not-a-mac" }),
 		},
 		{
@@ -679,29 +680,29 @@ func TestSwitchDomainsValidation(t *testing.T) {
 			sw:   swGen(func(sw *wiringapi.Switch) { sw.Spec.Boot.MAC = "0C-20-12-FE-01-00" }),
 		},
 		{
-			name: "invalid role", err: `invalid role "leaf"`,
+			name: "invalid role", err: `spec.role: Unsupported value: "leaf"`,
 			sw: swGen(func(sw *wiringapi.Switch) { sw.Spec.Role = "leaf" }),
 		},
 		{
-			name: "invalid FEC mode", err: `invalid FEC mode "none" for port E1/1`,
+			name: "invalid FEC mode", err: `spec.portFECs[E1/1]: Unsupported value: "none"`,
 			sw: swGen(func(sw *wiringapi.Switch) {
 				sw.Spec.PortFECs = map[string]wiringapi.PortFECMode{"E1/1": "none"}
 			}),
 		},
 		{
-			name: "link-flap flap threshold out of range", err: "flap threshold 51 is not in 1-50",
+			name: "link-flap flap threshold out of range", err: "spec.linkFlapErrDisable.flapThreshold: Invalid value: 51: must be in 1-50",
 			sw: swGen(func(sw *wiringapi.Switch) {
 				sw.Spec.LinkFlapErrDisable = &wiringapi.SwitchLinkFlapErrDisable{FlapThreshold: new(uint8(51))}
 			}),
 		},
 		{
-			name: "link-flap sampling interval out of range", err: "sampling interval 0 is not in 1-65535",
+			name: "link-flap sampling interval out of range", err: "spec.linkFlapErrDisable.samplingInterval: Invalid value: 0: must be in 1-65535",
 			sw: swGen(func(sw *wiringapi.Switch) {
 				sw.Spec.LinkFlapErrDisable = &wiringapi.SwitchLinkFlapErrDisable{SamplingInterval: new(uint32(0))}
 			}),
 		},
 		{
-			name: "link-flap recovery interval out of range", err: "recovery interval 65535 is above 65534",
+			name: "link-flap recovery interval out of range", err: "spec.linkFlapErrDisable.recoveryInterval: Invalid value: 65535: must be at most 65534",
 			sw: swGen(func(sw *wiringapi.Switch) {
 				sw.Spec.LinkFlapErrDisable = &wiringapi.SwitchLinkFlapErrDisable{RecoveryInterval: new(uint32(65535))}
 			}),
@@ -767,11 +768,11 @@ func TestSwitchDomainsValidation(t *testing.T) {
 			sw:   swGen(sn5610FullBreakout),
 		},
 		{
-			name: "breakout of a disabled port", err: "port E1/2 is disabled by the breakout of port E1/1 and can't have a breakout",
+			name: "breakout of a disabled port", err: `spec.portBreakouts[E1/2]: Invalid value: "1x800G": port is disabled by the breakout of port E1/1 and can't have a breakout`,
 			sw: swGen(sn5610FullBreakout, func(sw *wiringapi.Switch) { sw.Spec.PortBreakouts["E1/2"] = "1x800G" }),
 		},
 		{
-			name: "speed of a disabled port", err: "port E1/2 is disabled by the breakout of port E1/1 and can't have a speed",
+			name: "speed of a disabled port", err: `spec.portSpeeds[E1/2]: Invalid value: "10G": port is disabled by the breakout of port E1/1 and can't have a speed`,
 			objects: []kclient.Object{disablesSpeedPortProfile},
 			sw: swGen(func(sw *wiringapi.Switch) {
 				sw.Spec.Profile = disablesSpeedPortProfile.Name
@@ -788,12 +789,37 @@ func TestSwitchDomainsValidation(t *testing.T) {
 			}),
 		},
 		{
-			name: "breakout disabling a connected port", err: "port E1/2 used by connection server-01--unbundled--leaf-01 isn't available",
+			name: "breakout disabling a connected port", err: "spec.portBreakouts: Invalid value: port E1/2 used by connection server-01--unbundled--leaf-01 isn't available",
 			objects: []kclient.Object{serverConn("E1/2")},
 			sw:      swGen(func(sw *wiringapi.Switch) { sw.Spec.Profile = switchprofile.CumulusNvidiaSN5610.Name }, sn5610FullBreakout),
 		},
 		{
-			name: "breakout removing a connected sub-port", err: "port E1/1/2 used by connection server-01--unbundled--leaf-01 isn't available",
+			// defaulting sorts the namespaces and the groups, so the errors can't point at the index the user wrote
+			name: "missing vlan namespace", err: `spec.vlanNamespaces: Not found: "z-missing"`,
+			sw: swGen(func(sw *wiringapi.Switch) { sw.Spec.VLANNamespaces = []string{"z-missing", "default"} }),
+		},
+		{
+			name: "missing group", err: `spec.groups: Not found: "z-missing"`,
+			sw: swGen(func(sw *wiringapi.Switch) { sw.Spec.Groups = []string{"z-missing", "eslag-1"} }),
+		},
+		{
+			name: "empty group", err: "spec.groups: Required value",
+			sw: swGen(func(sw *wiringapi.Switch) { sw.Spec.Groups = []string{""} }),
+		},
+		{
+			// defaulting adds the redundancy group to the groups
+			name: "missing redundancy group", err: `spec.redundancy.group: Not found: "eslag-2"`,
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Spec.Redundancy = wiringapi.SwitchRedundancy{Group: "eslag-2", Type: meta.RedundancyTypeESLAG}
+			}),
+		},
+		{
+			name: "profile without a connected port", err: `spec.profile: Invalid value: "nvidia-sn5610": port E1/99 used by connection server-01--unbundled--leaf-01 doesn't exist in the switch profile`,
+			objects: []kclient.Object{serverConn("E1/99")},
+			sw:      swGen(func(sw *wiringapi.Switch) { sw.Spec.Profile = switchprofile.CumulusNvidiaSN5610.Name }),
+		},
+		{
+			name: "breakout removing a connected sub-port", err: "spec.portBreakouts: Invalid value: port E1/1/2 used by connection server-01--unbundled--leaf-01 isn't available",
 			objects: []kclient.Object{serverConn("E1/1/2")},
 			sw:      swGen(func(sw *wiringapi.Switch) { sw.Spec.Profile = switchprofile.CumulusNvidiaSN5610.Name }),
 		},
@@ -803,7 +829,7 @@ func TestSwitchDomainsValidation(t *testing.T) {
 			sw:      swGen(sn5610FullBreakout),
 		},
 		{
-			name: "FEC on a disabled port", err: "port E1/2 does not support configuring FEC",
+			name: "FEC on a disabled port", err: `spec.portFECs[E1/2]: Invalid value: "rs": port does not support configuring FEC`,
 			sw: swGen(sn5610FullBreakout, func(sw *wiringapi.Switch) {
 				sw.Spec.PortFECs = map[string]wiringapi.PortFECMode{"E1/2": wiringapi.PortFECModeRS}
 			}),
@@ -813,6 +839,37 @@ func TestSwitchDomainsValidation(t *testing.T) {
 			sw: swGen(func(sw *wiringapi.Switch) {
 				sw.Spec.Profile = switchprofile.CumulusVX.Name
 				sw.Annotations = map[string]string{wiringapi.AnnotationSwitchBCMMutate: `{"rules": []}`}
+			}),
+		},
+		{
+			name: "speed of an unknown port", err: `spec.portSpeeds[E1/99]: Invalid value: "100G": port not found in switch profile`,
+			sw: swGen(func(sw *wiringapi.Switch) { sw.Spec.PortSpeeds = map[string]string{"E1/99": "100G"} }),
+		},
+		{
+			name: "speed of an unknown port group", err: `spec.portGroupSpeeds[99]: Invalid value: "10G": port group not found in switch profile`,
+			sw: swGen(func(sw *wiringapi.Switch) { sw.Spec.PortGroupSpeeds = map[string]string{"99": "10G"} }),
+		},
+		{
+			name: "breakout of an unknown port", err: `spec.portBreakouts[E1/99]: Invalid value: "4x25G": port not found in switch profile`,
+			sw: swGen(func(sw *wiringapi.Switch) { sw.Spec.PortBreakouts = map[string]string{"E1/99": "4x25G"} }),
+		},
+		{
+			name: "auto negotiation on an unknown port", err: `spec.portAutoNegs[E1/99]: Invalid value: true: port does not support configuring auto negotiation`,
+			sw: swGen(func(sw *wiringapi.Switch) { sw.Spec.PortAutoNegs = map[string]bool{"E1/99": true} }),
+		},
+		{
+			name: "FEC on an unknown port", err: `spec.portFECs[E1/99]: Invalid value: "rs": port does not support configuring FEC`,
+			sw: swGen(func(sw *wiringapi.Switch) { sw.Spec.PortFECs = map[string]wiringapi.PortFECMode{"E1/99": "rs"} }),
+		},
+		{
+			name: "port locator on an unknown port", err: "spec.portLocators[E1/99]: Invalid value:",
+			sw: swGen(func(sw *wiringapi.Switch) { sw.Spec.PortLocators = map[string]string{"E1/99": "2099-01-01 00:00:00"} }),
+		},
+		{
+			name: "speed of a port in a group", err: `spec.portSpeeds[E1/1]: Invalid value: "10G": port is in port group 1, set the speed in portGroupSpeeds`,
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Spec.Profile = switchprofile.DellS5248FON.Name
+				sw.Spec.PortSpeeds = map[string]string{"E1/1": "10G"}
 			}),
 		},
 	} {
@@ -841,6 +898,7 @@ func TestSwitchDomainsValidation(t *testing.T) {
 				return
 			}
 			require.ErrorContains(t, err, tt.err)
+			testutil.RequireFieldError(t, err, tt.sw)
 		})
 	}
 }

@@ -19,10 +19,10 @@ import (
 	"maps"
 	"slices"
 
-	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -121,26 +121,26 @@ func (ns *VLANNamespace) Default() {
 
 func (ns *VLANNamespace) Validate(_ context.Context, _ kclient.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
 	if err := meta.ValidateObjectMetadata(ns); err != nil {
-		return nil, errors.Wrapf(err, "failed to validate metadata")
+		return nil, err //nolint:wrapcheck
 	}
 
 	ranges, err := meta.NormalizedVLANRanges(ns.Spec.Ranges)
 	if err != nil {
-		return nil, errors.Wrapf(err, "invalid ranges")
+		return nil, field.Invalid(field.NewPath("spec", "ranges"), field.OmitValueType{}, err.Error())
 	}
 	if len(ranges) == 0 {
-		return nil, errors.Errorf("at least one range required")
+		return nil, field.Required(field.NewPath("spec", "ranges"), "at least one range required")
 	}
 	if len(ranges) > 20 {
-		return nil, errors.Errorf("too many ranges (%d), max is 20", len(ranges))
+		return nil, field.TooMany(field.NewPath("spec", "ranges"), len(ranges), 20)
 	}
 
 	if fabricCfg != nil {
 		if err := meta.CheckVLANRangesOverlap(append(slices.Clone(fabricCfg.VPCIRBVLANRanges), ns.Spec.Ranges...)); err != nil {
-			return nil, errors.Wrapf(err, "ranges overlap with Fabric reserved VLANs")
+			return nil, field.Invalid(field.NewPath("spec", "ranges"), field.OmitValueType{}, "ranges overlap with Fabric reserved VLANs: "+err.Error())
 		}
 		if err := meta.CheckVLANRangesOverlap(append(slices.Clone(fabricCfg.TH5WorkaroundVLANRange), ns.Spec.Ranges...)); err != nil {
-			return nil, errors.Wrapf(err, "ranges overlap with VLANs reserved for the TH5 workaround")
+			return nil, field.Invalid(field.NewPath("spec", "ranges"), field.OmitValueType{}, "ranges overlap with VLANs reserved for the TH5 workaround: "+err.Error())
 		}
 	}
 

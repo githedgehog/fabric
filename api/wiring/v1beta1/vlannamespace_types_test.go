@@ -20,6 +20,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	"go.githedgehog.com/fabric/pkg/util/testutil"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -53,17 +54,17 @@ func TestValidate(t *testing.T) {
 	for _, tt := range []struct {
 		name   string
 		vlanNS *wiringapi.VLANNamespace
-		err    bool
+		err    string
 	}{
 		{
 			name:   "fabric-collision",
 			vlanNS: vlanNSGen("ns-1", []meta.VLANRange{{From: 2900, To: 3000}}),
-			err:    true,
+			err:    "ranges overlap with Fabric reserved VLANs",
 		},
 		{
 			name:   "th5-collision",
-			vlanNS: vlanNSGen("ns-1", []meta.VLANRange{{From: 3500, To: 4500}}),
-			err:    true,
+			vlanNS: vlanNSGen("ns-1", []meta.VLANRange{{From: 3500, To: 3950}}),
+			err:    "ranges overlap with VLANs reserved for the TH5 workaround",
 		},
 		{
 			name:   "no-collision",
@@ -72,7 +73,7 @@ func TestValidate(t *testing.T) {
 		{
 			name:   "no-ranges",
 			vlanNS: vlanNSGen("ns-1", nil),
-			err:    true,
+			err:    "spec.ranges: Required value",
 		},
 		{
 			name: "too-many-ranges",
@@ -84,13 +85,14 @@ func TestValidate(t *testing.T) {
 
 				return ranges
 			}()),
-			err: true,
+			err: "spec.ranges: Too many: 21",
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			_, err := tt.vlanNS.Validate(t.Context(), nil, cfg)
-			if tt.err {
-				require.Error(t, err)
+			if tt.err != "" {
+				require.ErrorContains(t, err, tt.err)
+				testutil.RequireFieldError(t, err, tt.vlanNS)
 
 				return
 			}

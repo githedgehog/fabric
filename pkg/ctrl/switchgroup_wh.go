@@ -10,7 +10,9 @@ import (
 
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	kapivalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	kctrl "sigs.k8s.io/controller-runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -51,25 +53,15 @@ func (w *SwitchGroupWebhook) Default(_ context.Context, sg *wiringapi.SwitchGrou
 }
 
 func (w *SwitchGroupWebhook) ValidateCreate(ctx context.Context, sg *wiringapi.SwitchGroup) (admission.Warnings, error) {
-	warns, err := sg.Validate(ctx, w.KubeClient, w.Cfg)
-	if err != nil {
-		return warns, fmt.Errorf("failed to validate switchgroup: %w", err)
-	}
-
-	return warns, nil
+	return sg.Validate(ctx, w.KubeClient, w.Cfg) //nolint:wrapcheck
 }
 
 func (w *SwitchGroupWebhook) ValidateUpdate(ctx context.Context, oldSg *wiringapi.SwitchGroup, newSg *wiringapi.SwitchGroup) (admission.Warnings, error) {
 	if oldSg.Spec.Topology.Fabric != newSg.Spec.Topology.Fabric {
-		return nil, fmt.Errorf("topology.fabric is immutable") //nolint:err113
+		return nil, field.Invalid(field.NewPath("spec", "topology", "fabric"), newSg.Spec.Topology.Fabric, kapivalidation.FieldImmutableErrorMsg)
 	}
 
-	warns, err := newSg.Validate(ctx, w.KubeClient, w.Cfg)
-	if err != nil {
-		return warns, fmt.Errorf("failed to validate switchgroup: %w", err)
-	}
-
-	return warns, nil
+	return newSg.Validate(ctx, w.KubeClient, w.Cfg) //nolint:wrapcheck
 }
 
 // ValidateDelete refuses deleting a group that switches still reference: the catalog of a redundancy group is garbage
