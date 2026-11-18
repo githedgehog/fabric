@@ -322,6 +322,11 @@ spec:
     s4-v2-l1:
       connection: server-04--unbundled--leaf-01
       subnet: vpc-02/default
+  vpcPeers:
+    vpc-01--vpc-03:
+      permit:
+        - vpc-01: {}
+          vpc-03: {}
   vpcs:
     vpc-01:
       ipv4Namespace: default

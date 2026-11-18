@@ -323,6 +323,15 @@
                 route-export:
                   to-evpn:
                     state: enabled
+                {{- if $vpc.Peers }}
+                route-import:
+                  from-vrf:
+                    list:
+                      {{- range $peer := $vpc.Peers }}
+                      {{ $peer }}: {}
+                      {{- end }}
+                    state: enabled
+                {{- end }}
                 {{- if $vpc.RouteSumm }}
                 aggregate-route:
                   {{- range $route := $vpc.RouteSumm }}

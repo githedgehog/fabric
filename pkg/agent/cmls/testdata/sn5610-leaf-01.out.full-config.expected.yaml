@@ -1407,6 +1407,11 @@
                 route-export:
                   to-evpn:
                     state: enabled
+                route-import:
+                  from-vrf:
+                    list:
+                      vpc-03: {}
+                    state: enabled
                 aggregate-route:
                   10.0.1.0/25:
                     summary-only: enabled
@@ -1459,6 +1464,11 @@
                     state: enabled
                 route-export:
                   to-evpn:
+                    state: enabled
+                route-import:
+                  from-vrf:
+                    list:
+                      vpc-01: {}
                     state: enabled
                 aggregate-route:
                   10.0.3.0/24:
