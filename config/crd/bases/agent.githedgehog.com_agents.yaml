@@ -448,6 +448,8 @@ spec:
                     type: string
                   controlVIP:
                     type: string
+                  cumulusSVIWorkaroundSubnet:
+                    type: string
                   defaultMaxPathsEBGP:
                     format: int32
                     type: integer

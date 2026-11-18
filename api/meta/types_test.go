@@ -16,6 +16,7 @@ package meta_test
 
 import (
 	"context"
+	"net/netip"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -93,6 +94,38 @@ func TestFabricConfigHugePages(t *testing.T) {
 				return
 			}
 			require.NoError(t, err)
+		})
+	}
+}
+
+func TestFabricConfigCumulusSVIWorkaroundSubnet(t *testing.T) {
+	for _, tt := range []struct {
+		name     string
+		subnet   string
+		expected string
+		err      string
+	}{
+		{name: "default", expected: meta.DefaultCumulusSVIWorkaroundSubnet},
+		{name: "custom", subnet: "10.99.0.0/16", expected: "10.99.0.0/16"},
+		{name: "min", subnet: "10.99.0.0/20", expected: "10.99.0.0/20"},
+		{name: "unmasked", subnet: "10.99.1.2/20", expected: "10.99.0.0/20"},
+		{name: "too-small", subnet: "10.99.0.0/21", err: "cumulusSVIWorkaroundSubnet must be IPv4 /20 or bigger"},
+		{name: "ipv6", subnet: "fd00::/64", err: "cumulusSVIWorkaroundSubnet must be IPv4 /20 or bigger"},
+		{name: "invalid", subnet: "10.99.0.0", err: "config: cumulusSVIWorkaroundSubnet"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := testFabricConfig("50000:50000")
+			cfg.CumulusSVIWorkaroundSubnet = tt.subnet
+
+			cfg, err := cfg.Init(testValidators)
+			if tt.err != "" {
+				require.ErrorContains(t, err, tt.err)
+
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.subnet, cfg.CumulusSVIWorkaroundSubnet)
+			require.Contains(t, cfg.ParsedReservedSubnets(), netip.MustParsePrefix(tt.expected))
 		})
 	}
 }

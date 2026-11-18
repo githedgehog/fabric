@@ -15,6 +15,7 @@
 package meta
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"net"
@@ -109,6 +110,9 @@ type FabricConfig struct {
 	VTEPSubnet               string        `json:"vtepSubnet,omitempty"`
 	FabricSubnet             string        `json:"fabricSubnet,omitempty"`
 
+	// base + VLAN as /32 on the Cumulus VPC SVIs, as the DHCP relay needs an IP on them and VRR keeps it on vlanN-v0
+	CumulusSVIWorkaroundSubnet string `json:"cumulusSVIWorkaroundSubnet,omitempty"`
+
 	ManagementSubnet      string            `json:"managementSubnet,omitempty"`
 	ManagementDHCPStart   string            `json:"managementDHCPStart,omitempty"`
 	ManagementDHCPEnd     string            `json:"managementDHCPEnd,omitempty"`
@@ -132,6 +136,8 @@ type FabricConfig struct {
 
 	reservedSubnets []netip.Prefix
 }
+
+const DefaultCumulusSVIWorkaroundSubnet = "172.30.96.0/19"
 
 // up to 1 TiB each, anything above is likely a typo or a size in bytes
 const (
@@ -448,6 +454,16 @@ func (cfg *FabricConfig) WithReservedSubnets() error {
 		}
 		cfg.reservedSubnets = append(cfg.reservedSubnets, ipnet.Masked())
 	}
+
+	// reserved even if unset, as the agents fall back to the default
+	sviSubnet, err := netip.ParsePrefix(cmp.Or(cfg.CumulusSVIWorkaroundSubnet, DefaultCumulusSVIWorkaroundSubnet))
+	if err != nil {
+		return fmt.Errorf("config: cumulusSVIWorkaroundSubnet: %w", err)
+	}
+	if !sviSubnet.Addr().Is4() || sviSubnet.Bits() > 20 {
+		return fmt.Errorf("config: cumulusSVIWorkaroundSubnet must be IPv4 /20 or bigger to fit all VLANs") //nolint:err113
+	}
+	cfg.reservedSubnets = append(cfg.reservedSubnets, sviSubnet.Masked())
 
 	return nil
 }
