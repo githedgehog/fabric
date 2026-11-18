@@ -1083,6 +1083,8 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 			GatewayCommunities: map[string]string{},
 			HeartbeatInterval:  r.cfg.AgentHeartbeatInterval,
 			EnforceInterval:    r.cfg.AgentEnforceInterval,
+
+			CumulusSVIWorkaroundSubnet: r.cfg.CumulusSVIWorkaroundSubnet,
 		}
 		if r.cfg.FabricMode == fmeta.FabricModeSpineLeaf {
 			agent.Spec.Config.SpineLeaf = &agentapi.AgentSpecConfigSpineLeaf{}

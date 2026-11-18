@@ -112,6 +112,8 @@ type AgentSpecConfig struct {
 	EnforceInterval    uint32            `json:"enforceInterval,omitempty"`   // seconds, default and minimum 120
 	// Domains holds every domain of the switch's fabric
 	Domains map[string]wiringapi.FabricDomainSpec `json:"domains,omitempty"`
+
+	CumulusSVIWorkaroundSubnet string `json:"cumulusSVIWorkaroundSubnet,omitempty"`
 }
 
 type AgentSpecConfigSpineLeaf struct{}
