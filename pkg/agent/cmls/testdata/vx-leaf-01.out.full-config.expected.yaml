@@ -1014,7 +1014,7 @@
           state: disabled
         type: svi
         vlan: 1001
-        vrf: vpc-01
+        vrf: vpc-vpc-01
       vlan1002:
         description: VPC vpc-02/default
         ipv4:
@@ -1029,7 +1029,7 @@
           state: disabled
         type: svi
         vlan: 1002
-        vrf: vpc-02
+        vrf: vpc-vpc-02
       vlan1003:
         acl:
           vpc-filtering--vpc-03--default:
@@ -1047,7 +1047,7 @@
           state: disabled
         type: svi
         vlan: 1003
-        vrf: vpc-03
+        vrf: vpc-vpc-03
       vlan1011:
         acl:
           vpc-filtering--vpc-01--subnet-02:
@@ -1065,7 +1065,7 @@
           state: disabled
         type: svi
         vlan: 1011
-        vrf: vpc-01
+        vrf: vpc-vpc-01
       vlan1012:
         acl:
           vpc-filtering--vpc-01--subnet-03:
@@ -1083,7 +1083,7 @@
           state: disabled
         type: svi
         vlan: 1012
-        vrf: vpc-01
+        vrf: vpc-vpc-01
     bridge:
       domain:
         br_default:
@@ -1406,7 +1406,7 @@
                   deny: {}
                 match:
                   ip-prefix-list: vpc-not-subnets--vpc-03
-                  source-vrf: vpc-03
+                  source-vrf: vpc-vpc-03
                   type: ipv4
               '50000':
                 action:
@@ -1440,7 +1440,7 @@
                   deny: {}
                 match:
                   ip-prefix-list: vpc-not-subnets--vpc-01
-                  source-vrf: vpc-01
+                  source-vrf: vpc-vpc-01
                   type: ipv4
               '50000':
                 action:
@@ -1558,7 +1558,7 @@
                 peer-group: overlay
                 type: numbered
             state: enabled
-      vpc-01:
+      vpc-vpc-01:
         evpn:
           state: enabled
           vni:
@@ -1577,7 +1577,7 @@
                 route-import:
                   from-vrf:
                     list:
-                      vpc-03: {}
+                      vpc-vpc-03: {}
                     route-map: import-vrf--vpc-01
                     state: enabled
                 aggregate-route:
@@ -1601,7 +1601,7 @@
               via:
                 10.0.1.10: {}
                 10.0.1.20: {}
-      vpc-02:
+      vpc-vpc-02:
         evpn:
           state: enabled
           vni:
@@ -1625,7 +1625,7 @@
                 aspath-ignore: enabled
             rd: 172.30.8.2:400
             state: enabled
-      vpc-03:
+      vpc-vpc-03:
         evpn:
           state: enabled
           vni:
@@ -1644,7 +1644,7 @@
                 route-import:
                   from-vrf:
                     list:
-                      vpc-01: {}
+                      vpc-vpc-01: {}
                     route-map: import-vrf--vpc-03
                     state: enabled
                 aggregate-route:

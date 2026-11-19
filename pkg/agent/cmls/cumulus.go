@@ -107,6 +107,7 @@ type GatewayPrio struct {
 
 type VPC struct {
 	Name        string
+	VRF         string
 	VNI         uint32
 	Subnets     map[uint32]string // subnet VNI % 100 -> subnet, as NVUE only allows a single prefix per rule
 	RouteSumm   []string
@@ -118,7 +119,12 @@ type VPC struct {
 // VPCPeer is a peered VPC, only its own subnets are imported from its VRF
 type VPCPeer struct {
 	Name   string
+	VRF    string
 	RuleID uint32
+}
+
+func vpcVRF(vpcName string) string {
+	return "vpc-" + vpcName
 }
 
 type PortConfig struct {
@@ -692,7 +698,7 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 	peers := map[string][]VPCPeer{}
 	peerSubnets := map[string]map[uint32]string{}
 	addPeer := func(vpcName, peerName string) {
-		peers[vpcName] = append(peers[vpcName], VPCPeer{Name: peerName, RuleID: 10000 + vpcVNIs[peerName]/100})
+		peers[vpcName] = append(peers[vpcName], VPCPeer{Name: peerName, VRF: vpcVRF(peerName), RuleID: 10000 + vpcVNIs[peerName]/100})
 		if peerSubnets[vpcName] == nil {
 			peerSubnets[vpcName] = map[uint32]string{}
 		}
@@ -749,6 +755,7 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 
 		vpcs = append(vpcs, VPC{
 			Name:        vpcName,
+			VRF:         vpcVRF(vpcName),
 			VNI:         vpcVNIs[vpcName],
 			Subnets:     subnets,
 			RouteSumm:   routeSumm[vpcName],
@@ -847,7 +854,7 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 				Name:        fmt.Sprintf("vlan%d", subnet.VLAN),
 				VLAN:        subnet.VLAN,
 				VNI:         vni,
-				VRF:         vpcName,
+				VRF:         vpcVRF(vpcName),
 				Subnet:      subnet.Subnet,
 				Gateway:     netip.PrefixFrom(gateway, prefix.Bits()).String(),
 				IP:          netip.PrefixFrom(sviIP, 32).String(),
