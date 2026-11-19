@@ -248,6 +248,18 @@ func TestBuildConfigErrors(t *testing.T) {
 			err:     `conn leaf-01--gateway--gateway-1: parsing switch IP ""`,
 		},
 		{
+			name:    "vx-gateway-community-invalid-prio",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: func(agent *agentapi.Agent) {
+				agent.Spec.Config.SpineLeaf = &agentapi.AgentSpecConfigSpineLeaf{}
+				agent.Spec.Switch.Role = wiringapi.SwitchRoleServerLeaf
+				agent.Spec.Switch.VTEPIP = "172.30.12.0/32"
+				agent.Spec.Config.GatewayCommunities = map[string]string{"0": "50001:0", "high": "50001:1"}
+			},
+			err: `parsing gateway community priority "high"`,
+		},
+		{
 			name:    "vx-static-external-unsupported",
 			profile: &switchprofile.CumulusVX,
 			port:    "E1/1",
