@@ -807,6 +807,8 @@ network-instances:
                     config:
                       export-policy:
                       - loopback-vtep
+                      import-policy:
+                      - loopback-import
                   config:
                     afi-safi-name: IPV4_UNICAST
                     enabled: true
@@ -835,6 +837,8 @@ network-instances:
                     config:
                       export-policy:
                       - loopback-vtep
+                      import-policy:
+                      - loopback-import
                   config:
                     afi-safi-name: IPV4_UNICAST
                     enabled: true
@@ -899,6 +903,18 @@ routing-policy:
             - _65100_
             - _65534_
             as-path-set-name: fabric-gw-aspath
+        - as-path-set-name: gateway-origin-any-hop
+          config:
+            action: PERMIT
+            as-path-set-member:
+            - _65534$
+            as-path-set-name: gateway-origin-any-hop
+        - as-path-set-name: leaf-transit
+          config:
+            action: PERMIT
+            as-path-set-member:
+            - _65100_.*_65100_
+            as-path-set-name: leaf-transit
       community-sets:
         community-set:
         - community-set-name: all-externals
@@ -1580,6 +1596,29 @@ routing-policy:
             name: "100"
           name: "100"
     - config:
+        name: loopback-import
+      name: loopback-import
+      statements:
+        statement:
+        - actions:
+            config:
+              policy-result: REJECT_ROUTE
+          conditions:
+            bgp-conditions:
+              match-as-path-set:
+                config:
+                  as-path-set: leaf-transit
+                  match-set-options: ANY
+          config:
+            name: "20"
+          name: "20"
+        - actions:
+            config:
+              policy-result: ACCEPT_ROUTE
+          config:
+            name: "65535"
+          name: "65535"
+    - config:
         name: loopback-vtep
       name: loopback-vtep
       statements:
@@ -1604,6 +1643,21 @@ routing-policy:
           config:
             name: "100"
           name: "100"
+        - actions:
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            bgp-conditions:
+              match-as-path-set:
+                config:
+                  as-path-set: gateway-origin-any-hop
+                  match-set-options: ANY
+            match-prefix-set:
+              config:
+                prefix-set: all-vtep-prefixes
+          config:
+            name: "20"
+          name: "20"
     - config:
         name: protocol-loopback-only
       name: protocol-loopback-only

@@ -54,6 +54,7 @@ const (
 	RouteMapProtocolLoopbackOnly = "protocol-loopback-only"
 	RouteMapGatewayImport        = "gateway-import"
 	RouteMapGatewayExport        = "gateway-export"
+	RouteMapLoopbackImport       = "loopback-import"
 	PrefixListAny                = "any-prefix"
 	PrefixListAllVTEPPrefixes    = "all-vtep-prefixes"
 	PrefixListVTEPPrefix         = "vtep-prefix"
@@ -63,6 +64,8 @@ const (
 	AsPathListFabricGW           = "fabric-gw-aspath"
 	AsPathListOtherDomainSpines  = "other-domain-spines"
 	AsPathListGatewayOrigin      = "gateway-origin"
+	AsPathListGatewayOriginAny   = "gateway-origin-any-hop"
+	AsPathListLeafTransit        = "leaf-transit"
 	BGPCommListAllExternals      = "all-externals"
 	BGPCommListAllGwPrios        = "all-gw-prios"
 	MgmtIface                    = "Management0"
@@ -522,7 +525,6 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 		},
 	}
 
-	// a gateway-attached leaf also passes on the gateway VTEPs, see planGatewayConnections
 	loopbackRouteMap := RouteMapLoopbackAllVTEPs
 	if agent.Spec.Switch.Role.IsLeaf() {
 		loopbackRouteMap = RouteMapLoopbackVTEP
@@ -683,6 +685,80 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			}
 		}
 	}
+
+	// mesh-only switches have no spine sessions
+	if len(peers) == 0 {
+		return nil
+	}
+
+	// Gateways must reach each other even when the only path left is spine-leaf-spine (#1782), so leaves pass
+	// the gateway VTEPs learned from one spine on to the others, and spines accept their own ASN once to take them.
+	// Anything else that went through a transit leaf is dropped on import, so leaves never use such a path.
+	domains := agent.Spec.Switch.Topology.Domains
+	gatewayMembers := []string{}
+	transitMembers := []string{}
+	for _, domainName := range domains {
+		domain, ok := agent.Spec.Config.Domains[domainName]
+		if !ok || domain.SpineASN == 0 || domain.GatewayASN == 0 {
+			return fmt.Errorf("spine or gateway ASN not set for domain %s", domainName) //nolint:err113
+		}
+		gatewayMembers = append(gatewayMembers, fmt.Sprintf("_%d$", domain.GatewayASN))
+		if agent.Spec.Switch.Role.IsSpine() {
+			// a spine prepends its ASN only when sending, so seeing it once means the path crossed a leaf already
+			transitMembers = append(transitMembers, fmt.Sprintf("_%d_", domain.SpineASN))
+		} else {
+			transitMembers = append(transitMembers, fmt.Sprintf("_%d_.*_%d_", domain.SpineASN, domain.SpineASN))
+		}
+	}
+	// sorted as the switch returns them
+	slices.Sort(gatewayMembers)
+	slices.Sort(transitMembers)
+	spec.AsPathLists[AsPathListGatewayOriginAny] = &dozer.SpecAsPathList{Members: gatewayMembers}
+	spec.AsPathLists[AsPathListLeafTransit] = &dozer.SpecAsPathList{Members: transitMembers}
+
+	gatewayVTEPs := dozer.SpecRouteMapStatement{
+		Conditions: dozer.SpecRouteMapConditions{
+			MatchAsPathList: new(AsPathListGatewayOriginAny),
+			MatchPrefixList: new(PrefixListAllVTEPPrefixes),
+		},
+		Result: dozer.SpecRouteMapResultAccept,
+	}
+
+	loopbackImport := &dozer.SpecRouteMap{
+		Statements: map[string]*dozer.SpecRouteMapStatement{
+			"20": {
+				Conditions: dozer.SpecRouteMapConditions{MatchAsPathList: new(AsPathListLeafTransit)},
+				Result:     dozer.SpecRouteMapResultReject,
+			},
+			fmt.Sprintf("%d", RouteMapMaxStatement): {
+				Result: dozer.SpecRouteMapResultAccept,
+			},
+		},
+	}
+
+	gatewayAttached := false
+	for _, conn := range agent.Spec.Connections {
+		if conn.Gateway != nil {
+			gatewayAttached = true
+
+			break
+		}
+	}
+	// a gateway-attached leaf has to install the transit path to forward its gateways' traffic and advertise it to them
+	if agent.Spec.Switch.Role.IsSpine() || gatewayAttached {
+		loopbackImport.Statements["10"] = new(gatewayVTEPs)
+	}
+	spec.RouteMaps[RouteMapLoopbackImport] = loopbackImport
+
+	var allowOwnAS *uint8
+	if agent.Spec.Switch.Role.IsSpine() {
+		allowOwnAS = new(uint8(1))
+	}
+	// a leaf in more than one domain would pass one domain's gateway VTEPs on to the other's spines
+	if agent.Spec.Switch.Role.IsLeaf() && len(domains) == 1 {
+		spec.RouteMaps[RouteMapLoopbackVTEP].Statements["20"] = new(gatewayVTEPs)
+	}
+
 	// add the ebgp sessions over the protocol loopback of the neighbors
 	ownProtocolIP, _, err := net.ParseCIDR(agent.Spec.Switch.ProtocolIP)
 	if err != nil {
@@ -707,7 +783,9 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 			Description:               new(fmt.Sprintf("Fabric %s loopback (spine-link)", peer)),
 			RemoteAS:                  new(peerSpec.ASN),
 			IPv4Unicast:               new(true),
+			IPv4UnicastImportPolicies: []string{RouteMapLoopbackImport},
 			IPv4UnicastExportPolicies: []string{loopbackRouteMap},
+			IPv4AllowOwnAS:            allowOwnAS,
 			L2VPNEVPN:                 new(true),
 			L2VPNEVPNImportPolicies:   []string{RouteMapL2VPNNeighbors},
 			DisableConnectedCheck:     new(true),
@@ -925,16 +1003,6 @@ func planGatewayConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 				},
 			},
 		}
-		if agent.Spec.Switch.Role.IsLeaf() {
-			spec.RouteMaps[RouteMapLoopbackVTEP].Statements["20"] = &dozer.SpecRouteMapStatement{
-				Conditions: dozer.SpecRouteMapConditions{
-					MatchAsPathList: new(AsPathListGatewayOrigin),
-					MatchPrefixList: new(PrefixListAllVTEPPrefixes),
-				},
-				Result: dozer.SpecRouteMapResultAccept,
-			}
-		}
-
 		for _, link := range conn.Gateway.Links {
 			port := ""
 			ipStr := ""

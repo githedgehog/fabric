@@ -122,7 +122,7 @@ spec:
       "9": "50001:9"
     protocolSubnet: 172.30.8.0/22
     serverFacingMTUOffset: 64
-    spineASN: 65100
+    spineASN: 65010
     spineLeaf: {}
     vtepSubnet: 172.30.12.0/22
   configuredVPCSubnets:
@@ -563,7 +563,7 @@ spec:
         - default
       vtepIP: 172.30.12.2/32
     spine-01:
-      asn: 65100
+      asn: 65010
       boot:
         mac: 0c:20:12:ff:05:00
       description: VS-06
@@ -576,7 +576,7 @@ spec:
       vlanNamespaces:
         - default
     spine-02:
-      asn: 65100
+      asn: 65010
       boot:
         mac: 0c:20:12:ff:06:00
       description: VS-07

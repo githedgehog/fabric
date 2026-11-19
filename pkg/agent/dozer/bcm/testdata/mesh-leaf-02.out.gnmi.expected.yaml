@@ -1542,21 +1542,6 @@ routing-policy:
           config:
             name: "100"
           name: "100"
-        - actions:
-            config:
-              policy-result: ACCEPT_ROUTE
-          conditions:
-            bgp-conditions:
-              match-as-path-set:
-                config:
-                  as-path-set: gateway-origin
-                  match-set-options: ANY
-            match-prefix-set:
-              config:
-                prefix-set: all-vtep-prefixes
-          config:
-            name: "20"
-          name: "20"
     - config:
         name: protocol-loopback-only
       name: protocol-loopback-only

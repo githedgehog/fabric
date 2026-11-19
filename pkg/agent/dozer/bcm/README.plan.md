@@ -189,8 +189,8 @@ spines and on mesh leaves, as we will see:
     route-map loopback-all-vteps permit 100
      match ip address prefix-list static-ext-subnets
     ```
-1. On a leaf we create the narrower pair below, matching only that leaf's own VTEP (plus the
-gateway VTEPs on a leaf with a [gateway connection](#gateway-connections)). A leaf in a
+1. On a leaf we create the narrower pair below, matching only that leaf's own VTEP plus the
+gateway VTEPs (see [Gateway VTEPs through a leaf](#gateway-vteps-through-a-leaf)). A leaf in a
 spine-leaf topology uses it towards the spines so that it does not re-advertise the VTEPs it
 learned from them (see
 [Fabric Connections](#fabric-connections-ie-spine-leaf)):
@@ -335,7 +335,8 @@ particular neighbor.
 
 A spine advertises every VTEP it knows about, since that is how the leaves learn of each
 other. A leaf only advertises its own, so that the VTEPs it learned from one spine are not
-sent back into the fabric via another one.
+sent back into the fabric via another one. The gateway VTEPs are the exception, see
+[Gateway VTEPs through a leaf](#gateway-vteps-through-a-leaf).
 
 Here's an example config for a leaf:
 ```
@@ -347,6 +348,7 @@ neighbor 172.30.8.0
  !
  address-family ipv4 unicast
   activate
+  route-map loopback-import in
   route-map loopback-vtep out
  !
  address-family l2vpn evpn
@@ -355,8 +357,8 @@ neighbor 172.30.8.0
 !
 ```
 
-And the corresponding configuration for the spine, the only difference being the v4
-unicast route-map:
+And the corresponding configuration for the spine, which differs only in the v4 unicast
+address family (see the next section for details):
 ```
 neighbor 172.30.8.3
  description "Fabric s5232-03 loopback (spine-link)"
@@ -366,6 +368,8 @@ neighbor 172.30.8.3
  !
  address-family ipv4 unicast
   activate
+  allowas-in 1
+  route-map loopback-import in
   route-map loopback-all-vteps out
  !
  address-family l2vpn evpn
@@ -374,8 +378,60 @@ neighbor 172.30.8.3
 !
 ```
 
-A leaf with a [gateway connection](#gateway-connections) also advertises the gateway VTEPs,
-so that they reach the rest of the fabric.
+#### Gateway VTEPs through a leaf
+
+Gateways have to reach each other even when the only path left between them is
+spine-leaf-spine ([#1782](https://github.com/githedgehog/fabric/issues/1782)), e.g. when each
+has lost its link to a different spine. Spines share an ASN, so a spine normally drops a route
+that went through a leaf as an AS loop. Only the gateway VTEPs are allowed to take that path:
+traffic between leaves never goes through a third leaf.
+
+On every leaf in a single domain, the `loopback-vtep` route map gets a statement that passes on
+the gateway VTEPs wherever they were learned from: routes in the VTEP subnet whose AS path ends
+with the domain's gateway ASN. A leaf in more than one domain doesn't get it, as it would pass
+one domain's gateway VTEPs on to the other domain's spines.
+```
+bgp as-path access-list gateway-origin-any-hop permit _65534$
+!
+route-map loopback-vtep permit 20
+ match as-path gateway-origin-any-hop
+ match ip address prefix-list all-vtep-prefixes
+!
+```
+
+Spines accept their own ASN once (`allowas-in 1`) on IPv4 unicast of the loopback sessions with
+the leaves, so they take the gateway VTEPs a leaf learned from another spine. EVPN is left
+alone, as leaves have no export filter there.
+
+To keep anything else from going through a leaf, spines and leaves both get an import route map
+on the same sessions. A spine prepends its ASN only when sending, so on a spine one occurrence
+in a received path means it crossed a leaf already; on a leaf it takes two:
+```
+! on a spine
+bgp as-path access-list leaf-transit permit _65100_
+! on a leaf
+bgp as-path access-list leaf-transit permit _65100_.*_65100_
+!
+route-map loopback-import permit 10
+ match as-path gateway-origin-any-hop
+ match ip address prefix-list all-vtep-prefixes
+!
+route-map loopback-import deny 20
+ match as-path leaf-transit
+!
+route-map loopback-import permit 65535
+!
+```
+Statement 10 is only created on spines and on leaves with a
+[gateway connection](#gateway-connections): a gateway-attached leaf has to install the path
+through another leaf to forward its gateways' traffic and to advertise it to them. Leaves
+without a gateway reject every path through another leaf, gateway VTEPs included. A leaf in more
+than one domain gets one entry per domain in both AS-path lists.
+
+Mesh-only switches have no spine sessions and get none of this.
+
+While BGP converges after a failure, a spine can briefly use a path through a leaf that leads
+back to itself, until that leaf's update arrives. This only affects the gateway VTEPs.
 
 #### Unnumbered links
 
@@ -539,15 +595,8 @@ route-map gateway-export permit 10
 !
 ```
 
-A leaf with a gateway connection in a spine-leaf topology passes the gateway VTEPs on to the
-spines, adding a statement to the `loopback-vtep` route map of
-[Fabric Connections](#fabric-connections-ie-spine-leaf):
-```
-route-map loopback-vtep permit 20
- match as-path gateway-origin
- match ip address prefix-list all-vtep-prefixes
-!
-```
+In a spine-leaf topology the leaves pass the gateway VTEPs on to the spines, see
+[Gateway VTEPs through a leaf](#gateway-vteps-through-a-leaf).
 
 For each link in a gateway connection, we:
 1. configure the corresponding interface on the switch, setting it to admin-up
