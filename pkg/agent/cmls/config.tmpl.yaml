@@ -456,6 +456,16 @@
                 aspath-ignore: enabled
             rd: {{ $.RouterID }}:{{ $vpc.VNI }}
             state: enabled
+          {{- if $vpc.Routes }}
+          static:
+            {{- range $prefix, $nextHops := $vpc.Routes }}
+            {{ $prefix }}:
+              via:
+                {{- range $nextHop := $nextHops }}
+                {{ $nextHop }}: {}
+                {{- end }}
+            {{- end }}
+          {{- end }}
       {{- end }}
     {{- if $.DHCPServer }}
     service:
