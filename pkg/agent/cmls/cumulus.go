@@ -32,6 +32,7 @@ import (
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/switchstate"
 	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
+	"go.githedgehog.com/fabric/pkg/manager/librarian"
 	"go.githedgehog.com/fabric/pkg/util/logutil"
 	"go.githedgehog.com/fabric/pkg/version"
 )
@@ -49,28 +50,30 @@ var ztpCfgTmpl string
 var fullCfgTmpl string
 
 type ConfigIn struct {
-	Hostname     string
-	Users        []User
-	NTPServer    string
-	ManagementIP string
-	ProtocolIP   string
-	VTEPIP       string
-	ASN          uint32
-	RouterID     string
-	VXLANSource  string
-	VPCs         []VPC
-	BGPNeighbors []BGPNeighbor
-	Gateway      *GatewayConfig
-	GatewayPrios []GatewayPrio
-	Ports        []*PortConfig
-	Bonds        []*BondConfig
-	Subnets      []*SubnetConfig
-	SubnetACLs   []*SubnetConfig
-	Restricted   []*SubnetConfig
-	DHCPServer   string
-	IsSpine      bool
-	IsLeaf       bool
-	IsSpectrum4  bool
+	Hostname      string
+	Users         []User
+	NTPServer     string
+	ManagementIP  string
+	ProtocolIP    string
+	VTEPIP        string
+	ASN           uint32
+	RouterID      string
+	VXLANSource   string
+	VPCs          []VPC
+	Externals     []External
+	BGPNeighbors  []BGPNeighbor
+	Gateway       *GatewayConfig
+	GatewayPrios  []GatewayPrio
+	Ports         []*PortConfig
+	Bonds         []*BondConfig
+	Subinterfaces []*SubinterfaceConfig
+	Subnets       []*SubnetConfig
+	SubnetACLs    []*SubnetConfig
+	Restricted    []*SubnetConfig
+	DHCPServer    string
+	IsSpine       bool
+	IsLeaf        bool
+	IsSpectrum4   bool
 }
 
 type User struct {
@@ -127,6 +130,17 @@ func vpcVRF(vpcName string) string {
 	return "vpc-" + vpcName
 }
 
+// External is an external attached to the switch, with the external VNI as L3VNI of its VRF
+type External struct {
+	Name string
+	VRF  string
+	VNI  uint32
+}
+
+func extVRF(extName string) string {
+	return "ext-" + extName
+}
+
 type PortConfig struct {
 	Name            string
 	Breakout        string
@@ -137,8 +151,19 @@ type PortConfig struct {
 	Up              bool
 	Description     string
 	IP              string
+	VRF             string
 	AdaptiveRouting bool
 	BridgeMember
+}
+
+// SubinterfaceConfig is a VLAN subinterface of a port with an external attachment
+type SubinterfaceConfig struct {
+	Name        string
+	Port        string
+	VLAN        uint16
+	IP          string
+	VRF         string
+	Description string
 }
 
 type BondConfig struct {
@@ -434,7 +459,6 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		})
 	}
 
-	// TODO configure the external connections, only their ports are brought up for now
 	neighs := []BGPNeighbor{}
 	var gateway *GatewayConfig
 	for connName, conn := range agent.Spec.Connections {
@@ -765,6 +789,77 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		})
 	}
 
+	// the externals attached to the switch get a VRF with the external VNI as L3VNI, the attachments get the IP in it
+	// on a VLAN subinterface or on the port itself without a VLAN
+	// TODO BGP sessions to the externals, static routes to the static ones and the hardened inbound ACL
+	externals := map[string]External{}
+	subifs := []*SubinterfaceConfig{}
+	extVLANs := map[string]map[uint16]string{} // port -> VLAN -> attachment
+	for _, attachName := range slices.Sorted(maps.Keys(agent.Spec.ExternalAttachments)) {
+		attach := agent.Spec.ExternalAttachments[attachName]
+		conn, ok := agent.Spec.Connections[attach.Connection]
+		if !ok {
+			return nil, fmt.Errorf("external attachment %s: conn %s not found", attachName, attach.Connection) //nolint:err113
+		}
+		if conn.External == nil || conn.External.Link.Switch.DeviceName() != agent.Name {
+			return nil, fmt.Errorf("external attachment %s: conn %s isn't an external conn of the switch", attachName, attach.Connection) //nolint:err113
+		}
+		if _, ok := agent.Spec.Externals[attach.External]; !ok {
+			return nil, fmt.Errorf("external attachment %s: external %s not found", attachName, attach.External) //nolint:err113
+		}
+		if _, ok := externals[attach.External]; !ok {
+			vni := agent.Spec.Catalog.VPCVNIs[librarian.ReqForExt(attach.External)]
+			if vni == 0 {
+				return nil, fmt.Errorf("external %s: no VNI", attach.External) //nolint:err113
+			}
+			externals[attach.External] = External{Name: attach.External, VRF: extVRF(attach.External), VNI: vni}
+		}
+
+		vlan, ip := attach.Switch.VLAN, attach.Switch.IP
+		if attach.Static != nil {
+			vlan, ip = attach.Static.VLAN, attach.Static.IP
+		}
+		// no IP is BGP unnumbered
+		if ip != "" {
+			prefix, err := netip.ParsePrefix(ip)
+			if err != nil || !prefix.Addr().Is4() {
+				return nil, fmt.Errorf("external attachment %s: invalid IP %q", attachName, ip) //nolint:err113
+			}
+			ip = prefix.String()
+		}
+
+		portName, err := nosPortName(api2nos, conn.External.Link.Switch.LocalPortName())
+		if err != nil {
+			return nil, fmt.Errorf("external attachment %s: %w", attachName, err)
+		}
+		if other, ok := extVLANs[portName][vlan]; ok {
+			return nil, fmt.Errorf("external attachment %s: vlan %d on port %s is already used by %s", attachName, vlan, portName, other) //nolint:err113
+		}
+		if extVLANs[portName] == nil {
+			extVLANs[portName] = map[uint16]string{}
+		}
+		extVLANs[portName][vlan] = attachName
+
+		if vlan == 0 {
+			port := portsByName[portName]
+			port.IP = ip
+			port.VRF = extVRF(attach.External)
+
+			continue
+		}
+		subifs = append(subifs, &SubinterfaceConfig{
+			Name:        fmt.Sprintf("%s.%d", portName, vlan),
+			Port:        portName,
+			VLAN:        vlan,
+			IP:          ip,
+			VRF:         extVRF(attach.External),
+			Description: "External " + attachName,
+		})
+	}
+	slices.SortFunc(subifs, func(a, b *SubinterfaceConfig) int {
+		return cmp.Or(cmp.Compare(a.Port, b.Port), cmp.Compare(a.VLAN, b.VLAN))
+	})
+
 	// the DHCP relay sends a reply out of the first interface with the IP from the link selection it got, so the SVIs
 	// need unique IPs of their own, taken as base + VLAN
 	sviSubnet, err := netip.ParsePrefix(cmp.Or(agent.Spec.Config.CumulusSVIWorkaroundSubnet, fmeta.DefaultCumulusSVIWorkaroundSubnet))
@@ -931,27 +1026,29 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 	})
 
 	cfgIn := ConfigIn{
-		Hostname:     agent.Name,
-		Users:        users,
-		NTPServer:    controlVIP.Addr().String(),
-		ManagementIP: agent.Spec.Switch.IP,
-		ProtocolIP:   agent.Spec.Switch.ProtocolIP,
-		VTEPIP:       agent.Spec.Switch.VTEPIP,
-		ASN:          agent.Spec.Switch.ASN,
-		RouterID:     protocolIP.Addr().String(),
-		VXLANSource:  vtepIP.Addr().String(),
-		VPCs:         vpcs,
-		BGPNeighbors: neighs,
-		Gateway:      gateway,
-		GatewayPrios: gwPrios,
-		Ports:        ports,
-		Bonds:        bonds,
-		Subnets:      subnets,
-		SubnetACLs:   slices.DeleteFunc(slices.Clone(subnets), func(subnet *SubnetConfig) bool { return len(subnet.Deny) == 0 }),
-		Restricted:   slices.DeleteFunc(slices.Clone(subnets), func(subnet *SubnetConfig) bool { return subnet.RestrictedACL == "" }),
-		IsSpine:      isSpine,
-		IsLeaf:       isLeaf,
-		IsSpectrum4:  isSpectrum4,
+		Hostname:      agent.Name,
+		Users:         users,
+		NTPServer:     controlVIP.Addr().String(),
+		ManagementIP:  agent.Spec.Switch.IP,
+		ProtocolIP:    agent.Spec.Switch.ProtocolIP,
+		VTEPIP:        agent.Spec.Switch.VTEPIP,
+		ASN:           agent.Spec.Switch.ASN,
+		RouterID:      protocolIP.Addr().String(),
+		VXLANSource:   vtepIP.Addr().String(),
+		VPCs:          vpcs,
+		Externals:     slices.SortedFunc(maps.Values(externals), func(a, b External) int { return cmp.Compare(a.Name, b.Name) }),
+		BGPNeighbors:  neighs,
+		Gateway:       gateway,
+		GatewayPrios:  gwPrios,
+		Ports:         ports,
+		Bonds:         bonds,
+		Subinterfaces: subifs,
+		Subnets:       subnets,
+		SubnetACLs:    slices.DeleteFunc(slices.Clone(subnets), func(subnet *SubnetConfig) bool { return len(subnet.Deny) == 0 }),
+		Restricted:    slices.DeleteFunc(slices.Clone(subnets), func(subnet *SubnetConfig) bool { return subnet.RestrictedACL == "" }),
+		IsSpine:       isSpine,
+		IsLeaf:        isLeaf,
+		IsSpectrum4:   isSpectrum4,
 	}
 
 	// the DHCP requests from the subnets with DHCP enabled are relayed to the control node over the management network
@@ -1095,6 +1192,11 @@ func checkSupported(agent *agentapi.Agent) error {
 	for _, connName := range slices.Sorted(maps.Keys(agent.Spec.Connections)) {
 		if agent.Spec.Connections[connName].StaticExternal != nil {
 			return fmt.Errorf("conn %s: static externals aren't supported", connName) //nolint:err113
+		}
+	}
+	for _, attachName := range slices.Sorted(maps.Keys(agent.Spec.ExternalAttachments)) {
+		if static := agent.Spec.ExternalAttachments[attachName].Static; static != nil && static.Proxy {
+			return fmt.Errorf("external attachment %s: proxy-ARP isn't supported", attachName) //nolint:err113
 		}
 	}
 

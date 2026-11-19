@@ -113,6 +113,9 @@
           adaptive-routing:
             state: enabled
         {{- end }}
+        {{- if $port.VRF }}
+        vrf: {{ $port.VRF }}
+        {{- end }}
       {{- end }}
       {{- range $bond := $.Bonds }}
       {{ $bond.Name }}:
@@ -156,6 +159,21 @@
                 '{{ $vlan }}': {}
                 {{- end }}
         {{- end }}
+      {{- end }}
+      {{- range $subif := $.Subinterfaces }}
+      {{ $subif.Name }}:
+        base-interface: {{ $subif.Port }}
+        description: {{ $subif.Description }}
+        {{- if $subif.IP }}
+        ipv4:
+          address:
+            {{ $subif.IP }}: {}
+        ipv6:
+          state: disabled
+        {{- end }}
+        type: sub
+        vlan: {{ $subif.VLAN }}
+        vrf: {{ $subif.VRF }}
       {{- end }}
       {{- range $subnet := $.Subnets }}
       {{ $subnet.Name }}:
@@ -553,6 +571,25 @@
                 {{- end }}
             {{- end }}
           {{- end }}
+      {{- end }}
+      {{- range $ext := $.Externals }}
+      {{ $ext.VRF }}:
+        evpn:
+          state: enabled
+          vni:
+            '{{ $ext.VNI }}': {}
+        router:
+          bgp:
+            address-family:
+              ipv4-unicast:
+                route-export:
+                  to-evpn:
+                    state: enabled
+                state: enabled
+              l2vpn-evpn:
+                state: enabled
+            rd: {{ $.RouterID }}:{{ $ext.VNI }}
+            state: enabled
       {{- end }}
     {{- if $.DHCPServer }}
     service:

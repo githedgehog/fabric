@@ -181,6 +181,15 @@ spec:
               ip: 172.30.128.12/31
               port: spine-02/E1/2
   description: VS-01
+  externalAttachments:
+    leaf-01--ext-snp-02:
+      connection: leaf-01--external
+      external: ext-snp-02
+      neighbor: {}
+      static:
+        ip: 100.1.20.2/24
+        remoteIP: 100.1.20.1
+      switch: {}
   externals:
     ext-snp-02:
       ipv4Namespace: default

@@ -269,6 +269,73 @@ func TestBuildConfigErrors(t *testing.T) {
 			err: "conn leaf-01--static-external: static externals aren't supported",
 		},
 		{
+			name:    "vx-ext-attach-proxy-unsupported",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: withExtAttachments(map[string]vpcapi.ExternalAttachmentSpec{
+				"leaf-01--ext-01": {Connection: "leaf-01--external", External: "ext-01", Static: &vpcapi.ExternalAttachmentStatic{RemoteIP: "100.1.10.1", Proxy: true}},
+			}),
+			err: "external attachment leaf-01--ext-01: proxy-ARP isn't supported",
+		},
+		{
+			name:    "vx-ext-attach-conn-not-found",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: withExtAttachments(map[string]vpcapi.ExternalAttachmentSpec{
+				"leaf-01--ext-01": {Connection: "leaf-01--other", External: "ext-01"},
+			}),
+			err: "external attachment leaf-01--ext-01: conn leaf-01--other not found",
+		},
+		{
+			name:    "vx-ext-attach-conn-not-external",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: withExtAttachments(map[string]vpcapi.ExternalAttachmentSpec{
+				"leaf-01--ext-01": {Connection: "server-01--unbundled--leaf-01", External: "ext-01"},
+			}),
+			err: "external attachment leaf-01--ext-01: conn server-01--unbundled--leaf-01 isn't an external conn of the switch",
+		},
+		{
+			name:    "vx-ext-attach-external-not-found",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: withExtAttachments(map[string]vpcapi.ExternalAttachmentSpec{
+				"leaf-01--ext-02": {Connection: "leaf-01--external", External: "ext-02"},
+			}),
+			err: "external attachment leaf-01--ext-02: external ext-02 not found",
+		},
+		{
+			name:    "vx-ext-no-vni",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: func(agent *agentapi.Agent) {
+				withExtAttachments(map[string]vpcapi.ExternalAttachmentSpec{
+					"leaf-01--ext-01": {Connection: "leaf-01--external", External: "ext-01"},
+				})(agent)
+				delete(agent.Spec.Catalog.VPCVNIs, "ext@ext-01")
+			},
+			err: "external ext-01: no VNI",
+		},
+		{
+			name:    "vx-ext-attach-invalid-ip",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: withExtAttachments(map[string]vpcapi.ExternalAttachmentSpec{
+				"leaf-01--ext-01": {Connection: "leaf-01--external", External: "ext-01", Switch: vpcapi.ExternalAttachmentSwitch{VLAN: 10, IP: "100.1.10.1"}},
+			}),
+			err: `external attachment leaf-01--ext-01: invalid IP "100.1.10.1"`,
+		},
+		{
+			name:    "vx-ext-attach-vlan-twice",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: withExtAttachments(map[string]vpcapi.ExternalAttachmentSpec{
+				"leaf-01--ext-01":   {Connection: "leaf-01--external", External: "ext-01", Switch: vpcapi.ExternalAttachmentSwitch{VLAN: 10, IP: "100.1.10.1/24"}},
+				"leaf-01--ext-01-2": {Connection: "leaf-01--external", External: "ext-01", Static: &vpcapi.ExternalAttachmentStatic{VLAN: 10, IP: "100.1.20.1/24", RemoteIP: "100.1.20.2"}},
+			}),
+			err: "external attachment leaf-01--ext-01-2: vlan 10 on port swp2 is already used by leaf-01--ext-01",
+		},
+		{
 			name:    "sn5610-speed-on-breakout-port",
 			profile: &switchprofile.CumulusNvidiaSN5610,
 			speeds:  map[string]string{"E1/2": "400G"},
@@ -505,6 +572,17 @@ func withGateway(domain string, asn uint32, switchIP string) func(agent *agentap
 				Gateway: wiringapi.ConnGatewayLinkGateway{BasePortName: wiringapi.BasePortName{Port: "gateway-1/enp2s1"}, IP: "172.30.128.21/31"},
 			}},
 		}}
+	}
+}
+
+func withExtAttachments(attaches map[string]vpcapi.ExternalAttachmentSpec) func(agent *agentapi.Agent) {
+	return func(agent *agentapi.Agent) {
+		agent.Spec.Connections["leaf-01--external"] = wiringapi.ConnectionSpec{External: &wiringapi.ConnExternal{
+			Link: wiringapi.ConnExternalLink{Switch: wiringapi.BasePortName{Port: "leaf-01/E1/2"}},
+		}}
+		agent.Spec.Externals = map[string]vpcapi.ExternalSpec{"ext-01": {IPv4Namespace: "default"}}
+		agent.Spec.Catalog.VPCVNIs["ext@ext-01"] = 300
+		agent.Spec.ExternalAttachments = attaches
 	}
 }
 
