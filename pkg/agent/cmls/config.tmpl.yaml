@@ -365,7 +365,7 @@
                   deny: {}
                 match:
                   ip-prefix-list: vpc-not-subnets--{{ $peer.Name }}
-                  source-vrf: {{ $peer.Name }}
+                  source-vrf: {{ $peer.VRF }}
                   type: ipv4
               {{- end }}
               '50000':
@@ -502,7 +502,7 @@
             {{- end }}
             state: enabled
       {{- range $vpc := $.VPCs }}
-      {{ $vpc.Name }}:
+      {{ $vpc.VRF }}:
         evpn:
           state: enabled
           vni:
@@ -523,7 +523,7 @@
                   from-vrf:
                     list:
                       {{- range $peer := $vpc.Peers }}
-                      {{ $peer.Name }}: {}
+                      {{ $peer.VRF }}: {}
                       {{- end }}
                     route-map: import-vrf--{{ $vpc.Name }}
                     state: enabled
