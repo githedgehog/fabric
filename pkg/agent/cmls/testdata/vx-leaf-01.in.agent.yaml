@@ -17,9 +17,11 @@ spec:
     vpc-03: true
   catalog:
     externalIDs:
+      ext-bgp-01: 12
       ext-snp-02: 10
       ext-sp-01: 11
     irbVLANs:
+      ext@ext-bgp-01: 3005
       ext@ext-snp-02: 3000
       ext@ext-sp-01: 3001
       vpc-01: 3002
@@ -27,8 +29,6 @@ spec:
       vpc-03: 3004
     portChannelIDs:
       server-05--bundled--leaf-01: 1
-    staticExternalSubnetOffsets:
-      leaf-01--ext-sp-01: 0
     subnetIDs:
       0.0.0.0/0: 103
       10.0.1.0/24: 100
@@ -45,6 +45,7 @@ spec:
       vpc-03:
         default: 501
     vpcVNIs:
+      ext@ext-bgp-01: 600
       ext@ext-snp-02: 100
       ext@ext-sp-01: 200
       vpc-01: 300
@@ -220,15 +221,15 @@ spec:
             protocol: udp
             srcPrefix: any
             dstPrefix: 10.50.10.3/32
-    leaf-01--ext-sp-01:
+    leaf-01--ext-bgp-01:
       connection: leaf-01--external
-      external: ext-sp-01
-      neighbor: {}
-      static:
-        proxy: true
-        remoteIP: 100.1.10.1
+      external: ext-bgp-01
+      neighbor:
+        asn: 64102
+        ip: 100.1.10.6
+      switch:
+        ip: 100.1.10.1/24
         vlan: 10
-      switch: {}
   externalPeerings:
     vpc-02--ext-snp-02:
       permit:
@@ -241,6 +242,10 @@ spec:
           subnets:
             - default
   externals:
+    ext-bgp-01:
+      inboundCommunity: 65102:1000
+      ipv4Namespace: default
+      outboundCommunity: 64102:1000
     ext-snp-02:
       ipv4Namespace: default
       static:

@@ -997,6 +997,28 @@
               vlan:
                 '1001': {}
                 '1012': {}
+      swp1.10:
+        base-interface: swp1
+        description: External leaf-01--ext-bgp-01
+        ipv4:
+          address:
+            100.1.10.1/24: {}
+        ipv6:
+          state: disabled
+        type: sub
+        vlan: 10
+        vrf: ext-ext-bgp-01
+      swp1.20:
+        base-interface: swp1
+        description: External leaf-01--ext-snp-02
+        ipv4:
+          address:
+            100.1.20.2/24: {}
+        ipv6:
+          state: disabled
+        type: sub
+        vlan: 20
+        vrf: ext-ext-snp-02
       vlan1001:
         acl:
           vpc-filtering--vpc-01--default:
@@ -1657,6 +1679,40 @@
               multipath:
                 aspath-ignore: enabled
             rd: 172.30.8.2:500
+            state: enabled
+      ext-ext-bgp-01:
+        evpn:
+          state: enabled
+          vni:
+            '600': {}
+        router:
+          bgp:
+            address-family:
+              ipv4-unicast:
+                route-export:
+                  to-evpn:
+                    state: enabled
+                state: enabled
+              l2vpn-evpn:
+                state: enabled
+            rd: 172.30.8.2:600
+            state: enabled
+      ext-ext-snp-02:
+        evpn:
+          state: enabled
+          vni:
+            '100': {}
+        router:
+          bgp:
+            address-family:
+              ipv4-unicast:
+                route-export:
+                  to-evpn:
+                    state: enabled
+                state: enabled
+              l2vpn-evpn:
+                state: enabled
+            rd: 172.30.8.2:100
             state: enabled
     service:
       dhcp-relay:
