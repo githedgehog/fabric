@@ -1491,6 +1491,13 @@
               '65535':
                 action:
                   permit: {}
+          ext-to-evpn:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                match:
+                  community-list: all-externals
           ext-static--ext-snp-02:
             rule:
               '10':
@@ -1768,6 +1775,7 @@
                     state: enabled
                 route-export:
                   to-evpn:
+                    route-map: ext-to-evpn
                     state: enabled
                 state: enabled
               l2vpn-evpn:

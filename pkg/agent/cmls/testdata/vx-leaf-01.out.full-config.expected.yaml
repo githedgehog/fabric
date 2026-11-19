@@ -1567,6 +1567,13 @@
               '65535':
                 action:
                   permit: {}
+          ext-to-evpn:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                match:
+                  community-list: all-externals
           ext-import--ext-bgp-01:
             rule:
               '10':
@@ -1950,6 +1957,7 @@
               ipv4-unicast:
                 route-export:
                   to-evpn:
+                    route-map: ext-to-evpn
                     state: enabled
                 route-import:
                   from-vrf:
@@ -2016,6 +2024,7 @@
                     state: enabled
                 route-export:
                   to-evpn:
+                    route-map: ext-to-evpn
                     state: enabled
                 route-import:
                   from-vrf:

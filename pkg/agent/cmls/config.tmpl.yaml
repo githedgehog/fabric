@@ -296,16 +296,14 @@
                 aspath-exp: ^{{ $.Gateway.ASN }}$
           {{- end }}
         {{- end }}
-        {{- if or $.IsLeaf $.BGPExternals }}
+        {{- if or $.IsLeaf $.Externals }}
         community-list:
-          {{- if $.IsLeaf }}
           all-externals:
             rule:
               '10':
                 action: permit
                 community:
                   {{ $.BaseVPCCommunity }}: {}
-          {{- end }}
           {{- if and $.BGPExternals $.GatewayPrios }}
           all-gw-prios:
             rule:
@@ -484,6 +482,15 @@
               '65535':
                 action:
                   permit: {}
+          {{- end }}
+          {{- if $.Externals }}
+          ext-to-evpn:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                match:
+                  community-list: all-externals
           {{- end }}
           {{- range $ext := $.Externals }}
           {{- if $ext.ImportPrefixes }}
@@ -810,6 +817,7 @@
                 {{- end }}
                 route-export:
                   to-evpn:
+                    route-map: ext-to-evpn
                     state: enabled
                 {{- if $ext.ImportPrefixes }}
                 route-import:
