@@ -90,6 +90,9 @@
           speed: 10G
           state:
             up: {}
+        ipv4:
+          address:
+            172.30.128.8/31: {}
       swp6:
         description: Unused
         ipv6:
@@ -890,7 +893,37 @@
           stale-routes-time: 180
         state: enabled
       policy:
+        as-path-list:
+          gateway-origin:
+            rule:
+              '10':
+                action: permit
+                aspath-exp: ^65534$
+        prefix-list:
+          all-vtep-prefixes:
+            rule:
+              '10':
+                action: permit
+                match:
+                  172.30.12.0/22:
+                    max-prefix-len: 32
+            type: ipv4
         route-map:
+          gateway-export:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                match:
+                  ip-prefix-list: all-vtep-prefixes
+                  type: ipv4
+          gateway-import:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                match:
+                  as-path-list: gateway-origin
           lo_to_bgp:
             rule:
               '10':
@@ -930,6 +963,19 @@
               l2vpn-evpn:
                 state: enabled
             peer-group:
+              gateway:
+                address-family:
+                  ipv4-unicast:
+                    policy:
+                      inbound:
+                        route-map: gateway-import
+                      outbound:
+                        route-map: gateway-export
+                  l2vpn-evpn:
+                    state: enabled
+                bfd:
+                  profile: underlay
+                remote-as: 65534
               underlay_spine:
                 address-family:
                   ipv4-unicast:
@@ -975,6 +1021,10 @@
               172.30.128.7:
                 description: fabric underlay to leaf leaf-02/E1/5
                 peer-group: underlay_leaf
+                type: numbered
+              172.30.128.9:
+                description: Gateway gateway-1/enp2s1 spine-01--gateway--gateway-1
+                peer-group: gateway
                 type: numbered
               172.30.8.2:
                 description: fabric overlay to leaf leaf-01

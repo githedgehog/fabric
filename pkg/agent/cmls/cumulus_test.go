@@ -227,6 +227,27 @@ func TestBuildConfigErrors(t *testing.T) {
 			err: "vpc peering vpc-01--vpc-09: vpc vpc-09 not found",
 		},
 		{
+			name:    "vx-gateway-no-domain",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate:  withGateway("", 0, "172.30.128.20/31"),
+			err:     "conn leaf-01--gateway--gateway-1: switch with a gateway connection has to be in a single domain",
+		},
+		{
+			name:    "vx-gateway-no-asn",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate:  withGateway("default", 0, "172.30.128.20/31"),
+			err:     "conn leaf-01--gateway--gateway-1: no gateway ASN for domain default",
+		},
+		{
+			name:    "vx-gateway-no-ip",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate:  withGateway("default", 65534, ""),
+			err:     `conn leaf-01--gateway--gateway-1: parsing switch IP ""`,
+		},
+		{
 			name:    "vx-static-external-unsupported",
 			profile: &switchprofile.CumulusVX,
 			port:    "E1/1",
@@ -456,6 +477,22 @@ func withStaticRoutes(routes ...vpcapi.VPCStaticRoute) func(agent *agentapi.Agen
 	return func(agent *agentapi.Agent) {
 		withVPC01(func(vpc *vpcapi.VPCSpec) { vpc.StaticRoutes = routes })(agent)
 		agent.Spec.AttachedVPCs = map[string]bool{"vpc-01": true}
+	}
+}
+
+func withGateway(domain string, asn uint32, switchIP string) func(agent *agentapi.Agent) {
+	return func(agent *agentapi.Agent) {
+		if domain != "" {
+			agent.Spec.Switch.Topology.Domains = []string{domain}
+		}
+		agent.Spec.Config.Domains = map[string]wiringapi.FabricDomainSpec{"default": {GatewayASN: asn}}
+		agent.Spec.Config.VTEPSubnet = "172.30.12.0/22"
+		agent.Spec.Connections["leaf-01--gateway--gateway-1"] = wiringapi.ConnectionSpec{Gateway: &wiringapi.ConnGateway{
+			Links: []wiringapi.GatewayLink{{
+				Switch:  wiringapi.ConnFabricLinkSwitch{BasePortName: wiringapi.BasePortName{Port: "leaf-01/E1/2"}, IP: switchIP},
+				Gateway: wiringapi.ConnGatewayLinkGateway{BasePortName: wiringapi.BasePortName{Port: "gateway-1/enp2s1"}, IP: "172.30.128.21/31"},
+			}},
+		}}
 	}
 }
 
