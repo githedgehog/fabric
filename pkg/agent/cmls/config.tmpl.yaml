@@ -59,7 +59,7 @@
         description: {{ $port.Description }}
         {{- end }}
         ipv6:
-          state: disabled
+          state: {{ if $port.IPv6 }}enabled{{ else }}disabled{{ end }}
         lldp:
           state: enabled
         qos:
@@ -168,9 +168,9 @@
         ipv4:
           address:
             {{ $subif.IP }}: {}
-        ipv6:
-          state: disabled
         {{- end }}
+        ipv6:
+          state: {{ if $subif.IP }}disabled{{ else }}enabled{{ end }}
         type: sub
         vlan: {{ $subif.VLAN }}
         vrf: {{ $subif.VRF }}
@@ -257,6 +257,15 @@
             detect-multiplier: 3
             min-rx-interval: 300
             min-tx-interval: 300
+          {{- range $bfd := $.BFDProfiles }}
+          {{ $bfd.Name }}:
+            detect-multiplier: {{ $bfd.Multiplier }}
+            min-rx-interval: {{ $bfd.MinRX }}
+            min-tx-interval: {{ $bfd.MinTX }}
+            {{- if $bfd.Passive }}
+            passive-mode: enabled
+            {{- end }}
+          {{- end }}
         state: enabled
       bgp:
         autonomous-system: {{ $.ASN }}
@@ -268,22 +277,55 @@
           stale-routes-time: 180
         state: enabled
       policy:
-        {{- if $.Gateway }}
+        {{- if or $.Gateway $.FabricASPaths }}
         as-path-list:
+          {{- if $.FabricASPaths }}
+          fabric-gw-aspath:
+            rule:
+              {{- range $seq, $path := $.FabricASPaths }}
+              '{{ $seq }}':
+                action: permit
+                aspath-exp: {{ $path }}
+              {{- end }}
+          {{- end }}
+          {{- if $.Gateway }}
           gateway-origin:
             rule:
               '10':
                 action: permit
                 aspath-exp: ^{{ $.Gateway.ASN }}$
+          {{- end }}
         {{- end }}
-        {{- if $.IsLeaf }}
+        {{- if or $.IsLeaf $.BGPExternals }}
         community-list:
+          {{- if $.IsLeaf }}
           all-externals:
             rule:
               '10':
                 action: permit
                 community:
                   {{ $.BaseVPCCommunity }}: {}
+          {{- end }}
+          {{- if and $.BGPExternals $.GatewayPrios }}
+          all-gw-prios:
+            rule:
+              {{- range $prio := $.GatewayPrios }}
+              '{{ $prio.RuleID }}':
+                action: permit
+                community:
+                  {{ $prio.Community }}: {}
+              {{- end }}
+          {{- end }}
+          {{- range $ext := $.Externals }}
+          {{- if and $ext.Neighbors $ext.InboundCommunity }}
+          ext-inbound--{{ $ext.Name }}:
+            rule:
+              '10':
+                action: permit
+                community:
+                  {{ $ext.InboundCommunity }}: {}
+          {{- end }}
+          {{- end }}
           {{- range $prio := $.GatewayPrios }}
           {{ $prio.Name }}:
             rule:
@@ -293,7 +335,7 @@
                   {{ $prio.Community }}: {}
           {{- end }}
         {{- end }}
-        {{- if or $.VPCs $.Gateway }}
+        {{- if or $.VPCs $.Gateway $.BGPExternals }}
         prefix-list:
           {{- if $.Gateway }}
           all-vtep-prefixes:
@@ -304,6 +346,39 @@
                   {{ $.Gateway.VTEPSubnet }}:
                     max-prefix-len: 32
             type: ipv4
+          {{- end }}
+          {{- range $ns := $.IPv4Namespaces }}
+          ipns-subnets--{{ $ns.Name }}:
+            rule:
+              {{- range $seq, $subnet := $ns.Subnets }}
+              '{{ $seq }}':
+                action: permit
+                match:
+                  {{ $subnet }}:
+                    max-prefix-len: 32
+              {{- end }}
+            type: ipv4
+          {{- end }}
+          {{- range $ext := $.Externals }}
+          {{- if and $ext.Neighbors $ext.InboundPrefixes }}
+          ext-inbound--{{ $ext.Name }}:
+            rule:
+              {{- range $seq, $entry := $ext.InboundPrefixes }}
+              '{{ $seq }}':
+                action: permit
+                match:
+                  {{- if $entry.MaxLen }}
+                  {{ $entry.Prefix }}:
+                    max-prefix-len: {{ $entry.MaxLen }}
+                    {{- if $entry.MinLen }}
+                    min-prefix-len: {{ $entry.MinLen }}
+                    {{- end }}
+                  {{- else }}
+                  {{ $entry.Prefix }}: {}
+                  {{- end }}
+              {{- end }}
+            type: ipv4
+          {{- end }}
           {{- end }}
           {{- range $vpc := $.VPCs }}
           vpc-not-subnets--{{ $vpc.Name }}:
@@ -387,6 +462,67 @@
                   permit: {}
           {{- end }}
           {{- range $ext := $.Externals }}
+          {{- if $ext.Neighbors }}
+          ext-inbound--{{ $ext.Name }}:
+            rule:
+              {{- if $.FabricASPaths }}
+              '5':
+                action:
+                  deny: {}
+                match:
+                  as-path-list: fabric-gw-aspath
+              {{- end }}
+              '10':
+                action:
+                  deny: {}
+                match:
+                  ip-prefix-list: ipns-subnets--{{ $ext.IPv4Namespace }}
+                  type: ipv4
+              '15':
+                action:
+                  permit: {}
+                {{- if or $ext.InboundCommunity $ext.InboundPrefixes }}
+                match:
+                  {{- if $ext.InboundCommunity }}
+                  community-list: ext-inbound--{{ $ext.Name }}
+                  {{- end }}
+                  {{- if $ext.InboundPrefixes }}
+                  ip-prefix-list: ext-inbound--{{ $ext.Name }}
+                  type: ipv4
+                  {{- end }}
+                {{- end }}
+                set:
+                  community:
+                    {{- range $comm := $ext.SetCommunities }}
+                    {{ $comm }}: {}
+                    {{- end }}
+                  local-preference: 150
+          ext-outbound--{{ $ext.Name }}:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                match:
+                  ip-prefix-list: ipns-subnets--{{ $ext.IPv4Namespace }}
+                  type: ipv4
+                {{- if $ext.OutboundCommunity }}
+                set:
+                  community:
+                    {{ $ext.OutboundCommunity }}: {}
+                {{- end }}
+              {{- if $.GatewayPrios }}
+              '20':
+                action:
+                  permit: {}
+                match:
+                  community-list: all-gw-prios
+                {{- if $ext.OutboundCommunity }}
+                set:
+                  community:
+                    {{ $ext.OutboundCommunity }}: {}
+                {{- end }}
+              {{- end }}
+          {{- end }}
           {{- if $ext.Static }}
           ext-static--{{ $ext.Name }}:
             rule:
@@ -619,6 +755,38 @@
                 state: enabled
               l2vpn-evpn:
                 state: enabled
+            {{- if $ext.Neighbors }}
+            neighbor:
+              {{- range $neigh := $ext.Neighbors }}
+              {{ $neigh.Key }}:
+                address-family:
+                  ipv4-unicast:
+                    policy:
+                      inbound:
+                        route-map: ext-inbound--{{ $ext.Name }}
+                      outbound:
+                        route-map: ext-outbound--{{ $ext.Name }}
+                    state: enabled
+                {{- if $neigh.BFDProfile }}
+                bfd:
+                  profile: {{ $neigh.BFDProfile }}
+                {{- end }}
+                {{- if $neigh.Unnumbered }}
+                capabilities:
+                  extended-nexthop: enabled
+                {{- end }}
+                description: {{ $neigh.Description }}
+                {{- if $neigh.LocalASN }}
+                local-as:
+                  asn: {{ $neigh.LocalASN }}
+                  prepend: disabled
+                  replace: enabled
+                  state: enabled
+                {{- end }}
+                remote-as: {{ $neigh.RemoteAS }}
+                type: {{ if $neigh.Unnumbered }}unnumbered{{ else }}numbered{{ end }}
+              {{- end }}
+            {{- end }}
             rd: {{ $.RouterID }}:{{ $ext.VNI }}
             state: enabled
           {{- if $ext.Routes }}

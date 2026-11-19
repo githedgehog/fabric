@@ -230,6 +230,15 @@ spec:
       switch:
         ip: 100.1.10.1/24
         vlan: 10
+      bfd:
+        minRX: 500
+        passive: true
+    leaf-01--ext-bgp-01-unnumbered:
+      connection: leaf-01--external
+      external: ext-bgp-01
+      neighbor: {}
+      switch:
+        vlan: 30
   externalPeerings:
     vpc-02--ext-snp-02:
       permit:
@@ -244,7 +253,15 @@ spec:
   externals:
     ext-bgp-01:
       inboundCommunity: 65102:1000
+      inboundPrefixes:
+        0.0.0.0/0: {}
+        192.168.0.0/16:
+          maxPrefixLen: 24
+        203.0.113.0/24:
+          minPrefixLen: 26
+          maxPrefixLen: 28
       ipv4Namespace: default
+      localASN: 65999
       outboundCommunity: 64102:1000
     ext-snp-02:
       ipv4Namespace: default

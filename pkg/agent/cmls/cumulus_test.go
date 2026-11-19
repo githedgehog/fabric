@@ -330,7 +330,7 @@ func TestBuildConfigErrors(t *testing.T) {
 			profile: &switchprofile.CumulusVX,
 			port:    "E1/1",
 			mutate: withExtAttachments(map[string]vpcapi.ExternalAttachmentSpec{
-				"leaf-01--ext-01":   {Connection: "leaf-01--external", External: "ext-01", Switch: vpcapi.ExternalAttachmentSwitch{VLAN: 10, IP: "100.1.10.1/24"}},
+				"leaf-01--ext-01":   {Connection: "leaf-01--external", External: "ext-01", Static: &vpcapi.ExternalAttachmentStatic{VLAN: 10, IP: "100.1.10.1/24", RemoteIP: "100.1.10.2"}},
 				"leaf-01--ext-01-2": {Connection: "leaf-01--external", External: "ext-01", Static: &vpcapi.ExternalAttachmentStatic{VLAN: 10, IP: "100.1.20.1/24", RemoteIP: "100.1.20.2"}},
 			}),
 			err: "external attachment leaf-01--ext-01-2: vlan 10 on port swp2 is already used by leaf-01--ext-01",
@@ -376,6 +376,76 @@ func TestBuildConfigErrors(t *testing.T) {
 				agent.Spec.Externals["ext-01"].Static.Prefixes = []string{"0.0.0.0"}
 			},
 			err: `external ext-01: invalid static prefix "0.0.0.0"`,
+		},
+		{
+			name:    "vx-ext-attach-prefix-limit-unsupported",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: withExtAttachments(map[string]vpcapi.ExternalAttachmentSpec{
+				"leaf-01--ext-01": {
+					Connection: "leaf-01--external", External: "ext-01",
+					Switch:   vpcapi.ExternalAttachmentSwitch{VLAN: 10, IP: "100.1.10.1/24"},
+					Neighbor: vpcapi.ExternalAttachmentNeighbor{IP: "100.1.10.6", PrefixLimit: &vpcapi.ExternalAttachmentPrefixLimit{Max: 100}},
+				},
+			}),
+			err: "external attachment leaf-01--ext-01: prefix limit isn't supported",
+		},
+		{
+			name:    "vx-ext-attach-bgp-no-neighbor-ip",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: withExtAttachments(map[string]vpcapi.ExternalAttachmentSpec{
+				"leaf-01--ext-01": {Connection: "leaf-01--external", External: "ext-01", Switch: vpcapi.ExternalAttachmentSwitch{VLAN: 10, IP: "100.1.10.1/24"}},
+			}),
+			err: "external attachment leaf-01--ext-01: switch and neighbor IPs have to be both set or both empty",
+		},
+		{
+			name:    "vx-ext-attach-bgp-invalid-neighbor-ip",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: withExtAttachments(map[string]vpcapi.ExternalAttachmentSpec{
+				"leaf-01--ext-01": {
+					Connection: "leaf-01--external", External: "ext-01",
+					Switch:   vpcapi.ExternalAttachmentSwitch{VLAN: 10, IP: "100.1.10.1/24"},
+					Neighbor: vpcapi.ExternalAttachmentNeighbor{IP: "100.1.10.6/24"},
+				},
+			}),
+			err: `external attachment leaf-01--ext-01: invalid neighbor IP "100.1.10.6/24"`,
+		},
+		{
+			name:    "vx-ext-bgp-ipns-not-found",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: withExtAttachments(map[string]vpcapi.ExternalAttachmentSpec{
+				"leaf-01--ext-01": {Connection: "leaf-01--external", External: "ext-01", Switch: vpcapi.ExternalAttachmentSwitch{VLAN: 10}},
+			}),
+			err: "external ext-01: ipv4 namespace default not found",
+		},
+		{
+			name:    "vx-ext-bgp-invalid-inbound-prefix",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: withBGPExtAttachment(func(agent *agentapi.Agent) {
+				agent.Spec.Externals["ext-01"] = vpcapi.ExternalSpec{
+					IPv4Namespace:   "default",
+					InboundPrefixes: map[string]vpcapi.ExternalInboundPrefix{"10.99.0.0": {}},
+				}
+			}),
+			err: `external ext-01: invalid inbound prefix "10.99.0.0"`,
+		},
+		{
+			name:    "vx-ext-bgp-no-domain",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate:  withBGPExtAttachment(func(agent *agentapi.Agent) { agent.Spec.Switch.Topology.Domains = nil }),
+			err:     "switch with a BGP external has to be in a single domain",
+		},
+		{
+			name:    "vx-ext-bgp-domain-not-found",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate:  withBGPExtAttachment(func(agent *agentapi.Agent) { agent.Spec.Config.Domains = nil }),
+			err:     "domain default not found",
 		},
 		{
 			name:    "vx-leaf-no-base-community",
@@ -640,6 +710,19 @@ func withExtAttachments(attaches map[string]vpcapi.ExternalAttachmentSpec) func(
 		agent.Spec.Catalog.VPCVNIs["ext@ext-01"] = 300
 		agent.Spec.Config.BaseVPCCommunity = "50000:0"
 		agent.Spec.ExternalAttachments = attaches
+	}
+}
+
+// withBGPExtAttachment is an unnumbered BGP attachment of ext-01 on a switch in the default domain
+func withBGPExtAttachment(mutate func(agent *agentapi.Agent)) func(agent *agentapi.Agent) {
+	return func(agent *agentapi.Agent) {
+		withExtAttachments(map[string]vpcapi.ExternalAttachmentSpec{
+			"leaf-01--ext-01": {Connection: "leaf-01--external", External: "ext-01", Switch: vpcapi.ExternalAttachmentSwitch{VLAN: 10}},
+		})(agent)
+		agent.Spec.IPv4Namespaces = map[string]vpcapi.IPv4NamespaceSpec{"default": {Subnets: []string{"10.0.0.0/16"}}}
+		agent.Spec.Switch.Topology.Domains = []string{"default"}
+		agent.Spec.Config.Domains = map[string]wiringapi.FabricDomainSpec{"default": {SpineASN: 65100, GatewayASN: 65534}}
+		mutate(agent)
 	}
 }
 
