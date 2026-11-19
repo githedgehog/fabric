@@ -63,6 +63,7 @@ type ConfigIn struct {
 	Bonds        []*BondConfig
 	Subnets      []*SubnetConfig
 	SubnetACLs   []*SubnetConfig
+	Restricted   []*SubnetConfig
 	DHCPServer   string
 	IsSpine      bool
 	IsLeaf       bool
@@ -132,6 +133,7 @@ type BondConfig struct {
 type BridgeMember struct {
 	VLANs    []uint16
 	Untagged uint16
+	ACLs     []string
 }
 
 func (m *BridgeMember) attach(vlan uint16, native bool) error {
@@ -153,16 +155,18 @@ func (m *BridgeMember) attach(vlan uint16, native bool) error {
 
 // SubnetConfig is an attached VPC subnet: a VLAN mapped to the subnet VNI and an SVI with the anycast gateway
 type SubnetConfig struct {
-	Name        string
-	VLAN        uint16
-	VNI         uint32
-	VRF         string
-	Gateway     string
-	IP          string
-	Description string
-	DHCP        bool
-	ACL         string
-	Deny        map[uint32]string // subnet ID -> peered VPC subnet this one isn't permitted to reach
+	Name          string
+	VLAN          uint16
+	VNI           uint32
+	VRF           string
+	Subnet        string
+	Gateway       string
+	IP            string
+	Description   string
+	DHCP          bool
+	ACL           string
+	Deny          map[uint32]string // subnet ID -> isolated or peered VPC subnet this one isn't permitted to reach
+	RestrictedACL string
 }
 
 func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
@@ -741,6 +745,7 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 				VLAN:        subnet.VLAN,
 				VNI:         vni,
 				VRF:         vpcName,
+				Subnet:      subnet.Subnet,
 				Gateway:     netip.PrefixFrom(gateway, prefix.Bits()).String(),
 				IP:          netip.PrefixFrom(sviIP, 32).String(),
 				Description: "VPC " + attach.Subnet,
@@ -748,12 +753,23 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 				ACL:         fmt.Sprintf("vpc-filtering--%s--%s", vpcName, subnetName),
 				Deny:        map[uint32]string{},
 			}
+			if err := denyIsolatedSubnets(agent, subnetCfg, vpcName, subnetName); err != nil {
+				return nil, fmt.Errorf("vpc attachment %q: %w", attachName, err)
+			}
+			// an ACL on the SVI only gets the routed traffic, so the traffic within a restricted subnet is dropped on the
+			// ingress of the ports and bonds it's attached to
+			if vpc.IsSubnetRestricted(subnetName) {
+				subnetCfg.RestrictedACL = fmt.Sprintf("vpc-restricted--%s--%s", vpcName, subnetName)
+			}
 			subnetsByName[attach.Subnet] = subnetCfg
 			subnetsByVLAN[subnet.VLAN] = attach.Subnet
 		}
 
 		if err := member.attach(subnetCfg.VLAN, attach.NativeVLAN); err != nil {
 			return nil, fmt.Errorf("vpc attachment %q: %w", attachName, err)
+		}
+		if subnetCfg.RestrictedACL != "" {
+			member.ACLs = append(member.ACLs, subnetCfg.RestrictedACL)
 		}
 	}
 
@@ -820,6 +836,7 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		Bonds:        bonds,
 		Subnets:      subnets,
 		SubnetACLs:   slices.DeleteFunc(slices.Clone(subnets), func(subnet *SubnetConfig) bool { return len(subnet.Deny) == 0 }),
+		Restricted:   slices.DeleteFunc(slices.Clone(subnets), func(subnet *SubnetConfig) bool { return subnet.RestrictedACL == "" }),
 		IsSpine:      isSpine,
 		IsLeaf:       isLeaf,
 		IsSpectrum4:  isSpectrum4,
@@ -862,6 +879,37 @@ type ZTPIn struct {
 	KubeConfig    string
 	AgentConfig   string
 	AgentVersion  string
+}
+
+// denyIsolatedSubnets adds the other isolated subnets of the VPC to the attached subnet, unless a VPC permit list
+// includes both of them
+func denyIsolatedSubnets(agent *agentapi.Agent, subnetCfg *SubnetConfig, vpcName, subnetName string) error {
+	vpc := agent.Spec.VPCs[vpcName]
+	permitted := map[string]bool{}
+	for idx, permit := range vpc.Permit {
+		if !slices.Contains(permit, subnetName) {
+			continue
+		}
+		for _, otherName := range permit {
+			if _, ok := vpc.Subnets[otherName]; !ok {
+				return fmt.Errorf("vpc %s: permit #%d: subnet %s not found", vpcName, idx, otherName) //nolint:err113
+			}
+			permitted[otherName] = true
+		}
+	}
+
+	for otherName, other := range vpc.Subnets {
+		if otherName == subnetName || other == nil || permitted[otherName] || !vpc.IsSubnetIsolated(otherName) {
+			continue
+		}
+		subnetID := agent.Spec.Catalog.SubnetIDs[other.Subnet]
+		if subnetID < 100 || subnetID >= 65000 {
+			return fmt.Errorf("subnet %s/%s: subnet ID %d isn't between 100 and 65000", vpcName, otherName, subnetID) //nolint:err113
+		}
+		subnetCfg.Deny[subnetID] = other.Subnet
+	}
+
+	return nil
 }
 
 // denyPeerSubnets adds the subnets of the peer VPC that aren't permitted to the attached subnets of the VPC, the subnet
@@ -911,9 +959,6 @@ func checkSupported(agent *agentapi.Agent) error {
 		if vpc.Mode != vpcapi.VPCModeL2VNI {
 			return fmt.Errorf("vpc %s: mode %s isn't supported", vpcName, vpc.Mode) //nolint:err113
 		}
-		if len(vpc.Permit) > 0 {
-			return fmt.Errorf("vpc %s: permit lists aren't supported", vpcName) //nolint:err113
-		}
 		if len(vpc.StaticRoutes) > 0 {
 			return fmt.Errorf("vpc %s: static routes aren't supported", vpcName) //nolint:err113
 		}
@@ -928,9 +973,6 @@ func checkSupported(agent *agentapi.Agent) error {
 			}
 			if subnet.DHCP.Relay != "" || subnet.DHCP.RelayVPC != "" {
 				return fmt.Errorf("vpc %s: subnet %s: DHCP relay to other servers isn't supported", vpcName, subnetName) //nolint:err113
-			}
-			if vpc.IsSubnetIsolated(subnetName) || vpc.IsSubnetRestricted(subnetName) {
-				return fmt.Errorf("vpc %s: subnet %s: isolated and restricted subnets aren't supported", vpcName, subnetName) //nolint:err113
 			}
 		}
 	}

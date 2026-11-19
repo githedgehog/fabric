@@ -123,11 +123,11 @@ func TestBuildConfigErrors(t *testing.T) {
 			err:     "vpc vpc-01: mode l3vni isn't supported",
 		},
 		{
-			name:    "vx-vpc-permit-unsupported",
+			name:    "vx-vpc-permit-subnet-not-found",
 			profile: &switchprofile.CumulusVX,
 			port:    "E1/1",
-			mutate:  withVPC01(func(vpc *vpcapi.VPCSpec) { vpc.Permit = [][]string{{"default"}} }),
-			err:     "vpc vpc-01: permit lists aren't supported",
+			mutate:  withVPC01(func(vpc *vpcapi.VPCSpec) { vpc.Permit = [][]string{{"default", "other"}} }),
+			err:     "vpc vpc-01: permit #0: subnet other not found",
 		},
 		{
 			name:    "vx-vpc-static-routes-unsupported",
@@ -153,18 +153,17 @@ func TestBuildConfigErrors(t *testing.T) {
 			err:     "vpc vpc-01: subnet default: DHCP relay to other servers isn't supported",
 		},
 		{
-			name:    "vx-subnet-isolated-unsupported",
+			name:    "vx-subnet-isolated-no-id",
 			profile: &switchprofile.CumulusVX,
 			port:    "E1/1",
-			mutate:  withVPC01(func(vpc *vpcapi.VPCSpec) { vpc.DefaultIsolated = true }),
-			err:     "vpc vpc-01: subnet default: isolated and restricted subnets aren't supported",
-		},
-		{
-			name:    "vx-subnet-restricted-unsupported",
-			profile: &switchprofile.CumulusVX,
-			port:    "E1/1",
-			mutate:  func(agent *agentapi.Agent) { agent.Spec.VPCs["vpc-01"].Subnets["default"].Restricted = new(true) },
-			err:     "vpc vpc-01: subnet default: isolated and restricted subnets aren't supported",
+			mutate: func(agent *agentapi.Agent) {
+				withVPC01(func(vpc *vpcapi.VPCSpec) {
+					vpc.DefaultIsolated = true
+					vpc.Subnets["other"] = &vpcapi.VPCSubnet{Subnet: "10.0.12.0/24", Gateway: "10.0.12.1", VLAN: 1012}
+				})(agent)
+				agent.Spec.Catalog.VPCSubnetVNIs["vpc-01"]["other"] = 102
+			},
+			err: "subnet vpc-01/other: subnet ID 0 isn't between 100 and 65000",
 		},
 		{
 			name:    "vx-vpc-peering-remote-unsupported",

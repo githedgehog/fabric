@@ -1,6 +1,19 @@
 - set:
-    {{- if $.SubnetACLs }}
+    {{- if or $.SubnetACLs $.Restricted }}
     acl:
+      {{- range $subnet := $.Restricted }}
+      {{ $subnet.RestrictedACL }}:
+        rule:
+          '1':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: {{ $subnet.Subnet }}
+                source-ip: {{ $subnet.Subnet }}
+              vlan: {{ $subnet.VLAN }}
+        type: ipv4
+      {{- end }}
       {{- range $subnet := $.SubnetACLs }}
       {{ $subnet.ACL }}:
         rule:
@@ -69,6 +82,13 @@
             down: {}
             {{- end }}
         {{- end }}
+        {{- if $port.ACLs }}
+        acl:
+          {{- range $acl := $port.ACLs }}
+          {{ $acl }}:
+            inbound: {}
+          {{- end }}
+        {{- end }}
         {{- if $port.VLANs }}
         bridge:
           domain:
@@ -115,6 +135,13 @@
             down: {}
             {{- end }}
         type: bond
+        {{- if $bond.ACLs }}
+        acl:
+          {{- range $acl := $bond.ACLs }}
+          {{ $acl }}:
+            inbound: {}
+          {{- end }}
+        {{- end }}
         {{- if $bond.VLANs }}
         bridge:
           domain:
