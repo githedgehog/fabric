@@ -61,6 +61,10 @@ type ConfigIn struct {
 	VXLANSource      string
 	VPCs             []VPC
 	Externals        []*External
+	BGPExternals     bool
+	FabricASPaths    map[int]string // rule ID -> AS path regex
+	IPv4Namespaces   []IPv4Namespace
+	BFDProfiles      []BFDProfile
 	BaseVPCCommunity string
 	BGPNeighbors     []BGPNeighbor
 	Gateway          *GatewayConfig
@@ -133,15 +137,50 @@ func vpcVRF(vpcName string) string {
 
 // External is an external attached to the switch, with the external VNI as L3VNI of its VRF
 type External struct {
-	Name   string
-	VRF    string
-	VNI    uint32
-	Static bool
-	Routes map[string][]string
+	Name              string
+	VRF               string
+	VNI               uint32
+	Static            bool
+	Routes            map[string][]string
+	Neighbors         []*ExternalNeighbor
+	IPv4Namespace     string
+	InboundCommunity  string
+	InboundPrefixes   map[int]PrefixListEntry // rule ID -> entry
+	SetCommunities    []string                // replace the ones on the routes from the external
+	OutboundCommunity string
 }
 
 func extVRF(extName string) string {
 	return "ext-" + extName
+}
+
+// ExternalNeighbor is the BGP session of an external attachment, keyed by the interface when unnumbered
+type ExternalNeighbor struct {
+	Key         string
+	Unnumbered  bool
+	RemoteAS    string
+	Description string
+	BFDProfile  string
+	LocalASN    uint32
+}
+
+type BFDProfile struct {
+	Name       string
+	MinRX      uint32
+	MinTX      uint32
+	Multiplier uint8
+	Passive    bool
+}
+
+type PrefixListEntry struct {
+	Prefix string
+	MinLen uint8
+	MaxLen uint8
+}
+
+type IPv4Namespace struct {
+	Name    string
+	Subnets map[int]string // rule ID -> subnet
 }
 
 type PortConfig struct {
@@ -154,6 +193,7 @@ type PortConfig struct {
 	Up              bool
 	Description     string
 	IP              string
+	IPv6            bool
 	VRF             string
 	AdaptiveRouting bool
 	BridgeMember
@@ -799,9 +839,11 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 
 	// the externals attached to the switch get a VRF with the external VNI as L3VNI, the attachments get the IP in it
 	// on a VLAN subinterface or on the port itself without a VLAN
-	// TODO BGP sessions to the externals and the hardened inbound ACL
+	// TODO hardened inbound ACL of the attachments
 	externals := map[string]*External{}
 	subifs := []*SubinterfaceConfig{}
+	bfdProfiles := []BFDProfile{}
+	ipv4Namespaces := map[string]bool{}
 	extVLANs := map[string]map[uint16]string{} // port -> VLAN -> attachment
 	for _, attachName := range slices.Sorted(maps.Keys(agent.Spec.ExternalAttachments)) {
 		attach := agent.Spec.ExternalAttachments[attachName]
@@ -897,9 +939,29 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 			}
 		}
 
+		unnumbered := false
+		if attach.Static == nil {
+			neigh, bfd, err := externalNeighbor(agent, attachName, attach, extSpec, ifaceName)
+			if err != nil {
+				return nil, err
+			}
+			if len(ext.Neighbors) == 0 {
+				if err := externalBGPPolicy(agent, ext, extSpec); err != nil {
+					return nil, err
+				}
+				ipv4Namespaces[ext.IPv4Namespace] = true
+			}
+			ext.Neighbors = append(ext.Neighbors, neigh)
+			if bfd != nil {
+				bfdProfiles = append(bfdProfiles, *bfd)
+			}
+			unnumbered = neigh.Unnumbered
+		}
+
 		if vlan == 0 {
 			port := portsByName[portName]
 			port.IP = ip
+			port.IPv6 = unnumbered
 			port.VRF = extVRF(attach.External)
 
 			continue
@@ -916,6 +978,36 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 	slices.SortFunc(subifs, func(a, b *SubinterfaceConfig) int {
 		return cmp.Or(cmp.Compare(a.Port, b.Port), cmp.Compare(a.VLAN, b.VLAN))
 	})
+
+	// an external can send back the routes it got from the fabric over another attachment or border leaf, which the BGP
+	// loop prevention doesn't catch as they don't have the leaf's own ASN in the path, so the routes from the BGP
+	// externals with the spine or gateway ASN of the switch's domain in the path are dropped
+	fabricASPaths := map[int]string{}
+	nsList := []IPv4Namespace{}
+	if len(ipv4Namespaces) > 0 {
+		domains := agent.Spec.Switch.Topology.Domains
+		if len(domains) != 1 {
+			return nil, fmt.Errorf("switch with a BGP external has to be in a single domain") //nolint:err113
+		}
+		domain, ok := agent.Spec.Config.Domains[domains[0]]
+		if !ok {
+			return nil, fmt.Errorf("domain %s not found", domains[0]) //nolint:err113
+		}
+		if domain.SpineASN != 0 {
+			fabricASPaths[10] = fmt.Sprintf("_%d_", domain.SpineASN)
+		}
+		if domain.GatewayASN != 0 {
+			fabricASPaths[20] = fmt.Sprintf("_%d_", domain.GatewayASN)
+		}
+
+		for _, nsName := range slices.Sorted(maps.Keys(ipv4Namespaces)) {
+			subnets := map[int]string{}
+			for idx, subnet := range agent.Spec.IPv4Namespaces[nsName].Subnets {
+				subnets[idx+1] = subnet
+			}
+			nsList = append(nsList, IPv4Namespace{Name: nsName, Subnets: subnets})
+		}
+	}
 
 	// the DHCP relay sends a reply out of the first interface with the IP from the link selection it got, so the SVIs
 	// need unique IPs of their own, taken as base + VLAN
@@ -1094,6 +1186,10 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		VXLANSource:      vtepIP.Addr().String(),
 		VPCs:             vpcs,
 		Externals:        slices.SortedFunc(maps.Values(externals), func(a, b *External) int { return cmp.Compare(a.Name, b.Name) }),
+		BGPExternals:     len(nsList) > 0,
+		FabricASPaths:    fabricASPaths,
+		IPv4Namespaces:   nsList,
+		BFDProfiles:      bfdProfiles,
 		BaseVPCCommunity: agent.Spec.Config.BaseVPCCommunity,
 		BGPNeighbors:     neighs,
 		Gateway:          gateway,
@@ -1218,6 +1314,88 @@ func denyPeerSubnets(agent *agentapi.Agent, subnetsByName map[string]*SubnetConf
 	return nil
 }
 
+// externalNeighbor is the BGP session of an external attachment, unnumbered over the IPv6 link-local addresses when
+// the attachment has no IPs
+func externalNeighbor(agent *agentapi.Agent, attachName string, attach vpcapi.ExternalAttachmentSpec, extSpec vpcapi.ExternalSpec, ifaceName string) (*ExternalNeighbor, *BFDProfile, error) {
+	neigh := &ExternalNeighbor{
+		Key:         ifaceName,
+		Unnumbered:  true,
+		RemoteAS:    "external",
+		Description: "External attach " + attachName,
+		LocalASN:    extSpec.LocalASN,
+	}
+	switch {
+	case attach.Switch.IP != "" && attach.Neighbor.IP != "":
+		ip, err := netip.ParseAddr(attach.Neighbor.IP)
+		if err != nil || !ip.Is4() {
+			return nil, nil, fmt.Errorf("external attachment %s: invalid neighbor IP %q", attachName, attach.Neighbor.IP) //nolint:err113
+		}
+		neigh.Key, neigh.Unnumbered = ip.String(), false
+	case attach.Switch.IP != "" || attach.Neighbor.IP != "":
+		return nil, nil, fmt.Errorf("external attachment %s: switch and neighbor IPs have to be both set or both empty", attachName) //nolint:err113
+	}
+	if attach.Neighbor.ASN != 0 {
+		neigh.RemoteAS = strconv.FormatUint(uint64(attach.Neighbor.ASN), 10)
+	}
+
+	// external sessions run on the default timers, 60/180s, so without BFD a peer that dies with the link up takes up to
+	// three minutes to detect
+	if attach.BFD == nil || agent.Spec.Config.DisableBFD {
+		return neigh, nil, nil
+	}
+	bfd := &BFDProfile{
+		Name:       "ext--" + attachName,
+		MinRX:      cmp.Or(attach.BFD.MinRX, 300),
+		MinTX:      cmp.Or(attach.BFD.MinTX, 300),
+		Multiplier: cmp.Or(attach.BFD.Multiplier, 3),
+		Passive:    attach.BFD.Passive,
+	}
+	neigh.BFDProfile = bfd.Name
+
+	return neigh, bfd, nil
+}
+
+// externalBGPPolicy sets up the route maps of a BGP external: the routes from it get the base VPC community instead of
+// the ones it sent, so that no community from outside means anything in the fabric, and a lower local preference than
+// the gateway routes, and it only gets the subnets of its IPv4 namespace and the gateway routes
+func externalBGPPolicy(agent *agentapi.Agent, ext *External, extSpec vpcapi.ExternalSpec) error {
+	base := agent.Spec.Config.BaseVPCCommunity
+	if base == "" {
+		return fmt.Errorf("external %s: no base VPC community", ext.Name) //nolint:err113
+	}
+	if _, ok := agent.Spec.IPv4Namespaces[extSpec.IPv4Namespace]; !ok {
+		return fmt.Errorf("external %s: ipv4 namespace %s not found", ext.Name, extSpec.IPv4Namespace) //nolint:err113
+	}
+
+	ext.IPv4Namespace = extSpec.IPv4Namespace
+	ext.InboundCommunity = extSpec.InboundCommunity
+	ext.OutboundCommunity = extSpec.OutboundCommunity
+	// the inbound community stays on the routes, as the import of the external routes into the VPCs matches it
+	ext.SetCommunities = []string{base}
+	if extSpec.InboundCommunity != "" && extSpec.InboundCommunity != base {
+		ext.SetCommunities = append(ext.SetCommunities, extSpec.InboundCommunity)
+	}
+
+	ext.InboundPrefixes = map[int]PrefixListEntry{}
+	for idx, prefixStr := range slices.Sorted(maps.Keys(extSpec.InboundPrefixes)) {
+		prefix, err := netip.ParsePrefix(prefixStr)
+		if err != nil || !prefix.Addr().Is4() {
+			return fmt.Errorf("external %s: invalid inbound prefix %q", ext.Name, prefixStr) //nolint:err113
+		}
+		entry := PrefixListEntry{Prefix: prefix.String()}
+		minLen, maxLen := extSpec.InboundPrefixes[prefixStr].PrefixLens(prefix)
+		if minLen != maxLen || int(maxLen) != prefix.Bits() {
+			if int(minLen) != prefix.Bits() {
+				entry.MinLen = minLen
+			}
+			entry.MaxLen = maxLen
+		}
+		ext.InboundPrefixes[10*(idx+1)] = entry
+	}
+
+	return nil
+}
+
 // checkSupported rejects the features the full config can't express yet, the ZTP config doesn't include them, so it's
 // only checked when enforcing
 func checkSupported(agent *agentapi.Agent) error {
@@ -1253,8 +1431,12 @@ func checkSupported(agent *agentapi.Agent) error {
 		}
 	}
 	for _, attachName := range slices.Sorted(maps.Keys(agent.Spec.ExternalAttachments)) {
-		if static := agent.Spec.ExternalAttachments[attachName].Static; static != nil && static.Proxy {
+		attach := agent.Spec.ExternalAttachments[attachName]
+		if attach.Static != nil && attach.Static.Proxy {
 			return fmt.Errorf("external attachment %s: proxy-ARP isn't supported", attachName) //nolint:err113
+		}
+		if attach.Neighbor.PrefixLimit != nil {
+			return fmt.Errorf("external attachment %s: prefix limit isn't supported", attachName) //nolint:err113
 		}
 	}
 

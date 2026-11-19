@@ -1019,6 +1019,14 @@
         type: sub
         vlan: 20
         vrf: ext-ext-snp-02
+      swp1.30:
+        base-interface: swp1
+        description: External leaf-01--ext-bgp-01-unnumbered
+        ipv6:
+          state: enabled
+        type: sub
+        vlan: 30
+        vrf: ext-ext-bgp-01
       vlan1001:
         acl:
           vpc-filtering--vpc-01--default:
@@ -1163,6 +1171,11 @@
             detect-multiplier: 3
             min-rx-interval: 300
             min-tx-interval: 300
+          ext--leaf-01--ext-bgp-01:
+            detect-multiplier: 3
+            min-rx-interval: 500
+            min-tx-interval: 300
+            passive-mode: enabled
         state: enabled
       bgp:
         autonomous-system: 65101
@@ -1174,6 +1187,15 @@
           stale-routes-time: 180
         state: enabled
       policy:
+        as-path-list:
+          fabric-gw-aspath:
+            rule:
+              '10':
+                action: permit
+                aspath-exp: _65100_
+              '20':
+                action: permit
+                aspath-exp: _65534_
         community-list:
           all-externals:
             rule:
@@ -1181,6 +1203,54 @@
                 action: permit
                 community:
                   50000:0: {}
+          all-gw-prios:
+            rule:
+              '1':
+                action: permit
+                community:
+                  50001:0: {}
+              '2':
+                action: permit
+                community:
+                  50001:1: {}
+              '3':
+                action: permit
+                community:
+                  50001:2: {}
+              '4':
+                action: permit
+                community:
+                  50001:3: {}
+              '5':
+                action: permit
+                community:
+                  50001:4: {}
+              '6':
+                action: permit
+                community:
+                  50001:5: {}
+              '7':
+                action: permit
+                community:
+                  50001:6: {}
+              '8':
+                action: permit
+                community:
+                  50001:7: {}
+              '9':
+                action: permit
+                community:
+                  50001:8: {}
+              '10':
+                action: permit
+                community:
+                  50001:9: {}
+          ext-inbound--ext-bgp-01:
+            rule:
+              '10':
+                action: permit
+                community:
+                  65102:1000: {}
           gw-prio-0:
             rule:
               '10':
@@ -1242,6 +1312,32 @@
                 community:
                   50001:9: {}
         prefix-list:
+          ipns-subnets--default:
+            rule:
+              '1':
+                action: permit
+                match:
+                  10.0.0.0/16:
+                    max-prefix-len: 32
+            type: ipv4
+          ext-inbound--ext-bgp-01:
+            rule:
+              '10':
+                action: permit
+                match:
+                  0.0.0.0/0: {}
+              '20':
+                action: permit
+                match:
+                  192.168.0.0/16:
+                    max-prefix-len: 24
+              '30':
+                action: permit
+                match:
+                  203.0.113.0/24:
+                    max-prefix-len: 28
+                    min-prefix-len: 26
+            type: ipv4
           vpc-not-subnets--vpc-01:
             rule:
               '1':
@@ -1434,6 +1530,50 @@
               '65535':
                 action:
                   permit: {}
+          ext-inbound--ext-bgp-01:
+            rule:
+              '5':
+                action:
+                  deny: {}
+                match:
+                  as-path-list: fabric-gw-aspath
+              '10':
+                action:
+                  deny: {}
+                match:
+                  ip-prefix-list: ipns-subnets--default
+                  type: ipv4
+              '15':
+                action:
+                  permit: {}
+                match:
+                  community-list: ext-inbound--ext-bgp-01
+                  ip-prefix-list: ext-inbound--ext-bgp-01
+                  type: ipv4
+                set:
+                  community:
+                    50000:0: {}
+                    65102:1000: {}
+                  local-preference: 150
+          ext-outbound--ext-bgp-01:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                match:
+                  ip-prefix-list: ipns-subnets--default
+                  type: ipv4
+                set:
+                  community:
+                    64102:1000: {}
+              '20':
+                action:
+                  permit: {}
+                match:
+                  community-list: all-gw-prios
+                set:
+                  community:
+                    64102:1000: {}
           ext-static--ext-snp-02:
             rule:
               '10':
@@ -1716,6 +1856,45 @@
                 state: enabled
               l2vpn-evpn:
                 state: enabled
+            neighbor:
+              100.1.10.6:
+                address-family:
+                  ipv4-unicast:
+                    policy:
+                      inbound:
+                        route-map: ext-inbound--ext-bgp-01
+                      outbound:
+                        route-map: ext-outbound--ext-bgp-01
+                    state: enabled
+                bfd:
+                  profile: ext--leaf-01--ext-bgp-01
+                description: External attach leaf-01--ext-bgp-01
+                local-as:
+                  asn: 65999
+                  prepend: disabled
+                  replace: enabled
+                  state: enabled
+                remote-as: 64102
+                type: numbered
+              swp1.30:
+                address-family:
+                  ipv4-unicast:
+                    policy:
+                      inbound:
+                        route-map: ext-inbound--ext-bgp-01
+                      outbound:
+                        route-map: ext-outbound--ext-bgp-01
+                    state: enabled
+                capabilities:
+                  extended-nexthop: enabled
+                description: External attach leaf-01--ext-bgp-01-unnumbered
+                local-as:
+                  asn: 65999
+                  prepend: disabled
+                  replace: enabled
+                  state: enabled
+                remote-as: external
+                type: unnumbered
             rd: 172.30.8.2:600
             state: enabled
       ext-ext-snp-02:
