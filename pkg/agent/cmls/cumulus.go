@@ -18,6 +18,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"text/template"
 	"time"
@@ -60,6 +61,7 @@ type ConfigIn struct {
 	VPCs         []VPC
 	BGPNeighbors []BGPNeighbor
 	Gateway      *GatewayConfig
+	GatewayPrios []GatewayPrio
 	Ports        []*PortConfig
 	Bonds        []*BondConfig
 	Subnets      []*SubnetConfig
@@ -92,6 +94,15 @@ type BGPNeighbor struct {
 type GatewayConfig struct {
 	ASN        uint32
 	VTEPSubnet string
+}
+
+// GatewayPrio is a gateway priority community, the routes with a higher priority (a lower number) get a higher local
+// preference on the leaves
+type GatewayPrio struct {
+	Name      string
+	Community string
+	RuleID    int
+	LocalPref int
 }
 
 type VPC struct {
@@ -614,6 +625,31 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		}
 	}
 
+	// the leaves prefer the gateway routes by their priority communities, the local preference isn't passed on by the
+	// spines, so it's set on the routes from them
+	gwPrios := []GatewayPrio{}
+	if isLeaf {
+		prios := map[uint64]string{}
+		for prioStr, comm := range agent.Spec.Config.GatewayCommunities {
+			prio, err := strconv.ParseUint(prioStr, 10, 32)
+			if err != nil {
+				return nil, fmt.Errorf("parsing gateway community priority %q: %w", prioStr, err)
+			}
+			prios[prio] = comm
+		}
+		if len(prios) > 100 {
+			return nil, fmt.Errorf("too many gateway communities: %d, max is 100", len(prios)) //nolint:err113
+		}
+		for idx, prio := range slices.Sorted(maps.Keys(prios)) {
+			gwPrios = append(gwPrios, GatewayPrio{
+				Name:      fmt.Sprintf("gw-prio-%d", prio),
+				Community: prios[prio],
+				RuleID:    idx + 1,
+				LocalPref: 200 + len(prios) - idx,
+			})
+		}
+	}
+
 	routeSumm := map[string][]string{}
 	if agent.Annotations != nil {
 		for hook := range strings.SplitSeq(agent.Annotations[wiringapi.AnnotationSwitchRouteSumm], ",") {
@@ -900,6 +936,7 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		VPCs:         vpcs,
 		BGPNeighbors: neighs,
 		Gateway:      gateway,
+		GatewayPrios: gwPrios,
 		Ports:        ports,
 		Bonds:        bonds,
 		Subnets:      subnets,

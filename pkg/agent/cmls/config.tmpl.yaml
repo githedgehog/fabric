@@ -258,6 +258,17 @@
                 action: permit
                 aspath-exp: ^{{ $.Gateway.ASN }}$
         {{- end }}
+        {{- if $.GatewayPrios }}
+        community-list:
+          {{- range $prio := $.GatewayPrios }}
+          {{ $prio.Name }}:
+            rule:
+              '10':
+                action: permit
+                community:
+                  {{ $prio.Community }}: {}
+          {{- end }}
+        {{- end }}
         {{- if or $.VPCs $.Gateway }}
         prefix-list:
           {{- if $.Gateway }}
@@ -327,6 +338,22 @@
                   permit: {}
                 match:
                   as-path-list: gateway-origin
+          {{- end }}
+          {{- if $.IsLeaf }}
+          l2vpn-neighbors:
+            rule:
+              {{- range $prio := $.GatewayPrios }}
+              '{{ $prio.RuleID }}':
+                action:
+                  permit: {}
+                match:
+                  community-list: {{ $prio.Name }}
+                set:
+                  local-preference: {{ $prio.LocalPref }}
+              {{- end }}
+              '65535':
+                action:
+                  permit: {}
           {{- end }}
           {{- range $vpc := $.VPCs }}
           {{- if $vpc.Peers }}
@@ -418,6 +445,11 @@
                       outbound:
                         route-map: gateway-export
                   l2vpn-evpn:
+                    {{- if $.IsLeaf }}
+                    policy:
+                      inbound:
+                        route-map: l2vpn-neighbors
+                    {{- end }}
                     state: enabled
                 bfd:
                   profile: underlay
@@ -446,6 +478,11 @@
                   ipv4-unicast:
                     state: disabled
                   l2vpn-evpn:
+                    {{- if $.IsLeaf }}
+                    policy:
+                      inbound:
+                        route-map: l2vpn-neighbors
+                    {{- end }}
                     state: enabled
                 bfd:
                   profile: overlay
