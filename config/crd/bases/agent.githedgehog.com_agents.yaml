@@ -1,0 +1,3082 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.23.0
+  name: agents.agent.githedgehog.com
+spec:
+  group: agent.githedgehog.com
+  names:
+    categories:
+    - hhint
+    - hhfcint
+    kind: Agent
+    listKind: AgentList
+    plural: agents
+    shortNames:
+    - ag
+    singular: agent
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .metadata.annotations.fabric\.githedgehog\.com/topology
+      name: Topo
+      type: string
+    - jsonPath: .spec.switch.profile
+      name: Profile
+      type: string
+    - jsonPath: .spec.role
+      name: Role
+      type: string
+    - jsonPath: .spec.description
+      name: Descr
+      priority: 1
+      type: string
+    - jsonPath: .status.state.nos.hwskuVersion
+      name: HWSKU
+      priority: 1
+      type: string
+    - jsonPath: .status.lastHeartbeat
+      name: Heartbeat
+      type: date
+    - jsonPath: .status.lastAppliedTime
+      name: Applied
+      type: date
+    - jsonPath: .status.lastAppliedGen
+      name: AppliedG
+      type: integer
+    - jsonPath: .metadata.generation
+      name: CurrentG
+      type: integer
+    - jsonPath: .status.version
+      name: Version
+      type: string
+    - jsonPath: .status.notes
+      name: Notes
+      type: string
+    - jsonPath: .status.state.nos.softwareVersion
+      name: Software
+      priority: 1
+      type: string
+    - jsonPath: .status.lastAttemptTime
+      name: Attempt
+      priority: 2
+      type: date
+    - jsonPath: .status.lastAttemptGen
+      name: AttemptG
+      priority: 2
+      type: integer
+    - jsonPath: .spec.switch.roce
+      name: RoCE
+      priority: 3
+      type: boolean
+    - jsonPath: .status.state.roce
+      name: CurrRoCE
+      priority: 3
+      type: boolean
+    - jsonPath: .spec.switch.ecmp.roceQPN
+      name: ECMPQPN
+      priority: 3
+      type: boolean
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      priority: 10
+      type: date
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          Agent is an internal API object used by the controller to pass all relevant information to the agent running on a
+          specific switch in order to fully configure it and manage its lifecycle. It is not intended to be used directly by
+          users. Spec of the object isn't user-editable, it is managed by the controller. Status of the object is updated by
+          the agent and is used by the controller to track the state of the agent and the switch it is running on. Name of the
+          Agent object is the same as the name of the switch it is running on and it's created in the same namespace as the
+          Switch object.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Spec is the desired state of the Agent
+            properties:
+              alloy:
+                description: 'Deprecated: ignored. TODO: remove after 26.06 release'
+                properties:
+                  agentScrapeIntervalSeconds:
+                    type: integer
+                  collectSyslogEnabled:
+                    type: boolean
+                  controlProxyURL:
+                    type: string
+                  lokiTargets:
+                    additionalProperties:
+                      properties:
+                        basicAuth:
+                          properties:
+                            password:
+                              type: string
+                            username:
+                              type: string
+                          type: object
+                        bearerToken:
+                          type: string
+                        caPEM:
+                          type: string
+                        certPEM:
+                          type: string
+                        insecureSkipVerify:
+                          type: boolean
+                        labels:
+                          additionalProperties:
+                            type: string
+                          type: object
+                        url:
+                          type: string
+                        useControlProxy:
+                          type: boolean
+                      type: object
+                    type: object
+                  prometheusTargets:
+                    additionalProperties:
+                      properties:
+                        basicAuth:
+                          properties:
+                            password:
+                              type: string
+                            username:
+                              type: string
+                          type: object
+                        bearerToken:
+                          type: string
+                        caPEM:
+                          type: string
+                        certPEM:
+                          type: string
+                        insecureSkipVerify:
+                          type: boolean
+                        labels:
+                          additionalProperties:
+                            type: string
+                          type: object
+                        sendIntervalSeconds:
+                          type: integer
+                        url:
+                          type: string
+                        useControlProxy:
+                          type: boolean
+                      type: object
+                    type: object
+                  unixExporterCollectors:
+                    items:
+                      type: string
+                    type: array
+                  unixExporterEnabled:
+                    type: boolean
+                  unixScrapeIntervalSeconds:
+                    type: integer
+                type: object
+              attachedVPCs:
+                additionalProperties:
+                  type: boolean
+                type: object
+              benchTouch:
+                description: |-
+                  BenchTouch is the newest bench.githedgehog.com/touch label seen on the
+                  objects that make up this Agent's spec. It exists so a benchmark can
+                  trigger a real spec change - and with it the agent apply cycle - without
+                  altering switch configuration. It has no effect on the agent.
+                format: int64
+                type: integer
+              catalog:
+                description: CatalogSpec defines the desired state of Catalog
+                properties:
+                  connectionIDs:
+                    additionalProperties:
+                      format: int32
+                      type: integer
+                    description: ConnectionSystemIDs stores connection name -> ID,
+                      globally unique for the fabric
+                    type: object
+                  externalIDs:
+                    additionalProperties:
+                      type: integer
+                    description: ExternalIDs stores external name -> ID, unique per
+                      switch
+                    type: object
+                  irbVLANs:
+                    additionalProperties:
+                      type: integer
+                    description: IRBVLANs stores VPC name -> IRB VLAN ID, unique per
+                      redundancy group (or switch), it includes Externals too with
+                      ext@ prefix
+                    type: object
+                  portChannelIDs:
+                    additionalProperties:
+                      type: integer
+                    description: PortChannelIDs stores Connection name -> PortChannel
+                      ID, unique per redundancy group (or switch)
+                    type: object
+                  staticExternalSubnetOffsets:
+                    additionalProperties:
+                      type: integer
+                    description: StaticExternalSubnetOffsets stores external attachment
+                      name -> subnet offset, unique per switch
+                    type: object
+                  subnetIDs:
+                    additionalProperties:
+                      format: int32
+                      type: integer
+                    description: SubnetIDs stores subnet -> ID, unique per switch
+                    type: object
+                  th5WorkaroundVLANs:
+                    additionalProperties:
+                      type: integer
+                    description: TH5WorkaroundVLANs stores TH5 workaround mesh link
+                      -> VLAN ID, unique per switch
+                    type: object
+                  vpcInfoIDs:
+                    additionalProperties:
+                      format: int32
+                      type: integer
+                    description: Global (for gw)
+                    type: object
+                  vpcSubnetVNIs:
+                    additionalProperties:
+                      additionalProperties:
+                        format: int32
+                        type: integer
+                      type: object
+                    description: VPCSubnetVNIs stores VPC name -> subnet name -> VPC
+                      Subnet VNI, globally unique for the fabric
+                    type: object
+                  vpcVNIs:
+                    additionalProperties:
+                      format: int32
+                      type: integer
+                    description: VPCVNIs stores VPC name -> VPC VNI, globally unique
+                      for the fabric, it includes Externals too with ext@ prefix
+                    type: object
+                type: object
+              config:
+                properties:
+                  alloy:
+                    properties:
+                      autoHostname:
+                        type: boolean
+                      hostname:
+                        type: string
+                      kube:
+                        properties:
+                          events:
+                            type: boolean
+                          podLogs:
+                            type: boolean
+                        type: object
+                      logFiles:
+                        additionalProperties:
+                          properties:
+                            pathTargets:
+                              items:
+                                properties:
+                                  path:
+                                    type: string
+                                  pathExclude:
+                                    type: string
+                                type: object
+                              type: array
+                          type: object
+                        type: object
+                      proxyURL:
+                        type: string
+                      pyroscope:
+                        properties:
+                          address:
+                            type: string
+                          enable:
+                            type: boolean
+                          port:
+                            type: integer
+                        type: object
+                      scrapes:
+                        additionalProperties:
+                          properties:
+                            address:
+                              type: string
+                            httpheaders:
+                              additionalProperties:
+                                type: string
+                              type: object
+                            intervalSeconds:
+                              type: integer
+                            proxyURL:
+                              type: string
+                            relabel:
+                              items:
+                                properties:
+                                  action:
+                                    type: string
+                                  regex:
+                                    type: string
+                                  replacement:
+                                    type: string
+                                  separator:
+                                    type: string
+                                  sourceLabels:
+                                    items:
+                                      type: string
+                                    type: array
+                                  targetLabel:
+                                    type: string
+                                type: object
+                              type: array
+                            self:
+                              properties:
+                                enable:
+                                  type: boolean
+                              type: object
+                            unix:
+                              properties:
+                                collectors:
+                                  items:
+                                    type: string
+                                  type: array
+                                enable:
+                                  type: boolean
+                              type: object
+                          type: object
+                        type: object
+                      targets:
+                        properties:
+                          loki:
+                            additionalProperties:
+                              properties:
+                                basicAuth:
+                                  properties:
+                                    password:
+                                      type: string
+                                    username:
+                                      type: string
+                                  type: object
+                                bearerToken:
+                                  type: string
+                                caPEM:
+                                  type: string
+                                certPEM:
+                                  type: string
+                                insecureSkipVerify:
+                                  type: boolean
+                                labels:
+                                  additionalProperties:
+                                    type: string
+                                  type: object
+                                url:
+                                  type: string
+                              type: object
+                            type: object
+                          prometheus:
+                            additionalProperties:
+                              properties:
+                                basicAuth:
+                                  properties:
+                                    password:
+                                      type: string
+                                    username:
+                                      type: string
+                                  type: object
+                                bearerToken:
+                                  type: string
+                                caPEM:
+                                  type: string
+                                certPEM:
+                                  type: string
+                                insecureSkipVerify:
+                                  type: boolean
+                                labels:
+                                  additionalProperties:
+                                    type: string
+                                  type: object
+                                sendIntervalSeconds:
+                                  type: integer
+                                url:
+                                  type: string
+                              type: object
+                            type: object
+                          pyroscope:
+                            additionalProperties:
+                              properties:
+                                basicAuth:
+                                  properties:
+                                    password:
+                                      type: string
+                                    username:
+                                      type: string
+                                  type: object
+                                bearerToken:
+                                  type: string
+                                caPEM:
+                                  type: string
+                                certPEM:
+                                  type: string
+                                insecureSkipVerify:
+                                  type: boolean
+                                labels:
+                                  additionalProperties:
+                                    type: string
+                                  type: object
+                                url:
+                                  type: string
+                              type: object
+                            type: object
+                        type: object
+                    type: object
+                  baseVPCCommunity:
+                    type: string
+                  controlVIP:
+                    type: string
+                  defaultMaxPathsEBGP:
+                    format: int32
+                    type: integer
+                  deploymentID:
+                    type: string
+                  disableBFD:
+                    type: boolean
+                  domains:
+                    additionalProperties:
+                      description: FabricDomainSpec defines a single spine layer of
+                        a Fabric
+                      properties:
+                        gatewayASN:
+                          description: GatewayASN is the ASN shared by all gateways
+                            attached to this domain, outside the leaf ASN range
+                          format: int64
+                          maximum: 4294967295
+                          minimum: 0
+                          type: integer
+                        spineASN:
+                          description: SpineASN is the ASN shared by all spines of
+                            this domain, outside the leaf ASN range
+                          format: int64
+                          maximum: 4294967295
+                          minimum: 0
+                          type: integer
+                      type: object
+                    description: Domains holds every domain of the switch's fabric
+                    type: object
+                  enforceInterval:
+                    format: int32
+                    type: integer
+                  eslagESIPrefix:
+                    type: string
+                  eslagMACBase:
+                    type: string
+                  fabricMTU:
+                    type: integer
+                  fabricSubnet:
+                    type: string
+                  gatewayASN:
+                    description: 'Deprecated: ignored, Domains has it. TODO: remove
+                      after 26.06 release'
+                    format: int64
+                    maximum: 4294967295
+                    minimum: 0
+                    type: integer
+                  gatewayBFD:
+                    description: 'Deprecated: ignored, DisableBFD covers it. TODO:
+                      remove after 26.07 release, as 26.06 agents still have it saved'
+                    type: boolean
+                  gatewayCommunities:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  heartbeatInterval:
+                    format: int32
+                    type: integer
+                  protocolSubnet:
+                    type: string
+                  proxyExternalSubnet:
+                    type: string
+                  serverFacingMTUOffset:
+                    type: integer
+                  spineASN:
+                    description: 'Deprecated: ignored, Domains has it. TODO: remove
+                      after 26.06 release'
+                    format: int64
+                    maximum: 4294967295
+                    minimum: 0
+                    type: integer
+                  spineLeaf:
+                    type: object
+                  vpcPeeringDisabled:
+                    type: boolean
+                  vtepSubnet:
+                    type: string
+                type: object
+              configuredVPCSubnets:
+                additionalProperties:
+                  type: boolean
+                type: object
+              connections:
+                additionalProperties:
+                  description: ConnectionSpec defines the desired state of Connection
+                  properties:
+                    bundled:
+                      description: Bundled defines the bundled connection (port channel,
+                        single server to a single switch with multiple links)
+                      properties:
+                        fallback:
+                          description: Fallback is the optional flag that used to
+                            indicate one of the links in LACP port channel to be used
+                            as a fallback link
+                          type: boolean
+                        links:
+                          description: Links is the list of server-to-switch links
+                          items:
+                            description: ServerToSwitchLink defines the server-to-switch
+                              link
+                            properties:
+                              server:
+                                description: Server is the server side of the connection
+                                properties:
+                                  port:
+                                    description: |-
+                                      Port defines the full name of the switch port in the format of "device/port", such as "spine-1/E1/1".
+                                      SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
+                                    type: string
+                                type: object
+                              switch:
+                                description: Switch is the switch side of the connection
+                                properties:
+                                  port:
+                                    description: |-
+                                      Port defines the full name of the switch port in the format of "device/port", such as "spine-1/E1/1".
+                                      SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
+                                    type: string
+                                type: object
+                            type: object
+                          type: array
+                        mtu:
+                          description: MTU is the MTU to be configured on the switch
+                            port or port channel
+                          type: integer
+                      type: object
+                    eslag:
+                      description: ESLAG defines the ESLAG connection (port channel,
+                        single server to 1-4 switches with one or more links)
+                      properties:
+                        fallback:
+                          description: Fallback is the optional flag that used to
+                            indicate one of the links in LACP port channel to be used
+                            as a fallback link
+                          type: boolean
+                        links:
+                          description: Links is the list of server-to-switch links
+                          items:
+                            description: ServerToSwitchLink defines the server-to-switch
+                              link
+                            properties:
+                              server:
+                                description: Server is the server side of the connection
+                                properties:
+                                  port:
+                                    description: |-
+                                      Port defines the full name of the switch port in the format of "device/port", such as "spine-1/E1/1".
+                                      SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
+                                    type: string
+                                type: object
+                              switch:
+                                description: Switch is the switch side of the connection
+                                properties:
+                                  port:
+                                    description: |-
+                                      Port defines the full name of the switch port in the format of "device/port", such as "spine-1/E1/1".
+                                      SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
+                                    type: string
+                                type: object
+                            type: object
+                          minItems: 1
+                          type: array
+                        mtu:
+                          description: MTU is the MTU to be configured on the switch
+                            port or port channel
+                          type: integer
+                      type: object
+                    external:
+                      description: External defines the external connection (single
+                        switch to a single external device with a single link)
+                      properties:
+                        link:
+                          description: Link is the external connection link
+                          properties:
+                            switch:
+                              description: BasePortName defines the full name of the
+                                switch port
+                              properties:
+                                port:
+                                  description: |-
+                                    Port defines the full name of the switch port in the format of "device/port", such as "spine-1/E1/1".
+                                    SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
+                                  type: string
+                              type: object
+                          type: object
+                      type: object
+                    fabric:
+                      description: Fabric defines the fabric connection (single spine
+                        to a single leaf with at least one link)
+                      properties:
+                        links:
+                          description: Links is the list of spine-to-leaf links
+                          items:
+                            description: FabricLink defines the fabric connection
+                              link
+                            properties:
+                              leaf:
+                                description: Leaf is the leaf side of the fabric link
+                                properties:
+                                  ip:
+                                    description: IP is the IP address of the switch
+                                      side of the fabric link (switch port configuration)
+                                    pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
+                                    type: string
+                                  port:
+                                    description: |-
+                                      Port defines the full name of the switch port in the format of "device/port", such as "spine-1/E1/1".
+                                      SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
+                                    type: string
+                                type: object
+                              spine:
+                                description: Spine is the spine side of the fabric
+                                  link
+                                properties:
+                                  ip:
+                                    description: IP is the IP address of the switch
+                                      side of the fabric link (switch port configuration)
+                                    pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
+                                    type: string
+                                  port:
+                                    description: |-
+                                      Port defines the full name of the switch port in the format of "device/port", such as "spine-1/E1/1".
+                                      SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
+                                    type: string
+                                type: object
+                            type: object
+                          minItems: 1
+                          type: array
+                      type: object
+                    gateway:
+                      description: Gateway defines the gateway connection (single
+                        spine to a single gateway with at least one link)
+                      properties:
+                        links:
+                          description: Links is the list of spine to gateway links
+                          items:
+                            description: GatewayLink defines the gateway connection
+                              link
+                            properties:
+                              gateway:
+                                description: Gateway is the gateway side of the gateway
+                                  link
+                                properties:
+                                  ip:
+                                    description: IP is the IP address of the switch
+                                      side of the fabric link (switch port configuration)
+                                    pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
+                                    type: string
+                                  port:
+                                    description: |-
+                                      Port defines the full name of the switch port in the format of "device/port", such as "spine-1/E1/1".
+                                      SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
+                                    type: string
+                                type: object
+                              switch:
+                                description: Switch is the switch (spine or leaf)
+                                  side of the gateway link
+                                properties:
+                                  ip:
+                                    description: IP is the IP address of the switch
+                                      side of the fabric link (switch port configuration)
+                                    pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
+                                    type: string
+                                  port:
+                                    description: |-
+                                      Port defines the full name of the switch port in the format of "device/port", such as "spine-1/E1/1".
+                                      SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
+                                    type: string
+                                type: object
+                            type: object
+                          minItems: 1
+                          type: array
+                      type: object
+                    mesh:
+                      description: Mesh defines the mesh connection (direct leaf to
+                        leaf connection with at least one link)
+                      properties:
+                        links:
+                          description: Links is the list of leaf to leaf links
+                          items:
+                            description: MeshLink defines the mesh connection link,
+                              i.e. a direct leaf to leaf connection
+                            properties:
+                              leaf1:
+                                description: ConnFabricLinkSwitch defines the switch
+                                  side of the fabric (or gateway) link
+                                properties:
+                                  ip:
+                                    description: IP is the IP address of the switch
+                                      side of the fabric link (switch port configuration)
+                                    pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
+                                    type: string
+                                  port:
+                                    description: |-
+                                      Port defines the full name of the switch port in the format of "device/port", such as "spine-1/E1/1".
+                                      SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
+                                    type: string
+                                type: object
+                              leaf2:
+                                description: ConnFabricLinkSwitch defines the switch
+                                  side of the fabric (or gateway) link
+                                properties:
+                                  ip:
+                                    description: IP is the IP address of the switch
+                                      side of the fabric link (switch port configuration)
+                                    pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
+                                    type: string
+                                  port:
+                                    description: |-
+                                      Port defines the full name of the switch port in the format of "device/port", such as "spine-1/E1/1".
+                                      SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
+                                    type: string
+                                type: object
+                            type: object
+                          minItems: 1
+                          type: array
+                      type: object
+                    staticExternal:
+                      description: StaticExternal defines the static external connection
+                        (single switch to a single external device with a single link)
+                      properties:
+                        link:
+                          description: Link is the static external connection link
+                          properties:
+                            switch:
+                              description: Switch is the switch side of the static
+                                external connection link
+                              properties:
+                                ip:
+                                  description: IP is the IP address of the switch
+                                    side of the static external connection link (switch
+                                    port configuration)
+                                  pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
+                                  type: string
+                                nextHop:
+                                  description: NextHop is the next hop IP address
+                                    for static routes that will be created for the
+                                    subnets
+                                  pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$
+                                  type: string
+                                port:
+                                  description: |-
+                                    Port defines the full name of the switch port in the format of "device/port", such as "spine-1/E1/1".
+                                    SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
+                                  type: string
+                                subnets:
+                                  description: Subnets is the list of subnets that
+                                    will get static routes using the specified next
+                                    hop
+                                  items:
+                                    type: string
+                                  type: array
+                                vlan:
+                                  description: VLAN is the optional VLAN ID to be
+                                    configured on the switch port
+                                  type: integer
+                              type: object
+                          type: object
+                        withinVPC:
+                          description: WithinVPC is the optional VPC name to provision
+                            the static external connection within the VPC VRF instead
+                            of default one to make resource available to the specific
+                            VPC
+                          type: string
+                      type: object
+                    topology:
+                      description: Topology is where the connection sits in the fabric
+                        topology
+                      properties:
+                        fabric:
+                          description: |-
+                            Fabric is the name of the Fabric this connection belongs to (if not specified, "default" is used).
+                            It is the Fabric the connected devices are in, unrelated to the fabric connection type
+                          type: string
+                      type: object
+                    unbundled:
+                      description: Unbundled defines the unbundled connection (no
+                        port channel, single server to a single switch with a single
+                        link)
+                      properties:
+                        link:
+                          description: Link is the server-to-switch link
+                          properties:
+                            server:
+                              description: Server is the server side of the connection
+                              properties:
+                                port:
+                                  description: |-
+                                    Port defines the full name of the switch port in the format of "device/port", such as "spine-1/E1/1".
+                                    SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
+                                  type: string
+                              type: object
+                            switch:
+                              description: Switch is the switch side of the connection
+                              properties:
+                                port:
+                                  description: |-
+                                    Port defines the full name of the switch port in the format of "device/port", such as "spine-1/E1/1".
+                                    SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
+                                  type: string
+                              type: object
+                          type: object
+                        mtu:
+                          description: MTU is the MTU to be configured on the switch
+                            port or port channel
+                          type: integer
+                      type: object
+                  type: object
+                type: object
+              description:
+                type: string
+              externalAttachments:
+                additionalProperties:
+                  description: ExternalAttachmentSpec defines the desired state of
+                    ExternalAttachment
+                  properties:
+                    bfd:
+                      description: |-
+                        BFD (optional) enables BFD for the BGP session of this external attachment, an empty object
+                        uses the fabric defaults
+                      properties:
+                        minRX:
+                          description: MinRX is the minimum interval in ms at which
+                            we accept BFD control packets from the peer (default 300)
+                          format: int32
+                          maximum: 60000
+                          minimum: 10
+                          type: integer
+                        minTX:
+                          description: MinTX is the desired interval in ms at which
+                            we send BFD control packets (default 300)
+                          format: int32
+                          maximum: 60000
+                          minimum: 10
+                          type: integer
+                        multiplier:
+                          description: Multiplier is how many missed packets bring
+                            the session down (default 3)
+                          maximum: 255
+                          minimum: 2
+                          type: integer
+                        passive:
+                          description: |-
+                            Passive makes us wait for the peer to initiate the session instead of initiating it
+                            ourselves, for the rare ISP that requires it. Both ends passive means no session at all.
+                          type: boolean
+                      type: object
+                    connection:
+                      description: Connection is the name of the Connection object
+                        this attachment belongs to (essentially the name of the switch/port)
+                      type: string
+                    external:
+                      description: External is the name of the External object this
+                        attachment belongs to
+                      type: string
+                    inboundACL:
+                      description: InboundACL defines the ACL statements to apply
+                        to inbound traffic on this external attachment
+                      properties:
+                        statements:
+                          items:
+                            properties:
+                              action:
+                                type: string
+                              dstPrefix:
+                                type: string
+                              icmpCode:
+                                type: integer
+                              icmpType:
+                                type: integer
+                              portRangeBegin:
+                                type: integer
+                              portRangeEnd:
+                                type: integer
+                              protocol:
+                                type: string
+                              seq:
+                                type: integer
+                              srcPrefix:
+                                type: string
+                              tcpFilters:
+                                properties:
+                                  ack:
+                                    type: boolean
+                                  established:
+                                    type: boolean
+                                  fin:
+                                    type: boolean
+                                  notAck:
+                                    type: boolean
+                                  notFin:
+                                    type: boolean
+                                  notPsh:
+                                    type: boolean
+                                  notRst:
+                                    type: boolean
+                                  notSyn:
+                                    type: boolean
+                                  notUrg:
+                                    type: boolean
+                                  psh:
+                                    type: boolean
+                                  rst:
+                                    type: boolean
+                                  syn:
+                                    type: boolean
+                                  urg:
+                                    type: boolean
+                                type: object
+                            required:
+                            - action
+                            - dstPrefix
+                            - protocol
+                            - seq
+                            - srcPrefix
+                            type: object
+                          type: array
+                      type: object
+                    neighbor:
+                      description: Neighbor is the BGP neighbor configuration for
+                        the external attachment in case of a BGP external
+                      properties:
+                        asn:
+                          description: ASN (optional) is the ASN of the BGP neighbor,
+                            if not set any ASN other than the switch's own is accepted
+                          format: int64
+                          maximum: 4294967295
+                          minimum: 0
+                          type: integer
+                        ip:
+                          description: |-
+                            IP is the IP address of the BGP neighbor to peer with (without prefix length).
+                            Leave it and switch.ip empty for a BGP unnumbered session over IPv6 link-local addresses
+                          type: string
+                        prefixLimit:
+                          description: PrefixLimit (optional) limits the prefixes
+                            accepted from the neighbor
+                          properties:
+                            max:
+                              description: Max is the most prefixes accepted. Above
+                                it the session is closed, unless warningOnly is set
+                              format: int32
+                              minimum: 1
+                              type: integer
+                            restartMinutes:
+                              description: |-
+                                RestartMinutes (optional) is how long the session stays closed after going above max, 5 by default.
+                                Raising max doesn't open the session earlier, removing the limit does. Can't be set with warningOnly
+                              minimum: 1
+                              type: integer
+                            warningOnly:
+                              description: WarningOnly (optional) keeps the session
+                                open above max, so that going above it is only logged
+                              type: boolean
+                            warningThresholdPct:
+                              description: WarningThresholdPct (optional) is the percentage
+                                of max from which the switch logs a warning, 75 by
+                                default
+                              maximum: 100
+                              minimum: 1
+                              type: integer
+                          required:
+                          - max
+                          type: object
+                      type: object
+                    static:
+                      description: Static contains parameters specific to a static
+                        external attachment
+                      properties:
+                        ip:
+                          description: IP is the IP address (with prefix length) to
+                            be configured on the switch when not using Proxy mode
+                          type: string
+                        proxy:
+                          description: Proxy is a flag to enable proxy-ARP, used in
+                            conjunction with Gateway peering
+                          type: boolean
+                        remoteIP:
+                          description: RemoteIP is the IP address of the external,
+                            which will be used as nexthop for prefixes reachable via
+                            this external attachment
+                          type: string
+                        vlan:
+                          description: VLAN (optional) is the VLAN ID used for the
+                            subinterface on a switch port specified in the connection,
+                            set to 0 if no VLAN is required
+                          type: integer
+                      required:
+                      - remoteIP
+                      type: object
+                    switch:
+                      description: Switch is the switch port configuration for the
+                        external attachment in case of a BGP external
+                      properties:
+                        ip:
+                          description: |-
+                            IP is the IP address of the subinterface on a switch port specified in the connection, it should include the prefix length.
+                            Leave it and neighbor.ip empty for a BGP unnumbered session over IPv6 link-local addresses
+                          type: string
+                        vlan:
+                          description: VLAN (optional) is the VLAN ID used for the
+                            subinterface on a switch port specified in the connection,
+                            set to 0 if no VLAN is used
+                          type: integer
+                      type: object
+                    topology:
+                      description: Topology is where the ExternalAttachment sits in
+                        the fabric topology
+                      properties:
+                        fabric:
+                          description: Fabric is the name of the Fabric this ExternalAttachment
+                            belongs to (if not specified, "default" is used)
+                          type: string
+                      type: object
+                  required:
+                  - neighbor
+                  - switch
+                  type: object
+                type: object
+              externalPeerings:
+                additionalProperties:
+                  description: ExternalPeeringSpec defines the desired state of ExternalPeering
+                  properties:
+                    permit:
+                      description: Permit defines the peering policy - which VPC and
+                        External to peer with and which subnets/prefixes to permit
+                      properties:
+                        external:
+                          description: External is the External-side of the configuration
+                            to peer with
+                          properties:
+                            name:
+                              description: Name is the name of the External to peer
+                                with
+                              type: string
+                            prefixes:
+                              description: Prefixes is the list of prefixes to permit
+                                from the External to the VPC
+                              items:
+                                description: ExternalPeeringSpecPrefix defines the
+                                  prefix to permit from the External to the VPC
+                                properties:
+                                  prefix:
+                                    description: |-
+                                      Prefix is the subnet to permit from the External to the VPC, e.g. 0.0.0.0/0 for any route including default route.
+                                      It matches any prefix length less than or equal to 32 effectively permitting all prefixes within the specified one.
+                                    type: string
+                                type: object
+                              type: array
+                          type: object
+                        vpc:
+                          description: VPC is the VPC-side of the configuration to
+                            peer with
+                          properties:
+                            name:
+                              description: Name is the name of the VPC to peer with
+                              type: string
+                            subnets:
+                              description: Subnets is the list of subnets to advertise
+                                from VPC to the External
+                              items:
+                                type: string
+                              type: array
+                          type: object
+                      type: object
+                    topology:
+                      description: Topology is where the ExternalPeering sits in the
+                        fabric topology
+                      properties:
+                        fabric:
+                          description: Fabric is the name of the Fabric this ExternalPeering
+                            belongs to (if not specified, "default" is used)
+                          type: string
+                      type: object
+                  type: object
+                type: object
+              externals:
+                additionalProperties:
+                  description: |-
+                    ExternalSpec describes IPv4 namespace External belongs to and inbound/outbound communities which are used to
+                    filter routes from/to the external system.
+                  properties:
+                    inboundCommunity:
+                      description: InboundCommunity is the optional inbound community
+                        to filter routes from the external system (e.g. 65102:5000)
+                      type: string
+                    inboundPrefixes:
+                      additionalProperties:
+                        description: ExternalInboundPrefix defines the prefix lengths
+                          accepted within an inbound prefix of an External
+                        properties:
+                          maxPrefixLen:
+                            description: |-
+                              MaxPrefixLen is the longest prefix length accepted within the prefix, defaults to minPrefixLen, so
+                              that a prefix without either matches exactly
+                            maximum: 32
+                            type: integer
+                          minPrefixLen:
+                            description: MinPrefixLen is the shortest prefix length
+                              accepted within the prefix, defaults to its own length
+                            maximum: 32
+                            type: integer
+                        type: object
+                      description: |-
+                        InboundPrefixes (optional) limits the routes accepted from the external system to these prefixes,
+                        keyed by prefix. Without it any prefix outside the IPv4Namespace is accepted
+                      type: object
+                    ipv4Namespace:
+                      description: IPv4Namespace is the name of the IPv4Namespace
+                        this External belongs to
+                      type: string
+                    localASN:
+                      description: |-
+                        LocalASN makes every attachment to this External present the same ASN to the external system
+                        instead of each border leaf's own. Changing it resets all sessions to this External, and the
+                        external system has to change its remote-as to match. Static attachments ignore it.
+                      format: int64
+                      maximum: 4294967295
+                      minimum: 0
+                      type: integer
+                    outboundCommunity:
+                      description: OutboundCommunity is the optional outbound community
+                        that all outbound routes will be stamped with (e.g. 50000:50001)
+                      type: string
+                    static:
+                      description: Static contains parameters specific to static externals
+                      properties:
+                        prefixes:
+                          description: Prefixes is the list of IPv4 prefixes reachable
+                            via the external
+                          items:
+                            type: string
+                          type: array
+                      type: object
+                    topology:
+                      description: Topology is where the External sits in the fabric
+                        topology
+                      properties:
+                        domain:
+                          description: |-
+                            Domain is the Fabric domain the External is in (if not specified, "default" is used). It can
+                            only be attached to switches in that domain, and it is immutable
+                          type: string
+                        fabric:
+                          description: Fabric is the name of the Fabric this External
+                            belongs to (if not specified, "default" is used)
+                          type: string
+                      type: object
+                  type: object
+                type: object
+              ipv4Namespaces:
+                additionalProperties:
+                  description: IPv4NamespaceSpec defines the desired state of IPv4Namespace
+                  properties:
+                    subnets:
+                      description: Subnets is the list of subnets to allocate VPC
+                        subnets from, couldn't overlap between each other and with
+                        Fabric reserved subnets
+                      items:
+                        type: string
+                      maxItems: 20
+                      minItems: 1
+                      type: array
+                    topology:
+                      description: Topology is where the IPv4Namespace sits in the
+                        fabric topology
+                      properties:
+                        fabric:
+                          description: Fabric is the name of the Fabric this IPv4Namespace
+                            belongs to (if not specified, "default" is used)
+                          type: string
+                      type: object
+                  type: object
+                type: object
+              powerReset:
+                type: string
+              reboot:
+                type: string
+              redundancyGroupPeers:
+                items:
+                  type: string
+                type: array
+              reinstall:
+                type: string
+              role:
+                description: SwitchRole is the role of the switch, could be spine,
+                  server-leaf or border-leaf or mixed-leaf
+                enum:
+                - spine
+                - server-leaf
+                - border-leaf
+                - mixed-leaf
+                type: string
+              statusUpdates:
+                items:
+                  properties:
+                    apiVersion:
+                      type: string
+                    generation:
+                      format: int64
+                      type: integer
+                    kind:
+                      type: string
+                    name:
+                      type: string
+                    namespace:
+                      type: string
+                  type: object
+                type: array
+              switch:
+                description: SwitchSpec defines the desired state of Switch
+                properties:
+                  asn:
+                    description: ASN is the ASN of the switch
+                    format: int64
+                    maximum: 4294967295
+                    minimum: 0
+                    type: integer
+                  boot:
+                    description: Boot is the boot/provisioning information of the
+                      switch
+                    properties:
+                      mac:
+                        description: |-
+                          Identify switch by MAC address of the management port, accepted in any common format and normalized to lower case
+                          colon-separated form, e.g. 0c:20:12:fe:01:00
+                        type: string
+                      serial:
+                        description: Identify switch by serial number, compared case-insensitively
+                        type: string
+                    type: object
+                  description:
+                    description: Description is a description of the switch
+                    type: string
+                  ecmp:
+                    description: ECMP is the ECMP configuration for the switch
+                    properties:
+                      roceQPN:
+                        description: RoCEQPN is a flag to enable RoCE QPN hashing
+                        type: boolean
+                    type: object
+                  enableAllPorts:
+                    description: EnableAllPorts is a flag to enable all ports on the
+                      switch regardless of them being used or not
+                    type: boolean
+                  groups:
+                    description: Groups is a list of switch groups the switch belongs
+                      to
+                    items:
+                      type: string
+                    type: array
+                  ip:
+                    description: IP is the IP of the switch that could be used to
+                      access it from other switches and control nodes in the Fabric
+                    type: string
+                  linkFlapErrDisable:
+                    description: |-
+                      LinkFlapErrDisable, if set, enables link-flap errdisable protection on all fabric-facing ports.
+                      When a port exceeds FlapThreshold link-down events within SamplingInterval seconds it is
+                      disabled; RecoveryInterval controls how long before it is automatically re-enabled (0 = never).
+                    properties:
+                      flapThreshold:
+                        default: 3
+                        description: |-
+                          FlapThreshold is the number of link-down events within SamplingInterval that triggers errdisable.
+                          Defaults to 3.
+                        maximum: 50
+                        minimum: 1
+                        type: integer
+                      recoveryInterval:
+                        default: 300
+                        description: |-
+                          RecoveryInterval is how long in seconds before the port is automatically re-enabled.
+                          0 means the port is never automatically re-enabled and must be recovered manually.
+                          Defaults to 300 s.
+                        format: int32
+                        maximum: 65534
+                        minimum: 0
+                        type: integer
+                      samplingInterval:
+                        default: 30
+                        description: |-
+                          SamplingInterval is the observation window in seconds for counting flap events.
+                          Defaults to 30 s.
+                        format: int32
+                        maximum: 65535
+                        minimum: 1
+                        type: integer
+                    type: object
+                  portAutoNegs:
+                    additionalProperties:
+                      type: boolean
+                    description: PortAutoNegs is a map of port auto negotiation, key
+                      is the port name, value is true or false
+                    type: object
+                  portBreakouts:
+                    additionalProperties:
+                      type: string
+                    description: 'PortBreakouts is a map of port breakouts, key is
+                      the port name, value is the breakout configuration, such as
+                      "1/55: 4x25G"'
+                    type: object
+                  portFECs:
+                    additionalProperties:
+                      description: PortFECMode is the FEC mode for a port
+                      enum:
+                      - rs
+                      - fc
+                      - auto
+                      - disabled
+                      type: string
+                    description: |-
+                      PortFECs is a map of port FEC modes, key is the port name, value is the FEC mode (rs/fc/auto/disabled).
+                      Use only as last resort: removing a value from the map does NOT reset the port's FEC to its default,
+                      instead that value persists on the device until a full config reset or a new explicit config
+                    type: object
+                  portGroupSpeeds:
+                    additionalProperties:
+                      type: string
+                    description: 'PortGroupSpeeds is a map of port group speeds, key
+                      is the port group name, value is the speed, such as ''"2": 10G'''
+                    type: object
+                  portLocators:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      PortLocators is a map of port locator LED expire times, key is the port name such as E1/1 (incl. breakout
+                      sub-ports such as E1/53/1) or "*" to apply to all ports of the switch, value is a duration relative to now
+                      such as 10m, an exact expire time in the "2026-08-05 18:45:47" (UTC) format or empty for the default 5 minutes.
+                      Values are normalized to the exact expire time and clamped to at most 20 minutes from now, already expired
+                      entries are removed as well as all per-port ones if "*" is present
+                    type: object
+                  portSpeeds:
+                    additionalProperties:
+                      type: string
+                    description: PortSpeeds is a map of port speeds, key is the port
+                      name, value is the speed
+                    type: object
+                  profile:
+                    description: Profile is the profile of the switch, name of the
+                      SwitchProfile object to be used for this switch, currently not
+                      used by the Fabric
+                    type: string
+                  protocolIP:
+                    description: ProtocolIP is used as BGP Router ID for switch configuration
+                    type: string
+                  redundancy:
+                    description: Redundancy is the switch redundancy configuration
+                      including name of the redundancy group switch belongs to and
+                      its type, used for ESLAG connections
+                    properties:
+                      group:
+                        description: Group is the name of the redundancy group switch
+                          belongs to
+                        type: string
+                      type:
+                        description: Type is the type of the redundancy group, although
+                          only eslag is supported now
+                        enum:
+                        - eslag
+                        type: string
+                    type: object
+                  roce:
+                    description: RoCE is a flag to enable RoCEv2 support on the switch
+                      which includes lossless queues and QoS configuration
+                    type: boolean
+                  role:
+                    description: Role is the role of the switch, could be spine, server-leaf
+                      or border-leaf or mixed-leaf
+                    enum:
+                    - spine
+                    - server-leaf
+                    - border-leaf
+                    - mixed-leaf
+                    type: string
+                  topology:
+                    description: Topology is where the switch sits in the fabric topology
+                    properties:
+                      domains:
+                        description: |-
+                          Domains is the list of the Fabric domains (spine layers) this switch belongs to (if not specified, "default" is used).
+                          A spine belongs to exactly one, a leaf to several if it uplinks to the spines of several. Immutable,
+                          and the switches of a redundancy group must be in the same domains
+                        items:
+                          type: string
+                        type: array
+                      fabric:
+                        description: Fabric is the name of the Fabric this switch
+                          belongs to (if not specified, "default" is used)
+                        type: string
+                    type: object
+                  vlanNamespaces:
+                    description: VLANNamespaces is a list of VLAN namespaces the switch
+                      is part of, their VLAN ranges could not overlap
+                    items:
+                      type: string
+                    type: array
+                  vtepIP:
+                    description: VTEPIP is the VTEP IP of the switch
+                    type: string
+                required:
+                - role
+                type: object
+              switchProfile:
+                description: SwitchProfileSpec defines the desired state of SwitchProfile
+                properties:
+                  config:
+                    description: Config defines the switch-specific configuration
+                      options
+                    properties:
+                      maxPathsEBGP:
+                        description: MaxPathsIBGP defines the maximum number of IBGP
+                          paths to be configured
+                        format: int32
+                        type: integer
+                    type: object
+                  displayName:
+                    description: DisplayName defines the human-readable name of the
+                      switch
+                    type: string
+                  features:
+                    description: Features defines the features supported by the switch
+                    properties:
+                      acls:
+                        description: ACLs defines if switch supports ACLs
+                        type: boolean
+                      ecmpRoCEQPN:
+                        description: ECMPRoCEQPN defines if switch supports ECMP QPN
+                          hashing
+                        type: boolean
+                      eslag:
+                        description: ESLAG defines if switch supports ESLAG (ESI multi-homing)
+                        type: boolean
+                      l2vni:
+                        description: L2VNI defines if switch supports L2 VNIs
+                        type: boolean
+                      l3vni:
+                        description: L3VNI defines if switch supports L3 VNIs
+                        type: boolean
+                      mclag:
+                        description: 'Deprecated: ignored, MCLAG isn''t supported
+                          anymore. TODO: remove after 26.06 release'
+                        type: boolean
+                      portLocator:
+                        description: PortLocator defines if switch supports port locator
+                          LED control
+                        type: boolean
+                      roce:
+                        description: RoCE defines if switch supports RoCEv2 over VXLAN
+                          and related features used by the fabric
+                        type: boolean
+                      subinterfaces:
+                        description: Subinterfaces defines if switch supports subinterfaces
+                        type: boolean
+                    type: object
+                  maxPorts:
+                    description: MaxPorts defines the maximum number of ports (breakouts)
+                      allowed for the switch, bonus ports aren't counted
+                    type: integer
+                  nosType:
+                    description: NOSType defines the NOS type to be used for the switch
+                    type: string
+                  notes:
+                    description: Notes is a free-form field for any additional information
+                      about the switch
+                    type: string
+                  otherNames:
+                    description: OtherNames defines alternative names for the switch
+                    items:
+                      type: string
+                    type: array
+                  pipelines:
+                    additionalProperties:
+                      properties:
+                        maxPorts:
+                          description: MaxPorts defines the maximum number of ports
+                            (breakouts) allowed for the pipeline
+                          type: integer
+                      type: object
+                    description: Pipelines defines the switch pipeline configuration
+                    type: object
+                  platform:
+                    description: Platform is what expected to be request by ONIE and
+                      displayed in the NOS
+                    type: string
+                  portGroups:
+                    additionalProperties:
+                      description: Defines a switch port group configuration
+                      properties:
+                        nos:
+                          description: NOSName defines how group is named in the NOS
+                          type: string
+                        profile:
+                          description: Profile defines the possible configuration
+                            profile for the group, could only have speed profile
+                          type: string
+                      type: object
+                    description: PortGroups defines the switch port group configuration
+                    type: object
+                  portProfiles:
+                    additionalProperties:
+                      description: Defines a switch port profile configuration
+                      properties:
+                        autoNegAllowed:
+                          description: AutoNegAllowed defines if configuring auto-negotiation
+                            is allowed for the port
+                          type: boolean
+                        autoNegDefault:
+                          description: AutoNegDefault defines the default auto-negotiation
+                            state for the port
+                          type: boolean
+                        breakout:
+                          description: Breakout defines the breakout configuration
+                            for the profile, exclusive with speed
+                          properties:
+                            default:
+                              description: Default defines the default breakout mode
+                                for the profile
+                              type: string
+                            supported:
+                              additionalProperties:
+                                description: Defines a switch port profile breakout
+                                  mode configuration
+                                properties:
+                                  disablesPortOffsets:
+                                    description: DisablesPortOffsets defines the ports
+                                      disabled by the breakout mode as offsets from
+                                      the port number (e.g. 1 for the next port),
+                                      the disabled ports can't be used or configured
+                                    items:
+                                      type: string
+                                    type: array
+                                  offsets:
+                                    description: Offsets defines the breakout NOS
+                                      port name offset from the port NOS Name for
+                                      each breakout mode
+                                    items:
+                                      type: string
+                                    type: array
+                                type: object
+                              description: Supported defines the supported breakout
+                                modes for the profile with the NOS name offsets
+                              type: object
+                          type: object
+                        speed:
+                          description: Speed defines the speed configuration for the
+                            profile, exclusive with breakout
+                          properties:
+                            default:
+                              description: Default defines the default speed for the
+                                profile
+                              type: string
+                            supported:
+                              description: Supported defines the supported speeds
+                                for the profile
+                              items:
+                                type: string
+                              type: array
+                          type: object
+                      type: object
+                    description: PortProfiles defines the switch port profile configuration
+                    type: object
+                  ports:
+                    additionalProperties:
+                      description: |-
+                        Defines a switch port configuration
+                        Only one of Profile or Group can be set
+                      properties:
+                        baseNOSName:
+                          description: BaseNOSName defines the base NOS name that
+                            could be used together with the profile to generate the
+                            actual NOS name (e.g. breakouts)
+                          type: string
+                        bonus:
+                          description: Bonus defines if the port doesn't count towards
+                            the switch max ports (e.g. extra SFP28 ports on some switches)
+                          type: boolean
+                        group:
+                          description: If port isn't directly manageable, group defines
+                            the group it belongs to, exclusive with profile
+                          type: string
+                        label:
+                          description: Label defines the physical port label you can
+                            see on the actual switch
+                          type: string
+                        management:
+                          description: Management defines if port is a management
+                            port, it's a special case and it can't have a group or
+                            profile
+                          type: boolean
+                        nos:
+                          description: NOSName defines how port is named in the NOS
+                          type: string
+                        oniePortName:
+                          description: OniePortName defines the ONIE port name for
+                            management ports only
+                          type: string
+                        pipeline:
+                          description: Pipeline defines the pipeline used by the port,
+                            on some platforms multiple ports share the same pipeline
+                          type: string
+                        profile:
+                          description: If port is directly configurable, profile defines
+                            the profile it belongs to, exclusive with group
+                          type: string
+                      type: object
+                    description: Ports defines the switch port configuration
+                    type: object
+                  switchSilicon:
+                    description: SwitchSilicon defines the switch silicon name
+                    type: string
+                type: object
+              switches:
+                additionalProperties:
+                  description: SwitchSpec defines the desired state of Switch
+                  properties:
+                    asn:
+                      description: ASN is the ASN of the switch
+                      format: int64
+                      maximum: 4294967295
+                      minimum: 0
+                      type: integer
+                    boot:
+                      description: Boot is the boot/provisioning information of the
+                        switch
+                      properties:
+                        mac:
+                          description: |-
+                            Identify switch by MAC address of the management port, accepted in any common format and normalized to lower case
+                            colon-separated form, e.g. 0c:20:12:fe:01:00
+                          type: string
+                        serial:
+                          description: Identify switch by serial number, compared
+                            case-insensitively
+                          type: string
+                      type: object
+                    description:
+                      description: Description is a description of the switch
+                      type: string
+                    ecmp:
+                      description: ECMP is the ECMP configuration for the switch
+                      properties:
+                        roceQPN:
+                          description: RoCEQPN is a flag to enable RoCE QPN hashing
+                          type: boolean
+                      type: object
+                    enableAllPorts:
+                      description: EnableAllPorts is a flag to enable all ports on
+                        the switch regardless of them being used or not
+                      type: boolean
+                    groups:
+                      description: Groups is a list of switch groups the switch belongs
+                        to
+                      items:
+                        type: string
+                      type: array
+                    ip:
+                      description: IP is the IP of the switch that could be used to
+                        access it from other switches and control nodes in the Fabric
+                      type: string
+                    linkFlapErrDisable:
+                      description: |-
+                        LinkFlapErrDisable, if set, enables link-flap errdisable protection on all fabric-facing ports.
+                        When a port exceeds FlapThreshold link-down events within SamplingInterval seconds it is
+                        disabled; RecoveryInterval controls how long before it is automatically re-enabled (0 = never).
+                      properties:
+                        flapThreshold:
+                          default: 3
+                          description: |-
+                            FlapThreshold is the number of link-down events within SamplingInterval that triggers errdisable.
+                            Defaults to 3.
+                          maximum: 50
+                          minimum: 1
+                          type: integer
+                        recoveryInterval:
+                          default: 300
+                          description: |-
+                            RecoveryInterval is how long in seconds before the port is automatically re-enabled.
+                            0 means the port is never automatically re-enabled and must be recovered manually.
+                            Defaults to 300 s.
+                          format: int32
+                          maximum: 65534
+                          minimum: 0
+                          type: integer
+                        samplingInterval:
+                          default: 30
+                          description: |-
+                            SamplingInterval is the observation window in seconds for counting flap events.
+                            Defaults to 30 s.
+                          format: int32
+                          maximum: 65535
+                          minimum: 1
+                          type: integer
+                      type: object
+                    portAutoNegs:
+                      additionalProperties:
+                        type: boolean
+                      description: PortAutoNegs is a map of port auto negotiation,
+                        key is the port name, value is true or false
+                      type: object
+                    portBreakouts:
+                      additionalProperties:
+                        type: string
+                      description: 'PortBreakouts is a map of port breakouts, key
+                        is the port name, value is the breakout configuration, such
+                        as "1/55: 4x25G"'
+                      type: object
+                    portFECs:
+                      additionalProperties:
+                        description: PortFECMode is the FEC mode for a port
+                        enum:
+                        - rs
+                        - fc
+                        - auto
+                        - disabled
+                        type: string
+                      description: |-
+                        PortFECs is a map of port FEC modes, key is the port name, value is the FEC mode (rs/fc/auto/disabled).
+                        Use only as last resort: removing a value from the map does NOT reset the port's FEC to its default,
+                        instead that value persists on the device until a full config reset or a new explicit config
+                      type: object
+                    portGroupSpeeds:
+                      additionalProperties:
+                        type: string
+                      description: 'PortGroupSpeeds is a map of port group speeds,
+                        key is the port group name, value is the speed, such as ''"2":
+                        10G'''
+                      type: object
+                    portLocators:
+                      additionalProperties:
+                        type: string
+                      description: |-
+                        PortLocators is a map of port locator LED expire times, key is the port name such as E1/1 (incl. breakout
+                        sub-ports such as E1/53/1) or "*" to apply to all ports of the switch, value is a duration relative to now
+                        such as 10m, an exact expire time in the "2026-08-05 18:45:47" (UTC) format or empty for the default 5 minutes.
+                        Values are normalized to the exact expire time and clamped to at most 20 minutes from now, already expired
+                        entries are removed as well as all per-port ones if "*" is present
+                      type: object
+                    portSpeeds:
+                      additionalProperties:
+                        type: string
+                      description: PortSpeeds is a map of port speeds, key is the
+                        port name, value is the speed
+                      type: object
+                    profile:
+                      description: Profile is the profile of the switch, name of the
+                        SwitchProfile object to be used for this switch, currently
+                        not used by the Fabric
+                      type: string
+                    protocolIP:
+                      description: ProtocolIP is used as BGP Router ID for switch
+                        configuration
+                      type: string
+                    redundancy:
+                      description: Redundancy is the switch redundancy configuration
+                        including name of the redundancy group switch belongs to and
+                        its type, used for ESLAG connections
+                      properties:
+                        group:
+                          description: Group is the name of the redundancy group switch
+                            belongs to
+                          type: string
+                        type:
+                          description: Type is the type of the redundancy group, although
+                            only eslag is supported now
+                          enum:
+                          - eslag
+                          type: string
+                      type: object
+                    roce:
+                      description: RoCE is a flag to enable RoCEv2 support on the
+                        switch which includes lossless queues and QoS configuration
+                      type: boolean
+                    role:
+                      description: Role is the role of the switch, could be spine,
+                        server-leaf or border-leaf or mixed-leaf
+                      enum:
+                      - spine
+                      - server-leaf
+                      - border-leaf
+                      - mixed-leaf
+                      type: string
+                    topology:
+                      description: Topology is where the switch sits in the fabric
+                        topology
+                      properties:
+                        domains:
+                          description: |-
+                            Domains is the list of the Fabric domains (spine layers) this switch belongs to (if not specified, "default" is used).
+                            A spine belongs to exactly one, a leaf to several if it uplinks to the spines of several. Immutable,
+                            and the switches of a redundancy group must be in the same domains
+                          items:
+                            type: string
+                          type: array
+                        fabric:
+                          description: Fabric is the name of the Fabric this switch
+                            belongs to (if not specified, "default" is used)
+                          type: string
+                      type: object
+                    vlanNamespaces:
+                      description: VLANNamespaces is a list of VLAN namespaces the
+                        switch is part of, their VLAN ranges could not overlap
+                      items:
+                        type: string
+                      type: array
+                    vtepIP:
+                      description: VTEPIP is the VTEP IP of the switch
+                      type: string
+                  required:
+                  - role
+                  type: object
+                type: object
+              users:
+                items:
+                  properties:
+                    name:
+                      type: string
+                    password:
+                      type: string
+                    role:
+                      type: string
+                    sshKeys:
+                      items:
+                        type: string
+                      type: array
+                  type: object
+                type: array
+              version:
+                properties:
+                  alloyRepo:
+                    description: Alloy information
+                    type: string
+                  alloyVersion:
+                    type: string
+                  ca:
+                    description: Registry information
+                    type: string
+                  default:
+                    type: string
+                  password:
+                    type: string
+                  repo:
+                    description: Agent information
+                    type: string
+                  username:
+                    type: string
+                type: object
+              vlanNamespaces:
+                additionalProperties:
+                  description: VLANNamespaceSpec defines the desired state of VLANNamespace
+                  properties:
+                    ranges:
+                      description: Ranges is a list of VLAN ranges to be used in this
+                        namespace, couldn't overlap between each other and with Fabric
+                        reserved VLAN ranges
+                      items:
+                        properties:
+                          from:
+                            type: integer
+                          to:
+                            type: integer
+                        type: object
+                      maxItems: 20
+                      minItems: 1
+                      type: array
+                  type: object
+                type: object
+              vpcAttachments:
+                additionalProperties:
+                  properties:
+                    annotations:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    connection:
+                      description: Connection is the name of the connection to attach
+                        to the VPC
+                      type: string
+                    nativeVLAN:
+                      description: NativeVLAN is the flag to indicate if the native
+                        VLAN should be used for attaching the VPC subnet
+                      type: boolean
+                    subnet:
+                      description: Subnet is the full name of the VPC subnet to attach
+                        to, such as "vpc-1/default"
+                      type: string
+                    topology:
+                      description: Topology is where the VPCAttachment sits in the
+                        fabric topology
+                      properties:
+                        fabric:
+                          description: Fabric is the name of the Fabric this VPCAttachment
+                            belongs to (if not specified, "default" is used)
+                          type: string
+                      type: object
+                  type: object
+                type: object
+              vpcPeers:
+                additionalProperties:
+                  description: VPCPeeringSpec defines the desired state of VPCPeering
+                  properties:
+                    permit:
+                      description: Permit defines a list of the peering policies -
+                        which VPC subnets will have access to the peer VPC subnets.
+                      items:
+                        additionalProperties:
+                          properties:
+                            subnets:
+                              description: Subnets is the list of subnets to advertise
+                                from current VPC to the peer VPC
+                              items:
+                                type: string
+                              maxItems: 10
+                              minItems: 1
+                              type: array
+                          type: object
+                        type: object
+                      maxItems: 10
+                      minItems: 1
+                      type: array
+                    remote:
+                      description: Deprecated and no longer supported
+                      type: string
+                    topology:
+                      description: Topology is where the VPCPeering sits in the fabric
+                        topology
+                      properties:
+                        fabric:
+                          description: Fabric is the name of the Fabric this VPCPeering
+                            belongs to (if not specified, "default" is used)
+                          type: string
+                      type: object
+                  type: object
+                type: object
+              vpcs:
+                additionalProperties:
+                  description: |-
+                    VPCSpec defines the desired state of VPC.
+                    At least one subnet is required.
+                  properties:
+                    defaultIsolated:
+                      description: DefaultIsolated sets default behavior for isolated
+                        mode for the subnets (disabled by default)
+                      type: boolean
+                    defaultRestricted:
+                      description: DefaultRestricted sets default behavior for restricted
+                        mode for the subnets (disabled by default)
+                      type: boolean
+                    ipv4Namespace:
+                      description: IPv4Namespace is the name of the IPv4Namespace
+                        this VPC belongs to (if not specified, "default" is used)
+                      type: string
+                    mode:
+                      description: Mode is the VPC mode that defines how the VPCs
+                        are configured on the switches
+                      type: string
+                    permit:
+                      description: |-
+                        Permit defines a list of the access policies between the subnets within the VPC - each policy is a list of subnets that have access to each other.
+                        It's applied on top of the subnet isolation flag and if subnet isn't isolated it's not required to have it in a permit list while if vpc is marked
+                        as isolated it's required to have it in a permit list to have access to other subnets.
+                      items:
+                        items:
+                          type: string
+                        type: array
+                      type: array
+                    staticRoutes:
+                      description: StaticRoutes is the list of additional static routes
+                        for the VPC
+                      items:
+                        description: VPCStaticRoute defines the static route for the
+                          VPC
+                        properties:
+                          nextHops:
+                            description: NextHops for the static route (at least one
+                              is required), e.g. 10.99.0.0
+                            items:
+                              type: string
+                            type: array
+                          prefix:
+                            description: Prefix for the static route (mandatory),
+                              e.g. 10.42.0.0/24
+                            type: string
+                        type: object
+                      type: array
+                    subnets:
+                      additionalProperties:
+                        description: VPCSubnet defines the VPC subnet configuration
+                        properties:
+                          dhcp:
+                            description: DHCP is the on-demand DHCP configuration
+                              for the subnet
+                            properties:
+                              enable:
+                                description: Enable enables DHCP server for the subnet
+                                type: boolean
+                              options:
+                                description: Options (optional) is the DHCP options
+                                  for the subnet if DHCP server is enabled
+                                properties:
+                                  advertisedRoutes:
+                                    description: |-
+                                      Advertise custom routes to the clients via the classless static route option. If non-empty,
+                                      and unless the disable default route flag is enabled, a default route via the VPC gateway
+                                      will be added automatically.
+                                    items:
+                                      properties:
+                                        destination:
+                                          description: Destination is the destination
+                                            prefix for the route
+                                          type: string
+                                        gateway:
+                                          description: Gateway is the gateway IP address
+                                            for the route
+                                          type: string
+                                      type: object
+                                    type: array
+                                  disableDefaultRoute:
+                                    description: |-
+                                      Disable default route advertisement. For L3VNI VPCs, a classless static route to the VPC subnet
+                                      will be advertised if this option is enabled.
+                                    type: boolean
+                                  dnsServers:
+                                    description: 'DNSservers (optional) to configure
+                                      Domain Name Servers for this particular segment
+                                      such as: 10.10.10.1, 10.10.10.2'
+                                    items:
+                                      type: string
+                                    type: array
+                                  interfaceMTU:
+                                    description: InterfaceMTU (optional) is the MTU
+                                      setting that the dhcp server will send to the
+                                      clients. It is dependent on the client to honor
+                                      this option.
+                                    type: integer
+                                  leaseTimeSeconds:
+                                    description: Lease time in seconds, such as 3600
+                                    format: int32
+                                    type: integer
+                                  pxeURL:
+                                    description: PXEURL (optional) to identify the
+                                      pxe server to use to boot hosts connected to
+                                      this segment such as http://10.10.10.99/bootfilename
+                                      or tftp://10.10.10.99/bootfilename, http query
+                                      strings are not supported
+                                    type: string
+                                  timeServers:
+                                    description: 'TimeServers (optional) NTP server
+                                      addresses to configure for time servers for
+                                      this particular segment such as: 10.10.10.1,
+                                      10.10.10.2'
+                                    items:
+                                      type: string
+                                    type: array
+                                required:
+                                - interfaceMTU
+                                - leaseTimeSeconds
+                                type: object
+                              range:
+                                description: |-
+                                  Range (optional) is the DHCP range for the subnet if DHCP server is enabled. The gateway, subnet and broadcast
+                                  addresses are never handed out, even if the range includes them (all addresses of a /31 or /32 are usable).
+                                properties:
+                                  end:
+                                    description: End is the end IP address of the
+                                      DHCP range
+                                    type: string
+                                  start:
+                                    description: Start is the start IP address of
+                                      the DHCP range
+                                    type: string
+                                type: object
+                              relay:
+                                description: Relay is the DHCP relay IP address, if
+                                  specified, DHCP server will be disabled
+                                type: string
+                              relayVPC:
+                                description: |-
+                                  RelayVPC (optional) is the name of the VPC where the selected DHCP relay lives, requires Relay. It has to be a VPC
+                                  this one could peer with: same fabric, at least one shared domain, same IPv4 and VLAN namespaces.
+                                type: string
+                              static:
+                                additionalProperties:
+                                  description: VPCDHCPStatic represents static IP
+                                    assignment
+                                  properties:
+                                    ip:
+                                      description: IP is the assigned static IP address
+                                      type: string
+                                  required:
+                                  - ip
+                                  type: object
+                                description: Static is a map of static IP assignments
+                                  for MAC addresses
+                                type: object
+                            type: object
+                          gateway:
+                            description: Gateway (optional) for the subnet, if not
+                              specified, the first IP (e.g. 10.0.0.1) in the subnet
+                              is used as the gateway
+                            type: string
+                          hostBGP:
+                            description: HostBGP is the flag to set this Subnet as
+                              dedicated to BGP speaking hosts advertising their VIPs
+                              within the subnet's IP range
+                            type: boolean
+                          hostBGPExtraPrefixes:
+                            additionalProperties:
+                              description: VPCSubnetHostBGPPrefix defines the prefix
+                                lengths accepted from the host within an extra hostBGP
+                                prefix
+                              properties:
+                                maxPrefixLen:
+                                  description: MaxPrefixLen is the longest prefix
+                                    length accepted within the prefix, defaults to
+                                    the subnet's hostBGPMaxPrefixLen
+                                  maximum: 32
+                                  minimum: 1
+                                  type: integer
+                                minPrefixLen:
+                                  description: MinPrefixLen is the shortest prefix
+                                    length accepted within the prefix, defaults to
+                                    the subnet's hostBGPMinPrefixLen
+                                  maximum: 32
+                                  minimum: 1
+                                  type: integer
+                              type: object
+                            description: |-
+                              HostBGPExtraPrefixes is the set of extra IP prefixes, on top of the subnet's own IP range, to accept from the
+                              host over its BGP sessions, keyed by prefix
+                            type: object
+                          hostBGPMaxPrefixLen:
+                            description: HostBGPMaxPrefixLen is the longest prefix
+                              length accepted from the host within the subnet's IP
+                              range, 32 by default
+                            maximum: 32
+                            minimum: 1
+                            type: integer
+                          hostBGPMinPrefixLen:
+                            description: HostBGPMinPrefixLen is the shortest prefix
+                              length accepted from the host within the subnet's IP
+                              range, 32 by default
+                            maximum: 32
+                            minimum: 1
+                            type: integer
+                          isolated:
+                            description: Isolated is the flag to enable isolated mode
+                              for the subnet which means no access to and from the
+                              other subnets within the VPC
+                            type: boolean
+                          restricted:
+                            description: Restricted is the flag to enable restricted
+                              mode for the subnet which means no access between hosts
+                              within the subnet itself
+                            type: boolean
+                          subnet:
+                            description: Subnet is the subnet CIDR block, such as
+                              "10.0.0.0/24", should belong to the IPv4Namespace and
+                              be unique within the namespace
+                            type: string
+                          vlan:
+                            description: VLAN is the VLAN ID for the subnet, should
+                              belong to the VLANNamespace and be unique within the
+                              namespace
+                            type: integer
+                        type: object
+                      description: Subnets is the list of VPC subnets to configure
+                      type: object
+                    topology:
+                      description: Topology is where the VPC sits in the fabric topology
+                      properties:
+                        domains:
+                          description: |-
+                            Domains are the Fabric domains the VPC is in (if not specified, "default" is used). It can only
+                            be attached to switches that are in all of them, and they are immutable
+                          items:
+                            type: string
+                          type: array
+                        fabric:
+                          description: Fabric is the name of the Fabric this VPC belongs
+                            to (if not specified, "default" is used)
+                          type: string
+                      type: object
+                    vlanNamespace:
+                      description: VLANNamespace is the name of the VLANNamespace
+                        this VPC belongs to (if not specified, "default" is used)
+                      type: string
+                  type: object
+                type: object
+            type: object
+            x-kubernetes-map-type: atomic
+          status:
+            description: Status is the observed state of the Agent
+            properties:
+              bootID:
+                description: ID for the NOS boot, used to track NOS reboots
+                type: string
+              conditions:
+                description: Conditions of the agent, includes readiness marker for
+                  use with kubectl wait
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              installID:
+                description: ID of the agent installation, used to track NOS re-installs
+                type: string
+              lastAppliedGen:
+                description: Generation of the last successful configuration application
+                format: int64
+                type: integer
+              lastAppliedTime:
+                description: Time of the last successful configuration application
+                format: date-time
+                type: string
+              lastAttemptGen:
+                description: Generation of the last attempt to apply configuration
+                format: int64
+                type: integer
+              lastAttemptTime:
+                description: Time of the last attempt to apply configuration
+                format: date-time
+                type: string
+              lastHeartbeat:
+                description: Time of the last heartbeat from the agent
+                format: date-time
+                type: string
+              mutate:
+                description: Mutate is the state of the bcm mutate rules applied by
+                  the agent on Broadcom SONiC switches (alpha)
+                properties:
+                  applied:
+                    description: Applied are the sorted bcm mutate rules that took
+                      effect in the last config application
+                    items:
+                      type: string
+                    type: array
+                  enabled:
+                    description: Enabled is true if the last config application had
+                      any bcm mutate rules
+                    type: boolean
+                type: object
+              notes:
+                description: Notes is a comma separated summary of the agent state
+                  that needs attention
+                type: string
+              rebootRequired:
+                description: RebootRequired indicates whether a reboot is required
+                type: boolean
+              runID:
+                description: ID of the agent run, used to track agent restarts
+                type: string
+              state:
+                description: Detailed switch state updated with each heartbeat
+                properties:
+                  bfdPeers:
+                    additionalProperties:
+                      additionalProperties:
+                        properties:
+                          fails:
+                            format: int64
+                            type: integer
+                          lastUpTime:
+                            format: date-time
+                            type: string
+                          profile:
+                            type: string
+                          state:
+                            type: string
+                        type: object
+                      type: object
+                    description: State of all BFD peers (VRF -> peer address, or port
+                      for an unnumbered session -> state)
+                    type: object
+                  bgpNeighbors:
+                    additionalProperties:
+                      additionalProperties:
+                        properties:
+                          connDropped:
+                            format: int64
+                            type: integer
+                          enabled:
+                            type: boolean
+                          estabTrans:
+                            format: int64
+                            type: integer
+                          lastEstab:
+                            format: date-time
+                            type: string
+                          lastRead:
+                            format: date-time
+                            type: string
+                          lastReset:
+                            format: date-time
+                            type: string
+                          lastResetReason:
+                            type: string
+                          lastWrite:
+                            format: date-time
+                            type: string
+                          localAS:
+                            format: int64
+                            maximum: 4294967295
+                            minimum: 0
+                            type: integer
+                          msgs:
+                            properties:
+                              rec:
+                                properties:
+                                  cap:
+                                    format: int64
+                                    type: integer
+                                  keepal:
+                                    format: int64
+                                    type: integer
+                                  notif:
+                                    format: int64
+                                    type: integer
+                                  open:
+                                    format: int64
+                                    type: integer
+                                  rrefresh:
+                                    format: int64
+                                    type: integer
+                                  update:
+                                    format: int64
+                                    type: integer
+                                type: object
+                              sent:
+                                properties:
+                                  cap:
+                                    format: int64
+                                    type: integer
+                                  keepal:
+                                    format: int64
+                                    type: integer
+                                  notif:
+                                    format: int64
+                                    type: integer
+                                  open:
+                                    format: int64
+                                    type: integer
+                                  rrefresh:
+                                    format: int64
+                                    type: integer
+                                  update:
+                                    format: int64
+                                    type: integer
+                                type: object
+                            type: object
+                          peerAS:
+                            format: int64
+                            maximum: 4294967295
+                            minimum: 0
+                            type: integer
+                          peerGroup:
+                            type: string
+                          peerPort:
+                            type: integer
+                          peerType:
+                            type: string
+                          prefixes:
+                            additionalProperties:
+                              properties:
+                                limit:
+                                  description: Limit is the most prefixes accepted,
+                                    if there is a limit
+                                  format: int32
+                                  type: integer
+                                limitWarnOnly:
+                                  description: LimitWarnOnly is set if the session
+                                    stays open above the limit
+                                  type: boolean
+                                limitWarnPct:
+                                  description: LimitWarnPct is the percentage of the
+                                    limit from which the switch logs a warning
+                                  type: integer
+                                rec:
+                                  format: int32
+                                  type: integer
+                                recPre:
+                                  format: int32
+                                  type: integer
+                                sent:
+                                  format: int32
+                                  type: integer
+                              type: object
+                            type: object
+                          remoteRouterID:
+                            type: string
+                          shutdownMsg:
+                            type: string
+                          state:
+                            type: string
+                        type: object
+                      type: object
+                    description: State of all BGP neighbors (VRF -> neighbor address,
+                      or port (with .VLAN for TH5) for an unnumbered session -> state)
+                    type: object
+                  breakouts:
+                    additionalProperties:
+                      properties:
+                        mode:
+                          type: string
+                        status:
+                          type: string
+                      type: object
+                    description: Breakout ports state (port -> breakout state)
+                    type: object
+                  criticalResources:
+                    description: State of the critical resources (ACLs, routes, etc.)
+                    properties:
+                      aclStats:
+                        properties:
+                          egress:
+                            properties:
+                              lag:
+                                properties:
+                                  groupsAvailable:
+                                    format: int32
+                                    type: integer
+                                  groupsUsed:
+                                    format: int32
+                                    type: integer
+                                  tablesAvailable:
+                                    format: int32
+                                    type: integer
+                                  tablesUsed:
+                                    format: int32
+                                    type: integer
+                                type: object
+                              port:
+                                properties:
+                                  groupsAvailable:
+                                    format: int32
+                                    type: integer
+                                  groupsUsed:
+                                    format: int32
+                                    type: integer
+                                  tablesAvailable:
+                                    format: int32
+                                    type: integer
+                                  tablesUsed:
+                                    format: int32
+                                    type: integer
+                                type: object
+                              rif:
+                                properties:
+                                  groupsAvailable:
+                                    format: int32
+                                    type: integer
+                                  groupsUsed:
+                                    format: int32
+                                    type: integer
+                                  tablesAvailable:
+                                    format: int32
+                                    type: integer
+                                  tablesUsed:
+                                    format: int32
+                                    type: integer
+                                type: object
+                              switch:
+                                properties:
+                                  groupsAvailable:
+                                    format: int32
+                                    type: integer
+                                  groupsUsed:
+                                    format: int32
+                                    type: integer
+                                  tablesAvailable:
+                                    format: int32
+                                    type: integer
+                                  tablesUsed:
+                                    format: int32
+                                    type: integer
+                                type: object
+                              vlan:
+                                properties:
+                                  groupsAvailable:
+                                    format: int32
+                                    type: integer
+                                  groupsUsed:
+                                    format: int32
+                                    type: integer
+                                  tablesAvailable:
+                                    format: int32
+                                    type: integer
+                                  tablesUsed:
+                                    format: int32
+                                    type: integer
+                                type: object
+                            type: object
+                          ingress:
+                            properties:
+                              lag:
+                                properties:
+                                  groupsAvailable:
+                                    format: int32
+                                    type: integer
+                                  groupsUsed:
+                                    format: int32
+                                    type: integer
+                                  tablesAvailable:
+                                    format: int32
+                                    type: integer
+                                  tablesUsed:
+                                    format: int32
+                                    type: integer
+                                type: object
+                              port:
+                                properties:
+                                  groupsAvailable:
+                                    format: int32
+                                    type: integer
+                                  groupsUsed:
+                                    format: int32
+                                    type: integer
+                                  tablesAvailable:
+                                    format: int32
+                                    type: integer
+                                  tablesUsed:
+                                    format: int32
+                                    type: integer
+                                type: object
+                              rif:
+                                properties:
+                                  groupsAvailable:
+                                    format: int32
+                                    type: integer
+                                  groupsUsed:
+                                    format: int32
+                                    type: integer
+                                  tablesAvailable:
+                                    format: int32
+                                    type: integer
+                                  tablesUsed:
+                                    format: int32
+                                    type: integer
+                                type: object
+                              switch:
+                                properties:
+                                  groupsAvailable:
+                                    format: int32
+                                    type: integer
+                                  groupsUsed:
+                                    format: int32
+                                    type: integer
+                                  tablesAvailable:
+                                    format: int32
+                                    type: integer
+                                  tablesUsed:
+                                    format: int32
+                                    type: integer
+                                type: object
+                              vlan:
+                                properties:
+                                  groupsAvailable:
+                                    format: int32
+                                    type: integer
+                                  groupsUsed:
+                                    format: int32
+                                    type: integer
+                                  tablesAvailable:
+                                    format: int32
+                                    type: integer
+                                  tablesUsed:
+                                    format: int32
+                                    type: integer
+                                type: object
+                            type: object
+                        type: object
+                      stats:
+                        properties:
+                          dnatEntriesAvailable:
+                            format: int32
+                            type: integer
+                          dnatEntriesUsed:
+                            format: int32
+                            type: integer
+                          fdbEntriesAvailable:
+                            format: int32
+                            type: integer
+                          fdbEntriesUsed:
+                            format: int32
+                            type: integer
+                          ipmcEntriesAvailable:
+                            format: int32
+                            type: integer
+                          ipmcEntriesUsed:
+                            format: int32
+                            type: integer
+                          ipv4NeighborsAvailable:
+                            format: int32
+                            type: integer
+                          ipv4NeighborsUsed:
+                            format: int32
+                            type: integer
+                          ipv4NexthopsAvailable:
+                            format: int32
+                            type: integer
+                          ipv4NexthopsUsed:
+                            format: int32
+                            type: integer
+                          ipv4RoutesAvailable:
+                            format: int32
+                            type: integer
+                          ipv4RoutesUsed:
+                            format: int32
+                            type: integer
+                          ipv6NeighborsAvailable:
+                            format: int32
+                            type: integer
+                          ipv6NeighborsUsed:
+                            format: int32
+                            type: integer
+                          ipv6NexthopsAvailable:
+                            format: int32
+                            type: integer
+                          ipv6NexthopsUsed:
+                            format: int32
+                            type: integer
+                          ipv6RoutesAvailable:
+                            format: int32
+                            type: integer
+                          ipv6RoutesUsed:
+                            format: int32
+                            type: integer
+                          nexthopGroupMembersAvailable:
+                            format: int32
+                            type: integer
+                          nexthopGroupMembersUsed:
+                            format: int32
+                            type: integer
+                          nexthopGroupsAvailable:
+                            format: int32
+                            type: integer
+                          nexthopGroupsUsed:
+                            format: int32
+                            type: integer
+                          snatEntriesAvailable:
+                            format: int32
+                            type: integer
+                          snatEntriesUsed:
+                            format: int32
+                            type: integer
+                        type: object
+                    type: object
+                  firmware:
+                    additionalProperties:
+                      type: string
+                    description: Firmware versions of the switch
+                    type: object
+                  interfaces:
+                    additionalProperties:
+                      properties:
+                        admin:
+                          type: string
+                        auto:
+                          type: boolean
+                        change:
+                          format: date-time
+                          type: string
+                        counters:
+                          properties:
+                            clear:
+                              format: date-time
+                              type: string
+                            inb:
+                              format: int64
+                              type: integer
+                            inbps:
+                              type: number
+                            ind:
+                              format: int64
+                              type: integer
+                            ine:
+                              format: int64
+                              type: integer
+                            inpbs:
+                              type: number
+                            inu:
+                              type: integer
+                            outb:
+                              format: int64
+                              type: integer
+                            outbps:
+                              type: number
+                            outd:
+                              format: int64
+                              type: integer
+                            oute:
+                              format: int64
+                              type: integer
+                            outpps:
+                              type: number
+                            outu:
+                              type: integer
+                            queues:
+                              additionalProperties:
+                                properties:
+                                  b:
+                                    format: int64
+                                    type: integer
+                                  bps:
+                                    format: int64
+                                    type: integer
+                                  db:
+                                    format: int64
+                                    type: integer
+                                  dp:
+                                    format: int64
+                                    type: integer
+                                  ecnb:
+                                    format: int64
+                                    type: integer
+                                  ecnp:
+                                    format: int64
+                                    type: integer
+                                  p:
+                                    format: int64
+                                    type: integer
+                                  pps:
+                                    format: int64
+                                    type: integer
+                                  wreddp:
+                                    format: int64
+                                    type: integer
+                                type: object
+                              type: object
+                          type: object
+                        enabled:
+                          type: boolean
+                        errDisabled:
+                          type: boolean
+                        fec:
+                          type: string
+                        linkFlapCount:
+                          format: int32
+                          type: integer
+                        lldpNeighbors:
+                          items:
+                            properties:
+                              chassis:
+                                type: string
+                              mac:
+                                description: 'MAC of the neighbor port: the LLDP source
+                                  MAC, or the port ID if it''s a MAC address'
+                                type: string
+                              manuf:
+                                type: string
+                              model:
+                                type: string
+                              port:
+                                description: 'Human-readable neighbor port name: the
+                                  port ID, or the port description if the port ID
+                                  is a MAC address'
+                                type: string
+                              portDescr:
+                                type: string
+                              portID:
+                                type: string
+                              serial:
+                                type: string
+                              sysDescr:
+                                type: string
+                              sysName:
+                                type: string
+                              ttl:
+                                description: TTL advertised by the neighbor, seconds
+                                type: integer
+                              updated:
+                                description: When the neighbor entry was last updated
+                                format: date-time
+                                type: string
+                            type: object
+                          type: array
+                        mac:
+                          type: string
+                        oper:
+                          type: string
+                        speed:
+                          type: string
+                      type: object
+                    description: Switch interfaces state (incl. physical, management
+                      and port channels)
+                    type: object
+                  nos:
+                    description: Information about the switch and NOS
+                    properties:
+                      asicVersion:
+                        description: ASIC name, such as "broadcom" or "vs"
+                        type: string
+                      buildCommit:
+                        description: NOS build commit
+                        type: string
+                      buildDate:
+                        description: NOS build date
+                        type: string
+                      builtBy:
+                        description: NOS build user
+                        type: string
+                      configDBVersion:
+                        description: NOS config DB version, such as "version_4_2_1"
+                        type: string
+                      distributionVersion:
+                        description: Distribution version, such as "Debian 10.13"
+                        type: string
+                      hardwareVersion:
+                        description: Hardware version, such as "X01"
+                        type: string
+                      hwskuVersion:
+                        description: Hwsku version, such as "DellEMC-S5248f-P-25G-DPB"
+                        type: string
+                      kernelVersion:
+                        description: Kernel version, such as "5.10.0-21-amd64"
+                        type: string
+                      mfgName:
+                        description: Manufacturer name, such as "Dell EMC"
+                        type: string
+                      platformName:
+                        description: Platform name, such as "x86_64-dellemc_s5248f_c3538-r0"
+                        type: string
+                      productDescription:
+                        description: NOS product description, such as "Enterprise
+                          SONiC Distribution by Broadcom - Enterprise Base package"
+                        type: string
+                      productVersion:
+                        description: NOS product version, empty for Broadcom SONiC
+                        type: string
+                      serialNumber:
+                        description: Switch serial number
+                        type: string
+                      softwareVersion:
+                        description: NOS software version, such as "4.2.0-Enterprise_Base"
+                        type: string
+                      uptime:
+                        description: 'Switch uptime, such as "21:21:27 up 1 day, 23:26,
+                          0 users, load average: 1.92, 1.99, 2.00 "'
+                        type: string
+                    type: object
+                  platform:
+                    description: State of the switch platform (fans, PSUs, sensors)
+                    properties:
+                      fans:
+                        additionalProperties:
+                          properties:
+                            dir:
+                              type: string
+                            presence:
+                              type: boolean
+                            speed:
+                              type: number
+                            status:
+                              type: boolean
+                          type: object
+                        type: object
+                      psus:
+                        additionalProperties:
+                          properties:
+                            inCurrent:
+                              type: number
+                            inPower:
+                              type: number
+                            inVoltage:
+                              type: number
+                            outCurrent:
+                              type: number
+                            outPower:
+                              type: number
+                            outVoltage:
+                              type: number
+                            presence:
+                              type: boolean
+                            status:
+                              type: boolean
+                          type: object
+                        type: object
+                      temps:
+                        additionalProperties:
+                          properties:
+                            alarms:
+                              type: string
+                            critHighThreshold:
+                              type: number
+                            critLowThreshold:
+                              type: number
+                            highThreshold:
+                              type: number
+                            lowThreshold:
+                              type: number
+                            temp:
+                              type: number
+                          type: object
+                        type: object
+                    type: object
+                  roce:
+                    description: State of the roce configuration
+                    type: boolean
+                  transceivers:
+                    additionalProperties:
+                      properties:
+                        cable:
+                          type: string
+                        channels:
+                          additionalProperties:
+                            properties:
+                              bias:
+                                type: number
+                              in:
+                                type: number
+                              out:
+                                type: number
+                            type: object
+                          type: object
+                        cmis:
+                          type: string
+                        cmisApp:
+                          type: integer
+                        cmisRev:
+                          type: string
+                        connType:
+                          type: string
+                        descr:
+                          type: string
+                        firmware:
+                          type: string
+                        formFactor:
+                          type: string
+                        length:
+                          type: number
+                        oper:
+                          type: string
+                        present:
+                          type: string
+                        serial:
+                          type: string
+                        temp:
+                          type: number
+                        vendor:
+                          type: string
+                        vendorOUI:
+                          type: string
+                        vendorPart:
+                          type: string
+                        vendorRev:
+                          type: string
+                        voltage:
+                          type: number
+                      type: object
+                    description: Transceivers state (port -> transceiver state)
+                    type: object
+                type: object
+              statusUpdates:
+                description: Status updates from the agent
+                items:
+                  properties:
+                    apiVersion:
+                      type: string
+                    generation:
+                      format: int64
+                      type: integer
+                    kind:
+                      type: string
+                    name:
+                      type: string
+                    namespace:
+                      type: string
+                  type: object
+                type: array
+              version:
+                description: Current running agent version
+                type: string
+            required:
+            - conditions
+            type: object
+            x-kubernetes-map-type: atomic
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

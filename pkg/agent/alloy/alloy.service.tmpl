@@ -1,0 +1,17 @@
+[Unit]
+Description=Grafana Alloy
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User={{ .User }}
+ExecStart={{ .Binary }} run --server.http.listen-addr={{ .Listen }} --cluster.enabled=false --disable-reporting --storage.path={{ .Storage }} {{ .Config }}
+ExecReload=/usr/bin/env kill -HUP $MAINPID
+
+Restart=always
+RestartSec=5
+TimeoutStopSec=20s
+SendSIGKILL=no
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,305 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.23.0
+  name: gatewaypeerings.gateway.githedgehog.com
+spec:
+  group: gateway.githedgehog.com
+  names:
+    categories:
+    - hedgehog
+    - hh
+    - hhgw
+    kind: GatewayPeering
+    listKind: GatewayPeeringList
+    plural: gatewaypeerings
+    shortNames:
+    - gwpeer
+    singular: gatewaypeering
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .metadata.annotations.fabric\.githedgehog\.com/topology
+      name: Topo
+      type: string
+    - jsonPath: .spec.gatewayGroup
+      name: Group
+      type: string
+    - jsonPath: .metadata.annotations.gateway\.githedgehog\.com/vpcs
+      name: VPCs
+      type: string
+    - jsonPath: .metadata.annotations.gateway\.githedgehog\.com/nat
+      name: NAT
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      priority: 10
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: GatewayPeering is the Schema for the peerings API.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: PeeringSpec defines the desired state of Peering.
+            properties:
+              acl:
+                description: ACL is an optional, peering-scoped ACL
+                properties:
+                  default:
+                    description: Default action to execute if no rules matches, can
+                      be either "deny-unless-exposed" (default if empty) or "deny"
+                    enum:
+                    - deny
+                    - deny-unless-exposed
+                    - ""
+                    type: string
+                  rules:
+                    description: List of rules for this particular ACL
+                    items:
+                      properties:
+                        action:
+                          description: Action to execute if the rule matches, can
+                            be either "deny" or "allow"
+                          enum:
+                          - deny
+                          - allow
+                          type: string
+                        from:
+                          description: From has to match one of the peering's two
+                            VPCs if present, implicit from the "to" field otherwise
+                          type: string
+                        log:
+                          type: boolean
+                        match:
+                          description: What the rule should match against, omit to
+                            match everything in the rule's direction
+                          properties:
+                            dst:
+                              description: To-side advertised addresses and/or destination
+                                ports
+                              items:
+                                properties:
+                                  cidr:
+                                    description: CIDR to match, at most one of cidr
+                                      and vpcSubnet can be set
+                                    type: string
+                                  ports:
+                                    description: List of ports or port ranges to match,
+                                      omit to match all ports
+                                    items:
+                                      type: string
+                                    type: array
+                                  vpcSubnet:
+                                    description: VPC subnet to match, at most one
+                                      of cidr and vpcSubnet can be set
+                                    type: string
+                                type: object
+                              type: array
+                            proto:
+                              description: Protocol to match ("tcp", "udp", or numeric),
+                                omit to match any protocol
+                              type: string
+                            src:
+                              description: From-side native addresses and/or source
+                                ports
+                              items:
+                                properties:
+                                  cidr:
+                                    description: CIDR to match, at most one of cidr
+                                      and vpcSubnet can be set
+                                    type: string
+                                  ports:
+                                    description: List of ports or port ranges to match,
+                                      omit to match all ports
+                                    items:
+                                      type: string
+                                    type: array
+                                  vpcSubnet:
+                                    description: VPC subnet to match, at most one
+                                      of cidr and vpcSubnet can be set
+                                    type: string
+                                type: object
+                              type: array
+                            tcpFilters:
+                              description: TCP-specific filters, only valid with protocol
+                                "tcp" and scope "packet"
+                              properties:
+                                flags:
+                                  description: TCP flags to match, omit to match all
+                                    segments
+                                  properties:
+                                    ack:
+                                      description: ACK flag
+                                      type: boolean
+                                    cwr:
+                                      description: CWR flag
+                                      type: boolean
+                                    ece:
+                                      description: ECE flag
+                                      type: boolean
+                                    fin:
+                                      description: FIN flag
+                                      type: boolean
+                                    psh:
+                                      description: PSH flag
+                                      type: boolean
+                                    rst:
+                                      description: RST flag
+                                      type: boolean
+                                    syn:
+                                      description: SYN flag
+                                      type: boolean
+                                    urg:
+                                      description: URG flag
+                                      type: boolean
+                                  type: object
+                              type: object
+                          type: object
+                        name:
+                          description: Optional name for logs and diagnostics
+                          type: string
+                        scope:
+                          description: Scope of the rule, can be either "flow" (default
+                            if empty) or "packet"
+                          enum:
+                          - flow
+                          - packet
+                          - ""
+                          type: string
+                        to:
+                          description: To has to match one of the peering's two VPCs
+                            if present, implicit from the "from" field otherwise
+                          type: string
+                      required:
+                      - action
+                      type: object
+                    type: array
+                required:
+                - default
+                type: object
+              gatewayGroup:
+                description: GatewayGroup is the name of the gateway group that should
+                  process the peering
+                type: string
+              noMultiPath:
+                description: NoMultiPath is an optional flag to disable multi-path
+                  for stateless peerings (handling by all gateways in a group)
+                type: boolean
+              peering:
+                additionalProperties:
+                  properties:
+                    expose:
+                      items:
+                        properties:
+                          as:
+                            items:
+                              properties:
+                                cidr:
+                                  description: CIDR to include, only one of cidr,
+                                    not can be set
+                                  type: string
+                                not:
+                                  description: CIDR to exclude, only one of cidr,
+                                    not can be set
+                                  type: string
+                              type: object
+                            type: array
+                          default:
+                            type: boolean
+                          ips:
+                            items:
+                              properties:
+                                cidr:
+                                  description: CIDR to include, only one of cidr,
+                                    not, vpcSubnet can be set
+                                  type: string
+                                not:
+                                  description: CIDR to exclude, only one of cidr,
+                                    not, vpcSubnet can be set
+                                  type: string
+                                vpcSubnet:
+                                  description: CIDR by VPC subnet name to include,
+                                    only one of cidr, not, vpcSubnet can be set
+                                  type: string
+                              type: object
+                            type: array
+                          nat:
+                            properties:
+                              masquerade:
+                                properties:
+                                  idleTimeout:
+                                    description: Time since the last packet after
+                                      which flows are removed from the connection
+                                      state table
+                                    type: string
+                                type: object
+                              portForward:
+                                properties:
+                                  idleTimeout:
+                                    description: Time since the last packet after
+                                      which flows are removed from the connection
+                                      state table
+                                    type: string
+                                  ports:
+                                    items:
+                                      properties:
+                                        as:
+                                          type: string
+                                        port:
+                                          type: string
+                                        proto:
+                                          enum:
+                                          - tcp
+                                          - udp
+                                          - ""
+                                          type: string
+                                      type: object
+                                    type: array
+                                type: object
+                              static:
+                                type: object
+                            type: object
+                        type: object
+                      type: array
+                  type: object
+                description: Peerings is a map of peering entries for each VPC participating
+                  in the peering (keyed by VPC name)
+                type: object
+              topology:
+                description: Topology is where the GatewayPeering sits in the fabric
+                  topology
+                properties:
+                  fabric:
+                    description: Fabric is the name of the Fabric this GatewayPeering
+                      belongs to (if not specified, "default" is used)
+                    type: string
+                type: object
+            type: object
+          status:
+            description: PeeringStatus defines the observed state of Peering.
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

@@ -1,0 +1,769 @@
+// Copyright 2025 Hedgehog
+// SPDX-License-Identifier: Apache-2.0
+
+package v1beta1_test
+
+import (
+	"slices"
+	"testing"
+
+	"github.com/stretchr/testify/require"
+	"go.githedgehog.com/fabric/api/meta"
+	"go.githedgehog.com/fabric/api/vpc/v1beta1"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	runtime "k8s.io/apimachinery/pkg/runtime"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+)
+
+func l3ExtAttGen(name string, f ...func(att *v1beta1.ExternalAttachment)) *v1beta1.ExternalAttachment {
+	base := &v1beta1.ExternalAttachment{
+		Name:      name,
+		Namespace: kmetav1.NamespaceDefault,
+		Spec: v1beta1.ExternalAttachmentSpec{
+			External:   "external-01",
+			Connection: "leaf-01--external",
+			Neighbor: v1beta1.ExternalAttachmentNeighbor{
+				ASN: 64000,
+				IP:  "10.90.0.4",
+			},
+			Switch: v1beta1.ExternalAttachmentSwitch{
+				VLAN: 100,
+				IP:   "10.90.0.5/31",
+			},
+		},
+	}
+
+	for _, fn := range f {
+		fn(base)
+	}
+	base.Default()
+
+	return base
+}
+
+func staticExtAttGen(name string, f ...func(att *v1beta1.ExternalAttachment)) *v1beta1.ExternalAttachment {
+	base := &v1beta1.ExternalAttachment{
+		Name:      name,
+		Namespace: kmetav1.NamespaceDefault,
+		Spec: v1beta1.ExternalAttachmentSpec{
+			External:   "external-02",
+			Connection: "leaf-01--external",
+			Static: &v1beta1.ExternalAttachmentStatic{
+				RemoteIP: "10.45.0.2",
+				VLAN:     200,
+				Proxy:    true,
+			},
+		},
+	}
+	for _, fn := range f {
+		fn(base)
+	}
+	base.Default()
+
+	return base
+}
+
+func withObjs(base []kclient.Object, objs ...kclient.Object) []kclient.Object {
+	return append(slices.Clone(base), objs...)
+}
+
+func TestExternalAttachmentValidation(t *testing.T) {
+	baseObjs := []kclient.Object{
+		defaulted(&v1beta1.External{
+			Name:      "external-01",
+			Namespace: kmetav1.NamespaceDefault,
+			Spec: v1beta1.ExternalSpec{
+				IPv4Namespace:     "default",
+				InboundCommunity:  "50000:1001",
+				OutboundCommunity: "50000:1002",
+			},
+		}),
+		defaulted(&v1beta1.External{
+			Name:      "external-02",
+			Namespace: kmetav1.NamespaceDefault,
+			Spec: v1beta1.ExternalSpec{
+				IPv4Namespace: "default",
+				Static: &v1beta1.ExternalStaticSpec{
+					Prefixes: []string{"0.0.0.0/0"},
+				},
+			},
+		}),
+		defaulted(&wiringapi.Connection{
+			Name:      "leaf-01--external",
+			Namespace: kmetav1.NamespaceDefault,
+			Spec: wiringapi.ConnectionSpec{
+				External: &wiringapi.ConnExternal{
+					Link: wiringapi.ConnExternalLink{
+						Switch: wiringapi.BasePortName{
+							Port: "leaf-01/E1/1",
+						},
+					},
+				},
+			},
+		}),
+	}
+	backendFabric := &wiringapi.Fabric{
+		Name: "backend", Namespace: kmetav1.NamespaceDefault,
+		Spec: wiringapi.FabricSpec{
+			LeafASNStart: 64101,
+			LeafASNEnd:   64199,
+			Domains:      map[string]wiringapi.FabricDomainSpec{wiringapi.DefaultFabricDomain: {SpineASN: 64100, GatewayASN: 64200}},
+		},
+	}
+	// Fabric/default, added to the objects of every test, gets the test fabric spec if set
+	asnFabric := &wiringapi.FabricSpec{
+		LeafASNStart: 65101,
+		LeafASNEnd:   65200,
+		Domains:      map[string]wiringapi.FabricDomainSpec{wiringapi.DefaultFabricDomain: {SpineASN: 65100, GatewayASN: 65534}},
+	}
+	leafOnB := defaulted(&wiringapi.Switch{
+		Name: "leaf-01", Namespace: kmetav1.NamespaceDefault,
+		Spec: wiringapi.SwitchSpec{Topology: wiringapi.SwitchTopology{Domains: []string{"plane-b"}}},
+	})
+	extOnB := defaulted(&v1beta1.External{
+		Name: "external-03", Namespace: kmetav1.NamespaceDefault,
+		Spec: v1beta1.ExternalSpec{IPv4Namespace: "default", Topology: v1beta1.ExternalTopology{Domain: "plane-b"}},
+	})
+	withNeighborASN := func(asn uint32) func(*v1beta1.ExternalAttachment) {
+		return func(att *v1beta1.ExternalAttachment) { att.Spec.Neighbor.ASN = asn }
+	}
+	tests := []struct {
+		name    string
+		extAtt  *v1beta1.ExternalAttachment
+		objects []kclient.Object
+		fabric  *wiringapi.FabricSpec
+		err     bool
+		warns   bool
+	}{
+		{
+			name:    "valid BGP external attachment",
+			extAtt:  l3ExtAttGen("ext-att-01"),
+			objects: baseObjs,
+			err:     false,
+		},
+		{
+			name: "valid unnumbered BGP external attachment",
+			extAtt: l3ExtAttGen("ext-att-01u", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.Switch.IP = ""
+				att.Spec.Neighbor.IP = ""
+			}),
+			objects: baseObjs,
+		},
+		{
+			name:    "BGP external attachment without neighbor ASN",
+			extAtt:  l3ExtAttGen("ext-att-01a", withNeighborASN(0)),
+			objects: append(slices.Clone(baseObjs), backendFabric),
+			fabric:  asnFabric,
+		},
+		{
+			name:    "BGP external attachment with switch IP only",
+			extAtt:  l3ExtAttGen("ext-att-01b", func(att *v1beta1.ExternalAttachment) { att.Spec.Neighbor.IP = "" }),
+			objects: baseObjs,
+			err:     true,
+		},
+		{
+			name:    "BGP external attachment with neighbor IP only",
+			extAtt:  l3ExtAttGen("ext-att-01c", func(att *v1beta1.ExternalAttachment) { att.Spec.Switch.IP = "" }),
+			objects: baseObjs,
+			err:     true,
+		},
+		{
+			name: "BGP external attachment with prefix limit",
+			extAtt: l3ExtAttGen("ext-att-01d", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.Neighbor.PrefixLimit = &v1beta1.ExternalAttachmentPrefixLimit{Max: 1000, RestartMinutes: 10, WarningThresholdPct: 90}
+			}),
+			objects: baseObjs,
+		},
+		{
+			name: "BGP external attachment with warning-only prefix limit",
+			extAtt: l3ExtAttGen("ext-att-01e", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.Neighbor.PrefixLimit = &v1beta1.ExternalAttachmentPrefixLimit{Max: 1000, WarningOnly: true}
+			}),
+			objects: baseObjs,
+		},
+		{
+			name: "BGP external attachment with prefix limit without max",
+			extAtt: l3ExtAttGen("ext-att-01f", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.Neighbor.PrefixLimit = &v1beta1.ExternalAttachmentPrefixLimit{WarningOnly: true}
+			}),
+			objects: baseObjs,
+			err:     true,
+		},
+		{
+			name: "BGP external attachment with warning-only prefix limit and restart",
+			extAtt: l3ExtAttGen("ext-att-01g", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.Neighbor.PrefixLimit = &v1beta1.ExternalAttachmentPrefixLimit{Max: 1000, WarningOnly: true, RestartMinutes: 5}
+			}),
+			objects: baseObjs,
+			err:     true,
+		},
+		{
+			name: "BGP external attachment with prefix limit threshold above 100",
+			extAtt: l3ExtAttGen("ext-att-01h", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.Neighbor.PrefixLimit = &v1beta1.ExternalAttachmentPrefixLimit{Max: 1000, WarningThresholdPct: 101}
+			}),
+			objects: baseObjs,
+			err:     true,
+		},
+		{
+			name:    "valid static external attachment",
+			extAtt:  staticExtAttGen("ext-att-02"),
+			objects: baseObjs,
+			err:     false,
+		},
+		{
+			name: "static external attachment with prefix limit",
+			extAtt: staticExtAttGen("ext-att-02a", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.Neighbor.PrefixLimit = &v1beta1.ExternalAttachmentPrefixLimit{Max: 1000}
+			}),
+			objects: baseObjs,
+			err:     true,
+		},
+		{
+			name:    "external does not exist",
+			extAtt:  l3ExtAttGen("ext-att-03", func(att *v1beta1.ExternalAttachment) { att.Spec.External = "external-456" }),
+			objects: baseObjs,
+			err:     true,
+		},
+		{
+			name:    "connection does not exist",
+			extAtt:  l3ExtAttGen("ext-att-04", func(att *v1beta1.ExternalAttachment) { att.Spec.Connection = "conn-456" }),
+			objects: baseObjs,
+			err:     true,
+		},
+		{
+			// migrating a static uplink to BGP goes through a window where both kinds of
+			// attachment point at the same external
+			name:    "l3 attach with static external",
+			extAtt:  l3ExtAttGen("ext-att-05", func(att *v1beta1.ExternalAttachment) { att.Spec.External = "external-02" }),
+			objects: baseObjs,
+			err:     false,
+		},
+		{
+			name:   "static and l3 attach on the same external",
+			extAtt: l3ExtAttGen("ext-att-05b", func(att *v1beta1.ExternalAttachment) { att.Spec.External = "external-02" }),
+			objects: withObjs(baseObjs,
+				staticExtAttGen("static-sibling")),
+			err: false,
+		},
+		{
+			name:    "static attach with l3 external",
+			extAtt:  staticExtAttGen("ext-att-06", func(att *v1beta1.ExternalAttachment) { att.Spec.External = "external-01" }),
+			objects: baseObjs,
+			err:     true,
+		},
+		{
+			name:   "multiple attaches same vlan",
+			extAtt: l3ExtAttGen("ext-att-07"),
+			objects: withObjs(baseObjs,
+				staticExtAttGen("vlan-clash", func(att *v1beta1.ExternalAttachment) { att.Spec.Static.VLAN = 100 })),
+			err: true,
+		},
+		{
+			name:   "multiple attaches different vlans",
+			extAtt: l3ExtAttGen("ext-att-08"),
+			objects: withObjs(baseObjs,
+				staticExtAttGen("no-clash")),
+			err: false,
+		},
+		{
+			name:    "switch outside the external's domain",
+			extAtt:  l3ExtAttGen("ext-att-08b"),
+			objects: withObjs(baseObjs, leafOnB),
+			err:     true,
+		},
+		{
+			name:    "switch in the external's domain",
+			extAtt:  l3ExtAttGen("ext-att-08c", func(att *v1beta1.ExternalAttachment) { att.Spec.External = "external-03" }),
+			objects: withObjs(baseObjs, leafOnB, extOnB),
+			err:     false,
+		},
+		{
+			name:    "static attach with both proxy and IP specified",
+			extAtt:  staticExtAttGen("ext-att-09", func(att *v1beta1.ExternalAttachment) { att.Spec.Static.IP = "10.45.0.1/24" }),
+			objects: baseObjs,
+			err:     true,
+		},
+		{
+			name:    "static attach with neither proxy nor IP specified",
+			extAtt:  staticExtAttGen("ext-att-09", func(att *v1beta1.ExternalAttachment) { att.Spec.Static.Proxy = false }),
+			objects: baseObjs,
+			err:     true,
+		},
+		{
+			name: "valid static attach without proxy",
+			extAtt: staticExtAttGen("ext-att-09", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.Static.IP = "10.45.0.1/24"
+				att.Spec.Static.Proxy = false
+			}),
+			objects: baseObjs,
+		},
+		{
+			name: "valid attachment with inline inbound ACL",
+			extAtt: l3ExtAttGen("ext-att-10", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.InboundACL = &v1beta1.ACLSpec{
+					Statements: []v1beta1.ACLStatement{
+						{
+							Seq:       10,
+							Action:    v1beta1.ACLActionPermit,
+							Protocol:  v1beta1.ACLProtocolIP,
+							SrcPrefix: v1beta1.ACLAny,
+							DstPrefix: v1beta1.ACLAny,
+						},
+					},
+				}
+			}),
+			objects: baseObjs,
+		},
+		{
+			name: "invalid inline inbound ACL",
+			extAtt: l3ExtAttGen("ext-att-11", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.InboundACL = &v1beta1.ACLSpec{
+					Statements: []v1beta1.ACLStatement{
+						{
+							Seq:       10,
+							Action:    v1beta1.ACLActionPermit,
+							Protocol:  "gre",
+							SrcPrefix: v1beta1.ACLAny,
+							DstPrefix: v1beta1.ACLAny,
+						},
+					},
+				}
+			}),
+			objects: baseObjs,
+			err:     true,
+		},
+		{
+			name: "valid BFD with default timers",
+			extAtt: l3ExtAttGen("ext-att-12", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.BFD = &v1beta1.ExternalAttachmentBFD{}
+			}),
+			objects: baseObjs,
+		},
+		{
+			name: "valid BFD with custom timers",
+			extAtt: l3ExtAttGen("ext-att-13", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.BFD = &v1beta1.ExternalAttachmentBFD{MinRX: 1000, MinTX: 500, Multiplier: 5, Passive: true}
+			}),
+			objects: baseObjs,
+		},
+		{
+			name: "BFD minRX below minimum",
+			extAtt: l3ExtAttGen("ext-att-14", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.BFD = &v1beta1.ExternalAttachmentBFD{MinRX: 5}
+			}),
+			objects: baseObjs,
+			err:     true,
+		},
+		{
+			name: "BFD minTX above maximum",
+			extAtt: l3ExtAttGen("ext-att-15", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.BFD = &v1beta1.ExternalAttachmentBFD{MinTX: 60001}
+			}),
+			objects: baseObjs,
+			err:     true,
+		},
+		{
+			name: "BFD multiplier below minimum",
+			extAtt: l3ExtAttGen("ext-att-16", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.BFD = &v1beta1.ExternalAttachmentBFD{Multiplier: 1}
+			}),
+			objects: baseObjs,
+			err:     true,
+		},
+		{
+			// disableBFD wins, but silently: the warning is the only thing that says so
+			name: "BFD with disableBFD set fabric-wide",
+			extAtt: l3ExtAttGen("ext-att-18", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.BFD = &v1beta1.ExternalAttachmentBFD{}
+			}),
+			objects: baseObjs,
+			fabric: &wiringapi.FabricSpec{
+				DisableBFD: true,
+				Domains:    map[string]wiringapi.FabricDomainSpec{wiringapi.DefaultFabricDomain: {}},
+			},
+			warns: true,
+		},
+		{
+			name: "BFD on static attachment",
+			extAtt: staticExtAttGen("ext-att-17", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.BFD = &v1beta1.ExternalAttachmentBFD{}
+			}),
+			objects: baseObjs,
+			err:     true,
+		},
+		{
+			name:    "BGP neighbor ASN outside every fabric",
+			extAtt:  l3ExtAttGen("ext-att-01"),
+			objects: append(slices.Clone(baseObjs), backendFabric),
+		},
+		{
+			name:    "BGP neighbor ASN in another fabric leaf range",
+			extAtt:  l3ExtAttGen("ext-att-01", withNeighborASN(64150)),
+			objects: append(slices.Clone(baseObjs), backendFabric),
+			fabric:  asnFabric,
+			warns:   true,
+		},
+		{
+			name:    "BGP neighbor ASN is another fabric gateway ASN",
+			extAtt:  l3ExtAttGen("ext-att-01", withNeighborASN(64200)),
+			objects: append(slices.Clone(baseObjs), backendFabric),
+			fabric:  asnFabric,
+			warns:   true,
+		},
+		{
+			name:    "BGP neighbor ASN in own fabric leaf range",
+			extAtt:  l3ExtAttGen("ext-att-01", withNeighborASN(65150)),
+			objects: append(slices.Clone(baseObjs), backendFabric),
+			fabric:  asnFabric,
+			err:     true,
+		},
+		{
+			name:    "BGP neighbor ASN is own fabric spine ASN",
+			extAtt:  l3ExtAttGen("ext-att-01", withNeighborASN(65100)),
+			objects: baseObjs,
+			fabric:  asnFabric,
+			err:     true,
+		},
+		{
+			name:    "BGP neighbor ASN is own fabric gateway ASN",
+			extAtt:  l3ExtAttGen("ext-att-01", withNeighborASN(65534)),
+			objects: baseObjs,
+			fabric:  asnFabric,
+			err:     true,
+		},
+		{
+			name: "BGP neighbor ASN in own non-default fabric leaf range",
+			extAtt: l3ExtAttGen("ext-att-01", withNeighborASN(64150), func(att *v1beta1.ExternalAttachment) {
+				att.Spec.Topology.Fabric = "backend"
+			}),
+			objects: append(slices.Clone(baseObjs), backendFabric),
+			fabric:  asnFabric,
+			err:     true,
+		},
+		{
+			name: "BGP neighbor ASN is the external localASN",
+			extAtt: l3ExtAttGen("ext-att-01", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.External = "ext-local"
+			}),
+			objects: withObjs(baseObjs, defaulted(&v1beta1.External{
+				Name: "ext-local", Namespace: kmetav1.NamespaceDefault,
+				Spec: v1beta1.ExternalSpec{IPv4Namespace: "default", LocalASN: 64000},
+			})),
+			err: true,
+		},
+		{
+			name: "BGP attachment without neighbor ASN on an external with localASN",
+			extAtt: l3ExtAttGen("ext-att-01", withNeighborASN(0), func(att *v1beta1.ExternalAttachment) {
+				att.Spec.External = "ext-local"
+			}),
+			objects: withObjs(baseObjs, defaulted(&v1beta1.External{
+				Name: "ext-local", Namespace: kmetav1.NamespaceDefault,
+				Spec: v1beta1.ExternalSpec{IPv4Namespace: "default", LocalASN: 64000},
+			})),
+			err: true,
+		},
+	}
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, v1beta1.AddToScheme(scheme))
+	require.NoError(t, wiringapi.AddToScheme(scheme))
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			fabric := fabricObj(wiringapi.DefaultFabric)
+			if test.fabric != nil {
+				fabric.Spec = *test.fabric
+			}
+			kube := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(withObjs(test.objects, fabric)...).
+				Build()
+			warns, err := test.extAtt.Validate(t.Context(), kube, &meta.FabricConfig{})
+			if test.err {
+				require.Error(t, err, "expected error but got none")
+			} else {
+				require.NoError(t, err, "unexpected error during validation")
+			}
+			if test.warns {
+				require.NotEmpty(t, warns, "expected a warning but got none")
+			} else {
+				require.Empty(t, warns, "unexpected warning during validation")
+			}
+		})
+	}
+}
+
+// without a client nothing that needs other objects is checked, the fabric neither
+func TestExternalAttachmentValidationWithoutClient(t *testing.T) {
+	_, err := l3ExtAttGen("ext-att-01").Validate(t.Context(), nil, &meta.FabricConfig{})
+	require.NoError(t, err)
+}
+
+func extAttWithACL(stmts ...v1beta1.ACLStatement) *v1beta1.ExternalAttachment {
+	return l3ExtAttGen("acl-test", func(att *v1beta1.ExternalAttachment) {
+		att.Spec.InboundACL = &v1beta1.ACLSpec{Statements: stmts}
+	})
+}
+
+func TestExternalAttachmentInboundACLValidation(t *testing.T) {
+	tests := []struct {
+		name   string
+		extAtt *v1beta1.ExternalAttachment
+		err    bool
+	}{
+		{
+			name: "valid TCP statement",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq:       10,
+				Action:    v1beta1.ACLActionPermit,
+				Protocol:  v1beta1.ACLProtocolTCP,
+				SrcPrefix: "10.0.0.0/8",
+				DstPrefix: v1beta1.ACLAny,
+			}),
+		},
+		{
+			name: "valid UDP statement with port range",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq:            10,
+				Action:         v1beta1.ACLActionDiscard,
+				Protocol:       v1beta1.ACLProtocolUDP,
+				SrcPrefix:      v1beta1.ACLAny,
+				DstPrefix:      "192.168.0.0/16",
+				PortRangeBegin: 1024,
+				PortRangeEnd:   65535,
+			}),
+		},
+		{
+			name: "valid ICMP statement with type and code",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq:       10,
+				Action:    v1beta1.ACLActionDeny,
+				Protocol:  v1beta1.ACLProtocolICMP,
+				SrcPrefix: v1beta1.ACLAny,
+				DstPrefix: v1beta1.ACLAny,
+				ICMPType:  new(uint8(8)),
+				ICMPCode:  new(uint8(0)),
+			}),
+		},
+		{
+			name: "valid IP statement with any prefixes",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq:       10,
+				Action:    v1beta1.ACLActionPermit,
+				Protocol:  v1beta1.ACLProtocolIP,
+				SrcPrefix: v1beta1.ACLAny,
+				DstPrefix: v1beta1.ACLAny,
+			}),
+		},
+		{
+			name: "valid TCP statement with TCP filters",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq:        10,
+				Action:     v1beta1.ACLActionPermit,
+				Protocol:   v1beta1.ACLProtocolTCP,
+				SrcPrefix:  v1beta1.ACLAny,
+				DstPrefix:  v1beta1.ACLAny,
+				TCPFilters: &v1beta1.ACLTCPFilters{Established: true},
+			}),
+		},
+		{
+			name: "invalid TCP statement with illegal TCP filter combo",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq:        10,
+				Action:     v1beta1.ACLActionPermit,
+				Protocol:   v1beta1.ACLProtocolTCP,
+				SrcPrefix:  v1beta1.ACLAny,
+				DstPrefix:  v1beta1.ACLAny,
+				TCPFilters: &v1beta1.ACLTCPFilters{Established: true, NotSyn: true},
+			}),
+			err: true,
+		},
+		{
+			name: "valid empty ACL",
+			extAtt: l3ExtAttGen("acl-empty", func(att *v1beta1.ExternalAttachment) {
+				att.Spec.InboundACL = &v1beta1.ACLSpec{}
+			}),
+		},
+		{
+			name: "valid multiple statements",
+			extAtt: extAttWithACL(
+				v1beta1.ACLStatement{Seq: 10, Action: v1beta1.ACLActionTransit, Protocol: v1beta1.ACLProtocolTCP, SrcPrefix: v1beta1.ACLAny, DstPrefix: v1beta1.ACLAny},
+				v1beta1.ACLStatement{Seq: 20, Action: v1beta1.ACLActionDeny, Protocol: v1beta1.ACLProtocolUDP, SrcPrefix: "10.0.0.0/8", DstPrefix: v1beta1.ACLAny},
+			),
+		},
+		{
+			name: "duplicate sequence numbers",
+			extAtt: extAttWithACL(
+				v1beta1.ACLStatement{Seq: 10, Action: v1beta1.ACLActionPermit, Protocol: v1beta1.ACLProtocolTCP, SrcPrefix: v1beta1.ACLAny, DstPrefix: v1beta1.ACLAny},
+				v1beta1.ACLStatement{Seq: 10, Action: v1beta1.ACLActionPermit, Protocol: v1beta1.ACLProtocolUDP, SrcPrefix: v1beta1.ACLAny, DstPrefix: v1beta1.ACLAny},
+			),
+			err: true,
+		},
+		{
+			name: "sequence number below minimum",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq:       9,
+				Action:    v1beta1.ACLActionPermit,
+				Protocol:  v1beta1.ACLProtocolTCP,
+				SrcPrefix: v1beta1.ACLAny,
+				DstPrefix: v1beta1.ACLAny,
+			}),
+			err: true,
+		},
+		{
+			name: "invalid action",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq: 10, Action: "drop", Protocol: v1beta1.ACLProtocolIP, SrcPrefix: "10.0.0.0/8", DstPrefix: v1beta1.ACLAny,
+			}),
+			err: true,
+		},
+		{
+			name: "invalid protocol",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq: 10, Action: v1beta1.ACLActionPermit, Protocol: "gre", SrcPrefix: "10.0.0.0/8", DstPrefix: v1beta1.ACLAny,
+			}),
+			err: true,
+		},
+		{
+			name: "invalid srcPrefix",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq: 10, Action: v1beta1.ACLActionPermit, Protocol: v1beta1.ACLProtocolTCP, SrcPrefix: "not-a-cidr", DstPrefix: v1beta1.ACLAny,
+			}),
+			err: true,
+		},
+		{
+			name: "invalid dstPrefix",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq: 10, Action: v1beta1.ACLActionPermit, Protocol: v1beta1.ACLProtocolTCP, SrcPrefix: "10.0.0.0/8", DstPrefix: "300.0.0.0/8",
+			}),
+			err: true,
+		},
+		{
+			name: "TCP filters on UDP protocol",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq:        10,
+				Action:     v1beta1.ACLActionPermit,
+				Protocol:   v1beta1.ACLProtocolUDP,
+				SrcPrefix:  "10.0.0.0/8",
+				DstPrefix:  v1beta1.ACLAny,
+				TCPFilters: &v1beta1.ACLTCPFilters{Syn: true},
+			}),
+			err: true,
+		},
+		{
+			name: "ICMP type on TCP protocol",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq: 10, Action: v1beta1.ACLActionPermit, Protocol: v1beta1.ACLProtocolTCP, SrcPrefix: "10.0.0.0/8", DstPrefix: v1beta1.ACLAny,
+				ICMPType: new(uint8(8)),
+			}),
+			err: true,
+		},
+		{
+			name: "ICMP code on UDP protocol",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq: 10, Action: v1beta1.ACLActionPermit, Protocol: v1beta1.ACLProtocolUDP, SrcPrefix: "10.0.0.0/8", DstPrefix: v1beta1.ACLAny,
+				ICMPCode: new(uint8(0)),
+			}),
+			err: true,
+		},
+		{
+			name: "port range on IP protocol",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq:            10,
+				Action:         v1beta1.ACLActionPermit,
+				Protocol:       v1beta1.ACLProtocolIP,
+				SrcPrefix:      "10.0.0.0/8",
+				DstPrefix:      v1beta1.ACLAny,
+				PortRangeBegin: 80,
+				PortRangeEnd:   443,
+			}),
+			err: true,
+		},
+		{
+			name: "port range begin greater than end",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq:            10,
+				Action:         v1beta1.ACLActionPermit,
+				Protocol:       v1beta1.ACLProtocolTCP,
+				SrcPrefix:      "10.0.0.0/8",
+				DstPrefix:      v1beta1.ACLAny,
+				PortRangeBegin: 443,
+				PortRangeEnd:   80,
+			}),
+			err: true,
+		},
+		{
+			name: "port range on ICMP protocol",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq:            10,
+				Action:         v1beta1.ACLActionPermit,
+				Protocol:       v1beta1.ACLProtocolICMP,
+				SrcPrefix:      "10.0.0.0/8",
+				DstPrefix:      v1beta1.ACLAny,
+				PortRangeBegin: 1,
+				PortRangeEnd:   100,
+			}),
+			err: true,
+		},
+		{
+			name: "empty srcPrefix",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq: 10, Action: v1beta1.ACLActionPermit, Protocol: v1beta1.ACLProtocolTCP, SrcPrefix: "", DstPrefix: v1beta1.ACLAny,
+			}),
+			err: true,
+		},
+		{
+			name: "empty dstPrefix",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq: 10, Action: v1beta1.ACLActionPermit, Protocol: v1beta1.ACLProtocolTCP, SrcPrefix: "10.0.0.0/8", DstPrefix: "",
+			}),
+			err: true,
+		},
+		{
+			name: "port range begin is zero",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq: 10, Action: v1beta1.ACLActionPermit, Protocol: v1beta1.ACLProtocolTCP, SrcPrefix: "10.0.0.0/8", DstPrefix: v1beta1.ACLAny,
+				PortRangeEnd: 80,
+			}),
+			err: true,
+		},
+		{
+			name: "contradictory TCP flags fin and notFin",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq:        10,
+				Action:     v1beta1.ACLActionPermit,
+				Protocol:   v1beta1.ACLProtocolTCP,
+				SrcPrefix:  "10.0.0.0/8",
+				DstPrefix:  v1beta1.ACLAny,
+				TCPFilters: &v1beta1.ACLTCPFilters{Fin: true, NotFin: true},
+			}),
+			err: true,
+		},
+		{
+			name: "contradictory TCP flags syn and notSyn",
+			extAtt: extAttWithACL(v1beta1.ACLStatement{
+				Seq:        10,
+				Action:     v1beta1.ACLActionPermit,
+				Protocol:   v1beta1.ACLProtocolTCP,
+				SrcPrefix:  "10.0.0.0/8",
+				DstPrefix:  v1beta1.ACLAny,
+				TCPFilters: &v1beta1.ACLTCPFilters{Syn: true, NotSyn: true},
+			}),
+			err: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			_, err := test.extAtt.Spec.InboundACL.Validate()
+			if test.err {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}

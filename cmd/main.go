@@ -1,0 +1,349 @@
+// Copyright 2023 Hedgehog
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package main
+
+import (
+	"context"
+	_ "embed"
+	"fmt"
+	"log/slog"
+	"os"
+	"strings"
+	"time"
+
+	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
+	// to ensure that exec-entrypoint and run can make use of them.
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
+
+	"github.com/go-logr/logr"
+	"github.com/lmittmann/tint"
+	"github.com/mattn/go-isatty"
+	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
+	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
+	fcintapi "go.githedgehog.com/fabric/api/fcint/v1alpha1"
+	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
+	gwintapi "go.githedgehog.com/fabric/api/gwint/v1alpha1"
+	"go.githedgehog.com/fabric/api/meta"
+	"go.githedgehog.com/fabric/api/valid"
+	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	"go.githedgehog.com/fabric/pkg/ctrl"
+	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
+	"go.githedgehog.com/fabric/pkg/manager/librarian"
+	"go.githedgehog.com/fabric/pkg/version"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/klog/v2"
+	kctrl "sigs.k8s.io/controller-runtime"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	// +kubebuilder:scaffold:imports
+)
+
+const (
+	DockerCredsPath = "/creds-docker/" + corev1.DockerConfigJsonKey
+
+	PodNamespaceEnv = "POD_NAMESPACE"
+	SANamespaceFile = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
+)
+
+// getCtrlNamespace returns the namespace the fabric controller runs in, from the downward API or the service account
+func getCtrlNamespace() (string, error) {
+	if ns := os.Getenv(PodNamespaceEnv); ns != "" {
+		return ns, nil
+	}
+
+	data, err := os.ReadFile(SANamespaceFile)
+	if err != nil {
+		return "", fmt.Errorf("%s isn't set and reading %s: %w", PodNamespaceEnv, SANamespaceFile, err)
+	}
+
+	ns := strings.TrimSpace(string(data))
+	if ns == "" {
+		return "", fmt.Errorf("%s isn't set and %s is empty", PodNamespaceEnv, SANamespaceFile) //nolint:err113
+	}
+
+	return ns, nil
+}
+
+func main() {
+	// TODO make it configurable
+	logLevel := slog.LevelDebug
+
+	logW := os.Stderr
+
+	slog.SetDefault(slog.New(tint.NewTextHandler(logW, &tint.Options{
+		Level:      logLevel,
+		TimeFormat: time.StampMilli,
+		NoColor:    !isatty.IsTerminal(logW.Fd()),
+	})))
+
+	kubeHandler := tint.NewTextHandler(logW, &tint.Options{
+		Level:      slog.LevelInfo,
+		TimeFormat: time.StampMilli,
+		NoColor:    !isatty.IsTerminal(logW.Fd()),
+	})
+	kctrl.SetLogger(logr.FromSlogHandler(kubeHandler))
+	klog.SetSlogLogger(slog.New(kubeHandler))
+
+	if err := run(kctrl.SetupSignalHandler()); err != nil {
+		slog.Error("Failed to run", "error", err)
+		os.Exit(1)
+	}
+}
+
+func run(ctx context.Context) error {
+	slog.Info("Starting fabric-ctrl", "version", version.Version)
+
+	cfgBasedir := "/etc/hedgehog/fabric"
+	cfg, err := meta.LoadFabricConfig(cfgBasedir, meta.ExtraValidators{
+		Peering:    valid.Peering,
+		Connection: valid.Connection,
+	})
+	if err != nil {
+		return fmt.Errorf("loading fabric config: %w", err)
+	}
+
+	ca, err := os.ReadFile("/etc/hedgehog/ca/ca.crt")
+	if err != nil {
+		return fmt.Errorf("reading CA: %w", err)
+	}
+
+	username, err := os.ReadFile("/creds/" + corev1.BasicAuthUsernameKey)
+	if err != nil {
+		return fmt.Errorf("reading registry username: %w", err)
+	}
+
+	password, err := os.ReadFile("/creds/" + corev1.BasicAuthPasswordKey)
+	if err != nil {
+		return fmt.Errorf("reading registry password: %w", err)
+	}
+
+	var gwValid *ctrl.GatewayValidator
+	if cfg.EnableGateway {
+		func() {
+			ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+			defer cancel()
+
+			gwValid, err = ctrl.NewGatewayValidator(ctx, cfg, ca, DockerCredsPath)
+		}()
+		if err != nil {
+			return fmt.Errorf("creating gateway validator: %w", err)
+		}
+		if gwValid == nil {
+			return fmt.Errorf("gateway validator is nil") //nolint:err113
+		}
+		defer func() { //nolint:contextcheck
+			closeCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+
+			gwValid.Close(closeCtx)
+		}()
+	}
+
+	scheme := runtime.NewScheme()
+	if err := clientgoscheme.AddToScheme(scheme); err != nil {
+		return fmt.Errorf("adding client-go scheme: %w", err)
+	}
+	if err := agentapi.AddToScheme(scheme); err != nil {
+		return fmt.Errorf("adding agentapi scheme: %w", err)
+	}
+	if err := wiringapi.AddToScheme(scheme); err != nil {
+		return fmt.Errorf("adding wiringapi scheme: %w", err)
+	}
+	if err := vpcapi.AddToScheme(scheme); err != nil {
+		return fmt.Errorf("adding vpcapi scheme: %w", err)
+	}
+	if err := dhcpapi.AddToScheme(scheme); err != nil {
+		return fmt.Errorf("adding dhcpapi scheme: %w", err)
+	}
+	if err := gwapi.AddToScheme(scheme); err != nil {
+		return fmt.Errorf("adding gatewayapi scheme: %w", err)
+	}
+	if err := gwintapi.AddToScheme(scheme); err != nil {
+		return fmt.Errorf("adding gwintapi scheme: %w", err)
+	}
+	if err := fcintapi.AddToScheme(scheme); err != nil {
+		return fmt.Errorf("adding fcintapi scheme: %w", err)
+	}
+	// +kubebuilder:scaffold:scheme
+
+	mgr, err := kctrl.NewManager(kctrl.GetConfigOrDie(), kctrl.Options{
+		Scheme: scheme,
+		Metrics: metricsserver.Options{
+			BindAddress: ":8080",
+		},
+		WebhookServer: webhook.NewServer(webhook.Options{
+			Port: 9443,
+		}),
+		HealthProbeBindAddress: ":8081",
+		LeaderElection:         true,
+		LeaderElectionID:       "fabric.githedgehog.com",
+		// LeaderElectionReleaseOnCancel defines if the leader should step down voluntarily
+		// when the Manager ends. This requires the binary to immediately end when the
+		// Manager is stopped, otherwise, this setting is unsafe. Setting this significantly
+		// speeds up voluntary leader transitions as the new leader don't have to wait
+		// LeaseDuration time first.
+		//
+		// In the default scaffold provided, the program ends immediately after
+		// the manager stops, so would be fine to enable this option. However,
+		// if you are doing or is intended to do any operation such as perform cleanups
+		// after the manager stops then its usage might be unsafe.
+		LeaderElectionReleaseOnCancel: true,
+
+		Client: kclient.Options{
+			Cache: &kclient.CacheOptions{
+				DisableFor: []kclient.Object{
+					&agentapi.Catalog{},
+				},
+				Unstructured: false,
+			},
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("creating manager: %w", err)
+	}
+
+	ctrlNamespace, err := getCtrlNamespace()
+	if err != nil {
+		return fmt.Errorf("getting fabric controller namespace: %w", err)
+	}
+
+	self, err := ctrl.SelfUsername(ctx, mgr.GetClient())
+	if err != nil {
+		return fmt.Errorf("getting own username: %w", err)
+	}
+	slog.Info("Fabric controller identity", "namespace", ctrlNamespace, "username", self)
+
+	lock := ctrl.NewLock(self)
+	if err := ctrl.SetupFabricControllerReconcilerWith(mgr, ctrlNamespace, lock); err != nil {
+		return fmt.Errorf("setting up fabric controller controller: %w", err)
+	}
+
+	libMngr := librarian.NewManager(cfg)
+
+	profiles := switchprofile.NewDefaultSwitchProfiles()
+	if err := profiles.RegisterAll(ctx, mgr.GetClient(), cfg); err != nil {
+		return fmt.Errorf("registering default switch profiles: %w", err)
+	}
+
+	if err = ctrl.SetupAgentReconsilerWith(mgr, cfg, libMngr, string(ca), string(username), string(password), lock); err != nil {
+		return fmt.Errorf("setting up agent controller: %w", err)
+	}
+	if err = ctrl.SetupVPCReconcilerWith(mgr, cfg, libMngr, lock); err != nil {
+		return fmt.Errorf("setting up vpc controller: %w", err)
+	}
+	if err = ctrl.SetupConnectionReconcilerWith(mgr, libMngr, lock); err != nil {
+		return fmt.Errorf("setting up connection controller: %w", err)
+	}
+	if err = ctrl.SetupSwitchProfileReconcilerWith(mgr, cfg, profiles, lock); err != nil {
+		return fmt.Errorf("setting up switch profile controller: %w", err)
+	}
+	if err := ctrl.SetupSwitchBootReconcilerWith(mgr, lock); err != nil {
+		return fmt.Errorf("setting up switch boot controller: %w", err)
+	}
+	if err = ctrl.SetupFabricControllerInitializerWith(mgr, ctrlNamespace, cfg, profiles); err != nil {
+		return fmt.Errorf("setting up fabric controller initializer: %w", err)
+	}
+	if err := ctrl.SetupGatewayReconcilerWith(mgr, cfg, lock); err != nil {
+		return fmt.Errorf("setting up gateway controller: %w", err)
+	}
+	if err := ctrl.SetupVPCInfoReconcilerWith(mgr, libMngr, lock); err != nil {
+		return fmt.Errorf("setting up vpc info controller: %w", err)
+	}
+	if cfg.GatewayAPISync {
+		if err := ctrl.SetupGwVPCSyncReconcilerWith(mgr, cfg, libMngr, lock); err != nil {
+			return fmt.Errorf("setting up gateway vpc sync controller: %w", err)
+		}
+		if err := ctrl.SetupGwExternalSyncReconcilerWith(mgr, cfg, libMngr, lock); err != nil {
+			return fmt.Errorf("setting up gateway external sync controller: %w", err)
+		}
+	}
+
+	if err = ctrl.SetupConnectionWebhookWith(mgr, cfg, lock); err != nil {
+		return fmt.Errorf("setting up connection webhook: %w", err)
+	}
+	if err = ctrl.SetupServerWebhookWith(mgr, cfg, lock); err != nil {
+		return fmt.Errorf("setting up server webhook: %w", err)
+	}
+	if err = ctrl.SetupSwitchWebhookWith(mgr, cfg, lock); err != nil {
+		return fmt.Errorf("setting up switch webhook: %w", err)
+	}
+	if err = ctrl.SetupSwitchGroupWebhookWith(mgr, cfg, lock); err != nil {
+		return fmt.Errorf("setting up switch group webhook: %w", err)
+	}
+	if err = ctrl.SetupVPCWebhookWith(mgr, cfg, lock); err != nil {
+		return fmt.Errorf("setting up vpc webhook: %w", err)
+	}
+	if err = ctrl.SetupVPCAttachmentWebhookWith(mgr, cfg, lock); err != nil {
+		return fmt.Errorf("setting up vpc attachment webhook: %w", err)
+	}
+	if err = ctrl.SetupVPCPeeringWebhookWith(mgr, cfg, lock); err != nil {
+		return fmt.Errorf("setting up vpc peering webhook: %w", err)
+	}
+	if err = ctrl.SetupIPv4NamespaceWebhookWith(mgr, cfg, lock); err != nil {
+		return fmt.Errorf("setting up ipv4 namespace webhook: %w", err)
+	}
+	if err = ctrl.SetupVLANNamespaceWebhookWith(mgr, cfg, lock); err != nil {
+		return fmt.Errorf("setting up vlan namespace webhook: %w", err)
+	}
+	if err = ctrl.SetupFabricWebhookWith(mgr, cfg, lock); err != nil {
+		return fmt.Errorf("setting up fabric webhook: %w", err)
+	}
+	if err = ctrl.SetupExternalWebhookWith(mgr, cfg, lock); err != nil {
+		return fmt.Errorf("setting up external webhook: %w", err)
+	}
+	if err = ctrl.SetupExternalAttachmentWebhookWith(mgr, cfg, lock); err != nil {
+		return fmt.Errorf("setting up external attachment webhook: %w", err)
+	}
+	if err = ctrl.SetupExternalPeeringWebhookWith(mgr, cfg, lock); err != nil {
+		return fmt.Errorf("setting up external peering webhook: %w", err)
+	}
+	if err = ctrl.SetupSwitchProfileWebhookWith(mgr, cfg, profiles, lock); err != nil {
+		return fmt.Errorf("setting up switch profile webhook: %w", err)
+	}
+	if err = ctrl.SetupGatewayWebhookWith(mgr, cfg, gwValid, lock); err != nil {
+		return fmt.Errorf("setting up gateway webhook: %w", err)
+	}
+	if err := ctrl.SetupGatewayGroupWebhookWith(mgr, cfg, lock); err != nil {
+		return fmt.Errorf("setting up gateway group webhook: %w", err)
+	}
+	if err := ctrl.SetupGatewayPeeringWebhookWith(mgr, cfg, gwValid, lock); err != nil {
+		return fmt.Errorf("setting up gateway peering webhook: %w", err)
+	}
+	if err := ctrl.SetupVPCInfoWebhookWith(mgr, cfg, lock); err != nil {
+		return fmt.Errorf("setting up vpc info webhook: %w", err)
+	}
+
+	// +kubebuilder:scaffold:builder
+
+	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+		return fmt.Errorf("setting up health check: %w", err)
+	}
+	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
+		return fmt.Errorf("setting up ready check: %w", err)
+	}
+
+	slog.Info("Starting manager")
+
+	if err := mgr.Start(ctx); err != nil {
+		return fmt.Errorf("running manager: %w", err)
+	}
+
+	return nil
+}

@@ -1,0 +1,542 @@
+// Copyright 2026 Hedgehog
+// SPDX-License-Identifier: Apache-2.0
+
+package ctrl
+
+import (
+	"context"
+	"testing"
+
+	"github.com/stretchr/testify/require"
+	fcintapi "go.githedgehog.com/fabric/api/fcint/v1alpha1"
+	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
+	"go.githedgehog.com/fabric/api/meta"
+	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	kmeta "k8s.io/apimachinery/pkg/api/meta"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	ktypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/uuid"
+	kctrl "sigs.k8s.io/controller-runtime"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
+)
+
+func TestWriteStatusConflict(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, fcintapi.AddToScheme(scheme))
+
+	key := ktypes.NamespacedName{Namespace: "fab", Name: fcintapi.FabricControllerName}
+	stored := &fcintapi.FabricController{Namespace: key.Namespace, Name: key.Name}
+
+	conflicts := 0
+	kube := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(stored).
+		WithStatusSubresource(&fcintapi.FabricController{}).
+		WithInterceptorFuncs(interceptor.Funcs{
+			SubResourceUpdate: func(ctx context.Context, c kclient.Client, sub string, obj kclient.Object, opts ...kclient.SubResourceUpdateOption) error {
+				// as if someone changed the spec after the status writer read the object
+				if conflicts < 2 {
+					conflicts++
+
+					return kapierrors.NewConflict(schema.GroupResource{Group: "fcint.githedgehog.com", Resource: "fabriccontrollers"}, obj.GetName(), nil)
+				}
+
+				return c.SubResource(sub).Update(ctx, obj, opts...)
+			},
+		}).
+		Build()
+
+	i := &FabricControllerInitializer{Client: kube, apiReader: kube, key: key}
+
+	fc := &fcintapi.FabricController{}
+	require.NoError(t, kube.Get(t.Context(), key, fc))
+	fc.Status.InitializedVersion = "v1.2.3"
+	setReady(fc, fc.Generation, kmetav1.ConditionTrue, fcintapi.ReasonInitialized, "operational")
+
+	require.NoError(t, i.writeStatus(t.Context(), fc))
+	require.Equal(t, 2, conflicts)
+
+	got := &fcintapi.FabricController{}
+	require.NoError(t, kube.Get(t.Context(), key, got))
+	require.Equal(t, "v1.2.3", got.Status.InitializedVersion, "the status is written again after re-reading")
+	require.True(t, kmeta.IsStatusConditionTrue(got.Status.Conditions, fcintapi.ConditionReady))
+}
+
+func reconcileInit(t *testing.T, i *FabricControllerInitializer) (kctrl.Result, error) {
+	t.Helper()
+
+	return i.Reconcile(t.Context(), kctrl.Request{NamespacedName: i.key})
+}
+
+// createLikeAPIServer sets the UID and generation on create, as the API server does but the fake client doesn't
+func createLikeAPIServer(funcs interceptor.Funcs) interceptor.Funcs {
+	funcs.Create = func(ctx context.Context, c kclient.WithWatch, obj kclient.Object, opts ...kclient.CreateOption) error {
+		obj.SetUID(uuid.NewUUID())
+		obj.SetGeneration(1)
+
+		return c.Create(ctx, obj, opts...)
+	}
+
+	return funcs
+}
+
+func initScheme(t *testing.T) *runtime.Scheme {
+	t.Helper()
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, fcintapi.AddToScheme(scheme))
+	require.NoError(t, wiringapi.AddToScheme(scheme))
+	require.NoError(t, vpcapi.AddToScheme(scheme))
+	require.NoError(t, gwapi.AddToScheme(scheme))
+
+	return scheme
+}
+
+func initFabricConfig() *meta.FabricConfig {
+	return &meta.FabricConfig{
+		AllowExtraSwitchProfiles: true,
+	}
+}
+
+func initFabricSpec() wiringapi.FabricSpec {
+	return wiringapi.FabricSpec{
+		LeafASNStart: 65101,
+		LeafASNEnd:   65533,
+		DisableBFD:   true,
+		Domains:      map[string]wiringapi.FabricDomainSpec{wiringapi.DefaultFabricDomain: {SpineASN: 65100, GatewayASN: 65534}},
+	}
+}
+
+func TestFabricControllerInitializer(t *testing.T) {
+	for _, ver := range []string{develVersion, "v1.2.3"} {
+		t.Run(ver, func(t *testing.T) {
+			testFabricControllerInitializer(t, ver)
+		})
+	}
+}
+
+func testFabricControllerInitializer(t *testing.T, ver string) {
+	t.Helper()
+
+	const ns = "fab"
+
+	cfg := initFabricConfig()
+
+	// devel builds never count as initialized
+	reinit := ver == develVersion
+
+	// objects without a spec are invalid, so they fail the initialization: it still does all its steps
+	for _, tt := range []struct {
+		name        string
+		objs        []kclient.Object
+		initializes bool
+		invalid     bool
+	}{
+		{
+			name:        "fresh deployment",
+			initializes: true,
+		},
+		{
+			name: "invalid stored objects",
+			objs: []kclient.Object{
+				&wiringapi.Switch{Namespace: kmetav1.NamespaceDefault, Name: "leaf-01"},
+			},
+			initializes: true,
+			invalid:     true,
+		},
+		{
+			name: "already initialized",
+			objs: []kclient.Object{
+				readyFabricController(ns, ver, 1),
+				&wiringapi.Switch{Namespace: kmetav1.NamespaceDefault, Name: "leaf-01"},
+			},
+			initializes: reinit,
+			invalid:     true,
+		},
+		{
+			name: "initialized for an older spec",
+			objs: []kclient.Object{
+				readyFabricController(ns, ver, 2),
+				&wiringapi.Switch{Namespace: kmetav1.NamespaceDefault, Name: "leaf-01"},
+			},
+			initializes: true,
+			invalid:     true,
+		},
+		{
+			name: "initialized by another version",
+			objs: []kclient.Object{
+				readyFabricController(ns, "v0.0.1", 1),
+				&wiringapi.Switch{Namespace: kmetav1.NamespaceDefault, Name: "leaf-01"},
+			},
+			initializes: true,
+			invalid:     true,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			kube := fake.NewClientBuilder().
+				WithScheme(initScheme(t)).
+				WithObjects(tt.objs...).
+				WithStatusSubresource(&fcintapi.FabricController{}).
+				WithInterceptorFuncs(createLikeAPIServer(interceptor.Funcs{})).
+				Build()
+
+			profiles := switchprofile.NewDefaultSwitchProfiles()
+			require.NoError(t, profiles.RegisterAll(t.Context(), kube, cfg))
+
+			i := &FabricControllerInitializer{
+				Client:    kube,
+				apiReader: kube,
+				key:       ktypes.NamespacedName{Namespace: ns, Name: fcintapi.FabricControllerName},
+				version:   ver,
+				cfg:       cfg,
+				profiles:  profiles,
+			}
+
+			res, err := reconcileInit(t, i)
+			require.NoError(t, err)
+
+			failed := tt.initializes && tt.invalid
+			if failed {
+				require.Equal(t, kctrl.Result{}, res)
+			} else {
+				require.Equal(t, kctrl.Result{RequeueAfter: initCheckInterval}, res)
+			}
+
+			fc := &fcintapi.FabricController{}
+			require.NoError(t, kube.Get(t.Context(), i.key, fc))
+			require.Equal(t, !failed, fc.IsReady(ver))
+			require.Equal(t, failed, kmeta.IsStatusConditionPresentAndEqual(fc.Status.Conditions, fcintapi.ConditionReady, kmetav1.ConditionFalse))
+			require.Equal(t, failed, len(fc.Status.Problems) > 0)
+			require.Equal(t, ver, fc.Status.Version)
+			require.Empty(t, fc.Status.Error)
+
+			require.Equal(t, tt.initializes, !fc.Status.Refresh.StartedAt.IsZero(), "refreshed")
+
+			// built-in switch profiles are enforced on every start, an already initialized version included
+			sps := &wiringapi.SwitchProfileList{}
+			require.NoError(t, kube.List(t.Context(), sps))
+			require.NotEmpty(t, sps.Items)
+			require.Len(t, sps.Items, len(profiles.List()))
+
+			if failed {
+				require.Equal(t, fcintapi.ReasonFailed, kmeta.FindStatusCondition(fc.Status.Conditions, fcintapi.ConditionReady).Reason)
+
+				return
+			}
+
+			// reconciling an initialized one again is a no-op
+			startedAt := fc.Status.Refresh.StartedAt
+			_, err = reconcileInit(t, i)
+			require.NoError(t, err)
+			require.NoError(t, kube.Get(t.Context(), i.key, fc))
+			require.Equal(t, startedAt, fc.Status.Refresh.StartedAt)
+		})
+	}
+}
+
+// readyFabricController is initialized for the generation 1, gen is the current one
+func readyFabricController(ns, ver string, gen int64) *fcintapi.FabricController {
+	fc := &fcintapi.FabricController{
+		Namespace: ns, Name: fcintapi.FabricControllerName, Generation: gen,
+		Status: fcintapi.FabricControllerStatus{InitializedVersion: ver},
+	}
+	setReady(fc, 1, kmetav1.ConditionTrue, fcintapi.ReasonInitialized, "operational")
+
+	return fc
+}
+
+func TestFabricControllerInitializerLifecycle(t *testing.T) {
+	const ver = "v1.2.3"
+
+	// refreshes are counted by the Switch lists, only the initialization lists them
+	lists := 0
+	failVPCs := false
+	kube := fake.NewClientBuilder().
+		WithScheme(initScheme(t)).
+		WithObjects(&wiringapi.Fabric{
+			Namespace: kmetav1.NamespaceDefault, Name: wiringapi.DefaultFabric,
+			Spec: initFabricSpec(),
+		}).
+		WithStatusSubresource(&fcintapi.FabricController{}).
+		WithInterceptorFuncs(createLikeAPIServer(interceptor.Funcs{
+			List: func(ctx context.Context, c kclient.WithWatch, list kclient.ObjectList, opts ...kclient.ListOption) error {
+				switch list.(type) {
+				case *wiringapi.SwitchList:
+					lists++
+				case *vpcapi.VPCList:
+					if failVPCs {
+						return kapierrors.NewServiceUnavailable("etcd is down")
+					}
+				}
+
+				return c.List(ctx, list, opts...)
+			},
+		})).
+		Build()
+
+	newInitializer := func() *FabricControllerInitializer {
+		cfg := initFabricConfig()
+		profiles := switchprofile.NewDefaultSwitchProfiles()
+		require.NoError(t, profiles.RegisterAll(t.Context(), kube, cfg))
+
+		return &FabricControllerInitializer{
+			Client:    kube,
+			apiReader: kube,
+			key:       ktypes.NamespacedName{Namespace: "fab", Name: fcintapi.FabricControllerName},
+			version:   ver,
+			cfg:       cfg,
+			profiles:  profiles,
+		}
+	}
+	i := newInitializer()
+
+	get := func() *fcintapi.FabricController {
+		fc := &fcintapi.FabricController{}
+		require.NoError(t, kube.Get(t.Context(), i.key, fc))
+
+		return fc
+	}
+	// the fake client doesn't bump the generation on spec changes
+	setMaintenance := func(maintenance bool) {
+		fc := get()
+		fc.Spec.Maintenance = maintenance
+		fc.Generation++
+		require.NoError(t, kube.Update(t.Context(), fc))
+	}
+	requireState := func(reason, msg string) *fcintapi.FabricController {
+		fc := get()
+		ready := kmeta.FindStatusCondition(fc.Status.Conditions, fcintapi.ConditionReady)
+		require.NotNil(t, ready)
+		require.Equal(t, reason, ready.Reason)
+		require.Equal(t, msg, ready.Message)
+		require.Equal(t, fc.Generation, ready.ObservedGeneration)
+
+		return fc
+	}
+
+	t.Run("new deployment", func(t *testing.T) {
+		_, err := reconcileInit(t, i)
+		require.NoError(t, err)
+		require.True(t, requireState(fcintapi.ReasonInitialized, "operational").IsReady(ver))
+		require.Equal(t, 1, lists)
+	})
+
+	t.Run("maintenance pauses it", func(t *testing.T) {
+		setMaintenance(true)
+		res, err := reconcileInit(t, i)
+		require.NoError(t, err)
+		require.Equal(t, kctrl.Result{}, res)
+		require.False(t, requireState(fcintapi.ReasonMaintenance, "nothing is deployed").IsReady(ver))
+		require.Equal(t, 1, lists, "no refresh in maintenance")
+	})
+
+	t.Run("leaving maintenance initializes again", func(t *testing.T) {
+		setMaintenance(false)
+		_, err := reconcileInit(t, i)
+		require.NoError(t, err)
+		require.True(t, requireState(fcintapi.ReasonInitialized, "operational").IsReady(ver))
+		require.Equal(t, 2, lists)
+	})
+
+	t.Run("restart of the same version", func(t *testing.T) {
+		i = newInitializer()
+		_, err := reconcileInit(t, i)
+		require.NoError(t, err)
+		require.True(t, get().IsReady(ver))
+		require.Equal(t, 2, lists, "no refresh on a restart")
+		require.True(t, i.enforced, "built-in switch profiles are enforced on every start")
+	})
+
+	t.Run("retried after an error", func(t *testing.T) {
+		require.NoError(t, kube.Delete(t.Context(), get()))
+
+		failVPCs = true
+		_, err := reconcileInit(t, i)
+		require.ErrorContains(t, err, "etcd is down")
+		fc := requireState(fcintapi.ReasonInitializing, "retrying, see status.error")
+		require.Contains(t, fc.Status.Error, "etcd is down")
+		require.False(t, fc.IsReady(ver))
+
+		failVPCs = false
+		_, err = reconcileInit(t, i)
+		require.NoError(t, err)
+		fc = requireState(fcintapi.ReasonInitialized, "operational")
+		require.Empty(t, fc.Status.Error)
+		require.True(t, fc.IsReady(ver))
+	})
+}
+
+// the reconcile queued by creating the FabricController may read it from a cache without the status written since
+func TestFabricControllerInitializerStaleCache(t *testing.T) {
+	const ver = "v1.2.3"
+
+	// refreshes are counted by the Switch lists, with a fabric only the refresh lists them
+	lists := 0
+	kube := fake.NewClientBuilder().
+		WithScheme(initScheme(t)).
+		WithObjects(&wiringapi.Fabric{
+			Namespace: kmetav1.NamespaceDefault, Name: wiringapi.DefaultFabric,
+			Spec: initFabricSpec(),
+		}).
+		WithStatusSubresource(&fcintapi.FabricController{}).
+		WithInterceptorFuncs(createLikeAPIServer(interceptor.Funcs{
+			List: func(ctx context.Context, c kclient.WithWatch, list kclient.ObjectList, opts ...kclient.ListOption) error {
+				if _, ok := list.(*wiringapi.SwitchList); ok {
+					lists++
+				}
+
+				return c.List(ctx, list, opts...)
+			},
+		})).
+		Build()
+	cached := interceptor.NewClient(kube, interceptor.Funcs{
+		Get: func(ctx context.Context, c kclient.WithWatch, key kclient.ObjectKey, obj kclient.Object, opts ...kclient.GetOption) error {
+			if err := c.Get(ctx, key, obj, opts...); err != nil {
+				return err //nolint:wrapcheck
+			}
+			if fc, ok := obj.(*fcintapi.FabricController); ok {
+				fc.Status = fcintapi.FabricControllerStatus{}
+			}
+
+			return nil
+		},
+	})
+
+	i := &FabricControllerInitializer{
+		Client:    cached,
+		apiReader: kube,
+		key:       ktypes.NamespacedName{Namespace: "fab", Name: fcintapi.FabricControllerName},
+		version:   ver,
+		cfg:       initFabricConfig(),
+		profiles:  switchprofile.NewDefaultSwitchProfiles(),
+	}
+
+	for range 2 {
+		_, err := reconcileInit(t, i)
+		require.NoError(t, err)
+	}
+	require.Equal(t, 1, lists, "initialized once")
+
+	fc := &fcintapi.FabricController{}
+	require.NoError(t, kube.Get(t.Context(), i.key, fc))
+	require.True(t, fc.IsReady(ver))
+}
+
+// turning maintenance on stops a running initialization before its next writes
+func TestFabricControllerInitializerStopsForMaintenance(t *testing.T) {
+	const ver = "v1.2.3"
+
+	key := ktypes.NamespacedName{Namespace: "fab", Name: fcintapi.FabricControllerName}
+	vpcLists := 0
+	kube := fake.NewClientBuilder().
+		WithScheme(initScheme(t)).
+		WithObjects(
+			&fcintapi.FabricController{Namespace: key.Namespace, Name: key.Name, Generation: 1},
+			&wiringapi.Fabric{
+				Namespace: kmetav1.NamespaceDefault, Name: wiringapi.DefaultFabric,
+				Spec: initFabricSpec(),
+			},
+		).
+		WithStatusSubresource(&fcintapi.FabricController{}).
+		WithInterceptorFuncs(interceptor.Funcs{
+			List: func(ctx context.Context, c kclient.WithWatch, list kclient.ObjectList, opts ...kclient.ListOption) error {
+				switch list.(type) {
+				case *wiringapi.SwitchList:
+					// as if turned on while the refresh got to the switches
+					fc := &fcintapi.FabricController{}
+					require.NoError(t, c.Get(ctx, key, fc))
+					if !fc.Spec.Maintenance {
+						fc.Spec.Maintenance = true
+						fc.Generation++
+						require.NoError(t, c.Update(ctx, fc))
+					}
+				case *vpcapi.VPCList:
+					vpcLists++
+				}
+
+				return c.List(ctx, list, opts...)
+			},
+		}).
+		Build()
+
+	i := &FabricControllerInitializer{
+		Client:    kube,
+		apiReader: kube,
+		key:       key,
+		version:   ver,
+		cfg:       initFabricConfig(),
+		profiles:  switchprofile.NewDefaultSwitchProfiles(),
+	}
+
+	res, err := reconcileInit(t, i)
+	require.NoError(t, err, "not retried with backoff, the spec change reconciles again")
+	require.Equal(t, kctrl.Result{}, res)
+	require.Zero(t, vpcLists, "kinds after the switches aren't refreshed")
+
+	fc := &fcintapi.FabricController{}
+	require.NoError(t, kube.Get(t.Context(), key, fc))
+	require.Empty(t, fc.Status.Error)
+	require.True(t, fc.Status.Refresh.FinishedAt.IsZero())
+	require.False(t, fc.IsReady(ver))
+
+	_, err = reconcileInit(t, i)
+	require.NoError(t, err)
+	require.NoError(t, kube.Get(t.Context(), key, fc))
+	require.Equal(t, fcintapi.ReasonMaintenance, kmeta.FindStatusCondition(fc.Status.Conditions, fcintapi.ConditionReady).Reason)
+}
+
+// a spec change while initializing, e.g. maintenance turned on and off again, needs another initialization
+func TestFabricControllerInitializerSpecChange(t *testing.T) {
+	const ver = "v1.2.3"
+
+	key := ktypes.NamespacedName{Namespace: "fab", Name: fcintapi.FabricControllerName}
+	changed := false
+	kube := fake.NewClientBuilder().
+		WithScheme(initScheme(t)).
+		WithObjects(&fcintapi.FabricController{Namespace: key.Namespace, Name: key.Name, Generation: 1}).
+		WithStatusSubresource(&fcintapi.FabricController{}).
+		WithInterceptorFuncs(interceptor.Funcs{
+			List: func(ctx context.Context, c kclient.WithWatch, list kclient.ObjectList, opts ...kclient.ListOption) error {
+				if _, ok := list.(*wiringapi.SwitchList); ok && !changed {
+					changed = true
+
+					fc := &fcintapi.FabricController{}
+					require.NoError(t, c.Get(ctx, key, fc))
+					fc.Generation++
+					require.NoError(t, c.Update(ctx, fc))
+				}
+
+				return c.List(ctx, list, opts...)
+			},
+		}).
+		Build()
+
+	i := &FabricControllerInitializer{
+		Client:    kube,
+		apiReader: kube,
+		key:       key,
+		version:   ver,
+		cfg:       initFabricConfig(),
+		profiles:  switchprofile.NewDefaultSwitchProfiles(),
+	}
+
+	_, err := reconcileInit(t, i)
+	require.NoError(t, err)
+	require.True(t, changed)
+
+	fc := &fcintapi.FabricController{}
+	require.NoError(t, kube.Get(t.Context(), key, fc))
+	require.False(t, fc.IsReady(ver), "initialized for the spec it started with")
+
+	_, err = reconcileInit(t, i)
+	require.NoError(t, err)
+	require.NoError(t, kube.Get(t.Context(), key, fc))
+	require.True(t, fc.IsReady(ver))
+}

@@ -1,0 +1,309 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: manager-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  - secrets
+  - serviceaccounts
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - agent.githedgehog.com
+  resources:
+  - agents
+  - agents/status
+  - catalogs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - agent.githedgehog.com
+  resources:
+  - agents/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - apps
+  resources:
+  - daemonsets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - authentication.k8s.io
+  resources:
+  - selfsubjectreviews
+  verbs:
+  - create
+- apiGroups:
+  - dhcp.githedgehog.com
+  resources:
+  - dhcpsubnets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - dhcp.githedgehog.com
+  resources:
+  - dhcpsubnets/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - dhcp.githedgehog.com
+  resources:
+  - dhcpsubnets/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - fcint.githedgehog.com
+  resources:
+  - fabriccontrollers
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - fcint.githedgehog.com
+  resources:
+  - fabriccontrollers/status
+  - switchboots/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - fcint.githedgehog.com
+  resources:
+  - switchboots
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - gateway.githedgehog.com
+  resources:
+  - gatewaygroups
+  - gatewaypeerings
+  verbs:
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - gateway.githedgehog.com
+  resources:
+  - gateways
+  - vpcinfos
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - gateway.githedgehog.com
+  resources:
+  - gateways/status
+  - vpcinfos/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - gateway.githedgehog.com
+  resources:
+  - vpcinfos/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - gwint.githedgehog.com
+  resources:
+  - gatewayagents
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - gwint.githedgehog.com
+  resources:
+  - gatewayagents/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - gwint.githedgehog.com
+  resources:
+  - gatewayagents/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - helm.cattle.io
+  resources:
+  - helmcharts
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - rolebindings
+  - roles
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - vpc.githedgehog.com
+  resources:
+  - externalattachments
+  - externalpeerings
+  - externals
+  - ipv4namespaces
+  - vpcattachments
+  - vpcpeerings
+  verbs:
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - vpc.githedgehog.com
+  resources:
+  - externalattachments/status
+  - externalpeerings/status
+  - externals/status
+  - ipv4namespaces/status
+  - vpcattachments/status
+  - vpcpeerings/status
+  - vpcs/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - vpc.githedgehog.com
+  resources:
+  - externals/finalizers
+  - vpcs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - vpc.githedgehog.com
+  resources:
+  - vpcs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - wiring.githedgehog.com
+  resources:
+  - connections
+  verbs:
+  - delete
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - wiring.githedgehog.com
+  resources:
+  - connections/status
+  - servers/status
+  - switches/status
+  - switchgroups/status
+  - switchprofiles/status
+  - vlannamespaces/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - wiring.githedgehog.com
+  resources:
+  - fabrics
+  verbs:
+  - create
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - wiring.githedgehog.com
+  resources:
+  - servers
+  - switches
+  - switchgroups
+  - vlannamespaces
+  verbs:
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - wiring.githedgehog.com
+  resources:
+  - switchprofiles
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch

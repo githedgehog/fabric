@@ -1,0 +1,4168 @@
+# API Reference
+
+## Packages
+- [agent.githedgehog.com/v1beta1](#agentgithedgehogcomv1beta1)
+- [dhcp.githedgehog.com/v1beta1](#dhcpgithedgehogcomv1beta1)
+- [fcint.githedgehog.com/v1alpha1](#fcintgithedgehogcomv1alpha1)
+- [gateway.githedgehog.com/v1alpha1](#gatewaygithedgehogcomv1alpha1)
+- [gwint.githedgehog.com/v1alpha1](#gwintgithedgehogcomv1alpha1)
+- [vpc.githedgehog.com/v1beta1](#vpcgithedgehogcomv1beta1)
+- [wiring.githedgehog.com/v1beta1](#wiringgithedgehogcomv1beta1)
+
+
+## agent.githedgehog.com/v1beta1
+
+Package v1beta1 contains API Schema definitions for the agent v1beta1 API group. This is the internal API group
+for the switch and control node agents. Not intended to be modified by the user.
+
+### Resource Types
+- [Agent](#agent)
+
+
+
+#### AdminStatus
+
+_Underlying type:_ _string_
+
+
+
+
+
+_Appears in:_
+- [SwitchStateInterface](#switchstateinterface)
+
+| Field | Description |
+| --- | --- |
+| `` |  |
+| `up` |  |
+| `down` |  |
+| `testing` |  |
+
+
+#### Agent
+
+
+
+Agent is an internal API object used by the controller to pass all relevant information to the agent running on a
+specific switch in order to fully configure it and manage its lifecycle. It is not intended to be used directly by
+users. Spec of the object isn't user-editable, it is managed by the controller. Status of the object is updated by
+the agent and is used by the controller to track the state of the agent and the switch it is running on. Name of the
+Agent object is the same as the name of the switch it is running on and it's created in the same namespace as the
+Switch object.
+
+
+
+
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `apiVersion` _string_ | `agent.githedgehog.com/v1beta1` | | |
+| `kind` _string_ | `Agent` | | |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `status` _[AgentStatus](#agentstatus)_ | Status is the observed state of the Agent |  |  |
+
+
+#### AgentStatus
+
+
+
+AgentStatus defines the observed state of the agent running on a specific switch and includes information about the
+switch itself as well as the state of the agent and applied configuration.
+
+
+
+_Appears in:_
+- [Agent](#agent)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `version` _string_ | Current running agent version |  |  |
+| `installID` _string_ | ID of the agent installation, used to track NOS re-installs |  |  |
+| `runID` _string_ | ID of the agent run, used to track agent restarts |  |  |
+| `bootID` _string_ | ID for the NOS boot, used to track NOS reboots |  |  |
+| `lastHeartbeat` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#time-v1-meta)_ | Time of the last heartbeat from the agent |  |  |
+| `lastAttemptTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#time-v1-meta)_ | Time of the last attempt to apply configuration |  |  |
+| `lastAttemptGen` _integer_ | Generation of the last attempt to apply configuration |  |  |
+| `lastAppliedTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#time-v1-meta)_ | Time of the last successful configuration application |  |  |
+| `lastAppliedGen` _integer_ | Generation of the last successful configuration application |  |  |
+| `state` _[SwitchState](#switchstate)_ | Detailed switch state updated with each heartbeat |  |  |
+| `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#condition-v1-meta) array_ | Conditions of the agent, includes readiness marker for use with kubectl wait |  |  |
+| `rebootRequired` _boolean_ | RebootRequired indicates whether a reboot is required |  |  |
+| `mutate` _[MutateStatus](#mutatestatus)_ | Mutate is the state of the bcm mutate rules applied by the agent on Broadcom SONiC switches (alpha) |  |  |
+| `notes` _string_ | Notes is a comma separated summary of the agent state that needs attention |  |  |
+
+
+#### BFDSessionState
+
+_Underlying type:_ _string_
+
+
+
+
+
+_Appears in:_
+- [SwitchStateBFDPeer](#switchstatebfdpeer)
+
+| Field | Description |
+| --- | --- |
+| `` |  |
+| `up` |  |
+| `down` |  |
+| `adminDown` |  |
+| `init` |  |
+
+
+#### BGPMessages
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchStateBGPNeighbor](#switchstatebgpneighbor)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `rec` _[BGPMessagesCounters](#bgpmessagescounters)_ |  |  |  |
+| `sent` _[BGPMessagesCounters](#bgpmessagescounters)_ |  |  |  |
+
+
+#### BGPMessagesCounters
+
+
+
+
+
+
+
+_Appears in:_
+- [BGPMessages](#bgpmessages)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `cap` _integer_ |  |  |  |
+| `keepal` _integer_ |  |  |  |
+| `notif` _integer_ |  |  |  |
+| `open` _integer_ |  |  |  |
+| `rrefresh` _integer_ |  |  |  |
+| `update` _integer_ |  |  |  |
+
+
+#### BGPNeighborSessionState
+
+_Underlying type:_ _string_
+
+
+
+
+
+_Appears in:_
+- [SwitchStateBGPNeighbor](#switchstatebgpneighbor)
+
+| Field | Description |
+| --- | --- |
+| `` |  |
+| `idle` |  |
+| `connect` |  |
+| `active` |  |
+| `openSent` |  |
+| `openConfirm` |  |
+| `established` |  |
+
+
+#### BGPPeerType
+
+_Underlying type:_ _string_
+
+
+
+
+
+_Appears in:_
+- [SwitchStateBGPNeighbor](#switchstatebgpneighbor)
+
+| Field | Description |
+| --- | --- |
+| `` |  |
+| `internal` |  |
+| `external` |  |
+
+
+#### MutateStatus
+
+
+
+
+
+
+
+_Appears in:_
+- [AgentStatus](#agentstatus)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `enabled` _boolean_ | Enabled is true if the last config application had any bcm mutate rules |  |  |
+| `applied` _string array_ | Applied are the sorted bcm mutate rules that took effect in the last config application |  |  |
+
+
+#### OperStatus
+
+_Underlying type:_ _string_
+
+
+
+
+
+_Appears in:_
+- [SwitchStateInterface](#switchstateinterface)
+
+| Field | Description |
+| --- | --- |
+| `` |  |
+| `up` |  |
+| `down` |  |
+| `testing` |  |
+| `unknown` |  |
+| `dormant` |  |
+| `notPresent` |  |
+| `lowerLayerDown` |  |
+
+
+#### SwitchState
+
+
+
+
+
+
+
+_Appears in:_
+- [AgentStatus](#agentstatus)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `nos` _[SwitchStateNOS](#switchstatenos)_ | Information about the switch and NOS |  |  |
+| `interfaces` _object (keys:string, values:[SwitchStateInterface](#switchstateinterface))_ | Switch interfaces state (incl. physical, management and port channels) |  |  |
+| `breakouts` _object (keys:string, values:[SwitchStateBreakout](#switchstatebreakout))_ | Breakout ports state (port -> breakout state) |  |  |
+| `transceivers` _object (keys:string, values:[SwitchStateTransceiver](#switchstatetransceiver))_ | Transceivers state (port -> transceiver state) |  |  |
+| `bgpNeighbors` _object (keys:string, values:[map[string]SwitchStateBGPNeighbor](#switchstatebgpneighbor))_ | State of all BGP neighbors (VRF -> neighbor address, or port (with .VLAN for TH5) for an unnumbered session -> state) |  |  |
+| `bfdPeers` _object (keys:string, values:[map[string]SwitchStateBFDPeer](#switchstatebfdpeer))_ | State of all BFD peers (VRF -> peer address, or port for an unnumbered session -> state) |  |  |
+| `platform` _[SwitchStatePlatform](#switchstateplatform)_ | State of the switch platform (fans, PSUs, sensors) |  |  |
+| `criticalResources` _[SwitchStateCRM](#switchstatecrm)_ | State of the critical resources (ACLs, routes, etc.) |  |  |
+| `roce` _boolean_ | State of the roce configuration |  |  |
+| `firmware` _object (keys:string, values:string)_ | Firmware versions of the switch |  |  |
+
+
+#### SwitchStateBFDPeer
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchState](#switchstate)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `state` _[BFDSessionState](#bfdsessionstate)_ |  |  |  |
+| `profile` _string_ |  |  |  |
+| `lastUpTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#time-v1-meta)_ |  |  |  |
+| `fails` _integer_ |  |  |  |
+
+
+#### SwitchStateBGPNeighbor
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchState](#switchstate)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `connDropped` _integer_ |  |  |  |
+| `enabled` _boolean_ |  |  |  |
+| `estabTrans` _integer_ |  |  |  |
+| `lastEstab` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#time-v1-meta)_ |  |  |  |
+| `lastRead` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#time-v1-meta)_ |  |  |  |
+| `lastResetReason` _string_ |  |  |  |
+| `lastReset` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#time-v1-meta)_ |  |  |  |
+| `lastWrite` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#time-v1-meta)_ |  |  |  |
+| `localAS` _integer_ |  |  | Format: int64 <br />Maximum: 4.294967295e+09 <br />Minimum: 0 <br /> |
+| `msgs` _[BGPMessages](#bgpmessages)_ |  |  |  |
+| `peerAS` _integer_ |  |  | Format: int64 <br />Maximum: 4.294967295e+09 <br />Minimum: 0 <br /> |
+| `peerGroup` _string_ |  |  |  |
+| `peerPort` _integer_ |  |  |  |
+| `peerType` _[BGPPeerType](#bgppeertype)_ |  |  |  |
+| `remoteRouterID` _string_ |  |  |  |
+| `state` _[BGPNeighborSessionState](#bgpneighborsessionstate)_ |  |  |  |
+| `shutdownMsg` _string_ |  |  |  |
+| `prefixes` _object (keys:string, values:[SwitchStateBGPNeighborPrefixes](#switchstatebgpneighborprefixes))_ |  |  |  |
+
+
+#### SwitchStateBGPNeighborPrefixes
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchStateBGPNeighbor](#switchstatebgpneighbor)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `rec` _integer_ |  |  |  |
+| `recPre` _integer_ |  |  |  |
+| `sent` _integer_ |  |  |  |
+| `limit` _integer_ | Limit is the most prefixes accepted, if there is a limit |  |  |
+| `limitWarnPct` _integer_ | LimitWarnPct is the percentage of the limit from which the switch logs a warning |  |  |
+| `limitWarnOnly` _boolean_ | LimitWarnOnly is set if the session stays open above the limit |  |  |
+
+
+#### SwitchStateBreakout
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchState](#switchstate)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `mode` _string_ |  |  |  |
+| `status` _string_ |  |  |  |
+
+
+#### SwitchStateCRM
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchState](#switchstate)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `aclStats` _[SwitchStateCRMACLStats](#switchstatecrmaclstats)_ |  |  |  |
+| `stats` _[SwitchStateCRMStats](#switchstatecrmstats)_ |  |  |  |
+
+
+#### SwitchStateCRMACLDetails
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchStateCRMACLInfo](#switchstatecrmaclinfo)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `groupsAvailable` _integer_ |  |  |  |
+| `groupsUsed` _integer_ |  |  |  |
+| `tablesAvailable` _integer_ |  |  |  |
+| `tablesUsed` _integer_ |  |  |  |
+
+
+#### SwitchStateCRMACLInfo
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchStateCRMACLStats](#switchstatecrmaclstats)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `lag` _[SwitchStateCRMACLDetails](#switchstatecrmacldetails)_ |  |  |  |
+| `port` _[SwitchStateCRMACLDetails](#switchstatecrmacldetails)_ |  |  |  |
+| `rif` _[SwitchStateCRMACLDetails](#switchstatecrmacldetails)_ |  |  |  |
+| `switch` _[SwitchStateCRMACLDetails](#switchstatecrmacldetails)_ |  |  |  |
+| `vlan` _[SwitchStateCRMACLDetails](#switchstatecrmacldetails)_ |  |  |  |
+
+
+#### SwitchStateCRMACLStats
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchStateCRM](#switchstatecrm)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `egress` _[SwitchStateCRMACLInfo](#switchstatecrmaclinfo)_ |  |  |  |
+| `ingress` _[SwitchStateCRMACLInfo](#switchstatecrmaclinfo)_ |  |  |  |
+
+
+#### SwitchStateCRMStats
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchStateCRM](#switchstatecrm)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `dnatEntriesAvailable` _integer_ |  |  |  |
+| `dnatEntriesUsed` _integer_ |  |  |  |
+| `fdbEntriesAvailable` _integer_ |  |  |  |
+| `fdbEntriesUsed` _integer_ |  |  |  |
+| `ipmcEntriesAvailable` _integer_ |  |  |  |
+| `ipmcEntriesUsed` _integer_ |  |  |  |
+| `ipv4NeighborsAvailable` _integer_ |  |  |  |
+| `ipv4NeighborsUsed` _integer_ |  |  |  |
+| `ipv4NexthopsAvailable` _integer_ |  |  |  |
+| `ipv4NexthopsUsed` _integer_ |  |  |  |
+| `ipv4RoutesAvailable` _integer_ |  |  |  |
+| `ipv4RoutesUsed` _integer_ |  |  |  |
+| `ipv6NeighborsAvailable` _integer_ |  |  |  |
+| `ipv6NeighborsUsed` _integer_ |  |  |  |
+| `ipv6NexthopsAvailable` _integer_ |  |  |  |
+| `ipv6NexthopsUsed` _integer_ |  |  |  |
+| `ipv6RoutesAvailable` _integer_ |  |  |  |
+| `ipv6RoutesUsed` _integer_ |  |  |  |
+| `nexthopGroupMembersAvailable` _integer_ |  |  |  |
+| `nexthopGroupMembersUsed` _integer_ |  |  |  |
+| `nexthopGroupsAvailable` _integer_ |  |  |  |
+| `nexthopGroupsUsed` _integer_ |  |  |  |
+| `snatEntriesAvailable` _integer_ |  |  |  |
+| `snatEntriesUsed` _integer_ |  |  |  |
+
+
+#### SwitchStateInterface
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchState](#switchstate)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `enabled` _boolean_ |  |  |  |
+| `admin` _[AdminStatus](#adminstatus)_ |  |  |  |
+| `oper` _[OperStatus](#operstatus)_ |  |  |  |
+| `mac` _string_ |  |  |  |
+| `change` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#time-v1-meta)_ |  |  |  |
+| `speed` _string_ |  |  |  |
+| `auto` _boolean_ |  |  |  |
+| `fec` _string_ |  |  |  |
+| `counters` _[SwitchStateInterfaceCounters](#switchstateinterfacecounters)_ |  |  |  |
+| `lldpNeighbors` _[SwitchStateLLDPNeighbor](#switchstatelldpneighbor) array_ |  |  |  |
+| `errDisabled` _boolean_ |  |  |  |
+| `linkFlapCount` _integer_ |  |  |  |
+
+
+#### SwitchStateInterfaceCounters
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchStateInterface](#switchstateinterface)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `inb` _integer_ |  |  |  |
+| `inbps` _float_ |  |  |  |
+| `ind` _integer_ |  |  |  |
+| `ine` _integer_ |  |  |  |
+| `inpbs` _float_ |  |  |  |
+| `inu` _integer_ |  |  |  |
+| `clear` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#time-v1-meta)_ |  |  |  |
+| `outb` _integer_ |  |  |  |
+| `outbps` _float_ |  |  |  |
+| `outd` _integer_ |  |  |  |
+| `oute` _integer_ |  |  |  |
+| `outpps` _float_ |  |  |  |
+| `outu` _integer_ |  |  |  |
+| `queues` _object (keys:string, values:[SwitchStateInterfaceCountersQueue](#switchstateinterfacecountersqueue))_ |  |  |  |
+
+
+#### SwitchStateInterfaceCountersQueue
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchStateInterfaceCounters](#switchstateinterfacecounters)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `db` _integer_ |  |  |  |
+| `dp` _integer_ |  |  |  |
+| `ecnb` _integer_ |  |  |  |
+| `ecnp` _integer_ |  |  |  |
+| `b` _integer_ |  |  |  |
+| `bps` _integer_ |  |  |  |
+| `p` _integer_ |  |  |  |
+| `pps` _integer_ |  |  |  |
+| `wreddp` _integer_ |  |  |  |
+
+
+#### SwitchStateLLDPNeighbor
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchStateInterface](#switchstateinterface)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `chassis` _string_ |  |  |  |
+| `sysName` _string_ |  |  |  |
+| `sysDescr` _string_ |  |  |  |
+| `portID` _string_ |  |  |  |
+| `portDescr` _string_ |  |  |  |
+| `ttl` _integer_ | TTL advertised by the neighbor, seconds |  |  |
+| `updated` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#time-v1-meta)_ | When the neighbor entry was last updated |  |  |
+| `manuf` _string_ |  |  |  |
+| `model` _string_ |  |  |  |
+| `serial` _string_ |  |  |  |
+| `mac` _string_ | MAC of the neighbor port: the LLDP source MAC, or the port ID if it's a MAC address |  |  |
+| `port` _string_ | Human-readable neighbor port name: the port ID, or the port description if the port ID is a MAC address |  |  |
+
+
+#### SwitchStateNOS
+
+
+
+SwitchStateNOS contains information about the switch and NOS received from the switch itself by the agent
+
+
+
+_Appears in:_
+- [SwitchState](#switchstate)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `asicVersion` _string_ | ASIC name, such as "broadcom" or "vs" |  |  |
+| `buildCommit` _string_ | NOS build commit |  |  |
+| `buildDate` _string_ | NOS build date |  |  |
+| `builtBy` _string_ | NOS build user |  |  |
+| `configDBVersion` _string_ | NOS config DB version, such as "version_4_2_1" |  |  |
+| `distributionVersion` _string_ | Distribution version, such as "Debian 10.13" |  |  |
+| `hardwareVersion` _string_ | Hardware version, such as "X01" |  |  |
+| `hwskuVersion` _string_ | Hwsku version, such as "DellEMC-S5248f-P-25G-DPB" |  |  |
+| `kernelVersion` _string_ | Kernel version, such as "5.10.0-21-amd64" |  |  |
+| `mfgName` _string_ | Manufacturer name, such as "Dell EMC" |  |  |
+| `platformName` _string_ | Platform name, such as "x86_64-dellemc_s5248f_c3538-r0" |  |  |
+| `productDescription` _string_ | NOS product description, such as "Enterprise SONiC Distribution by Broadcom - Enterprise Base package" |  |  |
+| `productVersion` _string_ | NOS product version, empty for Broadcom SONiC |  |  |
+| `serialNumber` _string_ | Switch serial number |  |  |
+| `softwareVersion` _string_ | NOS software version, such as "4.2.0-Enterprise_Base" |  |  |
+| `uptime` _string_ | Switch uptime, such as "21:21:27 up 1 day, 23:26, 0 users, load average: 1.92, 1.99, 2.00 " |  |  |
+
+
+#### SwitchStatePlatform
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchState](#switchstate)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `fans` _object (keys:string, values:[SwitchStatePlatformFan](#switchstateplatformfan))_ |  |  |  |
+| `psus` _object (keys:string, values:[SwitchStatePlatformPSU](#switchstateplatformpsu))_ |  |  |  |
+| `temps` _object (keys:string, values:[SwitchStatePlatformTemperature](#switchstateplatformtemperature))_ |  |  |  |
+
+
+#### SwitchStatePlatformFan
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchStatePlatform](#switchstateplatform)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `dir` _string_ |  |  |  |
+| `speed` _float_ |  |  |  |
+| `presence` _boolean_ |  |  |  |
+| `status` _boolean_ |  |  |  |
+
+
+#### SwitchStatePlatformPSU
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchStatePlatform](#switchstateplatform)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `inCurrent` _float_ |  |  |  |
+| `inPower` _float_ |  |  |  |
+| `inVoltage` _float_ |  |  |  |
+| `outCurrent` _float_ |  |  |  |
+| `outPower` _float_ |  |  |  |
+| `outVoltage` _float_ |  |  |  |
+| `presence` _boolean_ |  |  |  |
+| `status` _boolean_ |  |  |  |
+
+
+#### SwitchStatePlatformTemperature
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchStatePlatform](#switchstateplatform)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `temp` _float_ |  |  |  |
+| `alarms` _string_ |  |  |  |
+| `highThreshold` _float_ |  |  |  |
+| `critHighThreshold` _float_ |  |  |  |
+| `lowThreshold` _float_ |  |  |  |
+| `critLowThreshold` _float_ |  |  |  |
+
+
+#### SwitchStateTransceiver
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchState](#switchstate)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `descr` _string_ |  |  |  |
+| `cable` _string_ |  |  |  |
+| `formFactor` _string_ |  |  |  |
+| `connType` _string_ |  |  |  |
+| `present` _string_ |  |  |  |
+| `length` _float_ |  |  |  |
+| `oper` _string_ |  |  |  |
+| `temp` _float_ |  |  |  |
+| `voltage` _float_ |  |  |  |
+| `serial` _string_ |  |  |  |
+| `vendor` _string_ |  |  |  |
+| `vendorPart` _string_ |  |  |  |
+| `vendorOUI` _string_ |  |  |  |
+| `vendorRev` _string_ |  |  |  |
+| `firmware` _string_ |  |  |  |
+| `cmis` _string_ |  |  |  |
+| `cmisRev` _string_ |  |  |  |
+| `cmisApp` _integer_ |  |  |  |
+| `channels` _object (keys:string, values:[SwitchStateTransceiverChannel](#switchstatetransceiverchannel))_ |  |  |  |
+
+
+#### SwitchStateTransceiverChannel
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchStateTransceiver](#switchstatetransceiver)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `in` _float_ |  |  |  |
+| `out` _float_ |  |  |  |
+| `bias` _float_ |  |  |  |
+
+
+
+
+
+## dhcp.githedgehog.com/v1beta1
+
+Package v1beta1 contains API Schema definitions for the dhcp v1beta1 API group. It is the primary internal API
+group for the intended Hedgehog DHCP server configuration and storing leases as well as making them available to the
+end user through API. Not intended to be modified by the user.
+
+### Resource Types
+- [DHCPSubnet](#dhcpsubnet)
+
+
+
+#### DHCPAllocated
+
+
+
+DHCPAllocated is a single allocated IP with expiry time and hostname from DHCP requests, it's effectively a DHCP lease
+
+
+
+_Appears in:_
+- [DHCPSubnetStatus](#dhcpsubnetstatus)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `ip` _string_ | Allocated IP address |  |  |
+| `expiry` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#time-v1-meta)_ | Expiry time of the lease |  |  |
+| `hostname` _string_ | Hostname from DHCP request |  |  |
+
+
+#### DHCPRoute
+
+
+
+
+
+
+
+_Appears in:_
+- [DHCPSubnetSpec](#dhcpsubnetspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `destination` _string_ | Destination is the destination prefix for the route |  |  |
+| `gateway` _string_ | Gateway is the gateway IP address for the route |  |  |
+
+
+#### DHCPSubnet
+
+
+
+DHCPSubnet is the configuration (spec) for the Hedgehog DHCP server and storage for the leases (status). It's
+primary internal API group, but it makes allocated IPs / leases information available to the end user through API.
+Not intended to be modified by the user.
+
+
+
+
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `apiVersion` _string_ | `dhcp.githedgehog.com/v1beta1` | | |
+| `kind` _string_ | `DHCPSubnet` | | |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[DHCPSubnetSpec](#dhcpsubnetspec)_ | Spec is the desired state of the DHCPSubnet |  |  |
+| `status` _[DHCPSubnetStatus](#dhcpsubnetstatus)_ | Status is the observed state of the DHCPSubnet |  |  |
+
+
+#### DHCPSubnetSpec
+
+
+
+DHCPSubnetSpec defines the desired state of DHCPSubnet
+
+
+
+_Appears in:_
+- [DHCPSubnet](#dhcpsubnet)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `subnet` _string_ | Full VPC subnet name (including VPC name), such as "vpc-0/default" |  |  |
+| `cidrBlock` _string_ | CIDR block to use for VPC subnet, such as "10.10.10.0/24" |  |  |
+| `gateway` _string_ | Gateway, such as 10.10.10.1 |  |  |
+| `startIP` _string_ | Start IP from the CIDRBlock to allocate IPs, such as 10.10.10.10 |  |  |
+| `endIP` _string_ | End IP from the CIDRBlock to allocate IPs, such as 10.10.10.99 |  |  |
+| `leaseTimeSeconds` _integer_ | Lease time in seconds, such as 3600 |  |  |
+| `vrf` _string_ | VRF name to identify specific VPC (will be added to DHCP packets by DHCP relay in suboption 151), such as "VrfVvpc-1" as it's named on switch |  |  |
+| `circuitID` _string_ | VLAN ID to identify specific subnet within the VPC, such as "Vlan1000" as it's named on switch |  |  |
+| `pxeURL` _string_ | PXEURL (optional) to identify the pxe server to use to boot hosts connected to this segment such as http://10.10.10.99/bootfilename or tftp://10.10.10.99/bootfilename, http query strings are not supported |  |  |
+| `dnsServers` _string array_ | DNSservers (optional) to configure Domain Name Servers for this particular segment such as: 10.10.10.1, 10.10.10.2 |  |  |
+| `timeServers` _string array_ | TimeServers (optional) NTP server addresses to configure for time servers for this particular segment such as: 10.10.10.1, 10.10.10.2 |  |  |
+| `interfaceMTU` _integer_ | InterfaceMTU (optional) is the MTU setting that the dhcp server will send to the clients. It is dependent on the client to honor this option. |  |  |
+| `defaultURL` _string_ | DefaultURL (optional) is the option 114 "default-url" to be sent to the clients |  |  |
+| `l3Mode` _boolean_ | L3 mode is used to indicate that this subnet is for a VPC in L3 mode meaning that /32 should be advertised to the clients |  |  |
+| `disableDefaultRoute` _boolean_ | Disable default route advertisement in DHCP |  |  |
+| `advertisedRoutes` _[DHCPRoute](#dhcproute) array_ | AdvertisedRoutes (optional) is a list of custom routes to advertise in DHCP |  |  |
+| `static` _object (keys:string, values:[DHCPSubnetStatic](#dhcpsubnetstatic))_ | Static is a map of static IP assignments for MAC addresses |  |  |
+| `onieOnly` _boolean_ | ONIEOnly (optional) is a boolean indicating whether this subnet is for ONIE only (check class identifier) |  |  |
+| `ztpBaseURL` _string_ | ZTPBaseURL (optional) is the base URL for Hedgehog ZTP (onie, cumulus ztp, etc) |  |  |
+
+
+#### DHCPSubnetStatic
+
+
+
+DHCPSubnetStatic represents static IP assignment
+
+
+
+_Appears in:_
+- [DHCPSubnetSpec](#dhcpsubnetspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `ip` _string_ | IP is the assigned static IP address |  |  |
+
+
+#### DHCPSubnetStatus
+
+
+
+DHCPSubnetStatus defines the observed state of DHCPSubnet
+
+
+
+_Appears in:_
+- [DHCPSubnet](#dhcpsubnet)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `allocated` _object (keys:string, values:[DHCPAllocated](#dhcpallocated))_ | Allocated is a map of allocated IPs with expiry time and hostname from DHCP requests |  |  |
+
+
+
+## fcint.githedgehog.com/v1alpha1
+
+Package v1alpha1 contains API Schema definitions for the fcint v1alpha1 API group.
+
+### Resource Types
+- [FabricController](#fabriccontroller)
+
+
+
+#### FabricController
+
+
+
+FabricController is the Schema for the fabriccontrollers API. It holds the state of the fabric controller itself:
+the version that completed initialization (including refreshing all stored objects with the current defaults) and
+the progress of that refresh. The fabric controller only reconciles and accepts user changes once it's initialized.
+
+
+
+
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `apiVersion` _string_ | `fcint.githedgehog.com/v1alpha1` | | |
+| `kind` _string_ | `FabricController` | | |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[FabricControllerSpec](#fabriccontrollerspec)_ |  |  |  |
+| `status` _[FabricControllerStatus](#fabriccontrollerstatus)_ |  |  |  |
+
+
+#### FabricControllerProblem
+
+
+
+FabricControllerProblem is an object the refresh couldn't fix
+
+
+
+_Appears in:_
+- [FabricControllerStatus](#fabriccontrollerstatus)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `kind` _string_ |  |  |  |
+| `namespace` _string_ |  |  |  |
+| `name` _string_ |  |  |  |
+| `reason` _string_ | Reason is Rejected, Stale or Invalid |  |  |
+| `message` _string_ |  |  |  |
+
+
+#### FabricControllerRefresh
+
+
+
+FabricControllerRefresh is the progress of a refresh of stored objects with the current defaults and labels
+
+
+
+_Appears in:_
+- [FabricControllerStatus](#fabriccontrollerstatus)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `version` _string_ | Version is the fabric controller version running the refresh |  |  |
+| `startedAt` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#time-v1-meta)_ | StartedAt is the time the refresh started |  |  |
+| `finishedAt` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#time-v1-meta)_ | FinishedAt is the time the refresh finished |  |  |
+| `passes` _integer_ | Passes is the number of passes over the stored objects so far |  |  |
+| `kinds` _[FabricControllerRefreshKind](#fabriccontrollerrefreshkind) array_ | Kinds is the progress per kind |  |  |
+
+
+#### FabricControllerRefreshKind
+
+
+
+FabricControllerRefreshKind is the refresh progress of a single kind
+
+
+
+_Appears in:_
+- [FabricControllerRefresh](#fabriccontrollerrefresh)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `kind` _string_ | Kind is the kind of the refreshed objects |  |  |
+| `total` _integer_ | Total is the number of objects of the kind |  |  |
+| `updated` _integer_ | Updated is the number of objects updated with the current defaults |  |  |
+| `rejected` _integer_ | Rejected is the number of objects whose update was rejected, e.g. by the CRD schema or missing permissions |  |  |
+| `stale` _integer_ | Stale is the number of objects that still don't carry the current defaults after retries, e.g. as the CRD<br />schema drops a defaulted field or something else keeps writing them back |  |  |
+| `invalid` _integer_ | Invalid is the number of objects that fail the validation of the current version, checked without looking up<br />other objects. They still get the current defaults |  |  |
+
+
+#### FabricControllerSpec
+
+
+
+FabricControllerSpec defines the desired state of FabricController.
+
+
+
+_Appears in:_
+- [FabricController](#fabriccontroller)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `maintenance` _boolean_ | Maintenance is dangerous, it's for fixing the objects that keep the fabric controller locked: all changes are<br />admitted, validation errors only come back as warnings, while reconcilers stay stopped, so nothing is deployed.<br />Clearing it initializes the fabric controller again, which validates every object on its own only: a conflict<br />between objects or a deletion of an object still in use, made in maintenance, goes unnoticed and gets deployed |  |  |
+
+
+#### FabricControllerStatus
+
+
+
+FabricControllerStatus defines the observed state of FabricController.
+
+
+
+_Appears in:_
+- [FabricController](#fabriccontroller)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `version` _string_ | Version is the running fabric controller version |  |  |
+| `initializedVersion` _string_ | InitializedVersion is the fabric controller version that last completed initialization, including the refresh<br />of stored objects. The fabric controller is locked until it matches the running version and it's Ready |  |  |
+| `error` _string_ | Error is why the initialization failed, while it's retried |  |  |
+| `refresh` _[FabricControllerRefresh](#fabriccontrollerrefresh)_ | Refresh is the progress of the last or current refresh of stored objects |  |  |
+| `problems` _[FabricControllerProblem](#fabriccontrollerproblem) array_ | Problems are the objects the last refresh couldn't fix. They keep the fabric controller locked, it initializes<br />again only on a spec change, e.g. leaving maintenance to fix them, or a restart. Only the first ones are listed,<br />refresh.kinds has the counts |  |  |
+| `conditions` _[Condition](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#condition-v1-meta) array_ | Conditions of the fabric controller: Ready |  |  |
+
+
+
+## gateway.githedgehog.com/v1alpha1
+
+Package v1alpha1 contains API Schema definitions for the gateway v1alpha1 API group.
+
+### Resource Types
+- [Gateway](#gateway)
+- [GatewayGroup](#gatewaygroup)
+- [GatewayPeering](#gatewaypeering)
+- [VPCInfo](#vpcinfo)
+
+
+
+#### ACLAction
+
+_Underlying type:_ _string_
+
+
+
+_Validation:_
+- Enum: [deny allow]
+
+_Appears in:_
+- [PeeringACLRule](#peeringaclrule)
+
+| Field | Description |
+| --- | --- |
+| `deny` |  |
+| `allow` |  |
+
+
+#### ACLDefaultAction
+
+_Underlying type:_ _string_
+
+
+
+_Validation:_
+- Enum: [deny deny-unless-exposed ]
+
+_Appears in:_
+- [PeeringACL](#peeringacl)
+
+| Field | Description |
+| --- | --- |
+| `deny-unless-exposed` |  |
+| `deny` |  |
+
+
+#### ACLMatchProtocol
+
+_Underlying type:_ _string_
+
+
+
+
+
+_Appears in:_
+- [PeeringACLMatch](#peeringaclmatch)
+
+| Field | Description |
+| --- | --- |
+| `tcp` |  |
+| `udp` |  |
+| `` |  |
+
+
+#### ACLScope
+
+_Underlying type:_ _string_
+
+
+
+_Validation:_
+- Enum: [flow packet ]
+
+_Appears in:_
+- [PeeringACLRule](#peeringaclrule)
+
+| Field | Description |
+| --- | --- |
+| `flow` |  |
+| `packet` |  |
+
+
+#### Gateway
+
+
+
+Gateway is the Schema for the gateways API.
+
+
+
+
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `apiVersion` _string_ | `gateway.githedgehog.com/v1alpha1` | | |
+| `kind` _string_ | `Gateway` | | |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[GatewaySpec](#gatewayspec)_ |  |  |  |
+| `status` _[GatewayStatus](#gatewaystatus)_ |  |  |  |
+
+
+#### GatewayBGPNeighbor
+
+
+
+GatewayBGPNeighbor defines the configuration for a BGP neighbor
+
+
+
+_Appears in:_
+- [GatewaySpec](#gatewayspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `source` _string_ | Source is the source interface for the BGP neighbor configuration |  |  |
+| `ip` _string_ | IP is the IP address of the BGP neighbor |  |  |
+| `asn` _integer_ | ASN is the remote ASN of the BGP neighbor |  | Format: int64 <br />Maximum: 4.294967295e+09 <br />Minimum: 0 <br /> |
+
+
+#### GatewayDriver
+
+_Underlying type:_ _string_
+
+
+
+
+
+_Appears in:_
+- [GatewaySpec](#gatewayspec)
+
+| Field | Description |
+| --- | --- |
+| `kernel` |  |
+| `dpdk` |  |
+
+
+#### GatewayGroup
+
+
+
+GatewayGroup is the Schema for the gatewaygroups API
+
+
+
+
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `apiVersion` _string_ | `gateway.githedgehog.com/v1alpha1` | | |
+| `kind` _string_ | `GatewayGroup` | | |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[GatewayGroupSpec](#gatewaygroupspec)_ |  |  |  |
+| `status` _[GatewayGroupStatus](#gatewaygroupstatus)_ |  |  |  |
+
+
+#### GatewayGroupMembership
+
+
+
+
+
+
+
+_Appears in:_
+- [GatewaySpec](#gatewayspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `name` _string_ | Name is the name of the group to which the gateway belongs |  |  |
+| `priority` _integer_ | Priority is the priority of the gateway within the group |  |  |
+
+
+#### GatewayGroupSpec
+
+
+
+GatewayGroupSpec defines the desired state of GatewayGroup
+
+
+
+_Appears in:_
+- [GatewayGroup](#gatewaygroup)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `topology` _[GatewayGroupTopology](#gatewaygrouptopology)_ | Topology is where the GatewayGroup sits in the fabric topology |  |  |
+
+
+#### GatewayGroupStatus
+
+
+
+GatewayGroupStatus defines the observed state of GatewayGroup.
+
+
+
+_Appears in:_
+- [GatewayGroup](#gatewaygroup)
+
+
+
+#### GatewayGroupTopology
+
+
+
+GatewayGroupTopology is where a GatewayGroup sits in the fabric topology
+
+
+
+_Appears in:_
+- [GatewayGroupSpec](#gatewaygroupspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `fabric` _string_ | Fabric is the name of the Fabric this GatewayGroup belongs to (if not specified, "default" is used) |  |  |
+| `domain` _string_ | Domain is the Fabric domain of the gateways in this group (if not specified, "default" is used).<br />Only gateways in that domain can join it, and it is immutable |  |  |
+
+
+#### GatewayInterface
+
+
+
+GatewayInterface defines the configuration for a gateway interface
+
+
+
+_Appears in:_
+- [GatewaySpec](#gatewayspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `pci` _string_ | PCI address of the interface (required for dpdk driver, optional for kernel driver), e.g. 0000:00:01.0 |  |  |
+| `kernel` _string_ | Kernel is the kernel name of the interface to use (kernel driver only, ignored for dpdk driver or if it's the same<br />as the interface name), e.g. enp2s1 |  |  |
+| `ips` _string array_ | IPs is the list of IP address to assign to the interface |  |  |
+| `mtu` _integer_ | MTU for the interface |  |  |
+
+
+#### GatewayLogLevel
+
+_Underlying type:_ _string_
+
+
+
+
+
+_Appears in:_
+- [GatewayLogs](#gatewaylogs)
+
+| Field | Description |
+| --- | --- |
+| `off` |  |
+| `error` |  |
+| `warning` |  |
+| `info` |  |
+| `debug` |  |
+| `trace` |  |
+
+
+#### GatewayLogRateLimit
+
+
+
+GatewayLogRateLimit configures the token-bucket rate limiter applied to logs
+
+
+
+_Appears in:_
+- [GatewayLogs](#gatewaylogs)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `burst` _integer_ | token bucket capacity (default 50) |  | Minimum: 0 <br /> |
+| `replenishPerSecond` _integer_ | ReplenishPerSecond is the number of tokens (messages) replenished per second (default 5) |  | Minimum: 0 <br /> |
+
+
+#### GatewayLogs
+
+
+
+GatewayLogs defines the configuration for logging levels
+
+
+
+_Appears in:_
+- [GatewaySpec](#gatewayspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `default` _[GatewayLogLevel](#gatewayloglevel)_ |  |  |  |
+| `tags` _object (keys:string, values:[GatewayLogLevel](#gatewayloglevel))_ |  |  |  |
+| `rateLimit` _[GatewayLogRateLimit](#gatewaylogratelimit)_ |  |  |  |
+
+
+#### GatewayPeering
+
+
+
+GatewayPeering is the Schema for the peerings API.
+
+
+
+
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `apiVersion` _string_ | `gateway.githedgehog.com/v1alpha1` | | |
+| `kind` _string_ | `GatewayPeering` | | |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[PeeringSpec](#peeringspec)_ |  |  |  |
+| `status` _[PeeringStatus](#peeringstatus)_ |  |  |  |
+
+
+#### GatewayPeeringTopology
+
+
+
+GatewayPeeringTopology is where a GatewayPeering sits in the fabric topology
+
+
+
+_Appears in:_
+- [PeeringSpec](#peeringspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `fabric` _string_ | Fabric is the name of the Fabric this GatewayPeering belongs to (if not specified, "default" is used) |  |  |
+
+
+#### GatewayProfiling
+
+
+
+
+
+
+
+_Appears in:_
+- [GatewaySpec](#gatewayspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `enabled` _boolean_ |  |  |  |
+
+
+#### GatewaySpec
+
+
+
+GatewaySpec defines the desired state of Gateway.
+
+
+
+_Appears in:_
+- [Gateway](#gateway)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `topology` _[GatewayTopology](#gatewaytopology)_ | Topology is where the Gateway sits in the fabric topology |  |  |
+| `protocolIP` _string_ | ProtocolIP is used as a loopback IP and BGP Router ID |  |  |
+| `vtepIP` _string_ | VTEP IP to be used by the gateway |  |  |
+| `vtepMAC` _string_ | VTEP MAC address to be used by the gateway |  |  |
+| `asn` _integer_ | ASN is the ASN of the gateway |  | Format: int64 <br />Maximum: 4.294967295e+09 <br />Minimum: 0 <br /> |
+| `vtepMTU` _integer_ | VTEPMTU is the MTU for the VTEP interface |  |  |
+| `interfaces` _object (keys:string, values:[GatewayInterface](#gatewayinterface))_ | Interfaces is a map of interface names to their configurations |  |  |
+| `neighbors` _[GatewayBGPNeighbor](#gatewaybgpneighbor) array_ | Neighbors is a list of BGP neighbors |  |  |
+| `logs` _[GatewayLogs](#gatewaylogs)_ | Logs defines the configuration for logging levels |  |  |
+| `profiling` _[GatewayProfiling](#gatewayprofiling)_ | Profiling defines the configuration for profiling |  |  |
+| `workers` _integer_ | Workers defines the number of worker threads to use for dataplane |  |  |
+| `groups` _[GatewayGroupMembership](#gatewaygroupmembership) array_ | Groups is a list of group memberships for the gateway |  |  |
+| `flowTableCapacity` _integer_ | FlowTableCapacity defines the maximum number of flow entres |  |  |
+| `driver` _[GatewayDriver](#gatewaydriver)_ | Driver is the dataplane driver for the interfaces, kernel or dpdk |  |  |
+
+
+#### GatewayStatus
+
+
+
+GatewayStatus defines the observed state of Gateway.
+
+
+
+_Appears in:_
+- [Gateway](#gateway)
+
+
+
+#### GatewayTopology
+
+
+
+GatewayTopology is where a Gateway sits in the fabric topology
+
+
+
+_Appears in:_
+- [GatewaySpec](#gatewayspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `fabric` _string_ | Fabric is the name of the Fabric this Gateway belongs to (if not specified, "default" is used) |  |  |
+| `domain` _string_ | Domain is the Fabric domain (spine layer) this Gateway is cabled into (if not specified, "default" is used).<br />It is immutable |  |  |
+
+
+#### PeeringACL
+
+
+
+
+
+
+
+_Appears in:_
+- [PeeringSpec](#peeringspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `default` _[ACLDefaultAction](#acldefaultaction)_ | Default action to execute if no rules matches, can be either "deny-unless-exposed" (default if empty) or "deny" |  | Enum: [deny deny-unless-exposed ] <br /> |
+| `rules` _[PeeringACLRule](#peeringaclrule) array_ | List of rules for this particular ACL |  |  |
+
+
+#### PeeringACLMatch
+
+
+
+
+
+
+
+_Appears in:_
+- [PeeringACLRule](#peeringaclrule)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `src` _[PeeringACLMatchEndpoint](#peeringaclmatchendpoint) array_ | From-side native addresses and/or source ports |  |  |
+| `dst` _[PeeringACLMatchEndpoint](#peeringaclmatchendpoint) array_ | To-side advertised addresses and/or destination ports |  |  |
+| `proto` _[ACLMatchProtocol](#aclmatchprotocol)_ | Protocol to match ("tcp", "udp", or numeric), omit to match any protocol |  |  |
+| `tcpFilters` _[PeeringACLMatchTCPFilters](#peeringaclmatchtcpfilters)_ | TCP-specific filters, only valid with protocol "tcp" and scope "packet" |  |  |
+
+
+#### PeeringACLMatchEndpoint
+
+
+
+
+
+
+
+_Appears in:_
+- [PeeringACLMatch](#peeringaclmatch)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `cidr` _string_ | CIDR to match, at most one of cidr and vpcSubnet can be set |  |  |
+| `vpcSubnet` _string_ | VPC subnet to match, at most one of cidr and vpcSubnet can be set |  |  |
+| `ports` _string array_ | List of ports or port ranges to match, omit to match all ports |  |  |
+
+
+#### PeeringACLMatchTCPFilters
+
+
+
+TCP-specific match filters
+
+
+
+_Appears in:_
+- [PeeringACLMatch](#peeringaclmatch)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `flags` _[PeeringACLMatchTCPFlags](#peeringaclmatchtcpflags)_ | TCP flags to match, omit to match all segments |  |  |
+
+
+#### PeeringACLMatchTCPFlags
+
+
+
+TCP flags to match. For each flag, true requires the flag to be set, false requires it to be
+clear, omit to accept both
+
+
+
+_Appears in:_
+- [PeeringACLMatchTCPFilters](#peeringaclmatchtcpfilters)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `fin` _boolean_ | FIN flag |  |  |
+| `syn` _boolean_ | SYN flag |  |  |
+| `rst` _boolean_ | RST flag |  |  |
+| `psh` _boolean_ | PSH flag |  |  |
+| `ack` _boolean_ | ACK flag |  |  |
+| `urg` _boolean_ | URG flag |  |  |
+| `ece` _boolean_ | ECE flag |  |  |
+| `cwr` _boolean_ | CWR flag |  |  |
+
+
+#### PeeringACLRule
+
+
+
+
+
+
+
+_Appears in:_
+- [PeeringACL](#peeringacl)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `name` _string_ | Optional name for logs and diagnostics |  |  |
+| `from` _string_ | From has to match one of the peering's two VPCs if present, implicit from the "to" field otherwise |  |  |
+| `to` _string_ | To has to match one of the peering's two VPCs if present, implicit from the "from" field otherwise |  |  |
+| `action` _[ACLAction](#aclaction)_ | Action to execute if the rule matches, can be either "deny" or "allow" |  | Enum: [deny allow] <br /> |
+| `match` _[PeeringACLMatch](#peeringaclmatch)_ | What the rule should match against, omit to match everything in the rule's direction |  |  |
+| `scope` _[ACLScope](#aclscope)_ | Scope of the rule, can be either "flow" (default if empty) or "packet" |  | Enum: [flow packet ] <br /> |
+| `log` _boolean_ |  |  |  |
+
+
+#### PeeringEntry
+
+
+
+
+
+
+
+_Appears in:_
+- [PeeringSpec](#peeringspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `expose` _[PeeringEntryExpose](#peeringentryexpose) array_ |  |  |  |
+
+
+#### PeeringEntryAs
+
+
+
+
+
+
+
+_Appears in:_
+- [PeeringEntryExpose](#peeringentryexpose)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `cidr` _string_ | CIDR to include, only one of cidr, not can be set |  |  |
+| `not` _string_ | CIDR to exclude, only one of cidr, not can be set |  |  |
+
+
+#### PeeringEntryExpose
+
+
+
+
+
+
+
+_Appears in:_
+- [PeeringEntry](#peeringentry)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `ips` _[PeeringEntryIP](#peeringentryip) array_ |  |  |  |
+| `as` _[PeeringEntryAs](#peeringentryas) array_ |  |  |  |
+| `nat` _[PeeringNAT](#peeringnat)_ |  |  |  |
+| `default` _boolean_ |  |  |  |
+
+
+#### PeeringEntryIP
+
+
+
+
+
+
+
+_Appears in:_
+- [PeeringEntryExpose](#peeringentryexpose)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `cidr` _string_ | CIDR to include, only one of cidr, not, vpcSubnet can be set |  |  |
+| `not` _string_ | CIDR to exclude, only one of cidr, not, vpcSubnet can be set |  |  |
+| `vpcSubnet` _string_ | CIDR by VPC subnet name to include, only one of cidr, not, vpcSubnet can be set |  |  |
+
+
+#### PeeringNAT
+
+
+
+
+
+
+
+_Appears in:_
+- [PeeringEntryExpose](#peeringentryexpose)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `masquerade` _[PeeringNATMasquerade](#peeringnatmasquerade)_ |  |  |  |
+| `portForward` _[PeeringNATPortForward](#peeringnatportforward)_ |  |  |  |
+| `static` _[PeeringNATStatic](#peeringnatstatic)_ |  |  |  |
+
+
+#### PeeringNATMasquerade
+
+
+
+
+
+
+
+_Appears in:_
+- [PeeringNAT](#peeringnat)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `idleTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#duration-v1-meta)_ | Time since the last packet after which flows are removed from the connection state table |  |  |
+
+
+#### PeeringNATPortForward
+
+
+
+
+
+
+
+_Appears in:_
+- [PeeringNAT](#peeringnat)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `idleTimeout` _[Duration](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#duration-v1-meta)_ | Time since the last packet after which flows are removed from the connection state table |  |  |
+| `ports` _PeeringNATPortForwardEntry array_ |  |  |  |
+
+
+
+
+#### PeeringNATProtocol
+
+_Underlying type:_ _string_
+
+
+
+_Validation:_
+- Enum: [tcp udp ]
+
+_Appears in:_
+- PeeringNATPortForwardEntry
+
+| Field | Description |
+| --- | --- |
+| `` | Any protocol by default<br /> |
+| `tcp` | TCP only<br /> |
+| `udp` | UDP only<br /> |
+
+
+#### PeeringNATStatic
+
+
+
+
+
+
+
+_Appears in:_
+- [PeeringNAT](#peeringnat)
+
+
+
+#### PeeringSpec
+
+
+
+PeeringSpec defines the desired state of Peering.
+
+
+
+_Appears in:_
+- [GatewayPeering](#gatewaypeering)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `topology` _[GatewayPeeringTopology](#gatewaypeeringtopology)_ | Topology is where the GatewayPeering sits in the fabric topology |  |  |
+| `gatewayGroup` _string_ | GatewayGroup is the name of the gateway group that should process the peering |  |  |
+| `peering` _object (keys:string, values:[PeeringEntry](#peeringentry))_ | Peerings is a map of peering entries for each VPC participating in the peering (keyed by VPC name) |  |  |
+| `acl` _[PeeringACL](#peeringacl)_ | ACL is an optional, peering-scoped ACL |  |  |
+| `noMultiPath` _boolean_ | NoMultiPath is an optional flag to disable multi-path for stateless peerings (handling by all gateways in a group) |  |  |
+
+
+#### PeeringStatus
+
+
+
+PeeringStatus defines the observed state of Peering.
+
+
+
+_Appears in:_
+- [GatewayPeering](#gatewaypeering)
+
+
+
+#### VPCInfo
+
+
+
+VPCInfo is the Schema for the vpcinfos API.
+
+
+
+
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `apiVersion` _string_ | `gateway.githedgehog.com/v1alpha1` | | |
+| `kind` _string_ | `VPCInfo` | | |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[VPCInfoSpec](#vpcinfospec)_ |  |  |  |
+| `status` _[VPCInfoStatus](#vpcinfostatus)_ |  |  |  |
+
+
+#### VPCInfoSpec
+
+
+
+VPCInfoSpec defines the desired state of VPCInfo.
+
+
+
+_Appears in:_
+- [VPCInfo](#vpcinfo)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `topology` _[VPCInfoTopology](#vpcinfotopology)_ | Topology is where the VPCInfo sits in the fabric topology |  |  |
+| `subnets` _object (keys:string, values:[VPCInfoSubnet](#vpcinfosubnet))_ | Subnets is a map of all subnets in the VPC (incl. CIDRs, VNIs, etc) keyed by the subnet name |  |  |
+| `vni` _integer_ | VNI is the VNI for the VPC |  |  |
+
+
+#### VPCInfoStatus
+
+
+
+VPCInfoStatus defines the observed state of VPCInfo.
+
+
+
+_Appears in:_
+- [VPCInfo](#vpcinfo)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `internalID` _string_ |  |  |  |
+
+
+#### VPCInfoSubnet
+
+
+
+
+
+
+
+_Appears in:_
+- [VPCInfoSpec](#vpcinfospec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `cidr` _string_ | CIDR is the subnet CIDR block, such as "10.0.0.0/24" |  |  |
+
+
+#### VPCInfoTopology
+
+
+
+VPCInfoTopology is where a VPCInfo sits in the fabric topology, the same as its VPC or External
+
+
+
+_Appears in:_
+- [VPCInfoSpec](#vpcinfospec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `fabric` _string_ | Fabric is the name of the Fabric this VPCInfo belongs to (if not specified, "default" is used) |  |  |
+| `domains` _string array_ | Domains are the Fabric domains of the VPC or External (if not specified, "default" is used), only the<br />gateways in them get it |  |  |
+
+
+
+## gwint.githedgehog.com/v1alpha1
+
+Package v1alpha1 contains API Schema definitions for the gwint v1alpha1 API group.
+
+### Resource Types
+- [GatewayAgent](#gatewayagent)
+
+
+
+#### BGPMessageCounters
+
+
+
+
+
+
+
+_Appears in:_
+- [BGPMessages](#bgpmessages)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `capability` _integer_ |  |  |  |
+| `keepalive` _integer_ |  |  |  |
+| `notification` _integer_ |  |  |  |
+| `open` _integer_ |  |  |  |
+| `routeRefresh` _integer_ |  |  |  |
+| `update` _integer_ |  |  |  |
+
+
+#### BGPMessages
+
+
+
+
+
+
+
+_Appears in:_
+- [BGPNeighborStatus](#bgpneighborstatus)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `received` _[BGPMessageCounters](#bgpmessagecounters)_ |  |  |  |
+| `sent` _[BGPMessageCounters](#bgpmessagecounters)_ |  |  |  |
+
+
+#### BGPNeighborPrefixes
+
+
+
+
+
+
+
+_Appears in:_
+- [BGPNeighborStatus](#bgpneighborstatus)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `received` _integer_ |  |  |  |
+| `receivedPrePolicy` _integer_ |  |  |  |
+| `sent` _integer_ |  |  |  |
+
+
+#### BGPNeighborSessionState
+
+_Underlying type:_ _string_
+
+BGPNeighborSessionState represents the BGP FSM state for a neighbor.
+
+_Validation:_
+- Enum: [unset idle connect active open established]
+
+_Appears in:_
+- [BGPNeighborStatus](#bgpneighborstatus)
+
+| Field | Description |
+| --- | --- |
+| `unset` |  |
+| `idle` |  |
+| `connect` |  |
+| `active` |  |
+| `open` |  |
+| `established` |  |
+
+
+#### BGPNeighborStatus
+
+
+
+
+
+
+
+_Appears in:_
+- [BGPVRFStatus](#bgpvrfstatus)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `enabled` _boolean_ |  |  |  |
+| `localAS` _integer_ |  |  | Format: int64 <br />Maximum: 4.294967295e+09 <br />Minimum: 0 <br /> |
+| `peerAS` _integer_ |  |  | Format: int64 <br />Maximum: 4.294967295e+09 <br />Minimum: 0 <br /> |
+| `remoteRouterID` _string_ |  |  |  |
+| `sessionState` _[BGPNeighborSessionState](#bgpneighborsessionstate)_ |  |  | Enum: [unset idle connect active open established] <br /> |
+| `connectionsDropped` _integer_ |  |  |  |
+| `establishedTransitions` _integer_ |  |  |  |
+| `lastResetReason` _string_ |  |  |  |
+| `messages` _[BGPMessages](#bgpmessages)_ |  |  |  |
+| `ipv4UnicastPrefixes` _[BGPNeighborPrefixes](#bgpneighborprefixes)_ |  |  |  |
+| `ipv6UnicastPrefixes` _[BGPNeighborPrefixes](#bgpneighborprefixes)_ |  |  |  |
+| `l2VPNEVPNPrefixes` _[BGPNeighborPrefixes](#bgpneighborprefixes)_ |  |  |  |
+
+
+#### BGPStatus
+
+
+
+BGPStatus represents BGP status across VRFs, derived from BMP/FRR.
+
+
+
+_Appears in:_
+- [GatewayState](#gatewaystate)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `vrfs` _object (keys:string, values:[BGPVRFStatus](#bgpvrfstatus))_ | VRFs keyed by VRF name (e.g. "default", "vrfVvpc-1") |  |  |
+
+
+#### BGPVRFStatus
+
+
+
+
+
+
+
+_Appears in:_
+- [BGPStatus](#bgpstatus)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `neighbors` _object (keys:string, values:[BGPNeighborStatus](#bgpneighborstatus))_ | Neighbors keyed by an ip address string |  |  |
+
+
+#### DataplaneStatus
+
+
+
+DataplaneStatus represents the status of the dataplane
+
+
+
+_Appears in:_
+- [GatewayState](#gatewaystate)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `version` _string_ |  |  |  |
+
+
+#### FRRStatus
+
+
+
+FRRStatus represents the status of the FRR daemon
+
+
+
+_Appears in:_
+- [GatewayState](#gatewaystate)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `lastAppliedGen` _integer_ | LastAppliedGen is the generation of the last successful application of a configuration to the FRR |  |  |
+
+
+#### GatewayAgent
+
+
+
+GatewayAgent is the Schema for the gatewayagents API.
+
+
+
+
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `apiVersion` _string_ | `gwint.githedgehog.com/v1alpha1` | | |
+| `kind` _string_ | `GatewayAgent` | | |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `status` _[GatewayAgentStatus](#gatewayagentstatus)_ |  |  |  |
+
+
+#### GatewayAgentStatus
+
+
+
+GatewayAgentStatus defines the observed state of GatewayAgent.
+
+
+
+_Appears in:_
+- [GatewayAgent](#gatewayagent)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `agentVersion` _string_ | AgentVersion is the version of the gateway agent |  |  |
+| `lastAppliedTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#time-v1-meta)_ | Time of the last successful configuration application |  |  |
+| `lastAppliedGen` _integer_ | Generation of the last successful configuration application |  |  |
+| `lastHeartbeat` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#time-v1-meta)_ | Time of the last heartbeat from the agent |  |  |
+| `state` _[GatewayState](#gatewaystate)_ | State represents collected data from the dataplane API that includes FRR as well |  |  |
+
+
+#### GatewayState
+
+
+
+GatewayState represents collected data from the dataplane API that includes FRR as well
+
+
+
+_Appears in:_
+- [GatewayAgentStatus](#gatewayagentstatus)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `lastCollectedTime` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#time-v1-meta)_ | LastCollectedTime is the time of the last successful collection of data from the dataplane API |  |  |
+| `dataplane` _[DataplaneStatus](#dataplanestatus)_ | Dataplane is the status of the dataplane |  |  |
+| `frr` _[FRRStatus](#frrstatus)_ | FRR is the status of the FRR daemon |  |  |
+| `vpcs` _object (keys:string, values:[VPCStatus](#vpcstatus))_ | VPCs is the status of the VPCs where key is the vpc (vpcinfo) name |  |  |
+| `peerings` _object (keys:string, values:[PeeringStatus](#peeringstatus))_ | Peerings is the status of the VPCs peerings where key is VPC1->VPC2 and data is for one direction only |  |  |
+| `bgp` _[BGPStatus](#bgpstatus)_ | BGP is BGP status |  |  |
+
+
+#### PeeringStatus
+
+
+
+PeeringStatus represents the status of a peering between a pair of VPCs in one direction
+
+
+
+_Appears in:_
+- [GatewayState](#gatewaystate)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `p` _integer_ | Packets is the number of packets sent on the peering |  |  |
+| `b` _integer_ | Bytes is the number of bytes sent on the peering |  |  |
+| `d` _integer_ | Drops is the number of packets dropped on the peering |  |  |
+| `bps` _float_ | BytesPerSecond is the number of bytes sent per second on the peering |  |  |
+| `pps` _float_ | PktsPerSecond is the number of packets sent per second on the peering |  |  |
+
+
+#### VPCStatus
+
+
+
+
+
+
+
+_Appears in:_
+- [GatewayState](#gatewaystate)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `p` _integer_ | Packets is the number of packets sent on the vpc |  |  |
+| `b` _integer_ | Bytes is the number of bytes sent on the vpc |  |  |
+| `d` _integer_ | Drops is the number of packets dropped on the vpc |  |  |
+
+
+
+## vpc.githedgehog.com/v1beta1
+
+Package v1beta1 contains API Schema definitions for the vpc v1beta1 API group. It is public API group for the VPCs
+and Externals APIs. Intended to be used by the user.
+
+### Resource Types
+- [External](#external)
+- [ExternalAttachment](#externalattachment)
+- [ExternalPeering](#externalpeering)
+- [IPv4Namespace](#ipv4namespace)
+- [VPC](#vpc)
+- [VPCAttachment](#vpcattachment)
+- [VPCPeering](#vpcpeering)
+
+
+
+#### ACLAction
+
+_Underlying type:_ _string_
+
+
+
+
+
+_Appears in:_
+- [ACLStatement](#aclstatement)
+
+| Field | Description |
+| --- | --- |
+| `permit` |  |
+| `deny` |  |
+| `discard` |  |
+| `transit` |  |
+
+
+#### ACLProtocol
+
+_Underlying type:_ _string_
+
+
+
+
+
+_Appears in:_
+- [ACLStatement](#aclstatement)
+
+| Field | Description |
+| --- | --- |
+| `ip` |  |
+| `tcp` |  |
+| `udp` |  |
+| `icmp` |  |
+
+
+#### ACLSpec
+
+
+
+ACLSpec defines an IPv4 Access Control List applied to inbound traffic on an external attachment.
+
+
+
+_Appears in:_
+- [ExternalAttachmentSpec](#externalattachmentspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `statements` _[ACLStatement](#aclstatement) array_ |  |  |  |
+
+
+#### ACLStatement
+
+
+
+
+
+
+
+_Appears in:_
+- [ACLSpec](#aclspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `seq` _integer_ |  |  |  |
+| `action` _[ACLAction](#aclaction)_ |  |  |  |
+| `protocol` _[ACLProtocol](#aclprotocol)_ |  |  |  |
+| `srcPrefix` _string_ |  |  |  |
+| `dstPrefix` _string_ |  |  |  |
+| `portRangeBegin` _integer_ |  |  |  |
+| `portRangeEnd` _integer_ |  |  |  |
+| `tcpFilters` _[ACLTCPFilters](#acltcpfilters)_ |  |  |  |
+| `icmpType` _integer_ |  |  |  |
+| `icmpCode` _integer_ |  |  |  |
+
+
+#### ACLTCPFilters
+
+
+
+
+
+
+
+_Appears in:_
+- [ACLStatement](#aclstatement)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `established` _boolean_ |  |  |  |
+| `fin` _boolean_ |  |  |  |
+| `notFin` _boolean_ |  |  |  |
+| `syn` _boolean_ |  |  |  |
+| `notSyn` _boolean_ |  |  |  |
+| `rst` _boolean_ |  |  |  |
+| `notRst` _boolean_ |  |  |  |
+| `psh` _boolean_ |  |  |  |
+| `notPsh` _boolean_ |  |  |  |
+| `ack` _boolean_ |  |  |  |
+| `notAck` _boolean_ |  |  |  |
+| `urg` _boolean_ |  |  |  |
+| `notUrg` _boolean_ |  |  |  |
+
+
+#### External
+
+
+
+External object represents an external system connected to the Fabric and available to the specific IPv4Namespace.
+Users can do external peering with the external system by specifying the name of the External Object without need to
+worry about the details of how external system is attached to the Fabric.
+
+
+
+
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `apiVersion` _string_ | `vpc.githedgehog.com/v1beta1` | | |
+| `kind` _string_ | `External` | | |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[ExternalSpec](#externalspec)_ | Spec is the desired state of the External |  |  |
+| `status` _[ExternalStatus](#externalstatus)_ | Status is the observed state of the External |  |  |
+
+
+#### ExternalAttachment
+
+
+
+ExternalAttachment is a definition of how specific switch is connected with external system (External object).
+Effectively it represents BGP peering between the switch and external system including all needed configuration.
+
+
+
+
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `apiVersion` _string_ | `vpc.githedgehog.com/v1beta1` | | |
+| `kind` _string_ | `ExternalAttachment` | | |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[ExternalAttachmentSpec](#externalattachmentspec)_ | Spec is the desired state of the ExternalAttachment |  |  |
+| `status` _[ExternalAttachmentStatus](#externalattachmentstatus)_ | Status is the observed state of the ExternalAttachment |  |  |
+
+
+#### ExternalAttachmentBFD
+
+
+
+ExternalAttachmentBFD configures BFD for the BGP session of an external attachment.
+Unset values fall back to the fabric defaults.
+
+
+
+_Appears in:_
+- [ExternalAttachmentSpec](#externalattachmentspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `minRX` _integer_ | MinRX is the minimum interval in ms at which we accept BFD control packets from the peer (default 300) |  | Maximum: 60000 <br />Minimum: 10 <br /> |
+| `minTX` _integer_ | MinTX is the desired interval in ms at which we send BFD control packets (default 300) |  | Maximum: 60000 <br />Minimum: 10 <br /> |
+| `multiplier` _integer_ | Multiplier is how many missed packets bring the session down (default 3) |  | Maximum: 255 <br />Minimum: 2 <br /> |
+| `passive` _boolean_ | Passive makes us wait for the peer to initiate the session instead of initiating it<br />ourselves, for the rare ISP that requires it. Both ends passive means no session at all. |  |  |
+
+
+#### ExternalAttachmentNeighbor
+
+
+
+ExternalAttachmentNeighbor defines the BGP neighbor configuration for the external attachment
+
+
+
+_Appears in:_
+- [ExternalAttachmentSpec](#externalattachmentspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `asn` _integer_ | ASN (optional) is the ASN of the BGP neighbor, if not set any ASN other than the switch's own is accepted |  | Format: int64 <br />Maximum: 4.294967295e+09 <br />Minimum: 0 <br /> |
+| `ip` _string_ | IP is the IP address of the BGP neighbor to peer with (without prefix length).<br />Leave it and switch.ip empty for a BGP unnumbered session over IPv6 link-local addresses |  |  |
+| `prefixLimit` _[ExternalAttachmentPrefixLimit](#externalattachmentprefixlimit)_ | PrefixLimit (optional) limits the prefixes accepted from the neighbor |  |  |
+
+
+#### ExternalAttachmentPrefixLimit
+
+
+
+ExternalAttachmentPrefixLimit limits the prefixes accepted from a BGP neighbor, counted after the inbound filters
+
+
+
+_Appears in:_
+- [ExternalAttachmentNeighbor](#externalattachmentneighbor)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `max` _integer_ | Max is the most prefixes accepted. Above it the session is closed, unless warningOnly is set |  | Minimum: 1 <br /> |
+| `restartMinutes` _integer_ | RestartMinutes (optional) is how long the session stays closed after going above max, 5 by default.<br />Raising max doesn't open the session earlier, removing the limit does. Can't be set with warningOnly |  | Minimum: 1 <br /> |
+| `warningThresholdPct` _integer_ | WarningThresholdPct (optional) is the percentage of max from which the switch logs a warning, 75 by default |  | Maximum: 100 <br />Minimum: 1 <br /> |
+| `warningOnly` _boolean_ | WarningOnly (optional) keeps the session open above max, so that going above it is only logged |  |  |
+
+
+#### ExternalAttachmentSpec
+
+
+
+ExternalAttachmentSpec defines the desired state of ExternalAttachment
+
+
+
+_Appears in:_
+- [ExternalAttachment](#externalattachment)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `topology` _[ExternalAttachmentTopology](#externalattachmenttopology)_ | Topology is where the ExternalAttachment sits in the fabric topology |  |  |
+| `external` _string_ | External is the name of the External object this attachment belongs to |  |  |
+| `connection` _string_ | Connection is the name of the Connection object this attachment belongs to (essentially the name of the switch/port) |  |  |
+| `switch` _[ExternalAttachmentSwitch](#externalattachmentswitch)_ | Switch is the switch port configuration for the external attachment in case of a BGP external |  |  |
+| `neighbor` _[ExternalAttachmentNeighbor](#externalattachmentneighbor)_ | Neighbor is the BGP neighbor configuration for the external attachment in case of a BGP external |  |  |
+| `static` _[ExternalAttachmentStatic](#externalattachmentstatic)_ | Static contains parameters specific to a static external attachment |  |  |
+| `inboundACL` _[ACLSpec](#aclspec)_ | InboundACL defines the ACL statements to apply to inbound traffic on this external attachment |  |  |
+| `bfd` _[ExternalAttachmentBFD](#externalattachmentbfd)_ | BFD (optional) enables BFD for the BGP session of this external attachment, an empty object<br />uses the fabric defaults |  |  |
+
+
+#### ExternalAttachmentStatic
+
+
+
+ExternalAttachmentStatic defines parameters used for staticexternal attachments
+
+
+
+_Appears in:_
+- [ExternalAttachmentSpec](#externalattachmentspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `remoteIP` _string_ | RemoteIP is the IP address of the external, which will be used as nexthop for prefixes reachable via this external attachment |  |  |
+| `vlan` _integer_ | VLAN (optional) is the VLAN ID used for the subinterface on a switch port specified in the connection, set to 0 if no VLAN is required |  |  |
+| `ip` _string_ | IP is the IP address (with prefix length) to be configured on the switch when not using Proxy mode |  |  |
+| `proxy` _boolean_ | Proxy is a flag to enable proxy-ARP, used in conjunction with Gateway peering |  |  |
+
+
+#### ExternalAttachmentStatus
+
+
+
+ExternalAttachmentStatus defines the observed state of ExternalAttachment
+
+
+
+_Appears in:_
+- [ExternalAttachment](#externalattachment)
+
+
+
+#### ExternalAttachmentSwitch
+
+
+
+ExternalAttachmentSwitch defines the switch port configuration for the external attachment
+
+
+
+_Appears in:_
+- [ExternalAttachmentSpec](#externalattachmentspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `vlan` _integer_ | VLAN (optional) is the VLAN ID used for the subinterface on a switch port specified in the connection, set to 0 if no VLAN is used |  |  |
+| `ip` _string_ | IP is the IP address of the subinterface on a switch port specified in the connection, it should include the prefix length.<br />Leave it and neighbor.ip empty for a BGP unnumbered session over IPv6 link-local addresses |  |  |
+
+
+#### ExternalAttachmentTopology
+
+
+
+ExternalAttachmentTopology is where a ExternalAttachment sits in the fabric topology
+
+
+
+_Appears in:_
+- [ExternalAttachmentSpec](#externalattachmentspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `fabric` _string_ | Fabric is the name of the Fabric this ExternalAttachment belongs to (if not specified, "default" is used) |  |  |
+
+
+#### ExternalInboundPrefix
+
+
+
+ExternalInboundPrefix defines the prefix lengths accepted within an inbound prefix of an External
+
+
+
+_Appears in:_
+- [ExternalSpec](#externalspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `minPrefixLen` _integer_ | MinPrefixLen is the shortest prefix length accepted within the prefix, defaults to its own length |  | Maximum: 32 <br /> |
+| `maxPrefixLen` _integer_ | MaxPrefixLen is the longest prefix length accepted within the prefix, defaults to minPrefixLen, so<br />that a prefix without either matches exactly |  | Maximum: 32 <br /> |
+
+
+#### ExternalPeering
+
+
+
+ExternalPeering is the Schema for the externalpeerings API
+
+
+
+
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `apiVersion` _string_ | `vpc.githedgehog.com/v1beta1` | | |
+| `kind` _string_ | `ExternalPeering` | | |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[ExternalPeeringSpec](#externalpeeringspec)_ | Spec is the desired state of the ExternalPeering |  |  |
+| `status` _[ExternalPeeringStatus](#externalpeeringstatus)_ | Status is the observed state of the ExternalPeering |  |  |
+
+
+#### ExternalPeeringSpec
+
+
+
+ExternalPeeringSpec defines the desired state of ExternalPeering
+
+
+
+_Appears in:_
+- [ExternalPeering](#externalpeering)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `topology` _[ExternalPeeringTopology](#externalpeeringtopology)_ | Topology is where the ExternalPeering sits in the fabric topology |  |  |
+| `permit` _[ExternalPeeringSpecPermit](#externalpeeringspecpermit)_ | Permit defines the peering policy - which VPC and External to peer with and which subnets/prefixes to permit |  |  |
+
+
+#### ExternalPeeringSpecExternal
+
+
+
+ExternalPeeringSpecExternal defines the External-side of the configuration to peer with
+
+
+
+_Appears in:_
+- [ExternalPeeringSpecPermit](#externalpeeringspecpermit)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `name` _string_ | Name is the name of the External to peer with |  |  |
+| `prefixes` _[ExternalPeeringSpecPrefix](#externalpeeringspecprefix) array_ | Prefixes is the list of prefixes to permit from the External to the VPC |  |  |
+
+
+#### ExternalPeeringSpecPermit
+
+
+
+ExternalPeeringSpecPermit defines the peering policy - which VPC and External to peer with and which subnets/prefixes to permit
+
+
+
+_Appears in:_
+- [ExternalPeeringSpec](#externalpeeringspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `vpc` _[ExternalPeeringSpecVPC](#externalpeeringspecvpc)_ | VPC is the VPC-side of the configuration to peer with |  |  |
+| `external` _[ExternalPeeringSpecExternal](#externalpeeringspecexternal)_ | External is the External-side of the configuration to peer with |  |  |
+
+
+#### ExternalPeeringSpecPrefix
+
+
+
+ExternalPeeringSpecPrefix defines the prefix to permit from the External to the VPC
+
+
+
+_Appears in:_
+- [ExternalPeeringSpecExternal](#externalpeeringspecexternal)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `prefix` _string_ | Prefix is the subnet to permit from the External to the VPC, e.g. 0.0.0.0/0 for any route including default route.<br />It matches any prefix length less than or equal to 32 effectively permitting all prefixes within the specified one. |  |  |
+
+
+#### ExternalPeeringSpecVPC
+
+
+
+ExternalPeeringSpecVPC defines the VPC-side of the configuration to peer with
+
+
+
+_Appears in:_
+- [ExternalPeeringSpecPermit](#externalpeeringspecpermit)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `name` _string_ | Name is the name of the VPC to peer with |  |  |
+| `subnets` _string array_ | Subnets is the list of subnets to advertise from VPC to the External |  |  |
+
+
+#### ExternalPeeringStatus
+
+
+
+ExternalPeeringStatus defines the observed state of ExternalPeering
+
+
+
+_Appears in:_
+- [ExternalPeering](#externalpeering)
+
+
+
+#### ExternalPeeringTopology
+
+
+
+ExternalPeeringTopology is where a ExternalPeering sits in the fabric topology
+
+
+
+_Appears in:_
+- [ExternalPeeringSpec](#externalpeeringspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `fabric` _string_ | Fabric is the name of the Fabric this ExternalPeering belongs to (if not specified, "default" is used) |  |  |
+
+
+#### ExternalSpec
+
+
+
+ExternalSpec describes IPv4 namespace External belongs to and inbound/outbound communities which are used to
+filter routes from/to the external system.
+
+
+
+_Appears in:_
+- [External](#external)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `topology` _[ExternalTopology](#externaltopology)_ | Topology is where the External sits in the fabric topology |  |  |
+| `ipv4Namespace` _string_ | IPv4Namespace is the name of the IPv4Namespace this External belongs to |  |  |
+| `inboundCommunity` _string_ | InboundCommunity is the optional inbound community to filter routes from the external system (e.g. 65102:5000) |  |  |
+| `outboundCommunity` _string_ | OutboundCommunity is the optional outbound community that all outbound routes will be stamped with (e.g. 50000:50001) |  |  |
+| `static` _[ExternalStaticSpec](#externalstaticspec)_ | Static contains parameters specific to static externals |  |  |
+| `localASN` _integer_ | LocalASN makes every attachment to this External present the same ASN to the external system<br />instead of each border leaf's own. Changing it resets all sessions to this External, and the<br />external system has to change its remote-as to match. Static attachments ignore it. |  | Format: int64 <br />Maximum: 4.294967295e+09 <br />Minimum: 0 <br /> |
+| `inboundPrefixes` _object (keys:string, values:[ExternalInboundPrefix](#externalinboundprefix))_ | InboundPrefixes (optional) limits the routes accepted from the external system to these prefixes,<br />keyed by prefix. Without it any prefix outside the IPv4Namespace is accepted |  |  |
+
+
+#### ExternalStaticSpec
+
+
+
+
+
+
+
+_Appears in:_
+- [ExternalSpec](#externalspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `prefixes` _string array_ | Prefixes is the list of IPv4 prefixes reachable via the external |  |  |
+
+
+#### ExternalStatus
+
+
+
+ExternalStatus defines the observed state of External
+
+
+
+_Appears in:_
+- [External](#external)
+
+
+
+#### ExternalTopology
+
+
+
+ExternalTopology is where a External sits in the fabric topology
+
+
+
+_Appears in:_
+- [ExternalSpec](#externalspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `fabric` _string_ | Fabric is the name of the Fabric this External belongs to (if not specified, "default" is used) |  |  |
+| `domain` _string_ | Domain is the Fabric domain the External is in (if not specified, "default" is used). It can<br />only be attached to switches in that domain, and it is immutable |  |  |
+
+
+#### IPv4Namespace
+
+
+
+IPv4Namespace represents a namespace for VPC subnets allocation. All VPC subnets within a single IPv4Namespace are
+non-overlapping. Users can create multiple IPv4Namespaces to allocate same VPC subnets.
+
+
+
+
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `apiVersion` _string_ | `vpc.githedgehog.com/v1beta1` | | |
+| `kind` _string_ | `IPv4Namespace` | | |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[IPv4NamespaceSpec](#ipv4namespacespec)_ | Spec is the desired state of the IPv4Namespace |  |  |
+| `status` _[IPv4NamespaceStatus](#ipv4namespacestatus)_ | Status is the observed state of the IPv4Namespace |  |  |
+
+
+#### IPv4NamespaceSpec
+
+
+
+IPv4NamespaceSpec defines the desired state of IPv4Namespace
+
+
+
+_Appears in:_
+- [IPv4Namespace](#ipv4namespace)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `topology` _[IPv4NamespaceTopology](#ipv4namespacetopology)_ | Topology is where the IPv4Namespace sits in the fabric topology |  |  |
+| `subnets` _string array_ | Subnets is the list of subnets to allocate VPC subnets from, couldn't overlap between each other and with Fabric reserved subnets |  | MaxItems: 20 <br />MinItems: 1 <br /> |
+
+
+#### IPv4NamespaceStatus
+
+
+
+IPv4NamespaceStatus defines the observed state of IPv4Namespace
+
+
+
+_Appears in:_
+- [IPv4Namespace](#ipv4namespace)
+
+
+
+#### IPv4NamespaceTopology
+
+
+
+IPv4NamespaceTopology is where a IPv4Namespace sits in the fabric topology
+
+
+
+_Appears in:_
+- [IPv4NamespaceSpec](#ipv4namespacespec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `fabric` _string_ | Fabric is the name of the Fabric this IPv4Namespace belongs to (if not specified, "default" is used) |  |  |
+
+
+#### VPC
+
+
+
+VPC is Virtual Private Cloud, similar to the public cloud VPC it provides an isolated private network for the
+resources with support for multiple subnets each with user-provided VLANs and on-demand DHCP.
+
+
+
+
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `apiVersion` _string_ | `vpc.githedgehog.com/v1beta1` | | |
+| `kind` _string_ | `VPC` | | |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[VPCSpec](#vpcspec)_ | Spec is the desired state of the VPC |  |  |
+| `status` _[VPCStatus](#vpcstatus)_ | Status is the observed state of the VPC |  |  |
+
+
+#### VPCAttachment
+
+
+
+VPCAttachment is the Schema for the vpcattachments API
+
+
+
+
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `apiVersion` _string_ | `vpc.githedgehog.com/v1beta1` | | |
+| `kind` _string_ | `VPCAttachment` | | |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[VPCAttachmentSpec](#vpcattachmentspec)_ | Spec is the desired state of the VPCAttachment |  |  |
+| `status` _[VPCAttachmentStatus](#vpcattachmentstatus)_ | Status is the observed state of the VPCAttachment |  |  |
+
+
+#### VPCAttachmentSpec
+
+
+
+VPCAttachmentSpec defines the desired state of VPCAttachment
+
+
+
+_Appears in:_
+- [VPCAttachment](#vpcattachment)
+- VPCAttachmentSpecAnn
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `topology` _[VPCAttachmentTopology](#vpcattachmenttopology)_ | Topology is where the VPCAttachment sits in the fabric topology |  |  |
+| `subnet` _string_ | Subnet is the full name of the VPC subnet to attach to, such as "vpc-1/default" |  |  |
+| `connection` _string_ | Connection is the name of the connection to attach to the VPC |  |  |
+| `nativeVLAN` _boolean_ | NativeVLAN is the flag to indicate if the native VLAN should be used for attaching the VPC subnet |  |  |
+
+
+#### VPCAttachmentStatus
+
+
+
+VPCAttachmentStatus defines the observed state of VPCAttachment
+
+
+
+_Appears in:_
+- [VPCAttachment](#vpcattachment)
+
+
+
+#### VPCAttachmentTopology
+
+
+
+VPCAttachmentTopology is where a VPCAttachment sits in the fabric topology
+
+
+
+_Appears in:_
+- [VPCAttachmentSpec](#vpcattachmentspec)
+- VPCAttachmentSpecAnn
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `fabric` _string_ | Fabric is the name of the Fabric this VPCAttachment belongs to (if not specified, "default" is used) |  |  |
+
+
+#### VPCDHCP
+
+
+
+VPCDHCP defines the on-demand DHCP configuration for the subnet
+
+
+
+_Appears in:_
+- [VPCSubnet](#vpcsubnet)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `relay` _string_ | Relay is the DHCP relay IP address, if specified, DHCP server will be disabled |  |  |
+| `relayVPC` _string_ | RelayVPC (optional) is the name of the VPC where the selected DHCP relay lives, requires Relay. It has to be a VPC<br />this one could peer with: same fabric, at least one shared domain, same IPv4 and VLAN namespaces. |  |  |
+| `enable` _boolean_ | Enable enables DHCP server for the subnet |  |  |
+| `range` _[VPCDHCPRange](#vpcdhcprange)_ | Range (optional) is the DHCP range for the subnet if DHCP server is enabled. The gateway, subnet and broadcast<br />addresses are never handed out, even if the range includes them (all addresses of a /31 or /32 are usable). |  |  |
+| `options` _[VPCDHCPOptions](#vpcdhcpoptions)_ | Options (optional) is the DHCP options for the subnet if DHCP server is enabled |  |  |
+| `static` _object (keys:string, values:[VPCDHCPStatic](#vpcdhcpstatic))_ | Static is a map of static IP assignments for MAC addresses |  |  |
+
+
+#### VPCDHCPOptions
+
+
+
+VPCDHCPOptions defines the DHCP options for the subnet if DHCP server is enabled
+
+
+
+_Appears in:_
+- [VPCDHCP](#vpcdhcp)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `pxeURL` _string_ | PXEURL (optional) to identify the pxe server to use to boot hosts connected to this segment such as http://10.10.10.99/bootfilename or tftp://10.10.10.99/bootfilename, http query strings are not supported |  |  |
+| `dnsServers` _string array_ | DNSservers (optional) to configure Domain Name Servers for this particular segment such as: 10.10.10.1, 10.10.10.2 |  | Optional: \{\} <br /> |
+| `timeServers` _string array_ | TimeServers (optional) NTP server addresses to configure for time servers for this particular segment such as: 10.10.10.1, 10.10.10.2 |  | Optional: \{\} <br /> |
+| `interfaceMTU` _integer_ | InterfaceMTU (optional) is the MTU setting that the dhcp server will send to the clients. It is dependent on the client to honor this option. |  |  |
+| `leaseTimeSeconds` _integer_ | Lease time in seconds, such as 3600 |  |  |
+| `disableDefaultRoute` _boolean_ | Disable default route advertisement. For L3VNI VPCs, a classless static route to the VPC subnet<br />will be advertised if this option is enabled. |  |  |
+| `advertisedRoutes` _[VPCDHCPRoute](#vpcdhcproute) array_ | Advertise custom routes to the clients via the classless static route option. If non-empty,<br />and unless the disable default route flag is enabled, a default route via the VPC gateway<br />will be added automatically. |  | Optional: \{\} <br /> |
+
+
+#### VPCDHCPRange
+
+
+
+VPCDHCPRange defines the DHCP range for the subnet if DHCP server is enabled
+
+
+
+_Appears in:_
+- [VPCDHCP](#vpcdhcp)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `start` _string_ | Start is the start IP address of the DHCP range |  |  |
+| `end` _string_ | End is the end IP address of the DHCP range |  |  |
+
+
+#### VPCDHCPRoute
+
+
+
+
+
+
+
+_Appears in:_
+- [VPCDHCPOptions](#vpcdhcpoptions)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `destination` _string_ | Destination is the destination prefix for the route |  |  |
+| `gateway` _string_ | Gateway is the gateway IP address for the route |  |  |
+
+
+#### VPCDHCPStatic
+
+
+
+VPCDHCPStatic represents static IP assignment
+
+
+
+_Appears in:_
+- [VPCDHCP](#vpcdhcp)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `ip` _string_ | IP is the assigned static IP address |  |  |
+
+
+#### VPCMode
+
+_Underlying type:_ _string_
+
+VPCMode defines how VPCs are implemented on the switches
+
+
+
+_Appears in:_
+- [VPCSpec](#vpcspec)
+
+| Field | Description |
+| --- | --- |
+| `` | L2VNI: L2VPN EVPN with VRF per VPC and L2VNI per VPC subnet<br /> |
+| `l3vni` | L3VNI: L2VPN EVPN with VRF per VPC and only L3VNI per VPC, hosts should have /32 IP addresses in the VPC subnets<br /> |
+| `l3flat` | (EXPERIMENTAL) L3Flat: All VPCs are configured within default VRF and ACLs are used for isolation and VPC peerings, hosts should have /32 IP addresses in the VPC subnets<br /> |
+
+
+#### VPCPeer
+
+
+
+
+
+
+
+_Appears in:_
+- [VPCPeeringSpec](#vpcpeeringspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `subnets` _string array_ | Subnets is the list of subnets to advertise from current VPC to the peer VPC |  | MaxItems: 10 <br />MinItems: 1 <br /> |
+
+
+#### VPCPeering
+
+
+
+VPCPeering represents a peering between two VPCs with corresponding filtering rules.
+Minimal example of the VPC peering showing vpc-1 to vpc-2 peering with all subnets allowed:
+
+	spec:
+	  permit:
+	  - vpc-1: {}
+	    vpc-2: {}
+
+
+
+
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `apiVersion` _string_ | `vpc.githedgehog.com/v1beta1` | | |
+| `kind` _string_ | `VPCPeering` | | |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[VPCPeeringSpec](#vpcpeeringspec)_ | Spec is the desired state of the VPCPeering |  |  |
+| `status` _[VPCPeeringStatus](#vpcpeeringstatus)_ | Status is the observed state of the VPCPeering |  |  |
+
+
+#### VPCPeeringSpec
+
+
+
+VPCPeeringSpec defines the desired state of VPCPeering
+
+
+
+_Appears in:_
+- [VPCPeering](#vpcpeering)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `topology` _[VPCPeeringTopology](#vpcpeeringtopology)_ | Topology is where the VPCPeering sits in the fabric topology |  |  |
+| `remote` _string_ | Deprecated and no longer supported |  |  |
+| `permit` _[map[string]VPCPeer](#vpcpeer) array_ | Permit defines a list of the peering policies - which VPC subnets will have access to the peer VPC subnets. |  | MaxItems: 10 <br />MinItems: 1 <br /> |
+
+
+#### VPCPeeringStatus
+
+
+
+VPCPeeringStatus defines the observed state of VPCPeering
+
+
+
+_Appears in:_
+- [VPCPeering](#vpcpeering)
+
+
+
+#### VPCPeeringTopology
+
+
+
+VPCPeeringTopology is where a VPCPeering sits in the fabric topology
+
+
+
+_Appears in:_
+- [VPCPeeringSpec](#vpcpeeringspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `fabric` _string_ | Fabric is the name of the Fabric this VPCPeering belongs to (if not specified, "default" is used) |  |  |
+
+
+#### VPCSpec
+
+
+
+VPCSpec defines the desired state of VPC.
+At least one subnet is required.
+
+
+
+_Appears in:_
+- [VPC](#vpc)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `mode` _[VPCMode](#vpcmode)_ | Mode is the VPC mode that defines how the VPCs are configured on the switches |  |  |
+| `subnets` _object (keys:string, values:[VPCSubnet](#vpcsubnet))_ | Subnets is the list of VPC subnets to configure |  |  |
+| `topology` _[VPCTopology](#vpctopology)_ | Topology is where the VPC sits in the fabric topology |  |  |
+| `ipv4Namespace` _string_ | IPv4Namespace is the name of the IPv4Namespace this VPC belongs to (if not specified, "default" is used) |  |  |
+| `vlanNamespace` _string_ | VLANNamespace is the name of the VLANNamespace this VPC belongs to (if not specified, "default" is used) |  |  |
+| `defaultIsolated` _boolean_ | DefaultIsolated sets default behavior for isolated mode for the subnets (disabled by default) |  |  |
+| `defaultRestricted` _boolean_ | DefaultRestricted sets default behavior for restricted mode for the subnets (disabled by default) |  |  |
+| `permit` _string array array_ | Permit defines a list of the access policies between the subnets within the VPC - each policy is a list of subnets that have access to each other.<br />It's applied on top of the subnet isolation flag and if subnet isn't isolated it's not required to have it in a permit list while if vpc is marked<br />as isolated it's required to have it in a permit list to have access to other subnets. |  |  |
+| `staticRoutes` _[VPCStaticRoute](#vpcstaticroute) array_ | StaticRoutes is the list of additional static routes for the VPC |  |  |
+
+
+#### VPCStaticRoute
+
+
+
+VPCStaticRoute defines the static route for the VPC
+
+
+
+_Appears in:_
+- [VPCSpec](#vpcspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `prefix` _string_ | Prefix for the static route (mandatory), e.g. 10.42.0.0/24 |  |  |
+| `nextHops` _string array_ | NextHops for the static route (at least one is required), e.g. 10.99.0.0 |  |  |
+
+
+#### VPCStatus
+
+
+
+VPCStatus defines the observed state of VPC
+
+
+
+_Appears in:_
+- [VPC](#vpc)
+
+
+
+#### VPCSubnet
+
+
+
+VPCSubnet defines the VPC subnet configuration
+
+
+
+_Appears in:_
+- [VPCSpec](#vpcspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `subnet` _string_ | Subnet is the subnet CIDR block, such as "10.0.0.0/24", should belong to the IPv4Namespace and be unique within the namespace |  |  |
+| `gateway` _string_ | Gateway (optional) for the subnet, if not specified, the first IP (e.g. 10.0.0.1) in the subnet is used as the gateway |  |  |
+| `dhcp` _[VPCDHCP](#vpcdhcp)_ | DHCP is the on-demand DHCP configuration for the subnet |  |  |
+| `vlan` _integer_ | VLAN is the VLAN ID for the subnet, should belong to the VLANNamespace and be unique within the namespace |  |  |
+| `isolated` _boolean_ | Isolated is the flag to enable isolated mode for the subnet which means no access to and from the other subnets within the VPC |  |  |
+| `restricted` _boolean_ | Restricted is the flag to enable restricted mode for the subnet which means no access between hosts within the subnet itself |  |  |
+| `hostBGP` _boolean_ | HostBGP is the flag to set this Subnet as dedicated to BGP speaking hosts advertising their VIPs within the subnet's IP range |  |  |
+| `hostBGPMinPrefixLen` _integer_ | HostBGPMinPrefixLen is the shortest prefix length accepted from the host within the subnet's IP range, 32 by default |  | Maximum: 32 <br />Minimum: 1 <br /> |
+| `hostBGPMaxPrefixLen` _integer_ | HostBGPMaxPrefixLen is the longest prefix length accepted from the host within the subnet's IP range, 32 by default |  | Maximum: 32 <br />Minimum: 1 <br /> |
+| `hostBGPExtraPrefixes` _object (keys:string, values:[VPCSubnetHostBGPPrefix](#vpcsubnethostbgpprefix))_ | HostBGPExtraPrefixes is the set of extra IP prefixes, on top of the subnet's own IP range, to accept from the<br />host over its BGP sessions, keyed by prefix |  |  |
+
+
+#### VPCSubnetHostBGPPrefix
+
+
+
+VPCSubnetHostBGPPrefix defines the prefix lengths accepted from the host within an extra hostBGP prefix
+
+
+
+_Appears in:_
+- [VPCSubnet](#vpcsubnet)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `minPrefixLen` _integer_ | MinPrefixLen is the shortest prefix length accepted within the prefix, defaults to the subnet's hostBGPMinPrefixLen |  | Maximum: 32 <br />Minimum: 1 <br /> |
+| `maxPrefixLen` _integer_ | MaxPrefixLen is the longest prefix length accepted within the prefix, defaults to the subnet's hostBGPMaxPrefixLen |  | Maximum: 32 <br />Minimum: 1 <br /> |
+
+
+#### VPCTopology
+
+
+
+VPCTopology is where a VPC sits in the fabric topology
+
+
+
+_Appears in:_
+- [VPCSpec](#vpcspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `fabric` _string_ | Fabric is the name of the Fabric this VPC belongs to (if not specified, "default" is used) |  |  |
+| `domains` _string array_ | Domains are the Fabric domains the VPC is in (if not specified, "default" is used). It can only<br />be attached to switches that are in all of them, and they are immutable |  |  |
+
+
+
+## wiring.githedgehog.com/v1beta1
+
+Package v1beta1 contains API Schema definitions for the wiring v1beta1 API group. It is public API group mainly for
+the underlay definition including Switches, Server, wiring between them and etc. Intended to be used by the user.
+
+### Resource Types
+- [Connection](#connection)
+- [Fabric](#fabric)
+- [Server](#server)
+- [Switch](#switch)
+- [SwitchGroup](#switchgroup)
+- [SwitchProfile](#switchprofile)
+- [VLANNamespace](#vlannamespace)
+
+
+
+
+
+
+
+
+
+#### BasePortName
+
+
+
+BasePortName defines the full name of the switch port
+
+
+
+_Appears in:_
+- [ConnExternalLink](#connexternallink)
+- [ConnFabricLinkSwitch](#connfabriclinkswitch)
+- [ConnGatewayLinkGateway](#conngatewaylinkgateway)
+- [ConnStaticExternalLinkSwitch](#connstaticexternallinkswitch)
+- [ServerToSwitchLink](#servertoswitchlink)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `port` _string_ | Port defines the full name of the switch port in the format of "device/port", such as "spine-1/E1/1".<br />SONiC port name is used as a port name and switch name should be same as the name of the Switch object. |  |  |
+
+
+#### ConnBundled
+
+
+
+ConnBundled defines the bundled connection (port channel, single server to a single switch with multiple links)
+
+
+
+_Appears in:_
+- [ConnectionSpec](#connectionspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `links` _[ServerToSwitchLink](#servertoswitchlink) array_ | Links is the list of server-to-switch links |  |  |
+| `mtu` _integer_ | MTU is the MTU to be configured on the switch port or port channel |  |  |
+| `fallback` _boolean_ | Fallback is the optional flag that used to indicate one of the links in LACP port channel to be used as a fallback link |  |  |
+
+
+#### ConnESLAG
+
+
+
+ConnESLAG defines the ESLAG connection (port channel, single server to 1-4 switches with one or more links)
+
+
+
+_Appears in:_
+- [ConnectionSpec](#connectionspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `links` _[ServerToSwitchLink](#servertoswitchlink) array_ | Links is the list of server-to-switch links |  | MinItems: 1 <br /> |
+| `mtu` _integer_ | MTU is the MTU to be configured on the switch port or port channel |  |  |
+| `fallback` _boolean_ | Fallback is the optional flag that used to indicate one of the links in LACP port channel to be used as a fallback link |  |  |
+
+
+#### ConnExternal
+
+
+
+ConnExternal defines the external connection (single switch to a single external device with a single link)
+
+
+
+_Appears in:_
+- [ConnectionSpec](#connectionspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `link` _[ConnExternalLink](#connexternallink)_ | Link is the external connection link |  |  |
+
+
+#### ConnExternalLink
+
+
+
+ConnExternalLink defines the external connection link
+
+
+
+_Appears in:_
+- [ConnExternal](#connexternal)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `switch` _[BasePortName](#baseportname)_ |  |  |  |
+
+
+#### ConnFabric
+
+
+
+ConnFabric defines the fabric connection (single spine to a single leaf with at least one link)
+
+
+
+_Appears in:_
+- [ConnectionSpec](#connectionspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `links` _[FabricLink](#fabriclink) array_ | Links is the list of spine-to-leaf links |  | MinItems: 1 <br /> |
+
+
+#### ConnFabricLinkSwitch
+
+
+
+ConnFabricLinkSwitch defines the switch side of the fabric (or gateway) link
+
+
+
+_Appears in:_
+- [FabricLink](#fabriclink)
+- [GatewayLink](#gatewaylink)
+- [MeshLink](#meshlink)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `port` _string_ | Port defines the full name of the switch port in the format of "device/port", such as "spine-1/E1/1".<br />SONiC port name is used as a port name and switch name should be same as the name of the Switch object. |  |  |
+| `ip` _string_ | IP is the IP address of the switch side of the fabric link (switch port configuration) |  | Pattern: `^((25[0-5]\|(2[0-4]\|1\d\|[1-9]\|)\d)\.?\b)\{4\}/([1-2]?[0-9]\|3[0-2])$` <br /> |
+
+
+#### ConnGateway
+
+
+
+ConnGateway defines the gateway connection (single spine to a single gateway with at least one link)
+
+
+
+_Appears in:_
+- [ConnectionSpec](#connectionspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `links` _[GatewayLink](#gatewaylink) array_ | Links is the list of spine to gateway links |  | MinItems: 1 <br /> |
+
+
+#### ConnGatewayLinkGateway
+
+
+
+ConnGatewayLinkGateway defines the gateway side of the gateway link
+
+
+
+_Appears in:_
+- [GatewayLink](#gatewaylink)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `port` _string_ | Port defines the full name of the switch port in the format of "device/port", such as "spine-1/E1/1".<br />SONiC port name is used as a port name and switch name should be same as the name of the Switch object. |  |  |
+| `ip` _string_ | IP is the IP address of the switch side of the fabric link (switch port configuration) |  | Pattern: `^((25[0-5]\|(2[0-4]\|1\d\|[1-9]\|)\d)\.?\b)\{4\}/([1-2]?[0-9]\|3[0-2])$` <br /> |
+
+
+#### ConnMesh
+
+
+
+ConnMesh defines the mesh connection (direct leaf to leaf connection with at least one link)
+
+
+
+_Appears in:_
+- [ConnectionSpec](#connectionspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `links` _[MeshLink](#meshlink) array_ | Links is the list of leaf to leaf links |  | MinItems: 1 <br /> |
+
+
+#### ConnStaticExternal
+
+
+
+ConnStaticExternal defines the static external connection (single switch to a single external device with a single link)
+
+
+
+_Appears in:_
+- [ConnectionSpec](#connectionspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `link` _[ConnStaticExternalLink](#connstaticexternallink)_ | Link is the static external connection link |  |  |
+| `withinVPC` _string_ | WithinVPC is the optional VPC name to provision the static external connection within the VPC VRF instead of default one to make resource available to the specific VPC |  |  |
+
+
+#### ConnStaticExternalLink
+
+
+
+ConnStaticExternalLink defines the static external connection link
+
+
+
+_Appears in:_
+- [ConnStaticExternal](#connstaticexternal)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `switch` _[ConnStaticExternalLinkSwitch](#connstaticexternallinkswitch)_ | Switch is the switch side of the static external connection link |  |  |
+
+
+#### ConnStaticExternalLinkSwitch
+
+
+
+ConnStaticExternalLinkSwitch defines the switch side of the static external connection link
+
+
+
+_Appears in:_
+- [ConnStaticExternalLink](#connstaticexternallink)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `port` _string_ | Port defines the full name of the switch port in the format of "device/port", such as "spine-1/E1/1".<br />SONiC port name is used as a port name and switch name should be same as the name of the Switch object. |  |  |
+| `ip` _string_ | IP is the IP address of the switch side of the static external connection link (switch port configuration) |  | Pattern: `^((25[0-5]\|(2[0-4]\|1\d\|[1-9]\|)\d)\.?\b)\{4\}/([1-2]?[0-9]\|3[0-2])$` <br /> |
+| `nextHop` _string_ | NextHop is the next hop IP address for static routes that will be created for the subnets |  | Pattern: `^((25[0-5]\|(2[0-4]\|1\d\|[1-9]\|)\d)\.?\b)\{4\}$` <br /> |
+| `subnets` _string array_ | Subnets is the list of subnets that will get static routes using the specified next hop |  |  |
+| `vlan` _integer_ | VLAN is the optional VLAN ID to be configured on the switch port |  |  |
+
+
+#### ConnUnbundled
+
+
+
+ConnUnbundled defines the unbundled connection (no port channel, single server to a single switch with a single link)
+
+
+
+_Appears in:_
+- [ConnectionSpec](#connectionspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `link` _[ServerToSwitchLink](#servertoswitchlink)_ | Link is the server-to-switch link |  |  |
+| `mtu` _integer_ | MTU is the MTU to be configured on the switch port or port channel |  |  |
+
+
+#### Connection
+
+
+
+Connection object represents a logical and physical connections between any devices in the Fabric (Switch, Server
+and External objects). It's needed to define all physical and logical connections between the devices in the Wiring
+Diagram. Connection type is defined by the top-level field in the ConnectionSpec. Exactly one of them could be used
+in a single Connection object.
+
+
+
+
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `apiVersion` _string_ | `wiring.githedgehog.com/v1beta1` | | |
+| `kind` _string_ | `Connection` | | |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[ConnectionSpec](#connectionspec)_ | Spec is the desired state of the Connection |  |  |
+| `status` _[ConnectionStatus](#connectionstatus)_ | Status is the observed state of the Connection |  |  |
+
+
+#### ConnectionSpec
+
+
+
+ConnectionSpec defines the desired state of Connection
+
+
+
+_Appears in:_
+- [Connection](#connection)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `topology` _[ConnectionTopology](#connectiontopology)_ | Topology is where the connection sits in the fabric topology |  |  |
+| `unbundled` _[ConnUnbundled](#connunbundled)_ | Unbundled defines the unbundled connection (no port channel, single server to a single switch with a single link) |  |  |
+| `bundled` _[ConnBundled](#connbundled)_ | Bundled defines the bundled connection (port channel, single server to a single switch with multiple links) |  |  |
+| `eslag` _[ConnESLAG](#conneslag)_ | ESLAG defines the ESLAG connection (port channel, single server to 1-4 switches with one or more links) |  |  |
+| `fabric` _[ConnFabric](#connfabric)_ | Fabric defines the fabric connection (single spine to a single leaf with at least one link) |  |  |
+| `mesh` _[ConnMesh](#connmesh)_ | Mesh defines the mesh connection (direct leaf to leaf connection with at least one link) |  |  |
+| `gateway` _[ConnGateway](#conngateway)_ | Gateway defines the gateway connection (single spine to a single gateway with at least one link) |  |  |
+| `external` _[ConnExternal](#connexternal)_ | External defines the external connection (single switch to a single external device with a single link) |  |  |
+| `staticExternal` _[ConnStaticExternal](#connstaticexternal)_ | StaticExternal defines the static external connection (single switch to a single external device with a single link) |  |  |
+
+
+#### ConnectionStatus
+
+
+
+ConnectionStatus defines the observed state of Connection
+
+
+
+_Appears in:_
+- [Connection](#connection)
+
+
+
+#### ConnectionTopology
+
+
+
+ConnectionTopology is where a Connection sits in the fabric topology
+
+
+
+_Appears in:_
+- [ConnectionSpec](#connectionspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `fabric` _string_ | Fabric is the name of the Fabric this connection belongs to (if not specified, "default" is used).<br />It is the Fabric the connected devices are in, unrelated to the fabric connection type |  |  |
+
+
+#### Fabric
+
+
+
+Fabric is a single spine-leaf topology, owning its switches, its ASN range and its address and VLAN namespaces.
+Fabrics are not cabled to each other and reach each other by peering as external systems.
+
+
+
+
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `apiVersion` _string_ | `wiring.githedgehog.com/v1beta1` | | |
+| `kind` _string_ | `Fabric` | | |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[FabricSpec](#fabricspec)_ | Spec is the desired state of the Fabric |  |  |
+| `status` _[FabricStatus](#fabricstatus)_ | Status is the observed state of the Fabric |  |  |
+
+
+#### FabricDomainSpec
+
+
+
+FabricDomainSpec defines a single spine layer of a Fabric
+
+
+
+_Appears in:_
+- [FabricSpec](#fabricspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `spineASN` _integer_ | SpineASN is the ASN shared by all spines of this domain, outside the leaf ASN range |  | Format: int64 <br />Maximum: 4.294967295e+09 <br />Minimum: 0 <br /> |
+| `gatewayASN` _integer_ | GatewayASN is the ASN shared by all gateways attached to this domain, outside the leaf ASN range |  | Format: int64 <br />Maximum: 4.294967295e+09 <br />Minimum: 0 <br /> |
+
+
+#### FabricLink
+
+
+
+FabricLink defines the fabric connection link
+
+
+
+_Appears in:_
+- [ConnFabric](#connfabric)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `spine` _[ConnFabricLinkSwitch](#connfabriclinkswitch)_ | Spine is the spine side of the fabric link |  |  |
+| `leaf` _[ConnFabricLinkSwitch](#connfabriclinkswitch)_ | Leaf is the leaf side of the fabric link |  |  |
+
+
+#### FabricSpec
+
+
+
+FabricSpec defines the desired state of Fabric
+
+
+
+_Appears in:_
+- [Fabric](#fabric)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `leafASNStart` _integer_ | LeafASNStart is the first ASN of the range leaves of this Fabric are allocated from |  | Format: int64 <br />Maximum: 4.294967295e+09 <br />Minimum: 0 <br /> |
+| `leafASNEnd` _integer_ | LeafASNEnd is the last ASN of the range leaves of this Fabric are allocated from |  | Format: int64 <br />Maximum: 4.294967295e+09 <br />Minimum: 0 <br /> |
+| `disableBFD` _boolean_ | DisableBFD disables BFD on the links between switches and on the sessions with the gateways |  |  |
+| `domains` _object (keys:string, values:[FabricDomainSpec](#fabricdomainspec))_ | Domains is the set of spine layers in this Fabric, at least one is required |  |  |
+
+
+#### FabricStatus
+
+
+
+FabricStatus defines the observed state of Fabric
+
+
+
+_Appears in:_
+- [Fabric](#fabric)
+
+
+
+#### GatewayLink
+
+
+
+GatewayLink defines the gateway connection link
+
+
+
+_Appears in:_
+- [ConnGateway](#conngateway)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `switch` _[ConnFabricLinkSwitch](#connfabriclinkswitch)_ | Switch is the switch (spine or leaf) side of the gateway link |  |  |
+| `gateway` _[ConnGatewayLinkGateway](#conngatewaylinkgateway)_ | Gateway is the gateway side of the gateway link |  |  |
+
+
+#### MeshLink
+
+
+
+MeshLink defines the mesh connection link, i.e. a direct leaf to leaf connection
+
+
+
+_Appears in:_
+- [ConnMesh](#connmesh)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `leaf1` _[ConnFabricLinkSwitch](#connfabriclinkswitch)_ |  |  |  |
+| `leaf2` _[ConnFabricLinkSwitch](#connfabriclinkswitch)_ |  |  |  |
+
+
+#### PortFECMode
+
+_Underlying type:_ _string_
+
+PortFECMode is the FEC mode for a port
+
+_Validation:_
+- Enum: [rs fc auto disabled]
+
+_Appears in:_
+- [SwitchSpec](#switchspec)
+
+| Field | Description |
+| --- | --- |
+| `rs` |  |
+| `fc` |  |
+| `auto` |  |
+| `disabled` |  |
+
+
+#### Server
+
+
+
+Server is the Schema for the servers API
+
+
+
+
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `apiVersion` _string_ | `wiring.githedgehog.com/v1beta1` | | |
+| `kind` _string_ | `Server` | | |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[ServerSpec](#serverspec)_ | Spec is desired state of the server |  |  |
+| `status` _[ServerStatus](#serverstatus)_ | Status is the observed state of the server |  |  |
+
+
+#### ServerFacingConnectionConfig
+
+
+
+ServerFacingConnectionConfig defines any server-facing connection (unbundled, bundled etc.) configuration
+
+
+
+_Appears in:_
+- [ConnBundled](#connbundled)
+- [ConnESLAG](#conneslag)
+- [ConnUnbundled](#connunbundled)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `mtu` _integer_ | MTU is the MTU to be configured on the switch port or port channel |  |  |
+
+
+#### ServerInspect
+
+
+
+ServerInspect defines the expectations used to check the server against what's observed in the Fabric
+
+
+
+_Appears in:_
+- [ServerSpec](#serverspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `expectedSysName` _string_ | ExpectedSystemName is the LLDP system name the server advertises, usually its hostname, if it isn't the<br />name of this object, e.g. a server-1 running as server-1.example.com |  |  |
+
+
+#### ServerSpec
+
+
+
+ServerSpec defines the desired state of Server
+
+
+
+_Appears in:_
+- [Server](#server)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `description` _string_ | Description is a description of the server |  |  |
+| `profile` _string_ | Profile is the profile of the server, name of the ServerProfile object to be used for this server, currently not used by the Fabric |  |  |
+| `inspect` _[ServerInspect](#serverinspect)_ | Inspect is the expectations used to check the server against what's observed in the Fabric |  |  |
+
+
+#### ServerStatus
+
+
+
+ServerStatus defines the observed state of Server
+
+
+
+_Appears in:_
+- [Server](#server)
+
+
+
+#### ServerToSwitchLink
+
+
+
+ServerToSwitchLink defines the server-to-switch link
+
+
+
+_Appears in:_
+- [ConnBundled](#connbundled)
+- [ConnESLAG](#conneslag)
+- [ConnUnbundled](#connunbundled)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `server` _[BasePortName](#baseportname)_ | Server is the server side of the connection |  |  |
+| `switch` _[BasePortName](#baseportname)_ | Switch is the switch side of the connection |  |  |
+
+
+#### Switch
+
+
+
+Switch is the Schema for the switches API
+
+
+
+
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `apiVersion` _string_ | `wiring.githedgehog.com/v1beta1` | | |
+| `kind` _string_ | `Switch` | | |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[SwitchSpec](#switchspec)_ | Spec is desired state of the switch |  |  |
+| `status` _[SwitchStatus](#switchstatus)_ | Status is the observed state of the switch |  |  |
+
+
+#### SwitchBoot
+
+
+
+SwitchBoot identifies the switch when it's booted to install the NOS, by serial number or MAC address. Each of them
+must be unique across switches.
+
+
+
+_Appears in:_
+- [SwitchSpec](#switchspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `serial` _string_ | Identify switch by serial number, compared case-insensitively |  |  |
+| `mac` _string_ | Identify switch by MAC address of the management port, accepted in any common format and normalized to lower case<br />colon-separated form, e.g. 0c:20:12:fe:01:00 |  |  |
+
+
+#### SwitchECMP
+
+
+
+SwitchECMP is a struct that defines the ECMP configuration for the switch
+
+
+
+_Appears in:_
+- [SwitchSpec](#switchspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `roceQPN` _boolean_ | RoCEQPN is a flag to enable RoCE QPN hashing |  |  |
+
+
+#### SwitchGroup
+
+
+
+SwitchGroup is the marker API object to group switches together, switch can belong to multiple groups
+
+
+
+
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `apiVersion` _string_ | `wiring.githedgehog.com/v1beta1` | | |
+| `kind` _string_ | `SwitchGroup` | | |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[SwitchGroupSpec](#switchgroupspec)_ | Spec is the desired state of the SwitchGroup |  |  |
+| `status` _[SwitchGroupStatus](#switchgroupstatus)_ | Status is the observed state of the SwitchGroup |  |  |
+
+
+#### SwitchGroupSpec
+
+
+
+SwitchGroupSpec defines the desired state of SwitchGroup
+
+
+
+_Appears in:_
+- [SwitchGroup](#switchgroup)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `topology` _[SwitchGroupTopology](#switchgrouptopology)_ | Topology is where the switch group sits in the fabric topology |  |  |
+
+
+#### SwitchGroupStatus
+
+
+
+SwitchGroupStatus defines the observed state of SwitchGroup
+
+
+
+_Appears in:_
+- [SwitchGroup](#switchgroup)
+
+
+
+#### SwitchGroupTopology
+
+
+
+SwitchGroupTopology is where a SwitchGroup sits in the fabric topology
+
+
+
+_Appears in:_
+- [SwitchGroupSpec](#switchgroupspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `fabric` _string_ | Fabric is the name of the Fabric this switch group belongs to (if not specified, "default" is used) |  |  |
+
+
+#### SwitchLinkFlapErrDisable
+
+
+
+SwitchLinkFlapErrDisable configures link-flap errdisable on fabric-facing ports.
+Presence of this struct enables the feature; omitting it leaves the ports unprotected.
+
+
+
+_Appears in:_
+- [SwitchSpec](#switchspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `flapThreshold` _integer_ | FlapThreshold is the number of link-down events within SamplingInterval that triggers errdisable.<br />Defaults to 3. | 3 | Maximum: 50 <br />Minimum: 1 <br /> |
+| `samplingInterval` _integer_ | SamplingInterval is the observation window in seconds for counting flap events.<br />Defaults to 30 s. | 30 | Maximum: 65535 <br />Minimum: 1 <br /> |
+| `recoveryInterval` _integer_ | RecoveryInterval is how long in seconds before the port is automatically re-enabled.<br />0 means the port is never automatically re-enabled and must be recovered manually.<br />Defaults to 300 s. | 300 | Maximum: 65534 <br />Minimum: 0 <br /> |
+
+
+#### SwitchProfile
+
+
+
+SwitchProfile represents switch capabilities and configuration
+
+
+
+
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `apiVersion` _string_ | `wiring.githedgehog.com/v1beta1` | | |
+| `kind` _string_ | `SwitchProfile` | | |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[SwitchProfileSpec](#switchprofilespec)_ |  |  |  |
+| `status` _[SwitchProfileStatus](#switchprofilestatus)_ |  |  |  |
+
+
+#### SwitchProfileConfig
+
+
+
+Defines switch-specific configuration options
+
+
+
+_Appears in:_
+- [SwitchProfileSpec](#switchprofilespec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `maxPathsEBGP` _integer_ | MaxPathsIBGP defines the maximum number of IBGP paths to be configured |  |  |
+
+
+#### SwitchProfileFeatures
+
+
+
+Defines features supported by a specific switch which is later used for roles and Fabric API features usage validation
+
+
+
+_Appears in:_
+- [SwitchProfileSpec](#switchprofilespec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `subinterfaces` _boolean_ | Subinterfaces defines if switch supports subinterfaces |  |  |
+| `acls` _boolean_ | ACLs defines if switch supports ACLs |  |  |
+| `l2vni` _boolean_ | L2VNI defines if switch supports L2 VNIs |  |  |
+| `l3vni` _boolean_ | L3VNI defines if switch supports L3 VNIs |  |  |
+| `roce` _boolean_ | RoCE defines if switch supports RoCEv2 over VXLAN and related features used by the fabric |  |  |
+| `mclag` _boolean_ | Deprecated: ignored, MCLAG isn't supported anymore. TODO: remove after 26.06 release |  |  |
+| `eslag` _boolean_ | ESLAG defines if switch supports ESLAG (ESI multi-homing) |  |  |
+| `ecmpRoCEQPN` _boolean_ | ECMPRoCEQPN defines if switch supports ECMP QPN hashing |  |  |
+| `portLocator` _boolean_ | PortLocator defines if switch supports port locator LED control |  |  |
+
+
+#### SwitchProfilePipeline
+
+
+
+
+
+
+
+_Appears in:_
+- [SwitchProfileSpec](#switchprofilespec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `maxPorts` _integer_ | MaxPorts defines the maximum number of ports (breakouts) allowed for the pipeline |  |  |
+
+
+#### SwitchProfilePort
+
+
+
+Defines a switch port configuration
+Only one of Profile or Group can be set
+
+
+
+_Appears in:_
+- [SwitchProfileSpec](#switchprofilespec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `nos` _string_ | NOSName defines how port is named in the NOS |  |  |
+| `baseNOSName` _string_ | BaseNOSName defines the base NOS name that could be used together with the profile to generate the actual NOS name (e.g. breakouts) |  |  |
+| `label` _string_ | Label defines the physical port label you can see on the actual switch |  |  |
+| `group` _string_ | If port isn't directly manageable, group defines the group it belongs to, exclusive with profile |  |  |
+| `profile` _string_ | If port is directly configurable, profile defines the profile it belongs to, exclusive with group |  |  |
+| `management` _boolean_ | Management defines if port is a management port, it's a special case and it can't have a group or profile |  |  |
+| `oniePortName` _string_ | OniePortName defines the ONIE port name for management ports only |  |  |
+| `pipeline` _string_ | Pipeline defines the pipeline used by the port, on some platforms multiple ports share the same pipeline |  |  |
+| `bonus` _boolean_ | Bonus defines if the port doesn't count towards the switch max ports (e.g. extra SFP28 ports on some switches) |  |  |
+
+
+#### SwitchProfilePortGroup
+
+
+
+Defines a switch port group configuration
+
+
+
+_Appears in:_
+- [SwitchProfileSpec](#switchprofilespec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `nos` _string_ | NOSName defines how group is named in the NOS |  |  |
+| `profile` _string_ | Profile defines the possible configuration profile for the group, could only have speed profile |  |  |
+
+
+#### SwitchProfilePortProfile
+
+
+
+Defines a switch port profile configuration
+
+
+
+_Appears in:_
+- [SwitchProfileSpec](#switchprofilespec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `speed` _[SwitchProfilePortProfileSpeed](#switchprofileportprofilespeed)_ | Speed defines the speed configuration for the profile, exclusive with breakout |  |  |
+| `breakout` _[SwitchProfilePortProfileBreakout](#switchprofileportprofilebreakout)_ | Breakout defines the breakout configuration for the profile, exclusive with speed |  |  |
+| `autoNegAllowed` _boolean_ | AutoNegAllowed defines if configuring auto-negotiation is allowed for the port |  |  |
+| `autoNegDefault` _boolean_ | AutoNegDefault defines the default auto-negotiation state for the port |  |  |
+
+
+#### SwitchProfilePortProfileBreakout
+
+
+
+Defines a switch port profile breakout configuration
+
+
+
+_Appears in:_
+- [SwitchProfilePortProfile](#switchprofileportprofile)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `default` _string_ | Default defines the default breakout mode for the profile |  |  |
+| `supported` _object (keys:string, values:[SwitchProfilePortProfileBreakoutMode](#switchprofileportprofilebreakoutmode))_ | Supported defines the supported breakout modes for the profile with the NOS name offsets |  |  |
+
+
+#### SwitchProfilePortProfileBreakoutMode
+
+
+
+Defines a switch port profile breakout mode configuration
+
+
+
+_Appears in:_
+- [SwitchProfilePortProfileBreakout](#switchprofileportprofilebreakout)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `offsets` _string array_ | Offsets defines the breakout NOS port name offset from the port NOS Name for each breakout mode |  |  |
+| `disablesPortOffsets` _string array_ | DisablesPortOffsets defines the ports disabled by the breakout mode as offsets from the port number (e.g. 1 for the next port), the disabled ports can't be used or configured |  |  |
+
+
+#### SwitchProfilePortProfileSpeed
+
+
+
+Defines a switch port profile speed configuration
+
+
+
+_Appears in:_
+- [SwitchProfilePortProfile](#switchprofileportprofile)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `default` _string_ | Default defines the default speed for the profile |  |  |
+| `supported` _string array_ | Supported defines the supported speeds for the profile |  |  |
+
+
+
+
+#### SwitchProfileSpec
+
+
+
+SwitchProfileSpec defines the desired state of SwitchProfile
+
+
+
+_Appears in:_
+- [SwitchProfile](#switchprofile)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `displayName` _string_ | DisplayName defines the human-readable name of the switch |  |  |
+| `otherNames` _string array_ | OtherNames defines alternative names for the switch |  |  |
+| `switchSilicon` _string_ | SwitchSilicon defines the switch silicon name |  |  |
+| `features` _[SwitchProfileFeatures](#switchprofilefeatures)_ | Features defines the features supported by the switch |  |  |
+| `notes` _string_ | Notes is a free-form field for any additional information about the switch |  |  |
+| `config` _[SwitchProfileConfig](#switchprofileconfig)_ | Config defines the switch-specific configuration options |  |  |
+| `ports` _object (keys:string, values:[SwitchProfilePort](#switchprofileport))_ | Ports defines the switch port configuration |  |  |
+| `portGroups` _object (keys:string, values:[SwitchProfilePortGroup](#switchprofileportgroup))_ | PortGroups defines the switch port group configuration |  |  |
+| `portProfiles` _object (keys:string, values:[SwitchProfilePortProfile](#switchprofileportprofile))_ | PortProfiles defines the switch port profile configuration |  |  |
+| `nosType` _NOSType_ | NOSType defines the NOS type to be used for the switch |  |  |
+| `platform` _string_ | Platform is what expected to be request by ONIE and displayed in the NOS |  |  |
+| `pipelines` _object (keys:string, values:[SwitchProfilePipeline](#switchprofilepipeline))_ | Pipelines defines the switch pipeline configuration |  |  |
+| `maxPorts` _integer_ | MaxPorts defines the maximum number of ports (breakouts) allowed for the switch, bonus ports aren't counted |  |  |
+
+
+#### SwitchProfileStatus
+
+
+
+SwitchProfileStatus defines the observed state of SwitchProfile
+
+
+
+_Appears in:_
+- [SwitchProfile](#switchprofile)
+
+
+
+#### SwitchRedundancy
+
+
+
+SwitchRedundancy is the switch redundancy configuration which includes name of the redundancy group switch belongs
+to and its type, used for ESLAG connections. It defines how redundancy will be configured and handled
+on the switch as well as which connection types will be available. If not specified, switch will not be part of any
+redundancy group. If name isn't empty, type must be specified as well and name should be the same as one of the
+SwitchGroup objects.
+
+
+
+_Appears in:_
+- [SwitchSpec](#switchspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `group` _string_ | Group is the name of the redundancy group switch belongs to |  |  |
+| `type` _RedundancyType_ | Type is the type of the redundancy group, although only eslag is supported now |  |  |
+
+
+#### SwitchRole
+
+_Underlying type:_ _string_
+
+SwitchRole is the role of the switch, could be spine, server-leaf or border-leaf or mixed-leaf
+
+_Validation:_
+- Enum: [spine server-leaf border-leaf mixed-leaf]
+
+_Appears in:_
+- [SwitchSpec](#switchspec)
+
+| Field | Description |
+| --- | --- |
+| `spine` |  |
+| `server-leaf` |  |
+| `border-leaf` |  |
+| `mixed-leaf` |  |
+
+
+#### SwitchSpec
+
+
+
+SwitchSpec defines the desired state of Switch
+
+
+
+_Appears in:_
+- [Switch](#switch)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `role` _[SwitchRole](#switchrole)_ | Role is the role of the switch, could be spine, server-leaf or border-leaf or mixed-leaf |  | Enum: [spine server-leaf border-leaf mixed-leaf] <br />Required: \{\} <br /> |
+| `description` _string_ | Description is a description of the switch |  |  |
+| `profile` _string_ | Profile is the profile of the switch, name of the SwitchProfile object to be used for this switch, currently not used by the Fabric |  |  |
+| `topology` _[SwitchTopology](#switchtopology)_ | Topology is where the switch sits in the fabric topology |  |  |
+| `groups` _string array_ | Groups is a list of switch groups the switch belongs to |  |  |
+| `redundancy` _[SwitchRedundancy](#switchredundancy)_ | Redundancy is the switch redundancy configuration including name of the redundancy group switch belongs to and its type, used for ESLAG connections |  |  |
+| `vlanNamespaces` _string array_ | VLANNamespaces is a list of VLAN namespaces the switch is part of, their VLAN ranges could not overlap |  |  |
+| `asn` _integer_ | ASN is the ASN of the switch |  | Format: int64 <br />Maximum: 4.294967295e+09 <br />Minimum: 0 <br /> |
+| `ip` _string_ | IP is the IP of the switch that could be used to access it from other switches and control nodes in the Fabric |  |  |
+| `vtepIP` _string_ | VTEPIP is the VTEP IP of the switch |  |  |
+| `protocolIP` _string_ | ProtocolIP is used as BGP Router ID for switch configuration |  |  |
+| `portGroupSpeeds` _object (keys:string, values:string)_ | PortGroupSpeeds is a map of port group speeds, key is the port group name, value is the speed, such as '"2": 10G' |  |  |
+| `portSpeeds` _object (keys:string, values:string)_ | PortSpeeds is a map of port speeds, key is the port name, value is the speed |  |  |
+| `portBreakouts` _object (keys:string, values:string)_ | PortBreakouts is a map of port breakouts, key is the port name, value is the breakout configuration, such as "1/55: 4x25G" |  |  |
+| `portAutoNegs` _object (keys:string, values:boolean)_ | PortAutoNegs is a map of port auto negotiation, key is the port name, value is true or false |  |  |
+| `portFECs` _object (keys:string, values:[PortFECMode](#portfecmode))_ | PortFECs is a map of port FEC modes, key is the port name, value is the FEC mode (rs/fc/auto/disabled).<br />Use only as last resort: removing a value from the map does NOT reset the port's FEC to its default,<br />instead that value persists on the device until a full config reset or a new explicit config |  |  |
+| `portLocators` _object (keys:string, values:string)_ | PortLocators is a map of port locator LED expire times, key is the port name such as E1/1 (incl. breakout<br />sub-ports such as E1/53/1) or "*" to apply to all ports of the switch, value is a duration relative to now<br />such as 10m, an exact expire time in the "2026-08-05 18:45:47" (UTC) format or empty for the default 5 minutes.<br />Values are normalized to the exact expire time and clamped to at most 20 minutes from now, already expired<br />entries are removed as well as all per-port ones if "*" is present |  |  |
+| `boot` _[SwitchBoot](#switchboot)_ | Boot is the boot/provisioning information of the switch |  |  |
+| `enableAllPorts` _boolean_ | EnableAllPorts is a flag to enable all ports on the switch regardless of them being used or not |  |  |
+| `roce` _boolean_ | RoCE is a flag to enable RoCEv2 support on the switch which includes lossless queues and QoS configuration |  |  |
+| `ecmp` _[SwitchECMP](#switchecmp)_ | ECMP is the ECMP configuration for the switch |  |  |
+| `linkFlapErrDisable` _[SwitchLinkFlapErrDisable](#switchlinkflaperrdisable)_ | LinkFlapErrDisable, if set, enables link-flap errdisable protection on all fabric-facing ports.<br />When a port exceeds FlapThreshold link-down events within SamplingInterval seconds it is<br />disabled; RecoveryInterval controls how long before it is automatically re-enabled (0 = never). |  |  |
+
+
+#### SwitchStatus
+
+
+
+SwitchStatus defines the observed state of Switch
+
+
+
+_Appears in:_
+- [Switch](#switch)
+
+
+
+#### SwitchTopology
+
+
+
+SwitchTopology is where a Switch sits in the fabric topology
+
+
+
+_Appears in:_
+- [SwitchSpec](#switchspec)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `fabric` _string_ | Fabric is the name of the Fabric this switch belongs to (if not specified, "default" is used) |  |  |
+| `domains` _string array_ | Domains is the list of the Fabric domains (spine layers) this switch belongs to (if not specified, "default" is used).<br />A spine belongs to exactly one, a leaf to several if it uplinks to the spines of several. Immutable,<br />and the switches of a redundancy group must be in the same domains |  |  |
+
+
+#### VLANNamespace
+
+
+
+VLANNamespace is the Schema for the vlannamespaces API
+
+
+
+
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `apiVersion` _string_ | `wiring.githedgehog.com/v1beta1` | | |
+| `kind` _string_ | `VLANNamespace` | | |
+| `metadata` _[ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#objectmeta-v1-meta)_ | Refer to Kubernetes API documentation for fields of `metadata`. |  |  |
+| `spec` _[VLANNamespaceSpec](#vlannamespacespec)_ | Spec is the desired state of the VLANNamespace |  |  |
+| `status` _[VLANNamespaceStatus](#vlannamespacestatus)_ | Status is the observed state of the VLANNamespace |  |  |
+
+
+#### VLANNamespaceSpec
+
+
+
+VLANNamespaceSpec defines the desired state of VLANNamespace
+
+
+
+_Appears in:_
+- [VLANNamespace](#vlannamespace)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `ranges` _VLANRange array_ | Ranges is a list of VLAN ranges to be used in this namespace, couldn't overlap between each other and with Fabric reserved VLAN ranges |  | MaxItems: 20 <br />MinItems: 1 <br /> |
+
+
+#### VLANNamespaceStatus
+
+
+
+VLANNamespaceStatus defines the observed state of VLANNamespace
+
+
+
+_Appears in:_
+- [VLANNamespace](#vlannamespace)
+
+
+

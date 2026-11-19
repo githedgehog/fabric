@@ -1,0 +1,449 @@
+/*
+Copyright 2023.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package main
+
+import (
+	"context"
+	_ "embed"
+	"fmt"
+	"log/slog"
+	"os"
+	"runtime/debug"
+	"time"
+
+	"github.com/DeRuina/timberjack"
+	"github.com/go-logr/logr"
+	"github.com/lmittmann/tint"
+	"github.com/mattn/go-isatty"
+	"github.com/pkg/errors"
+	slogmulti "github.com/samber/slog-multi"
+	"github.com/urfave/cli/v2"
+	"go.githedgehog.com/fabric/pkg/agent"
+	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
+	"go.githedgehog.com/fabric/pkg/agent/systemd"
+	"go.githedgehog.com/fabric/pkg/version"
+	"k8s.io/klog/v2"
+	kctrl "sigs.k8s.io/controller-runtime"
+)
+
+const (
+	DefaultBasedir          = "/etc/sonic/hedgehog/"
+	DefaultBinPath          = "/opt/hedgehog/bin/agent"
+	DefaultAgentServiceUser = "root"
+)
+
+//go:embed motd.txt
+var motd []byte
+
+func setupLogger(verbose bool, logToFile bool, printMotd bool) (*timberjack.Logger, error) {
+	logLevel := slog.LevelInfo
+	if verbose {
+		logLevel = slog.LevelDebug
+	}
+
+	logW := os.Stdout
+
+	handlers := []slog.Handler{
+		tint.NewTextHandler(logW, &tint.Options{
+			Level:      logLevel,
+			TimeFormat: time.DateTime,
+			NoColor:    !isatty.IsTerminal(logW.Fd()),
+		}),
+	}
+	kubeHandlers := []slog.Handler{
+		tint.NewTextHandler(logW, &tint.Options{
+			Level:      slog.LevelInfo,
+			TimeFormat: time.DateTime,
+			NoColor:    !isatty.IsTerminal(logW.Fd()),
+		}),
+	}
+
+	var logFile *timberjack.Logger
+	if logToFile {
+		logFile = &timberjack.Logger{
+			Filename:    "/var/log/agent.log",
+			MaxSize:     5, // MB
+			MaxBackups:  4,
+			MaxAge:      30, // days
+			Compression: "gzip",
+			FileMode:    0o644,
+		}
+
+		handlers = append(handlers, slog.NewTextHandler(logFile, &slog.HandlerOptions{
+			Level: logLevel,
+		}))
+		kubeHandlers = append(kubeHandlers, slog.NewTextHandler(logFile, &slog.HandlerOptions{
+			Level: slog.LevelInfo,
+		}))
+	}
+
+	slog.SetDefault(slog.New(slogmulti.Fanout(handlers...)))
+	kctrl.SetLogger(logr.FromSlogHandler(slogmulti.Fanout(kubeHandlers...)))
+	klog.SetSlogLogger(slog.New(slogmulti.Fanout(kubeHandlers...)))
+
+	if printMotd {
+		_, err := logW.Write(motd)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to write motd")
+		}
+	}
+
+	return logFile, nil
+}
+
+func main() {
+	defer func() {
+		if err := recover(); err != nil {
+			slog.Error("Panic", "err", err, "stack", string(debug.Stack()))
+			os.Exit(1)
+		}
+	}()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	var verbose bool
+	verboseFlag := &cli.BoolFlag{
+		Name:        "verbose",
+		Aliases:     []string{"v"},
+		Usage:       "verbose output (includes debug)",
+		Value:       true, // TODO disable debug by default
+		Destination: &verbose,
+	}
+
+	var basedir string
+	basedirFlag := &cli.StringFlag{
+		Name:        "basedir",
+		Usage:       "base directory for the agent files",
+		Destination: &basedir,
+		Value:       DefaultBasedir,
+	}
+
+	var logFile *timberjack.Logger
+
+	cli.VersionFlag.(*cli.BoolFlag).Aliases = []string{"V"}
+	app := &cli.App{
+		Name:                   "agent",
+		Usage:                  "hedgehog fabric agent",
+		Version:                version.Version,
+		Suggest:                true,
+		UseShortOptionHandling: true,
+		EnableBashCompletion:   true,
+		Commands: []*cli.Command{
+			{
+				Name:  "start",
+				Usage: "start agent to watch for config changes and apply them",
+				Flags: []cli.Flag{
+					verboseFlag,
+					basedirFlag,
+				},
+				Before: func(_ *cli.Context) error {
+					var err error
+					logFile, err = setupLogger(verbose, true, true)
+
+					return err
+				},
+				Action: func(_ *cli.Context) error {
+					return errors.Wrapf((&agent.Service{
+						Basedir: basedir,
+					}).Run(ctx, func() (*gnmi.Client, error) {
+						client, err := gnmi.NewInSONiC(ctx, basedir, false)
+						if err != nil {
+							return nil, errors.Wrapf(err, "failed to create GNMI client")
+						}
+
+						return client, nil
+					}), "failed to run agent")
+				},
+			},
+			{
+				Name:  "apply",
+				Usage: "apply config once from file without starting agent",
+				Flags: []cli.Flag{
+					verboseFlag,
+					basedirFlag,
+					&cli.BoolFlag{
+						Name:  "dry-run",
+						Value: true,
+					},
+					&cli.BoolFlag{
+						Name:  "skip-contol-link",
+						Value: true,
+					},
+					&cli.BoolFlag{
+						Name:  "apply-once",
+						Value: true,
+					},
+					&cli.BoolFlag{
+						Name:  "gnmi-direct",
+						Value: false,
+					},
+					&cli.StringFlag{
+						Name:  "gnmi-server",
+						Value: "127.0.0.1:8080",
+					},
+					&cli.StringFlag{
+						Name:    "gnmi-username",
+						Aliases: []string{"u"},
+						Value:   "admin",
+					},
+					&cli.StringFlag{
+						Name:    "gnmi-password",
+						Aliases: []string{"p"},
+						Value:   "YourPaSsWoRd",
+					},
+				},
+				Before: func(_ *cli.Context) error {
+					var err error
+					logFile, err = setupLogger(verbose, false, true)
+
+					return err
+				},
+				Action: func(cCtx *cli.Context) error {
+					slog.Info("Applying", "version", version.Version)
+
+					getGNMIClient := func() (*gnmi.Client, error) {
+						if cCtx.Bool("gnmi-direct") {
+							client, err := gnmi.New(ctx,
+								cCtx.String("gnmi-server"),
+								cCtx.String("gnmi-username"),
+								cCtx.String("gnmi-password"))
+							if err != nil {
+								return nil, errors.Wrapf(err, "failed to create GNMI client")
+							}
+
+							return client, nil
+						}
+
+						client, err := gnmi.NewInSONiC(ctx, basedir, true)
+						if err != nil {
+							return nil, errors.Wrapf(err, "failed to create GNMI client")
+						}
+
+						return client, nil
+					}
+
+					return errors.Wrapf((&agent.Service{
+						Basedir:         basedir,
+						DryRun:          cCtx.Bool("dry-run"),
+						SkipControlLink: cCtx.Bool("skip-contol-link"),
+						ApplyOnce:       cCtx.Bool("apply-once"),
+						SkipActions:     true,
+					}).Run(ctx, getGNMIClient), "failed to apply config")
+				},
+			},
+			{
+				Name:  "remote",
+				Usage: "helper to test gNMI remotely by applying config",
+				Flags: []cli.Flag{
+					verboseFlag,
+					&cli.StringFlag{
+						Name:     "switch-name",
+						Aliases:  []string{"n"},
+						Usage:    "switch name to apply config for",
+						Value:    "",
+						Required: true,
+					},
+					&cli.BoolFlag{
+						Name:    "dry-run",
+						Usage:   "generate desired state but do not apply it",
+						Aliases: []string{"k"},
+						Value:   false,
+					},
+					&cli.BoolFlag{
+						Name:    "collect-stats",
+						Usage:   "collect stats after config application, if not enabled agent status.state will be just from the k8s API",
+						Aliases: []string{"c"},
+						Value:   false,
+					},
+					&cli.BoolFlag{
+						Name:    "print-status",
+						Aliases: []string{"w"},
+						Usage:   "print agent status as YAML after config application, use with --collect-stats/-c to get the actual switch state",
+						Value:   false,
+					},
+					&cli.StringFlag{
+						Name:    "auto-ssh",
+						Aliases: []string{"a"},
+						Usage:   "auto-ssh port forwarding using specified host for the switch gNMI server",
+						Value:   "",
+						EnvVars: []string{"AGENT_AUTO_SSH"},
+					},
+					&cli.StringFlag{
+						Name:    "gnmi-server",
+						Aliases: []string{"s"},
+						Usage:   "gNMI server address",
+						Value:   "127.0.0.1:8080",
+						EnvVars: []string{"AGENT_GNMI_ADDRESS"},
+					},
+					&cli.StringFlag{
+						Name:    "gnmi-username",
+						Aliases: []string{"u"},
+						Value:   "admin",
+						EnvVars: []string{"AGENT_GNMI_USERNAME"},
+					},
+					&cli.StringFlag{
+						Name:    "gnmi-password",
+						Aliases: []string{"p"},
+						Value:   "YourPaSsWoRd",
+						EnvVars: []string{"AGENT_GNMI_PASSWORD"},
+					},
+					&cli.StringFlag{
+						Name:        "basedir",
+						Usage:       "base directory for the debug files",
+						Destination: &basedir,
+						Value:       ".",
+					},
+				},
+				Before: func(_ *cli.Context) error {
+					var err error
+					logFile, err = setupLogger(verbose, false, false)
+
+					return err
+				},
+				Action: func(cCtx *cli.Context) error {
+					getGNMIClient := func() (*gnmi.Client, error) {
+						client, err := gnmi.New(ctx,
+							cCtx.String("gnmi-server"),
+							cCtx.String("gnmi-username"),
+							cCtx.String("gnmi-password"))
+						if err != nil {
+							return nil, errors.Wrapf(err, "failed to create GNMI client")
+						}
+
+						return client, nil
+					}
+
+					return errors.Wrapf(agent.RunRemotely(ctx, getGNMIClient,
+						agent.RunRemotelyOpts{
+							SwitchName:   cCtx.String("switch-name"),
+							DryRun:       cCtx.Bool("dry-run"),
+							CollectStats: cCtx.Bool("collect-stats"),
+							PrintStatus:  cCtx.Bool("print-status"),
+							AutoSSH:      cCtx.String("auto-ssh"),
+							Basedir:      basedir,
+						}), "failed to apply config")
+				},
+			},
+			{
+				Name:    "generate",
+				Aliases: []string{"gen"},
+				Usage:   "generate config/systemd-unit/etc",
+				Subcommands: []*cli.Command{
+					{
+						Name:  "systemd-unit",
+						Usage: "generate systemd-unit",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name: "bin-path",
+								Aliases: []string{
+									"agent-path",
+								},
+								Value: DefaultBinPath,
+								Usage: "path to the agent binary",
+							},
+							&cli.StringFlag{
+								Name: "user",
+								Aliases: []string{
+									"agent-user",
+								},
+								Value: DefaultAgentServiceUser,
+								Usage: "user to run agent",
+							},
+							&cli.BoolFlag{
+								Name:  "control",
+								Usage: "generate control agent systemd-unit",
+							},
+						},
+						Action: func(cCtx *cli.Context) error {
+							unit, err := systemd.Generate(systemd.UnitConfig{
+								BinPath: cCtx.String("bin-path"),
+								User:    cCtx.String("user"),
+								Control: cCtx.Bool("control"),
+							})
+							if err != nil {
+								return errors.Wrapf(err, "failed to generate systemd unit")
+							}
+
+							fmt.Fprintln(os.Stdout, unit)
+
+							return nil
+						},
+					},
+				},
+			},
+			{
+				Name:  "install",
+				Usage: "install systemd unit",
+				Flags: []cli.Flag{
+					verboseFlag,
+					basedirFlag,
+					&cli.StringFlag{
+						Name: "bin-path",
+						Aliases: []string{
+							"agent-path",
+						},
+						Value: DefaultBinPath,
+						Usage: "path to the agent binary",
+					},
+					&cli.StringFlag{
+						Name: "user",
+						Aliases: []string{
+							"agent-user",
+						},
+						Value: DefaultAgentServiceUser,
+						Usage: "user to run agent",
+					},
+					&cli.BoolFlag{
+						Name:  "control",
+						Usage: "install control agent systemd-unit",
+					},
+					&cli.StringFlag{
+						Name:  "vrf",
+						Usage: "VRF to run agent in",
+					},
+				},
+				Before: func(_ *cli.Context) error {
+					var err error
+					logFile, err = setupLogger(verbose, true, false)
+
+					return err
+				},
+				Action: func(cCtx *cli.Context) error {
+					return errors.Wrapf(systemd.Install(cCtx.Context, systemd.UnitConfig{
+						BinPath: cCtx.String("bin-path"),
+						User:    cCtx.String("user"),
+						Control: cCtx.Bool("control"),
+						BaseDir: cCtx.String("basedir"),
+						VRF:     cCtx.String("vrf"),
+					}), "failed to install systemd unit")
+				},
+			},
+		},
+	}
+
+	err := app.Run(os.Args)
+
+	if logFile != nil {
+		logFile.Close()
+	}
+
+	if err != nil {
+		slog.Error("Failed", "err", err.Error())
+		os.Exit(1) //nolint:gocritic
+	}
+}

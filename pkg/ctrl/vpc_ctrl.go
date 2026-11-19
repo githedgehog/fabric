@@ -1,0 +1,185 @@
+// Copyright 2023 Hedgehog
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package ctrl
+
+import (
+	"context"
+	"fmt"
+	"strings"
+
+	"github.com/pkg/errors"
+	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
+	"go.githedgehog.com/fabric/api/meta"
+	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
+	"go.githedgehog.com/fabric/pkg/manager/librarian"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
+	kctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	kctrllog "sigs.k8s.io/controller-runtime/pkg/log"
+)
+
+const (
+	VPCVNIOffset = 100
+	VPCVNIMax    = (16_777_215 - VPCVNIOffset) / VPCVNIOffset * VPCVNIOffset
+)
+
+type VPCReconciler struct {
+	kclient.Client
+	cfg  *meta.FabricConfig
+	libr *librarian.Manager
+	lock *Lock
+}
+
+func SetupVPCReconcilerWith(mgr kctrl.Manager, cfg *meta.FabricConfig, libMngr *librarian.Manager, lock *Lock) error {
+	if lock == nil {
+		return fmt.Errorf("lock is nil") //nolint:err113
+	}
+
+	r := &VPCReconciler{
+		Client: mgr.GetClient(),
+		cfg:    cfg,
+		libr:   libMngr,
+		lock:   lock,
+	}
+
+	if err := kctrl.NewControllerManagedBy(mgr).
+		Named("VPC").
+		For(&vpcapi.VPC{}).
+		// recreated if deleted, garbage collected with the VPC otherwise
+		Owns(&dhcpapi.DHCPSubnet{}, builder.WithPredicates(onlyDeletes)).
+		Complete(r); err != nil {
+		return fmt.Errorf("setting up vpc controller: %w", err)
+	}
+
+	return nil
+}
+
+// +kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=vpc.githedgehog.com,resources=vpcs/finalizers,verbs=update
+
+// +kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
+
+// +kubebuilder:rbac:groups=dhcp.githedgehog.com,resources=dhcpsubnets,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=dhcp.githedgehog.com,resources=dhcpsubnets/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=dhcp.githedgehog.com,resources=dhcpsubnets/finalizers,verbs=update
+
+// +kubebuilder:rbac:groups=agent.githedgehog.com,resources=catalogs,verbs=get;list;watch;create;update;patch;delete
+
+func (r *VPCReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kctrl.Result, error) {
+	l := kctrllog.FromContext(ctx)
+
+	if r.lock.Locked() {
+		return kctrl.Result{RequeueAfter: lockedRequeueAfter}, nil
+	}
+
+	// the DHCPSubnets of a deleted VPC are garbage collected with it and its VNIs are released with the next allocation
+	vpc := &vpcapi.VPC{}
+	if err := r.Get(ctx, req.NamespacedName, vpc); err != nil {
+		if kapierrors.IsNotFound(err) {
+			return kctrl.Result{}, nil
+		}
+
+		return kctrl.Result{}, fmt.Errorf("getting vpc %s: %w", req.NamespacedName, err)
+	}
+	if vpc.DeletionTimestamp != nil {
+		return kctrl.Result{}, nil
+	}
+
+	updated, err := r.libr.EnsureVNIs(ctx, r.Client, map[string]vpcapi.VPCSpec{vpc.Name: vpc.Spec}, nil)
+	if err != nil {
+		return kctrl.Result{}, fmt.Errorf("updating VNIs catalog: %w", err)
+	}
+	if updated {
+		l.Info("VNIs catalog updated")
+	}
+
+	if err := r.updateDHCPSubnets(ctx, vpc); err != nil {
+		return kctrl.Result{}, fmt.Errorf("updating dhcp subnets: %w", err)
+	}
+
+	l.Info("vpc reconciled")
+
+	return kctrl.Result{}, nil
+}
+
+// updateDHCPSubnets makes the DHCPSubnets match the subnets of the VPC with DHCP enabled, they're garbage collected
+// with the VPC
+func (r *VPCReconciler) updateDHCPSubnets(ctx context.Context, vpc *vpcapi.VPC) error {
+	withDHCP := map[string]*vpcapi.VPCSubnet{}
+	for subnetName, subnet := range vpc.Spec.Subnets {
+		if !subnet.DHCP.Enable || subnet.VLAN == 0 || subnet.DHCP.Range == nil {
+			continue
+		}
+
+		withDHCP[subnetName] = subnet
+	}
+
+	// including the ones of the subnets that still exist with DHCP disabled
+	if err := r.deleteDHCPSubnets(ctx, kclient.ObjectKey{Name: vpc.Name, Namespace: vpc.Namespace}, withDHCP); err != nil {
+		return fmt.Errorf("deleting obsolete dhcp subnets: %w", err)
+	}
+
+	for subnetName, subnet := range withDHCP {
+		dhcp := &dhcpapi.DHCPSubnet{Name: fmt.Sprintf("%s--%s", vpc.Name, subnetName), Namespace: vpc.Namespace}
+		_, err := ctrlutil.CreateOrUpdate(ctx, r.Client, dhcp, func() error {
+			if err := setOwner(vpc, dhcp, r.Scheme()); err != nil {
+				return err
+			}
+
+			dhcp.Labels = map[string]string{
+				vpcapi.LabelVPC:    vpc.Name,
+				vpcapi.LabelSubnet: subnetName,
+			}
+			dhcp.Spec = vpc.DHCPSubnetSpec(subnetName, subnet)
+
+			return nil
+		})
+		if err != nil {
+			return fmt.Errorf("creating dhcp subnet for %s/%s: %w", vpc.Name, subnetName, err)
+		}
+	}
+
+	return nil
+}
+
+func (r *VPCReconciler) deleteDHCPSubnets(ctx context.Context, vpcKey kclient.ObjectKey, subnets map[string]*vpcapi.VPCSubnet) error {
+	dhcpSubnets := &dhcpapi.DHCPSubnetList{}
+	err := r.List(ctx, dhcpSubnets, kclient.MatchingLabels{vpcapi.LabelVPC: vpcKey.Name})
+	if err != nil {
+		return errors.Wrapf(err, "error listing dhcp subnets")
+	}
+
+	for _, subnet := range dhcpSubnets.Items {
+		subnetName := vpcapi.DefaultSubnetName
+		parts := strings.Split(subnet.Spec.Subnet, "/")
+		if len(parts) == 2 {
+			subnetName = parts[1]
+		}
+
+		if _, exists := subnets[subnetName]; exists {
+			continue
+		}
+
+		err = r.Delete(ctx, &subnet)
+		if kclient.IgnoreNotFound(err) != nil {
+			return errors.Wrapf(err, "error deleting dhcp subnet %s", subnet.Name)
+		}
+	}
+
+	return nil
+}

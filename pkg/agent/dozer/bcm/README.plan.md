@@ -1,0 +1,1360 @@
+## Overview
+
+This file is an attempt to document the configuration that is pushed onto a Broadcom SONiC switch running our agent software.
+The aim is to detail, for each of the objects in our API (e.g. Connections, VPCs, VPC Peerings, Externals...), what configuration is
+pushed onto the switch and why. This will help us to understand the reasoning behind the configuration, and it will guide future
+agent refactors and improvements.
+
+## Switch Invariants
+
+There's quite a bit of basic config that is applied on all switches regardless of the actual connections
+instantiated via the CRDs. To start with:
+
+1. We set the hostname as the switch name in the CRD (e.g. "ds5000-01"):
+    ```
+    hostname <SWITCH_NAME>
+    ```
+1. We enable LLDP and configure some basic parameters:
+    ```
+    lldp timer 5
+    lldp system-name <SWITCH_NAME>
+    lldp system-description "Hedgehog Fabric"
+    ```
+1. We enable IP anycast for both v4 and v6, and setup an anycast mac address (hardcoded for all switches):
+    ```
+    ip anycast-mac-address 00:00:00:11:11:11
+    ip anycast-address enable
+    ipv6 anycast-address enable
+    ```
+1. We create a protocol loopback, which is used as the router-id and source IP for
+BGP sessions:
+    ```
+    interface Loopback 1
+     description "Protocol loopback"
+     ip address 172.30.8.0/32
+    !
+    ```
+1. For leaves, we also create a VTEP loopback, which is used as the source for VxLAN traffic:
+    ```
+    interface Loopback 2
+     description "VTEP loopback"
+     ip address 172.30.12.0/32
+    !
+    ```
+1. We configure the management port, which connects the switch with the controller:
+    ```
+    interface Management0
+     description "Management link"
+     mtu 1500
+     autoneg on
+     speed 1000
+     ip address 172.30.0.7/21
+    !
+    ```
+1. We create BGP community lists based on the gateway priority levels defined in the Agent configuration.
+These will be used by gateways depending on the priority group of a particular Expose; together with
+the route-map described further down, they allow us to prefer prefixes advertised by a particular
+gateway over another. These are the community lists generated with the default configuration:
+    ```
+    bgp community-list standard gw-prio-0 permit 50001:0
+    bgp community-list standard gw-prio-1 permit 50001:1
+    bgp community-list standard gw-prio-2 permit 50001:2
+    bgp community-list standard gw-prio-3 permit 50001:3
+    bgp community-list standard gw-prio-4 permit 50001:4
+    bgp community-list standard gw-prio-5 permit 50001:5
+    bgp community-list standard gw-prio-6 permit 50001:6
+    bgp community-list standard gw-prio-7 permit 50001:7
+    bgp community-list standard gw-prio-8 permit 50001:8
+    bgp community-list standard gw-prio-9 permit 50001:9
+    ```
+1. We create an additional community list `all-gw-prios` with all of the communities above, which
+is used to match prefixes that we learned from a gateway, specifically in the context of peering
+with BGP externals, when we want to advertise NATed prefixes that do not fall in the IPv4 namespace:
+    ```
+    bgp community-list standard all-gw-prios permit 50001:0
+    bgp community-list standard all-gw-prios permit 50001:1
+    bgp community-list standard all-gw-prios permit 50001:2
+    bgp community-list standard all-gw-prios permit 50001:3
+    bgp community-list standard all-gw-prios permit 50001:4
+    bgp community-list standard all-gw-prios permit 50001:5
+    bgp community-list standard all-gw-prios permit 50001:6
+    bgp community-list standard all-gw-prios permit 50001:7
+    bgp community-list standard all-gw-prios permit 50001:8
+    bgp community-list standard all-gw-prios permit 50001:9
+    ```
+1. We create a route-map applied to each L2VPN neighbor in the default VRF (in the `in` direction).
+This route-map serves multiple purposes:
+    - it matches on the gateway priority-related community lists described above, and for each of
+    those it sets a local preference, with a lower priority implying a higher local preference.
+    This is needed to ensure that we prefer the desired routes in a multi-gateway scenario.
+    - it sets the local preference of routes carrying the community of [externals](#externals) to a
+    value of 150, to make sure that they win over similar VPC routes. Note that this value is currently
+    lower than the lowest preference value for gateways, which means that in case of conflict prefixes
+    advertised by a gateway will always win over prefixes advertised by an external; this is on purpose
+    to avoid route flaps when a gateway route is advertised to an external via an attachment and later
+    learned on another leaf via another attachment, where it would win over the shorter gateway route.
+    The `all-externals` community list holds the community that the fabric sets on all routes from
+    Externals (see [Externals](#externals)), so this covers the routes of every External, static ones
+    and ones without an inbound community included.
+    - it allows any other non-matched prefix through.
+
+    The gateway priority statements are only created on leaves.
+    ```
+    route-map l2vpn-neighbors permit 1
+    match community gw-prio-0
+    set local-preference 210
+    !
+    route-map l2vpn-neighbors permit 2
+    match community gw-prio-1
+    set local-preference 209
+    !
+    route-map l2vpn-neighbors permit 3
+    match community gw-prio-2
+    set local-preference 208
+    !
+    route-map l2vpn-neighbors permit 4
+    match community gw-prio-3
+    set local-preference 207
+    !
+    route-map l2vpn-neighbors permit 5
+    match community gw-prio-4
+    set local-preference 206
+    !
+    route-map l2vpn-neighbors permit 6
+    match community gw-prio-5
+    set local-preference 205
+    !
+    route-map l2vpn-neighbors permit 7
+    match community gw-prio-6
+    set local-preference 204
+    !
+    route-map l2vpn-neighbors permit 8
+    match community gw-prio-7
+    set local-preference 203
+    !
+    route-map l2vpn-neighbors permit 9
+    match community gw-prio-8
+    set local-preference 202
+    !
+    route-map l2vpn-neighbors permit 10
+    match community gw-prio-9
+    set local-preference 201
+    !
+    route-map l2vpn-neighbors permit 65525
+     match community all-externals
+     set local-preference 150
+    !
+    route-map l2vpn-neighbors permit 65535
+    ```
+1. On a spine in a fabric with several domains, the same route-map first rejects any route with
+another domain's spine ASN in its path, using an AS-path list of those ASNs. A leaf in two domains
+passes on what it learns from the spines of each, so without this the routes of one domain would
+reach every leaf of the other through it. Spines are in exactly one domain, and every route that
+crosses into a domain does so from a shared leaf into one of that domain's spines, so filtering
+there is enough; leaves are left alone, as their statement keys from 1 up are taken by the gateway
+priorities. This also rejects a route that left one domain through an external and came back
+into another, as the external keeps the fabric's AS-path: the domains of a fabric reach each other
+through a gateway or a VPC on the shared leaves, never through an external. Other fabrics are not
+affected, as the list only holds the spine ASNs of the switch's own fabric. Nothing is created in a
+fabric with a single domain. E.g. on a spine of the `default` domain, with a second domain whose
+spine ASN is 65010:
+    ```
+    bgp as-path-list other-domain-spines permit "_65010_"
+    !
+    route-map l2vpn-neighbors deny 1
+     match as-path other-domain-spines
+    !
+    ```
+1. We create an AS-path list with the spine and gateway ASNs of the switch's domain (a switch with an
+external connection is in exactly one).
+It is used to reject routes learned from a [BGP-speaking external](#bgp-speaking-externals) that
+went through the fabric already. The other domains' ASNs are left out: a route through another
+domain of the fabric is dropped by the spine filter above anyway, but other fabrics' ASNs must not
+be listed, as fabrics reach each other through externals:
+    ```
+    bgp as-path-list fabric-gw-aspath permit "_65100_"
+    bgp as-path-list fabric-gw-aspath permit "_65534_"
+    ```
+1. We create the following prefix-list matching any /32 belonging to the VTEP subnet prefix:
+    ```
+    ip prefix-list all-vtep-prefixes seq 10 permit 172.30.12.0/22 le 32
+    ```
+    i.e. `172.30.12.0/22` above is the VTEP Subnet as defined in the Fabric config
+1. We create the following route-map, used to filter which routes are redistributed on
+spines and on mesh leaves, as we will see:
+    ```
+    route-map loopback-all-vteps permit 10
+     match ip address prefix-list all-vtep-prefixes
+    !
+    route-map loopback-all-vteps permit 100
+     match ip address prefix-list static-ext-subnets
+    ```
+1. On a leaf we create the narrower pair below, matching only that leaf's own VTEP (plus the
+gateway VTEPs on a leaf with a [gateway connection](#gateway-connections)). A leaf in a
+spine-leaf topology uses it towards the spines so that it does not re-advertise the VTEPs it
+learned from them (see
+[Fabric Connections](#fabric-connections-ie-spine-leaf)):
+    ```
+    ip prefix-list vtep-prefix seq 10 permit 172.30.12.0/32 le 32
+    route-map loopback-vtep permit 10
+     match ip address prefix-list vtep-prefix
+    !
+    route-map loopback-vtep permit 100
+     match ip address prefix-list static-ext-subnets
+    !
+    ```
+1. We create the following prefix list and corresponding route-map to only advertise
+the protocol loopback on the fabric point-to-point links between switches:
+    ```
+    ip prefix-list protocol-loopback-prefix seq 10 permit 172.30.8.0/32 le 32
+    route-map protocol-loopback-only permit 10
+     match ip address prefix-list protocol-loopback-prefix
+    !
+    ```
+1. We create the following route-map to filter attached-host routes from BGP exports
+in L2VNI mode (see #vpcs):
+    ```
+    route-map filter-attached-hosts deny 10
+     match source-protocol attached-host
+    !
+    route-map filter-attached-hosts permit 100
+    !
+    ```
+1. We create some basic BGP configuration for the default VRF:
+  - ASN is picked based on the hydration rules and the fabric config
+  - Protocol IP is used as router-id and also advertised in the IPv4 Unicast AF
+  - ECMP of up to 64 paths for eBGP, none for iBGP (which we do not use)
+  - redistribute static and connected routes in default VRF / underlay
+  - enable L2VPN, advertise all VNIs, and duplicate address detection
+    ```
+    router bgp 65101
+     router-id 172.30.8.0
+     log-neighbor-changes
+     timers 60 180
+     !
+     address-family ipv4 unicast
+      redistribute connected
+      redistribute static
+      maximum-paths 64
+      maximum-paths ibgp 1
+      network 172.30.8.0/32
+     !
+     address-family l2vpn evpn
+      advertise-all-vni
+      dup-addr-detection
+    !
+    ```
+1. For leaves, we create the vxlan interface, set its source address to the VTEP
+loopback, and set qos-mode to preserve DSCP markings when encapsulating/decapsulating
+traffic, which is needed for RoCEv2:
+    ```
+    interface vxlan vtepfabric
+     source-ip Loopback2
+     qos-mode pipe dscp 0
+    !
+    ```
+1. We create an empty BFD profile (i.e. with all default values) which we will use
+for the sessions running over spine-leaf links:
+    ```
+    bfd
+     profile fabric
+     !
+    !
+    ```
+1. We configure NTP over the management port towards the controller:
+    ```
+    ntp server 172.30.0.1 minpoll 6 maxpoll 10 prefer true
+    ntp source-interface Management0
+    ```
+
+On top of that, there is some additional configuration generated in response to
+fields of the switch object itself, such as breakouts, port autonegotiation etc.
+These are mostly self-explanatory, so I won't go over them in detail.
+
+## IPv4 Namespaces
+The following changes to the configuration are applied when creating an IPv4 namespace:
+
+1. We create a prefix list matching the ranges in the namespace, and a route-map to
+permit those, which will be used in the context of [BGP-speaking externals](#bgp-speaking-externals):
+    ```
+    ip prefix-list ipns-subnets--default seq 1 permit 10.0.0.0/16 le 32
+    route-map ipns-subnets--default permit 10
+     match ip address prefix-list ipns-subnets--default
+    !
+    ```
+1. We create an access list to prevent traffic local to the namespace from being
+routed to an external device in the presence of external peerings:
+    ```
+    ip access-list no-ipns-peering--default
+     remark "Prevent VPCs to cross-talk via the external"
+     seq 1 deny ip 10.0.0.0/16 10.0.0.0/16
+     seq 65535 permit ip any any
+    ```
+
+## Connections
+
+### Fabric Connections (i.e. spine-leaf)
+
+For each link in a fabric connection, we:
+1. configure the corresponding interface on the switch, setting it to admin-up
+and assigning it a /31 IPv4 address from the hydration pool, e.g.:
+    ```
+    interface Ethernet104
+     description "Fabric as7712-03/E1/27 as7712-03--fabric--s5232-03"
+     mtu 9100
+     speed 100000
+     unreliable-los auto
+     no shutdown
+     ip address 172.30.128.5/31
+    ```
+1. create a BGP session in the default VRF with the peer /31 on the other side of
+the fabric link, enabling IPv4 unicast with BFD and advertising our own protocol
+loopback, e.g.:
+    ```
+    neighbor 172.30.128.6
+     description "Fabric as7712-03/E1/28 as7712-03--fabric--s5232-03"
+     remote-as 65100
+     bfd
+     bfd profile fabric
+     !
+     address-family ipv4 unicast
+      activate
+      route-map protocol-loopback-only out
+     !
+     address-family l2vpn evpn
+    !
+    ```
+
+Additionally, once per neighboring node (no matter the number of fabric links to it)
+we create a BGP session with its protocol IP, for which we have learned a route over
+the point-to-point BGP sessions described above. We will use this session for both IPv4
+unicast, where we will advertise the VTEPs, and for EVPN, where we will exchange overlay
+routes. This session will go down if all of the point-to-point sessions
+above are down, which would mean that this switch is no longer able to reach this
+particular neighbor.
+
+A spine advertises every VTEP it knows about, since that is how the leaves learn of each
+other. A leaf only advertises its own, so that the VTEPs it learned from one spine are not
+sent back into the fabric via another one.
+
+Here's an example config for a leaf:
+```
+neighbor 172.30.8.0
+ description "Fabric as7712-03 loopback (spine-link)"
+ remote-as 65100
+ update-source 172.30.8.3
+ disable-connected-check
+ !
+ address-family ipv4 unicast
+  activate
+  route-map loopback-vtep out
+ !
+ address-family l2vpn evpn
+  activate
+  route-map evpn-default-remote-block in
+!
+```
+
+And the corresponding configuration for the spine, the only difference being the v4
+unicast route-map:
+```
+neighbor 172.30.8.3
+ description "Fabric s5232-03 loopback (spine-link)"
+ remote-as 65102
+ update-source 172.30.8.0
+ disable-connected-check
+ !
+ address-family ipv4 unicast
+  activate
+  route-map loopback-all-vteps out
+ !
+ address-family l2vpn evpn
+  activate
+  route-map evpn-default-remote-block in
+!
+```
+
+A leaf with a [gateway connection](#gateway-connections) also advertises the gateway VTEPs,
+so that they reach the rest of the fabric.
+
+#### Unnumbered links
+
+A fabric link whose `Connection` has no IP on either side runs BGP unnumbered instead. This
+is decided per link, so a fabric can mix numbered and unnumbered links; a link with an IP on
+only one side is rejected by the webhook. The interface gets `ipv6 enable` and no address:
+```
+interface Ethernet3
+ description "Fabric spine-01/E1/1 spine-01--fabric--leaf-01"
+ [...]
+ ipv6 enable
+!
+```
+and the session is keyed by the interface rather than by the peer IP:
+```
+neighbor interface Ethernet3
+ description "Fabric spine-01/E1/1 spine-01--fabric--leaf-01"
+ remote-as 65100
+ bfd
+ bfd profile fabric
+ capability extended-nexthop
+ !
+ address-family ipv4 unicast
+  activate
+  route-map protocol-loopback-only out
+ !
+ address-family l2vpn evpn
+!
+```
+A deliberate difference from the [host-BGP](#host-bgp-subnets) sessions, which are also
+unnumbered: `remote-as` stays explicit rather than `remote-as external`. The peer ASN is
+what keeps a miscabled link from establishing and forming a topology we never intended.
+
+The per-node session over the protocol loopbacks is unaffected — it is IPv4-addressed and
+multihop either way.
+
+The session has no peer IP to be reported under, so the agent keys its state (and the BFD
+session under it) by the port instead — `E1/1`, or `E1/1.3123` for the TH5 workaround SVI
+below. The NOS interface name the device actually uses (`Ethernet3`, `Vlan3123`) is
+translated away in `state.go`, so it never reaches the API. On a breakout-capable port that
+port name is the first subport, `E1/53/1` rather than the `E1/53` the wiring spells, since the
+agent resolves interfaces through the NOS port mapping; `apiutil` normalizes the wiring name
+the same way before matching.
+
+### Mesh Connections (i.e. leaf-leaf)
+
+Mesh connections are very much similar to fabric ones, with the main difference being
+their symmetry. In practice, the config applied to both mesh leaves is equivalent to that
+of a spine in a fabric connection.
+
+For each link in a mesh connection, we:
+1. configure the corresponding interface on the switch, setting it to admin-up
+and assigning it a /31 IPv4 address from the hydration pool, e.g.:
+    ```
+    interface Ethernet5
+     description "Mesh leaf-02/E1/5 leaf-01--mesh--leaf-02"
+     mtu 9100
+     speed 25000
+     unreliable-los auto
+     no shutdown
+     ip address 172.30.128.2/31
+    ```
+1. create a BGP session in the default VRF with the peer /31 on the other side of
+the mesh link, enabling IPv4 unicast with BFD and advertising our own protocol
+loopback, e.g.:
+    ```
+    neighbor 172.30.128.3
+     description "Fabric leaf-02/E1/5 leaf-01--mesh--leaf-02"
+     remote-as 65102
+     bfd
+     bfd profile fabric
+     !
+     address-family ipv4 unicast
+      activate
+      route-map protocol-loopback-only out
+     !
+     address-family l2vpn evpn
+    !
+    ```
+
+Mesh links support [unnumbered](#unnumbered-links) exactly as fabric links do.
+
+Additionally, once per neighboring node (no matter the number of mesh links to it)
+we create a BGP session with its protocol IP, for which we have learned a route over
+the point-to-point BGP sessions described above. We will use this session for both IPv4
+unicast, where we will advertise all VTEPs we know about (a mesh leaf has to transit for
+its peers, so it never uses the narrower `loopback-vtep`), and for EVPN, where we will
+exchange overlay routes. This session will go down if all of the point-to-point sessions
+above are down, which would mean that this leaf is no longer able to reach this particular
+neighbor.
+```
+neighbor 172.30.8.2
+  description "Fabric leaf-03 loopback (mesh)"
+  remote-as 65103
+  update-source 172.30.8.0
+  disable-connected-check
+  !
+  address-family ipv4 unicast
+   activate
+   route-map loopback-all-vteps out
+  !
+  address-family l2vpn evpn
+   activate
+   route-map evpn-default-remote-block in
+ !
+```
+
+#### Workaround for TH5-based platforms
+
+For TH5-based platforms such as the DS5000, due to a limitation of the hardware, we do
+something slightly different:
+1. we take a VLAN from a range reserved specifically for this (by default, VLANs 3900
+to 3999) and configure it as an access VLAN on the interface of the connection:
+    ```
+    interface Ethernet5
+     description "Mesh leaf-02/E1/5 leaf-01--mesh--leaf-02"
+     mtu 9100
+     speed 25000
+     unreliable-los auto
+     no shutdown
+    ```
+1. we configure the hydration IP address on that VLAN interface:
+    ```
+    interface Vlan3901
+     description "TH5 Workaround Mesh Port leaf-02/E1/5"
+     ip address 172.30.128.2/31
+    ```
+
+For a numbered link the BGP configuration is unchanged. For an
+[unnumbered](#unnumbered-links) one the VLAN interface gets `ipv6 enable` instead of an
+address, and the session is keyed by that interface rather than by the port:
+```
+interface Vlan3901
+ description "TH5 Workaround Mesh Port leaf-02/E1/5"
+ ipv6 enable
+!
+neighbor interface Vlan3901
+ [...]
+```
+The workaround is still needed, because the limitation is about the ingress interface being
+an SVI rather than a port-based routing interface, which has nothing to do with addressing.
+Each link gets its own dedicated VLAN, so the SVI has exactly one member port and the
+unnumbered peering over it stays one-to-one with the physical link.
+
+### Gateway Connections
+
+Gateway connections represent a connection between a Fabric switch and a Gateway.
+For spine-leaf topologies the switch is typically a spine, while for mesh topologies
+it will necessarily be a leaf.
+
+We accept only the routes the gateway originates, so that the gateway never becomes a transit
+path between switches, and send it only the VTEPs, the only underlay destinations it forwards to:
+```
+bgp as-path access-list gateway-origin permit ^65534$
+!
+route-map gateway-import permit 10
+ match as-path gateway-origin
+!
+route-map gateway-export permit 10
+ match ip address prefix-list all-vtep-prefixes
+!
+```
+
+A leaf with a gateway connection in a spine-leaf topology passes the gateway VTEPs on to the
+spines, adding a statement to the `loopback-vtep` route map of
+[Fabric Connections](#fabric-connections-ie-spine-leaf):
+```
+route-map loopback-vtep permit 20
+ match as-path gateway-origin
+ match ip address prefix-list all-vtep-prefixes
+!
+```
+
+For each link in a gateway connection, we:
+1. configure the corresponding interface on the switch, setting it to admin-up
+and assigning it a /31 IPv4 address from the hydration pool, e.g.:
+    ```
+    interface Ethernet6
+     description "Gateway gateway-1/enp2s1 spine-01--gateway--gateway-1"
+     mtu 9100
+     speed 25000
+     unreliable-los auto
+     no shutdown
+     ip address 172.30.128.12/31
+    ```
+1. create a BGP session with the other host in that /31 range. The ASN of the
+gateway is the gateway ASN of the switch's domain, from the `Fabric` (a switch with a gateway
+connection is in exactly one domain; note: we could use `remote-as external` instead).
+We set the `l2vpn-neighbors` route-map in the import direction, which ensures
+that the correct gateway route will be picked based on priorities/communities.
+There is no `allowas-in`: the gateway originates the routes it advertises, so their AS path
+is just the gateway ASN and never contains the switch's own.
+    ```
+    neighbor 172.30.128.13
+     description "Gateway gateway-1/enp2s1 spine-01--gateway--gateway-1"
+     remote-as 65534
+     !
+     address-family ipv4 unicast
+      activate
+      route-map gateway-import in
+      route-map gateway-export out
+     !
+     address-family l2vpn evpn
+      activate
+      route-map l2vpn-neighbors in
+    ```
+
+Gateway links are always numbered; the gateway does not support unnumbered yet.
+
+#### Workaround for TH5-based platforms
+
+The same exact workaround steps described for Mesh connections also apply to the
+gateway case, i.e. an Access VLAN from the dedicated range is configured on the switch
+interface and the hydration IP address is configured on that VLAN instead.
+
+### ESLAG Connections
+
+For each of the leaves in an ESLAG connection and each of the links, we will
+configure that interface to be part of a port channel, and assign that port channel
+to an EVPN ethernet segment, e.g.:
+```
+interface Ethernet0
+ description "PC2 ESLAG server-05 server-05--eslag--leaf-03--leaf-04"
+ mtu 9036
+ speed 25000
+ unreliable-los auto
+ channel-group 2
+ no shutdown
+!
+interface PortChannel2
+ description "ESLAG server-05 server-05--eslag--leaf-03--leaf-04"
+ mtu 9036
+ no shutdown
+ system-mac f2:00:00:00:00:01
+ !
+ evpn ethernet-segment 00:f2:00:00:f2:00:00:00:00:01
+```
+The ethernet segment is created from:
+- the ESLAGESIPrefix, which comes from the config and is defaulted in fabricator
+to `00:f2:00:00:`
+-  the ESLAGMACBase, which also comes from config and is defaulted in fabricator
+to `f2:00:00:00:00:00`
+- the connection id, which is allocated by the librarian and replaces the end of
+the ESLAGMACBase
+
+The system-mac is the ethernet segment minus the ESLAGESIPrefix.
+
+*Note: there are other types of ES-ID which are autogenerated and would potentially
+simplifies the config; we should at some point investigate them.*
+
+On top of that, there is some config that is applied on all switches that belong to
+a redundancy group of type ESLAG, regardless of the specific connection instances:
+1. We configure some basic parameters of EVPN multi-homing. The startup delay is an
+initial interval of time during the VTEP boot-up process where the ESLAG interfaces
+are brought administratively down to avoid traffic loss; during this initial time,
+traffic from the multi-homed servers is not load-balanced between the ESLAG servers.
+The hold-time is the time in seconds to wait before the switch ages out MAC addresses
+of downstream devices that are learned from the multi-homed VTEP and that have not
+been used.
+    ```
+    evpn esi-multihoming
+     mac-holdtime 60
+     startup-delay 60
+    ```
+1. We configure link state tracking for spine / mesh upstream
+links, and shutdown the downstream links towards the ethernet segments if they all go down:
+    ```
+    link state track spinelink
+     timeout 60
+     downstream all-evpn-es
+    ```
+
+### Bundled Connections
+
+For each bundled connections we create a port channel and set all of the
+interfaces that are part of the bundle as part of that port channel, e.g.:
+```
+interface Ethernet32
+ description "PC1 Bundled server-2 server-2--bundled--ds5000-01"
+ mtu 9036
+ speed auto
+ fec RS
+ unreliable-los auto
+ channel-group 1
+ no shutdown
+!
+interface Ethernet36
+ description "PC1 Bundled server-2 server-2--bundled--ds5000-01"
+ mtu 9036
+ speed auto
+ fec RS
+ unreliable-los auto
+ channel-group 1
+ no shutdown
+!
+interface PortChannel1
+ description "Bundled server-2 server-2--bundled--ds5000-01"
+ mtu 9036
+ no shutdown
+```
+
+### Unbundled Connections
+
+For unbundled connections we just set the interface on the leaf as admin-up
+and configure some basic parameters, e.g.:
+```
+interface Ethernet4
+ description "Unbundled server-04 server-04--unbundled--leaf-01"
+ mtu 9036
+ speed 25000
+ unreliable-los auto
+ no shutdown
+```
+
+### External Connections
+
+An external connection represents a BGP speaker with which we want to establish
+a session, exchanging routes using BGP communities as a filter. The external connection
+is just the first part of the puzzle, and contains information on the interface over
+which the session will be established. The result is just setting that interface up
+and adding some description.
+```
+interface Ethernet513
+ description "External ds5000-01--external--5835"
+ mtu 9100
+ speed 10000
+ unreliable-los auto
+ no shutdown
+```
+
+Mostly, the connection serves as a base for external attachments, which we will cover
+in the [Externals](#externals) section.
+
+### Static External Connections
+
+For each static external object we configure the corresponding switch interface,
+with some nuances:
+- if `vlan` is non-zero, we create a sub-interface with that VLAN, else
+we configure the parent interface;
+- if `withinVPC` is non null, we enslave the interface or sub-interface
+to the VPC VRF.
+
+We also create static ip route (in the VPC VRF if `withinVPC` is non null,
+else in the default VRF) for each of the prefixes in the `subnets` list,
+with the `nextHop` specified in the static external object.
+
+Finally, we populate a prefix list with the network prefix of the `ip` field
+and with all of the `subnets` listed; this prefix list is used in route maps
+to filter the connected and static routes we redistribute in BGP, so essentially
+this makes sure that these routes are redistributed to peers accordingly.
+```
+interface Ethernet0
+ description "StaticExt release-test--static-external--ds5000-02"
+ mtu 9036
+ speed auto
+ fec RS
+ unreliable-los auto
+ no shutdown
+ ip vrf forwarding VrfVvpc-01
+ ip address 172.31.255.5/24
+!
+ip route vrf VrfVvpc-01 10.199.0.100/32 172.31.255.1 interface Ethernet0
+!
+ip prefix-list vpc-static-ext-subnets--vpc-01 seq 105 permit 172.31.255.0/24 le 24
+ip prefix-list vpc-static-ext-subnets--vpc-01 seq 106 permit 10.199.0.100/32 le 32
+```
+
+## VPCs
+
+### L2VNI (default) VPCs
+The following configuration is pushed onto a leaf only when a subnet of the VPC is _attached_
+to a connection which belongs to it (i.e. where one of the two endpoints is a port on the switch):
+1. We create a VRF for the VPC:
+    ```
+    ip vrf VrfVvpc-01
+    ```
+1. We create a VLAN for each of the non-host-BGP subnets of the VPC attached to the leaf:
+    - the VLAN is placed in the VRF of the VPC
+    - an anycast address is configured on the interface, using the address from the subnet gateway
+    - if DHCP was enabled in the subnet, we enable DHCP relay on the interface, with link select and VRF select
+    - neighbor suppression is enabled on the interface with default parameters
+    - we advertise attached host routes in BGP for the subnet
+    ```
+    interface Vlan1001
+      description "VPC vpc-01/default"
+      neigh-suppress
+      ip vrf forwarding VrfVvpc-01
+      ip anycast-address 10.0.1.1/24
+      ip dhcp-relay 172.30.0.1
+      ip dhcp-relay source-interface Management0
+      ip dhcp-relay link-select
+      ip dhcp-relay vrf-select
+      ip attached-host advertise 250
+    ```
+1. The VLAN above is enabled on the physical interface (or port channel) corresponding to the connection attached to the VPC, e.g. assuming this was Ethernet4:
+    ```
+    interface Ethernet4
+      [..]
+      switchport trunk allowed Vlan 1001
+    ```
+1. We create an IRB VLAN interface for this VPC and place it in the VRF of the VPC. Unlike the subnet
+VLANs it has no neighbor suppression: it only carries the L3VNI, so there are no hosts, type-2 routes
+or flooded ARP requests for it to act on.
+    ```
+    interface Vlan3000
+      description "VPC vpc-01 IRB"
+      ip vrf forwarding VrfVvpc-01
+    ```
+1. Under the vtep interface configuration, we map the Subnet VLAN to an L2VNI, and the IRB VLAN + VPC VRF to an L3VNI:
+    ```
+    interface vxlan vtepfabric
+      [..]
+      map vni 101 vlan 1001
+      map vni 100 vlan 3000
+      map vni 100 vrf VrfVvpc-01
+    ```
+1. We create a prefix list for prefixes not belonging to the attached subnet(s). This is used later in VPC peering.
+    ```
+    ip prefix-list vpc-not-subnets--vpc-01 seq 1 deny 10.0.1.0/24 le 32
+    ip prefix-list vpc-not-subnets--vpc-01 seq 65535 permit 0.0.0.0/0 le 32
+    ```
+1. We create a prefix list for prefixes belonging to the attached subnet(s):
+    ```
+    ip prefix-list vpc-subnets--vpc-01 seq 1 permit 10.0.1.0/24 le 32
+    ```
+1. We create a route map to filter the redistribution of connected routes:
+    - we permit any route that matches the prefix list of the VPC subnets
+    - we permit any route that matches the prefix list of the VPC static external subnets
+    - we explicitly deny everything else. This is superfluous as the default action is to deny
+    ```
+    route-map vpc-redistribute-connected--vpc-01 permit 5
+     match ip address prefix-list vpc-subnets--vpc-01
+    !
+    route-map vpc-redistribute-connected--vpc-01 permit 6
+     match ip address prefix-list vpc-static-ext-subnets--vpc-01
+    !
+    route-map vpc-redistribute-connected--vpc-01 deny 10
+    !
+    ```
+1. We create a similar route map for static routes redistribution:
+    - we permit any route that matches the prefix list of the VPC [static external](#static-external-connections) subnets
+    - we implicitly deny everything else
+   ```
+   route-map vpc-redistribute-static--vpc-01 permit 5
+    match ip address prefix-list vpc-static-ext-subnets--vpc-01
+   !
+   ```
+1. We create a route map to filter routes imported in the VPC VRF, e.g. from VPC we are peering with:
+    - we permit any route that matches the prefix list of the VPC peers, which holds the subnets of every
+      VPC peered with this one (see [VPC Peerings](#vpc-peerings)), with `le 32` so that it also covers host
+      routes, i.e. attached-host /32s and host-BGP VIPs; in L3VNI mode these are the only way to reach the hosts.
+    - we explicitly deny everything else. This is superfluous as the default action is to deny
+    ```
+    route-map import-vrf--vpc-01 permit 50000
+     match ip address prefix-list vpc-peers--vpc-01
+    !
+    route-map import-vrf--vpc-01 deny 65535
+    !
+    ```
+1. Finally, we create a BGP instance for this VRF:
+    - we set the router-id to the Protocol IP of the switch
+    - we redistribute attached-host routes
+    - we redistribute connected routes using the route map created above
+    - we redistribute static routes using the route map created above
+    - we set maximum-paths to 16 for eBGP multipath
+    - we disable iBGP multipath
+    - we import routes into the VRF using the route map created above
+    - we enable EVPN advertisement of IPv4 unicast routes and filter out attached-host routes
+      to avoid duplicate advertisements, as indicated in the BCM SONiC user guide. The route-map
+      is created by default on all switches as it is VPC independent
+    - we enable duplicate address detection
+    ```
+    router bgp 65101 vrf VrfVvpc-01
+     router-id 172.30.8.2
+     log-neighbor-changes
+     timers 60 180
+     !
+     address-family ipv4 unicast
+      redistribute attached-host
+      redistribute connected route-map vpc-redistribute-connected--vpc-01
+      redistribute static route-map vpc-redistribute-static--vpc-01
+      maximum-paths 16
+      maximum-paths ibgp 1
+      import vrf route-map import-vrf--vpc-01
+     !
+     address-family l2vpn evpn
+      advertise ipv4 unicast route-map filter-attached-hosts
+      dup-addr-detection
+    !
+    ```
+
+#### Host-BGP subnets
+For subnets with `hostBGP: true`, the configuration above is slightly modified:
+1. We do not create a VLAN for the subnet, nor do we enable it as trunk on the parent interface.
+Instead, we create a sub-interface (if a VLAN was specified) or apply the configuration directly
+in the parent interface (if VLAN=0). In either case, we enslave the interface to the VPC VRF and enable
+IPv6, which we need for the unnumbered BGP sessions. Here's the config for the sub-interface case:
+    ```
+    interface Ethernet2.1001
+     encapsulation dot1q vlan-id 1001
+     no shutdown
+     ip vrf forwarding VrfVvpc-01
+     ipv6 enable
+    !
+    ```
+1. We create a prefix list and a route-map to only allow /32 routes in the VPC subnet when learning
+routes from the host BGP neighbor:
+    ```
+    ip prefix-list vips-only--vpc-01--default seq 10 permit 10.0.1.0/24 ge 32 le 32
+    route-map vips-only--vpc-01--default permit 10
+     match ip address prefix-list vips-only--vpc-01--default
+    !
+    ```
+1. We add the host as an unnumbered BGP neighbor in the VPC VRF instance:
+    ```
+    router bgp 65101 vrf VrfVvpc-01
+     neighbor interface Ethernet2.1001
+      description "HostBGP unnumbered Ethernet2.1001"
+      remote-as external
+      capability extended-nexthop
+      !
+      address-family ipv4 unicast
+       activate
+       route-map vips-only--vpc-01--default in
+       as-override
+      !
+      address-family l2vpn evpn
+     !
+    !
+    ```
+
+#### Subnet restrictions
+A subnet from a VPC can be isolated (i.e. not allowed to communicate with other subnets in the same VPC)
+and/or restricted (i.e. hosts on that subnet are not allowed to communicate with each other). Let's see
+how the configuration changes, based on an example where we have VPC vpc-01 with two subnets subnet-01
+(VLAN 1001, 10.0.1.0/24) and subnet-02 (VLAN 1002, 10.0.2.0/24).
+
+When restricting subnet-01, we create an ACL to prevent hosts on that subnet from communicating with each other,
+and we add it to the VLAN interface of subnet-01:
+```
+ip access-list vpc-filtering--vpc-01--subnet-01
+ remark vpc-filtering--vpc-01--subnet-01
+ seq 1 deny ip 10.0.1.0/24 10.0.1.0/24
+ seq 65535 permit ip any any
+!
+interface Vlan1001
+ ip access-group vpc-filtering--vpc-01--subnet-01 in
+```
+
+When isolating subnet-01, we create an ACL to drop any traffic destined to that subnet, and we apply it to
+all of the other subnet VLAN interfaces in the VPC, so in this case to VLAN 1002 of subnet-02:
+```
+ip access-list vpc-filtering--vpc-01--subnet-02
+ remark vpc-filtering--vpc-01--subnet-02
+ seq 100 discard ip any 10.0.1.0/24
+ seq 65535 permit ip any any
+!
+interface Vlan1002
+ ip access-group vpc-filtering--vpc-01--subnet-02 in
+```
+The isolation flag can be overridden by an explicit permit list in the VPC object, whose effect
+is to suppress the above config for the subnets included in the permit list.
+
+### L3VNI VPCs
+L3VNI VPCs attached to a switch generate exactly the same config as L2VNI VPCs, with only two differences:
+1. We do not create VNI mappings for the subnet VLANs (there is no L2VNI, obviously)
+1. We do not filter attached host routes in the BGP EVPN address family. Without L2VNIs, these routes
+   have to be advertised to allow communication between hosts in the VPC.
+
+On top of that, there is the DHCP hack that we implement in our server to learn the IP/MAC association,
+but that has no impact on the switch configuration.
+
+## VPC Peerings
+Here is what happens when we peer a VPC subnet attached on our leaf (e.g. `vpc-01/subnet-01` with prefix `10.0.1.0/24`)
+with another VPC subnet (`vpc-02/subnet-01` with prefix `10.0.2.0/24`):
+1. If a subnet of `vpc-02` is not already attached to this leaf, we go through all of the steps described
+   above for the L2VNI VPC attachment, **with the exception of the subnets VLANs** (steps 2 and 3). In other words,
+   we create the VRF, the IRB VLAN interface, the VNI mappings, the prefix lists and route-maps,
+   and the BGP instance for `vpc-02`.
+1. We add the prefixes of the peered subnets to the prefix list of VPC peers for both VPCs, where
+   the index used is the VNI associated with the subnet's VLAN:
+    ```
+    ip prefix-list vpc-peers--vpc-01 seq 201 permit 10.0.2.0/24 le 32
+    ip prefix-list vpc-peers--vpc-02 seq 101 permit 10.0.1.0/24 le 32
+    ```
+1. In the import route map of each VPC, we deny anything coming from the other VPC's VRF that is not one of
+   its subnets, using its `vpc-not-subnets` prefix list. This keeps out whatever else that VRF holds, e.g. a
+   default route from an external or a gateway. The statement index is 10000 plus the other VPC's VNI divided by 100:
+    ```
+    route-map import-vrf--vpc-01 deny 10002
+     match ip address prefix-list vpc-not-subnets--vpc-02
+     match source-vrf VrfVvpc-02
+    !
+    route-map import-vrf--vpc-02 deny 10001
+     match ip address prefix-list vpc-not-subnets--vpc-01
+     match source-vrf VrfVvpc-01
+    !
+    ```
+1. We configure route leaking between the two VPC VRFs by adding an import VRF statement in each
+   of the two BGP instances:
+    ```
+    router bgp 65101 vrf VrfVvpc-01
+     address-family ipv4 unicast
+      import vrf VrfVvpc-02
+    !
+    router bgp 65101 vrf VrfVvpc-02
+     address-family ipv4 unicast
+      import vrf VrfVvpc-01
+    !
+    ```
+
+### Subnet permits for peering
+When peering two VPC subnets, it is possible to specify lists of permitted subnets for each side. In this case,
+only the subnets included in each of the permit list will be allowed to communicate with each other. This is
+implemented by adding ACLs to the VLAN interfaces of each of the subnets attached to the leaf. Continuing
+the example above, let's assume we have a vpc-02 with two subnets, subnet-01 with prefix `10.0.3.0/24` and
+subnet-02 with prefix `10.0.4.0/24`, and we want to peer `vpc-01/subnet-01` only with `vpc-02/subnet-02`.
+We would add the following ACL to VLAN 1001 of `vpc-01/subnet-01`:
+```
+ip access-list vpc-filtering--vpc-01--subnet-01
+ remark vpc-filtering--vpc-01--subnet-01
+ seq 102 deny ip any 10.0.3.0/24
+ seq 65535 permit ip any any
+!
+interface Vlan1001
+ ip access-group vpc-filtering--vpc-01--subnet-01 in
+```
+And the following ACL to VLAN 1002 of `vpc-01/subnet-02`, which is not in the permit list and so
+may reach neither of the `vpc-02` subnets:
+```
+ip access-list vpc-filtering--vpc-01--subnet-02
+ remark vpc-filtering--vpc-01--subnet-02
+ seq 102 deny ip any 10.0.3.0/24
+ seq 103 deny ip any 10.0.4.0/24
+ seq 65535 permit ip any any
+!
+interface Vlan1002
+ ip access-group vpc-filtering--vpc-01--subnet-02 in
+```
+And of course we would do something similar on `vpc-02` side.
+
+## Externals
+Even though there's a single `External` object and a single `ExternalAttachment` object, in practice
+we support two types of externals. BGP speaking externals will optionally have non-nil inbound and outbound
+communities, while Static externals will have non-nil static configuration.
+
+Routes learned from any External carry the fabric's `baseVPCCommunity` instead of whatever the
+external system sent, so that no community from outside means anything in the fabric. It is also how
+the other leaves recognize these routes when they learn them via EVPN, to give them a higher local
+preference: every leaf has it in the `all-externals` community list (see the `l2vpn-neighbors`
+route-map in [Switch Invariants](#switch-invariants)):
+```
+bgp community-list standard all-externals permit 50000:0
+```
+
+Creating an `External` object does not affect the switches in any major way; it is only when an
+External is attached to a particular leaf via an `ExternalAttachment` that that leaf configuration is
+impacted. For this reason, even though some of the relevant config comes from information that lives in
+the `External`, in terms of config changes we'll only refer to the creation or deletion of an attachment.
+
+### Common external config
+The following config is applied for all externals, regardless of their type:
+1. We create a VRF with the prefix `VrfE` followed by the name of the external; we also create an
+   IRB VLAN associated with the VRF, and we configure a VNI for both of these under the vxlan interface.
+   Note that we also apply the `no-ipns-peering--<IPV4NAMESPACE>` ACL on the IRB VLAN, to prevent traffic
+   local to the fabric from exiting via the external (see the [IPv4 Namespaces](#ipv4-namespaces) section).
+    ```
+    ip vrf VrfEext-name
+    !
+    interface Vlan3001
+     description "External ext-name IRB"
+     ip vrf forwarding VrfEext-name
+     ip access-group no-ipns-peering--default in
+    !
+    interface vxlan vtepfabric
+     map vni 300 vlan 3001
+     map vni 300 vrf VrfEext-name
+    !
+    ```
+1. We create a sub-interface to connect to the external device, place it in the VRF
+of the external, and apply the [inbound ACL](#inbound-acl) of the attachment, as well as an
+access-list to prevent traffic destined to the fabric from going out via the external attachment:
+    ```
+    interface Ethernet0.10
+     encapsulation dot1q vlan-id 10
+     no shutdown
+     ip vrf forwarding VrfEext-name
+     ip access-group ext-inbound--leaf-01--ext-name in
+     ip access-group ipns-egress--default out
+    !
+    ip access-list ipns-egress--default
+     remark ipns-egress--default
+     seq 10 deny ip any 10.0.0.0/16
+     seq 65535 permit ip any any
+    !
+    ```
+1. We create a prefix list and a route-map to filter what is imported into the external's
+VRF via route leaking, i.e. when we peer a VPC with the external via the Fabric. The
+prefix list, initially empty, is dynamically populated with the prefixes of the VPC
+subnets that are permitted in the [external peerings](#external-peerings):
+    ```
+    route-map ext-import--ext-name permit 10
+     match ip address prefix-list ext-import--ext-name
+    !
+    ```
+1. We configure a BGP instance for the external VRF. This is done for all externals,
+not just BGP-speaking ones, because it's part of how we handle external VRFs "as VPCs"
+and peer them via the gateway as needed. 
+    ```
+    router bgp 65101 vrf VrfEext-name
+     router-id 172.30.8.1
+     log-neighbor-changes
+     timers 60 180
+     !
+     address-family ipv4 unicast
+      maximum-paths 16
+      maximum-paths ibgp 1
+      import vrf route-map ext-import--ext-name
+     !
+     address-family l2vpn evpn
+      advertise ipv4 unicast
+      dup-addr-detection
+     !
+    !
+    ```
+
+### BGP-speaking externals
+
+When attaching a BGP external to a leaf, in addition to the above, the following config is applied:
+1. On the sub-interface connected to the external we configure the IP address specified
+in the external attachment:
+    ```
+    interface Ethernet0.10
+     ip address 100.1.10.1/24
+     [...]
+    !
+    ```
+1. Assuming it is not empty, we add the inbound community of the BGP external to the community list
+`ext-inbound--<EXT-NAME>`:
+    ```
+    bgp community-list standard ext-inbound--ext-name permit 65102:1000
+    ```
+1. We create several route-maps. In the inbound route-map, used in the import direction from the external:
+  - we deny routes that match the `fabric-gw-aspath` AS-path list (see [Switch Invariants](#switch-invariants))
+  - we deny routes that match the IPv4 namespace the external belongs to
+  - we allow routes that match the inbound community above (if specified) and the prefix list below (if the External
+  has `inboundPrefixes`), and set a local preference of 150. If neither was specified, this applies to all routes.
+  We also replace their communities with `baseVPCCommunity`, which marks them as external routes for other
+  leaves, and the inbound community, which the VPCs' `import-vrf` route-maps match on (see
+  [External peerings](#external-peerings))
+  - we deny everything else (assuming there was an inbound community or inbound prefixes)
+
+If the External has `inboundPrefixes`, they go into the prefix list `ext-inbound--<EXT-NAME>`. Each matches
+exactly, unless `minPrefixLen` or `maxPrefixLen` widen it:
+    ```
+    ip prefix-list ext-inbound--ext-name seq 10 permit 0.0.0.0/0
+    ip prefix-list ext-inbound--ext-name seq 20 permit 10.1.0.0/16 le 24
+    ip prefix-list ext-inbound--ext-name seq 30 permit 172.16.0.0/12 ge 16 le 32
+    ```
+
+In the outbound route-map, used in the out direction with the external:
+  - we permit any route matching the IPv4 namespace the external belongs to, and we tag those with the external's outbound community if specified
+  - we permit any route matching the gateway priority community list (`all-gw-prios`), and we tag those with the external's outbound community if specified;
+  this is to ensure that NATed prefixes learned from the gateway are exported to the external
+
+  ```
+  route-map ext-inbound--ext-name deny 5
+   match as-path fabric-gw-aspath
+  !
+  route-map ext-inbound--ext-name deny 10
+   match ip address prefix-list ipns-subnets--default
+  !
+  route-map ext-inbound--ext-name permit 15
+   match community ext-inbound--ext-name
+   match ip address prefix-list ext-inbound--ext-name
+   set community 50000:0 65102:1000
+   set local-preference 150
+  !
+  route-map ext-outbound--ext-name permit 10
+   match ip address prefix-list ipns-subnets--default
+   set community 64102:1000
+  !
+  route-map ext-outbound--ext-name permit 20
+   match community all-gw-prios
+   set community 64102:1000
+  !
+  ```
+1. In the BGP instance for the external VRF, we peer with the external device
+using the IPv4 unicast AF. The route-maps described above are used to filter what is
+advertised and accepted.
+    ```
+    router bgp 65101 vrf VrfEext-name
+    [...]
+     address-family l2vpn evpn
+      advertise ipv4 unicast route-map ext-inbound--ext-name
+      dup-addr-detection
+     !
+     neighbor 100.1.10.6
+      description "External attach leaf-01--ext-name"
+      remote-as 64102
+      !
+      address-family ipv4 unicast
+       activate
+       route-map ext-inbound--ext-name in
+       route-map ext-outbound--ext-name out
+      !
+      address-family l2vpn evpn
+     !
+    !
+    ```
+    If the attachment has no neighbor ASN we use `remote-as external` instead, which accepts any
+    ASN other than our own.
+
+    If the attachment has `neighbor.prefixLimit`, the session is closed when the external sends more
+    than `max` prefixes, after the inbound route-map, and opened again after `restartMinutes` (5 by
+    default), as nothing else would clear it. The switch logs a warning from `warningThresholdPct`
+    of `max` (75% by default):
+    ```
+    router bgp 65101 vrf VrfEext-name
+     neighbor 100.1.10.6
+      address-family ipv4 unicast
+       maximum-prefix 1000 90 restart 5
+    ```
+    With `warningOnly` the session stays open and going above `max` is only logged. The switch
+    refuses a restart timer together with it, so there is none, and it refuses to swap one for the
+    other on an existing limit, so a change of mode deletes the limit first:
+    ```
+       maximum-prefix 1000 90 warning-only
+    ```
+
+#### Unnumbered attachments
+
+An attachment with neither `switch.ip` nor `neighbor.ip` runs BGP unnumbered, as
+[unnumbered fabric links](#unnumbered-links) do: the sub-interface gets `ipv6 enable` instead of
+an address, and the session is keyed by the sub-interface:
+```
+interface Ethernet0.10
+ encapsulation dot1q vlan-id 10
+ ip vrf forwarding VrfEext-name
+ ipv6 enable
+ [...]
+!
+router bgp 65101 vrf VrfEext-name
+ neighbor interface Ethernet0.10
+  description "External attach leaf-01--ext-name"
+  remote-as 64102
+  capability extended-nexthop
+  [...]
+```
+The agent reports the session under the port and VLAN, e.g. `E1/1.10`.
+
+With no IPv4 address on the sub-interface, the attachment's inbound ACL has no switch address
+to protect, so it only carries the user's statements (or the default permit). The ACL is IPv4
+only and does not cover the link-local address, through which the neighbor can reach the
+switch's REST and gNMI ports.
+
+### Static externals
+For static externals, the following configuration is added on top of the common one:
+
+1. For non-proxied static externals, we configure the IP address specified in the
+attachment on the sub-interface connecting to the external device:
+    ```
+    interface Ethernet0.10
+     ip address 100.1.10.2/24
+     [...]
+    !
+    ```
+For proxied externals, a /31 address is going to be allocated from the reserved range
+configured in Fabricator, and proxy-arp will be enabled; the address from the range is
+irrelevant but needs to be there for proxy-arp to be configurable. Proxy-arp is used so
+that the border leaf will answer ARP requests for the IP which is used in the gateway
+to masquerade the private VPCs' IPs.
+    ```
+    interface Ethernet0.10
+     ip address 172.30.16.0/31
+     ip proxy-arp enable remote-only
+     [...]
+    !
+    ```
+1. Static routes are added to the VRF of the external:
+  - one route per prefix reachable via the external, as defined by the `Prefixes` list in the external itself
+  - a direct route to the /32 address of the external device, only if that address is not in the
+    subnet of the sub-interface; this is always the case with proxy-ARP, where the switch only has the /31
+    ```
+    ip route vrf VrfEext-name 0.0.0.0/0 100.1.10.1 interface Ethernet0.10
+    ```
+1. In the BGP instance of the external VRF, static routes are redistributed,
+so that peers of the static external can learn how to reach the prefixes that
+are "advertised" by it. They get `baseVPCCommunity` on the way, as routes learned
+from a BGP external do, so that both kinds rank the same while an External has both
+static and BGP attachments:
+    ```
+    route-map ext-static--ext-name permit 10
+     set community 50000:0
+    !
+    router bgp 65101 vrf VrfEext-name
+    [...]
+     address-family ipv4 unicast
+      redistribute static route-map ext-static--ext-name
+     !
+    !
+    ```
+
+### Inbound ACL
+Each attachment gets an access-list `ext-inbound--<ATTACHMENT-NAME>`, applied in the ingress direction
+on its sub-interface:
+- for BGP attachments and non-proxied static ones, sequence numbers 1 to 6 are reserved for rules
+that always discard traffic addressed to the switch's own IP on the sub-interface: TCP 22 (SSH),
+443 (REST API) and 8080 (gNMI), and UDP 67 (DHCP), 161 (SNMP) and 4789 (VXLAN). They keep the external
+from reaching the switch's management services and from injecting VXLAN traffic.
+- the statements in the attachment's `inboundACL` follow, with the sequence number given by the user,
+which the webhook requires to be 10 or more. The `permit`, `deny`, `discard` and `transit` actions map
+to the SONiC ACL actions of the same name.
+- if the user gave no statements, a final `permit ip any any` lets everything else through. If they
+did, there is no such statement, so the list ends with SONiC's implicit deny.
+
+Proxied static attachments have no IP of their own on the sub-interface (only the /31 from the reserved
+range), so they get no reserved rules and no added permit: an ACL is only created if the user gave
+statements, and it holds just those.
+
+E.g. for a BGP attachment with no user statements:
+```
+ip access-list ext-inbound--leaf-01--ext-name
+ remark "Inbound ACL leaf-01--ext-name"
+ seq 1 discard tcp any host 100.1.10.1 eq 443
+ seq 2 discard tcp any host 100.1.10.1 eq 8080
+ seq 3 discard udp any host 100.1.10.1 eq 67
+ seq 4 discard udp any host 100.1.10.1 eq 161
+ seq 5 discard udp any host 100.1.10.1 eq 4789
+ seq 6 discard tcp any host 100.1.10.1 eq 22
+ seq 65535 permit ip any any
+!
+```
+
+### External peerings
+The configuration applied on an external peering is roughly the same
+regardless of the external type, with one minor caveat I will point out.
+
+1. We create a prefix list `import-vrf--<VPC-NAME>--<EXT-NAME>` with all
+the prefixes we allow for that external:
+    ```
+    ip prefix-list import-vrf--vpc-01--ext-name seq 102 permit 0.0.0.0/0 le 32
+    ```
+1. We add entries to the route-map filtering routes leaked into the VPC VRF;
+one rule is added to deny routes coming from the external for prefixes in the IPv4 namespace,
+and another to set a local preference of 150 for routes imported from the external.
+Both match the external's VRF as source, so that another external peered with the same VPC can't
+get its routes in for the prefixes this one permits.
+Here is also the one difference between external types: for BGP externals, this second rule
+will also match on the inbound community of that external.
+    ```
+    route-map import-vrf--vpc-01 deny 5010
+     match ip address prefix-list ipns-subnets--default
+     match source-vrf VrfEext-name
+    !
+    route-map import-vrf--vpc-01 permit 50010
+     match ip address prefix-list import-vrf--vpc-01--ext-name
+     match community ext-inbound--ext-name
+     match source-vrf VrfEext-name
+     set local-preference 150
+    !
+    ```
+1. We add the VPC subnet(s) to the prefix list for the external's VRF route leaking, allowing
+them through:
+    ```
+    ip prefix-list ext-import--ext-name seq 101 permit 10.0.1.0/24 le 32
+    ```
+1. We enable route leaking between the VRFs of the VPC and the external:
+    ```
+    router bgp 65101 vrf VrfEext-name
+     address-family ipv4 unicast
+      import vrf VrfVvpc-01
+      [...]
+     !
+    !
+    router bgp 65101 vrf VrfVvpc-01
+     address-family ipv4 unicast
+      import vrf VrfEext-name
+      [...]
+     !
+    !
+    ```

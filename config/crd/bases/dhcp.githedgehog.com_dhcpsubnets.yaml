@@ -1,0 +1,233 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.23.0
+  name: dhcpsubnets.dhcp.githedgehog.com
+spec:
+  group: dhcp.githedgehog.com
+  names:
+    categories:
+    - hhint
+    - hhfcint
+    kind: DHCPSubnet
+    listKind: DHCPSubnetList
+    plural: dhcpsubnets
+    shortNames:
+    - dhcp
+    singular: dhcpsubnet
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.subnet
+      name: Subnet
+      type: string
+    - jsonPath: .spec.cidrBlock
+      name: CIDRBlock
+      type: string
+    - jsonPath: .spec.gateway
+      name: Gateway
+      type: string
+    - jsonPath: .spec.startIP
+      name: StartIP
+      type: string
+    - jsonPath: .spec.endIP
+      name: EndIP
+      type: string
+    - jsonPath: .spec.vrf
+      name: VRF
+      priority: 1
+      type: string
+    - jsonPath: .spec.circuitID
+      name: CircuitID
+      priority: 1
+      type: string
+    - jsonPath: .spec.dnsServers
+      name: DNSServers
+      priority: 1
+      type: string
+    - jsonPath: .spec.timeServers
+      name: TimeServers
+      priority: 1
+      type: string
+    - jsonPath: .spec.interfaceMTU
+      name: InterfaceMTU
+      priority: 1
+      type: integer
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      priority: 10
+      type: date
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          DHCPSubnet is the configuration (spec) for the Hedgehog DHCP server and storage for the leases (status). It's
+          primary internal API group, but it makes allocated IPs / leases information available to the end user through API.
+          Not intended to be modified by the user.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Spec is the desired state of the DHCPSubnet
+            properties:
+              advertisedRoutes:
+                description: AdvertisedRoutes (optional) is a list of custom routes
+                  to advertise in DHCP
+                items:
+                  properties:
+                    destination:
+                      description: Destination is the destination prefix for the route
+                      type: string
+                    gateway:
+                      description: Gateway is the gateway IP address for the route
+                      type: string
+                  type: object
+                type: array
+              cidrBlock:
+                description: CIDR block to use for VPC subnet, such as "10.10.10.0/24"
+                type: string
+              circuitID:
+                description: VLAN ID to identify specific subnet within the VPC, such
+                  as "Vlan1000" as it's named on switch
+                type: string
+              defaultURL:
+                description: DefaultURL (optional) is the option 114 "default-url"
+                  to be sent to the clients
+                type: string
+              disableDefaultRoute:
+                description: Disable default route advertisement in DHCP
+                type: boolean
+              dnsServers:
+                description: 'DNSservers (optional) to configure Domain Name Servers
+                  for this particular segment such as: 10.10.10.1, 10.10.10.2'
+                items:
+                  type: string
+                type: array
+              endIP:
+                description: End IP from the CIDRBlock to allocate IPs, such as 10.10.10.99
+                type: string
+              gateway:
+                description: Gateway, such as 10.10.10.1
+                type: string
+              interfaceMTU:
+                description: InterfaceMTU (optional) is the MTU setting that the dhcp
+                  server will send to the clients. It is dependent on the client to
+                  honor this option.
+                type: integer
+              l3Mode:
+                description: L3 mode is used to indicate that this subnet is for a
+                  VPC in L3 mode meaning that /32 should be advertised to the clients
+                type: boolean
+              leaseTimeSeconds:
+                description: Lease time in seconds, such as 3600
+                format: int32
+                type: integer
+              onieOnly:
+                description: ONIEOnly (optional) is a boolean indicating whether this
+                  subnet is for ONIE only (check class identifier)
+                type: boolean
+              pxeURL:
+                description: PXEURL (optional) to identify the pxe server to use to
+                  boot hosts connected to this segment such as http://10.10.10.99/bootfilename
+                  or tftp://10.10.10.99/bootfilename, http query strings are not supported
+                type: string
+              startIP:
+                description: Start IP from the CIDRBlock to allocate IPs, such as
+                  10.10.10.10
+                type: string
+              static:
+                additionalProperties:
+                  description: DHCPSubnetStatic represents static IP assignment
+                  properties:
+                    ip:
+                      description: IP is the assigned static IP address
+                      type: string
+                  required:
+                  - ip
+                  type: object
+                description: Static is a map of static IP assignments for MAC addresses
+                type: object
+              subnet:
+                description: Full VPC subnet name (including VPC name), such as "vpc-0/default"
+                type: string
+              timeServers:
+                description: 'TimeServers (optional) NTP server addresses to configure
+                  for time servers for this particular segment such as: 10.10.10.1,
+                  10.10.10.2'
+                items:
+                  type: string
+                type: array
+              vrf:
+                description: VRF name to identify specific VPC (will be added to DHCP
+                  packets by DHCP relay in suboption 151), such as "VrfVvpc-1" as
+                  it's named on switch
+                type: string
+              ztpBaseURL:
+                description: ZTPBaseURL (optional) is the base URL for Hedgehog ZTP
+                  (onie, cumulus ztp, etc)
+                type: string
+            required:
+            - cidrBlock
+            - circuitID
+            - defaultURL
+            - dnsServers
+            - endIP
+            - gateway
+            - interfaceMTU
+            - leaseTimeSeconds
+            - pxeURL
+            - startIP
+            - subnet
+            - timeServers
+            - vrf
+            type: object
+            x-kubernetes-map-type: atomic
+          status:
+            description: Status is the observed state of the DHCPSubnet
+            properties:
+              allocated:
+                additionalProperties:
+                  description: DHCPAllocated is a single allocated IP with expiry
+                    time and hostname from DHCP requests, it's effectively a DHCP
+                    lease
+                  properties:
+                    expiry:
+                      description: Expiry time of the lease
+                      format: date-time
+                      type: string
+                    hostname:
+                      description: Hostname from DHCP request
+                      type: string
+                    ip:
+                      description: Allocated IP address
+                      type: string
+                  required:
+                  - ip
+                  type: object
+                description: Allocated is a map of allocated IPs with expiry time
+                  and hostname from DHCP requests
+                type: object
+            type: object
+            x-kubernetes-map-type: atomic
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

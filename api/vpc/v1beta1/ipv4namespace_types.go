@@ -1,0 +1,195 @@
+// Copyright 2023 Hedgehog
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package v1beta1
+
+import (
+	"context"
+	"fmt"
+	"maps"
+	"net/netip"
+	"slices"
+
+	"github.com/pkg/errors"
+	"go.githedgehog.com/fabric/api/meta"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	"go.githedgehog.com/fabric/pkg/util/iputil"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+)
+
+const MaxIPv4NamespaceSubnets = 10
+
+// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+
+// IPv4NamespaceTopology is where a IPv4Namespace sits in the fabric topology
+type IPv4NamespaceTopology struct {
+	// Fabric is the name of the Fabric this IPv4Namespace belongs to (if not specified, "default" is used)
+	Fabric string `json:"fabric,omitempty"`
+}
+
+// IPv4NamespaceSpec defines the desired state of IPv4Namespace
+type IPv4NamespaceSpec struct {
+	// Topology is where the IPv4Namespace sits in the fabric topology
+	Topology IPv4NamespaceTopology `json:"topology,omitempty"`
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=20
+	// Subnets is the list of subnets to allocate VPC subnets from, couldn't overlap between each other and with Fabric reserved subnets
+	Subnets []string `json:"subnets,omitempty"`
+}
+
+// IPv4NamespaceStatus defines the observed state of IPv4Namespace
+type IPv4NamespaceStatus struct{}
+
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:categories=hedgehog;hh;hhfc,shortName=ipns
+// +kubebuilder:printcolumn:name="Topo",type=string,JSONPath=`.metadata.annotations.fabric\.githedgehog\.com/topology`,priority=0
+// +kubebuilder:printcolumn:name="Subnets",type=string,JSONPath=`.spec.subnets`,priority=0
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=10
+// IPv4Namespace represents a namespace for VPC subnets allocation. All VPC subnets within a single IPv4Namespace are
+// non-overlapping. Users can create multiple IPv4Namespaces to allocate same VPC subnets.
+type IPv4Namespace struct {
+	kmetav1.TypeMeta   `json:",inline"`
+	kmetav1.ObjectMeta `json:"metadata,omitempty"`
+
+	// Spec is the desired state of the IPv4Namespace
+	Spec IPv4NamespaceSpec `json:"spec,omitempty"`
+	// Status is the observed state of the IPv4Namespace
+	Status IPv4NamespaceStatus `json:"status,omitempty"`
+}
+
+const KindIPv4Namespace = "IPv4Namespace"
+
+// +kubebuilder:object:root=true
+
+// IPv4NamespaceList contains a list of IPv4Namespace
+type IPv4NamespaceList struct {
+	kmetav1.TypeMeta `json:",inline"`
+	kmetav1.ListMeta `json:"metadata,omitempty"`
+	Items            []IPv4Namespace `json:"items"`
+}
+
+func init() {
+	SchemeBuilder.Register(func(s *runtime.Scheme) error {
+		s.AddKnownTypes(GroupVersion, &IPv4Namespace{}, &IPv4NamespaceList{})
+
+		return nil
+	})
+}
+
+var (
+	_ meta.Object     = (*IPv4Namespace)(nil)
+	_ meta.ObjectList = (*IPv4NamespaceList)(nil)
+)
+
+func (ipNsList *IPv4NamespaceList) GetItems() []meta.Object {
+	items := make([]meta.Object, len(ipNsList.Items))
+	for i := range ipNsList.Items {
+		items[i] = &ipNsList.Items[i]
+	}
+
+	return items
+}
+
+func (ns *IPv4NamespaceSpec) Labels() map[string]string {
+	// TODO
+	return map[string]string{}
+}
+
+func (ns *IPv4Namespace) Default() {
+	meta.DefaultObjectMetadata(ns)
+
+	if ns.Spec.Topology.Fabric == "" {
+		ns.Spec.Topology.Fabric = wiringapi.DefaultFabric
+	}
+
+	if ns.Labels == nil {
+		ns.Labels = map[string]string{}
+	}
+
+	wiringapi.CleanupFabricLabels(ns.Labels)
+
+	maps.Copy(ns.Labels, ns.Spec.Labels())
+
+	ns.Labels[wiringapi.ListLabelFabric(ns.Spec.Topology.Fabric)] = ListLabelValue
+	wiringapi.SetTopologyAnnotation(ns, ns.Spec.Topology.Fabric)
+
+	slices.Sort(ns.Spec.Subnets)
+}
+
+func (ns *IPv4Namespace) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
+	if err := meta.ValidateObjectMetadata(ns); err != nil {
+		return nil, errors.Wrapf(err, "failed to validate metadata")
+	}
+
+	if err := wiringapi.CheckFabricExists(ctx, kube, ns.Namespace, ns.Spec.Topology.Fabric); err != nil {
+		return nil, fmt.Errorf("failed to validate fabric: %w", err)
+	}
+
+	if len(ns.Name) > 11 {
+		return nil, errors.Errorf("name %s is too long, must be <= 11 characters", ns.Name)
+	}
+
+	subnets := []netip.Prefix{}
+	for _, subnet := range ns.Spec.Subnets {
+		prefix, err := netip.ParsePrefix(subnet)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to parse cidr %s", subnet)
+		}
+
+		subnets = append(subnets, prefix.Masked())
+	}
+
+	// we need ACLs between each source/destination subnet of a namespace
+	// to prevent traffic local to it from being peered via the external.
+	// ACLs are limited so let's err on the side of caution
+	if len(subnets) > MaxIPv4NamespaceSubnets {
+		return nil, errors.Errorf("too many subnets defined (%d), maximum is %d", len(subnets), MaxIPv4NamespaceSubnets)
+	}
+
+	if err := iputil.VerifyNoOverlapNetip(subnets); err != nil {
+		return nil, errors.Wrapf(err, "subnets overlap")
+	}
+
+	if fabricCfg != nil {
+		subnets = append(subnets, fabricCfg.ParsedReservedSubnets()...)
+	}
+
+	return nil, errors.Wrapf(iputil.VerifyNoOverlapNetip(subnets), "subnets overlap with reserved subnets")
+}
+
+// CheckOutside checks that none of the prefixes is inside a subnet of the namespace, as an External drops the routes
+// within them silently. A prefix around the namespace, such as a default route, is fine
+func (ns *IPv4Namespace) CheckOutside(what string, prefixes []string) error {
+	for _, s := range ns.Spec.Subnets {
+		subnet, err := netip.ParsePrefix(s)
+		if err != nil {
+			return fmt.Errorf("invalid subnet %s in IPv4Namespace %s: %w", s, ns.Name, err)
+		}
+		for _, p := range prefixes {
+			prefix, err := netip.ParsePrefix(p)
+			if err != nil {
+				return fmt.Errorf("invalid %s %s: %w", what, p, err)
+			}
+			if iputil.IsSubset(prefix, subnet) {
+				return fmt.Errorf("%s %s is inside subnet %s of IPv4Namespace %s", what, prefix, subnet, ns.Name) //nolint:err113
+			}
+		}
+	}
+
+	return nil
+}

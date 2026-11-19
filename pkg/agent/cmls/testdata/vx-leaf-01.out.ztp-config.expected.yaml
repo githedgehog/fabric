@@ -1,0 +1,753 @@
+- set:
+    interface:
+      eth0:
+        ipv4:
+          address:
+            172.30.0.9/21: {}
+        type: eth
+        vrf: mgmt
+      swp1:
+        description: External leaf-01--external
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            up: {}
+        lldp:
+          state: enabled
+      swp2:
+        description: Unbundled server-01 server-01--unbundled--leaf-01
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            up: {}
+        lldp:
+          state: enabled
+      swp3:
+        description: Unbundled server-03 server-03--unbundled--leaf-01
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            up: {}
+        lldp:
+          state: enabled
+      swp4:
+        description: Unbundled server-04 server-04--unbundled--leaf-01
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            up: {}
+        lldp:
+          state: enabled
+      swp5:
+        description: Fabric spine-01/E1/1 spine-01--fabric--leaf-01
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            up: {}
+        lldp:
+          state: enabled
+      swp6:
+        description: Fabric spine-01/E1/2 spine-01--fabric--leaf-01
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            up: {}
+        lldp:
+          state: enabled
+      swp7:
+        description: Fabric spine-02/E1/1 spine-02--fabric--leaf-01
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            up: {}
+        lldp:
+          state: enabled
+      swp8:
+        description: Fabric spine-02/E1/2 spine-02--fabric--leaf-01
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            up: {}
+        lldp:
+          state: enabled
+      swp9:
+        description: Bundled server-05 server-05--bundled--leaf-01
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            up: {}
+        lldp:
+          state: enabled
+      swp10:
+        description: Bundled server-05 server-05--bundled--leaf-01
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            up: {}
+        lldp:
+          state: enabled
+      swp11:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp12:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp13:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp14:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp15:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp16:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp17:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp18:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp19:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp20:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp21:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp22:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp23:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp24:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp25:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp26:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp27:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp28:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp29:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp30:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp31:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp32:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp33:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp34:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp35:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp36:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp37:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp38:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp39:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp40:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp41:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp42:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp43:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp44:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp45:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp46:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp47:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp48:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp49:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp50:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp51:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp52:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp53:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp54:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp55:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp56:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp57:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp58:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp59:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp60:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp61:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp62:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp63:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      swp64:
+        description: Unused
+        ipv6:
+          state: disabled
+        link:
+          speed: 10G
+          state:
+            down: {}
+        lldp:
+          state: enabled
+      bond1:
+        bond:
+          lacp-bypass: enabled
+          member:
+            swp9: {}
+            swp10: {}
+        description: Bundled server-05 server-05--bundled--leaf-01
+        ipv6:
+          state: disabled
+        link:
+          state:
+            up: {}
+        type: bond
+    system:
+      aaa:
+        class:
+          nvapply:
+            action: allow
+            command-path:
+              /:
+                permission: all
+          nvshow:
+            action: allow
+            command-path:
+              /:
+                permission: ro
+          sudo:
+            action: allow
+            command-path:
+              /:
+                permission: all
+        role:
+          nvue-admin:
+            class:
+              nvapply: {}
+          nvue-monitor:
+            class:
+              nvshow: {}
+          system-admin:
+            class:
+              nvapply: {}
+              sudo: {}
+        user:
+            admin:
+              hashed-password: $5$8nAYPGcl4l6G7Av1$Qi4/gnM0yPtGv9kjpMh78NuNSfQWy7vR1rulHpurL36
+              role: system-admin
+              ssh:
+                authorized-key:
+                    key-0:
+                      key: AAAAC3NzaC1lZDI1NTE5AAAAIGpF2+9I1Nj4BcN7y6DjzTbq1VcUYIRGyfzId5ZoBEFj
+                      type: ssh-ed25519
+                    key-1:
+                      key: AAAAC3NzaC1lZDI1NTE5AAAAIILr33oUspqfHiKC9BaenkKG3nIznbi/Ep3mmsMZjS4U
+                      type: ssh-ed25519
+            op:
+              hashed-password: $5$8nAYPGcl4l6G7Av1$Qi4/gnM0yPtGv9kjpMh78NuNSfQWy7vR1rulHpurL36
+              role: nvue-monitor
+              ssh:
+                authorized-key:
+                    key-0:
+                      key: AAAAC3NzaC1lZDI1NTE5AAAAIGpF2+9I1Nj4BcN7y6DjzTbq1VcUYIRGyfzId5ZoBEFj
+                      type: ssh-ed25519
+                    key-1:
+                      key: AAAAC3NzaC1lZDI1NTE5AAAAIILr33oUspqfHiKC9BaenkKG3nIznbi/Ep3mmsMZjS4U
+                      type: ssh-ed25519
+      api:
+        state: enabled
+      config:
+        auto-save:
+          state: enabled
+      control-plane:
+        acl:
+          acl-default-dos:
+            inbound: {}
+          acl-default-whitelist:
+            inbound: {}
+      docker:
+        vrf: mgmt
+      hostname: leaf-01
+      lldp:
+        state: enabled
+        tx-hold-multiplier: 24
+        tx-interval: 5
+      ntp:
+        listen:
+          eth0: {}
+        server:
+          172.30.0.1:
+            iburst: enabled
+        state: enabled
+        vrf: mgmt
+      ssh-server:
+        allow-users:
+            admin: {}
+            op: {}
+        permit-root-login: disabled
+        state: enabled
+      wjh:
+        channel:
+          forwarding:
+            trigger:
+              l2: {}
+              l3: {}
+              tunnel: {}
+        state: enabled

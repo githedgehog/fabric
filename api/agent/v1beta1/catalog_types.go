@@ -1,0 +1,97 @@
+// Copyright 2023 Hedgehog
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package v1beta1
+
+import (
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+)
+
+// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+
+// CatalogSpec defines the desired state of Catalog
+type CatalogSpec struct {
+	// Global
+
+	// ConnectionSystemIDs stores connection name -> ID, globally unique for the fabric
+	ConnectionIDs map[string]uint32 `json:"connectionIDs,omitempty"`
+	// VPCVNIs stores VPC name -> VPC VNI, globally unique for the fabric, it includes Externals too with ext@ prefix
+	VPCVNIs map[string]uint32 `json:"vpcVNIs,omitempty"`
+	// VPCSubnetVNIs stores VPC name -> subnet name -> VPC Subnet VNI, globally unique for the fabric
+	VPCSubnetVNIs map[string]map[string]uint32 `json:"vpcSubnetVNIs,omitempty"`
+
+	// Global (for gw)
+	VPCInfoIDs map[string]uint32 `json:"vpcInfoIDs,omitempty"`
+
+	// Per redundancy group (or switch if no redundancy group)
+
+	// IRBVLANs stores VPC name -> IRB VLAN ID, unique per redundancy group (or switch), it includes Externals too with ext@ prefix
+	IRBVLANs map[string]uint16 `json:"irbVLANs,omitempty"`
+	// PortChannelIDs stores Connection name -> PortChannel ID, unique per redundancy group (or switch)
+	PortChannelIDs map[string]uint16 `json:"portChannelIDs,omitempty"`
+
+	// Per switch
+
+	// TH5WorkaroundVLANs stores TH5 workaround mesh link -> VLAN ID, unique per switch
+	TH5WorkaroundVLANs map[string]uint16 `json:"th5WorkaroundVLANs,omitempty"`
+	// ExternalIDs stores external name -> ID, unique per switch
+	ExternalIDs map[string]uint16 `json:"externalIDs,omitempty"`
+	// SubnetIDs stores subnet -> ID, unique per switch
+	SubnetIDs map[string]uint32 `json:"subnetIDs,omitempty"`
+	// StaticExternalSubnetOffsets stores external attachment name -> subnet offset, unique per switch
+	StaticExternalSubnetOffsets map[string]uint16 `json:"staticExternalSubnetOffsets,omitempty"`
+}
+
+// CatalogStatus defines the observed state of Catalog
+type CatalogStatus struct{}
+
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:categories=hhint;hhfcint,shortName=cat
+// Catalog is the Schema for the catalogs API
+type Catalog struct {
+	kmetav1.TypeMeta   `json:",inline"`
+	kmetav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   CatalogSpec   `json:"spec,omitempty"`
+	Status CatalogStatus `json:"status,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+
+// CatalogList contains a list of Catalog
+type CatalogList struct {
+	kmetav1.TypeMeta `json:",inline"`
+	kmetav1.ListMeta `json:"metadata,omitempty"`
+	Items            []Catalog `json:"items"`
+}
+
+func init() {
+	SchemeBuilder.Register(func(s *runtime.Scheme) error {
+		s.AddKnownTypes(GroupVersion, &Catalog{}, &CatalogList{})
+
+		return nil
+	})
+}
+
+func (c *CatalogSpec) GetVPCSubnetVNI(vpc, subnet string) (uint32, bool) {
+	if c.VPCSubnetVNIs[vpc] == nil {
+		return 0, false
+	}
+
+	vni, exists := c.VPCSubnetVNIs[vpc][subnet]
+
+	return vni, exists
+}

@@ -1,0 +1,1097 @@
+- set:
+    interface:
+      eth0:
+        ipv6:
+          state: disabled
+        ipv4:
+          address:
+            172.30.0.7/21: {}
+        type: eth
+        vrf: mgmt
+      lo:
+        ipv4:
+          address:
+            172.30.8.0/32: {}
+        type: loopback
+      swp1:
+        description: Fabric leaf-01/E1/5 spine-01--fabric--leaf-01
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            up: {}
+        ipv4:
+          address:
+            172.30.128.0/31: {}
+      swp2:
+        description: Fabric leaf-01/E1/6 spine-01--fabric--leaf-01
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            up: {}
+        ipv4:
+          address:
+            172.30.128.2/31: {}
+      swp3:
+        description: Fabric leaf-02/E1/4 spine-01--fabric--leaf-02
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            up: {}
+        ipv4:
+          address:
+            172.30.128.4/31: {}
+      swp4:
+        description: Fabric leaf-02/E1/5 spine-01--fabric--leaf-02
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            up: {}
+        ipv4:
+          address:
+            172.30.128.6/31: {}
+      swp5:
+        description: Gateway gateway-1/enp2s1 spine-01--gateway--gateway-1
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            up: {}
+      swp6:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp7:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp8:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp9:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp10:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp11:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp12:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp13:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp14:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp15:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp16:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp17:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp18:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp19:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp20:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp21:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp22:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp23:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp24:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp25:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp26:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp27:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp28:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp29:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp30:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp31:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp32:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp33:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp34:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp35:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp36:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp37:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp38:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp39:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp40:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp41:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp42:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp43:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp44:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp45:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp46:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp47:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp48:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp49:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp50:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp51:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp52:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp53:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp54:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp55:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp56:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp57:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp58:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp59:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp60:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp61:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp62:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp63:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+      swp64:
+        description: Unused
+        ipv6:
+          state: disabled
+        lldp:
+          state: enabled
+        qos:
+          pfc-watchdog:
+            state: enable
+        link:
+          speed: 10G
+          state:
+            down: {}
+    evpn:
+      state: enabled
+    qos:
+      roce:
+        mode: lossless
+        state: enabled
+      traffic-pool:
+        default-lossy:
+          memory-percent: 10
+        roce-lossless:
+          memory-percent: 90
+    router:
+      bfd:
+        profile:
+          overlay:
+            detect-multiplier: 3
+            min-rx-interval: 1000
+            min-tx-interval: 1000
+          underlay:
+            detect-multiplier: 3
+            min-rx-interval: 300
+            min-tx-interval: 300
+        state: enabled
+      bgp:
+        autonomous-system: 65100
+        router-id: 172.30.8.0
+        graceful-restart:
+          mode: full
+          path-selection-deferral-time: 180
+          restart-time: 180
+          stale-routes-time: 180
+        state: enabled
+      policy:
+        prefix-list:
+          host_subnets:
+            rule:
+              '10':
+                action: permit
+                match:
+                  10.0.0.0/8:
+                    max-prefix-len: 31
+            type: ipv4
+        route-map:
+          host_subnets:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                description: permit_host_subnets
+                match:
+                  ip-prefix-list: host_subnets
+                  type: ipv4
+          lo_to_bgp:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                description: permit_lo_to_bgp
+                match:
+                  interface: lo
+                  type: ipv4
+          w_ecmp_cumulative:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                description: enable_w_ecmp_adjustment
+                set:
+                  ext-community-bw: cumulative
+          w_ecmp_origin:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                description: enable_w_ecmp_origination
+                set:
+                  ext-community-bw: multipaths
+    vrf:
+      default:
+        router:
+          bgp:
+            address-family:
+              ipv4-unicast:
+                redistribute:
+                  connected:
+                    route-map: lo_to_bgp
+                    state: enabled
+                state: enabled
+              l2vpn-evpn:
+                state: enabled
+            peer-group:
+              underlay_spine:
+                address-family:
+                  ipv4-unicast:
+                    policy:
+                      outbound:
+                        route-map: w_ecmp_origin
+                bfd:
+                  profile: underlay
+                remote-as: external
+              underlay_leaf:
+                address-family:
+                  ipv4-unicast:
+                    policy:
+                      outbound:
+                        route-map: w_ecmp_cumulative
+                bfd:
+                  profile: underlay
+                remote-as: external
+              overlay:
+                address-family:
+                  ipv4-unicast:
+                    state: disabled
+                  l2vpn-evpn:
+                    state: enabled
+                bfd:
+                  profile: overlay
+                multihop-ttl: 2
+                remote-as: external
+                update-source: lo
+            neighbor:
+              172.30.128.1:
+                description: fabric underlay to leaf leaf-01/E1/5
+                peer-group: underlay_leaf
+                type: numbered
+              172.30.128.3:
+                description: fabric underlay to leaf leaf-01/E1/6
+                peer-group: underlay_leaf
+                type: numbered
+              172.30.128.5:
+                description: fabric underlay to leaf leaf-02/E1/4
+                peer-group: underlay_leaf
+                type: numbered
+              172.30.128.7:
+                description: fabric underlay to leaf leaf-02/E1/5
+                peer-group: underlay_leaf
+                type: numbered
+              172.30.8.2:
+                description: fabric overlay to leaf leaf-01
+                peer-group: overlay
+                type: numbered
+              172.30.8.3:
+                description: fabric overlay to leaf leaf-02
+                peer-group: overlay
+                type: numbered
+            state: enabled
+    system:
+      aaa:
+        class:
+          nvapply:
+            action: allow
+            command-path:
+              /:
+                permission: all
+          nvshow:
+            action: allow
+            command-path:
+              /:
+                permission: ro
+          sudo:
+            action: allow
+            command-path:
+              /:
+                permission: all
+        role:
+          nvue-admin:
+            class:
+              nvapply: {}
+          nvue-monitor:
+            class:
+              nvshow: {}
+          system-admin:
+            class:
+              nvapply: {}
+              sudo: {}
+        user:
+            admin:
+              hashed-password: $5$8nAYPGcl4l6G7Av1$Qi4/gnM0yPtGv9kjpMh78NuNSfQWy7vR1rulHpurL36
+              role: system-admin
+              ssh:
+                authorized-key:
+                    key-0:
+                      key: AAAAC3NzaC1lZDI1NTE5AAAAIGpF2+9I1Nj4BcN7y6DjzTbq1VcUYIRGyfzId5ZoBEFj
+                      type: ssh-ed25519
+                    key-1:
+                      key: AAAAC3NzaC1lZDI1NTE5AAAAIILr33oUspqfHiKC9BaenkKG3nIznbi/Ep3mmsMZjS4U
+                      type: ssh-ed25519
+            op:
+              hashed-password: $5$8nAYPGcl4l6G7Av1$Qi4/gnM0yPtGv9kjpMh78NuNSfQWy7vR1rulHpurL36
+              role: nvue-monitor
+              ssh:
+                authorized-key:
+                    key-0:
+                      key: AAAAC3NzaC1lZDI1NTE5AAAAIGpF2+9I1Nj4BcN7y6DjzTbq1VcUYIRGyfzId5ZoBEFj
+                      type: ssh-ed25519
+                    key-1:
+                      key: AAAAC3NzaC1lZDI1NTE5AAAAIILr33oUspqfHiKC9BaenkKG3nIznbi/Ep3mmsMZjS4U
+                      type: ssh-ed25519
+      api:
+        state: enabled
+      config:
+        auto-save:
+          state: enabled
+      control-plane:
+        acl:
+          acl-default-dos:
+            inbound: {}
+          acl-default-whitelist:
+            inbound: {}
+      docker:
+        vrf: mgmt
+      hostname: spine-01
+      lldp:
+        state: enabled
+        tx-hold-multiplier: 24
+        tx-interval: 5
+      ntp:
+        listen:
+          eth0: {}
+        server:
+          172.30.0.1:
+            iburst: enabled
+        state: enabled
+        vrf: mgmt
+      ssh-server:
+        allow-users:
+            admin: {}
+            op: {}
+        permit-root-login: disabled
+        state: enabled
+      wjh:
+        channel:
+          forwarding:
+            trigger:
+              l2: {}
+              l3: {}
+              tunnel: {}
+        state: enabled

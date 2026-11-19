@@ -1,0 +1,15 @@
+{{ if .Values.cachePVC }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "fabric-boot.fullname" . }}-cache
+  labels:
+    {{- include "fabric-boot.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  resources:
+    requests:
+      storage: 30Gi
+{{ end }}

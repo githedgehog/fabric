@@ -1,0 +1,273 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.23.0
+  name: switchprofiles.wiring.githedgehog.com
+spec:
+  group: wiring.githedgehog.com
+  names:
+    categories:
+    - hedgehog
+    - hh
+    - hhfc
+    kind: SwitchProfile
+    listKind: SwitchProfileList
+    plural: switchprofiles
+    shortNames:
+    - sp
+    singular: switchprofile
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.displayName
+      name: DisplayName
+      type: string
+    - jsonPath: .spec.otherNames
+      name: OtherNames
+      type: string
+    - jsonPath: .spec.switchSilicon
+      name: Silicon
+      type: string
+    - jsonPath: .metadata.annotations.fabric\.githedgehog\.com/ports
+      name: Ports
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      priority: 10
+      type: date
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: SwitchProfile represents switch capabilities and configuration
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: SwitchProfileSpec defines the desired state of SwitchProfile
+            properties:
+              config:
+                description: Config defines the switch-specific configuration options
+                properties:
+                  maxPathsEBGP:
+                    description: MaxPathsIBGP defines the maximum number of IBGP paths
+                      to be configured
+                    format: int32
+                    type: integer
+                type: object
+              displayName:
+                description: DisplayName defines the human-readable name of the switch
+                type: string
+              features:
+                description: Features defines the features supported by the switch
+                properties:
+                  acls:
+                    description: ACLs defines if switch supports ACLs
+                    type: boolean
+                  ecmpRoCEQPN:
+                    description: ECMPRoCEQPN defines if switch supports ECMP QPN hashing
+                    type: boolean
+                  eslag:
+                    description: ESLAG defines if switch supports ESLAG (ESI multi-homing)
+                    type: boolean
+                  l2vni:
+                    description: L2VNI defines if switch supports L2 VNIs
+                    type: boolean
+                  l3vni:
+                    description: L3VNI defines if switch supports L3 VNIs
+                    type: boolean
+                  mclag:
+                    description: 'Deprecated: ignored, MCLAG isn''t supported anymore.
+                      TODO: remove after 26.06 release'
+                    type: boolean
+                  portLocator:
+                    description: PortLocator defines if switch supports port locator
+                      LED control
+                    type: boolean
+                  roce:
+                    description: RoCE defines if switch supports RoCEv2 over VXLAN
+                      and related features used by the fabric
+                    type: boolean
+                  subinterfaces:
+                    description: Subinterfaces defines if switch supports subinterfaces
+                    type: boolean
+                type: object
+              maxPorts:
+                description: MaxPorts defines the maximum number of ports (breakouts)
+                  allowed for the switch, bonus ports aren't counted
+                type: integer
+              nosType:
+                description: NOSType defines the NOS type to be used for the switch
+                type: string
+              notes:
+                description: Notes is a free-form field for any additional information
+                  about the switch
+                type: string
+              otherNames:
+                description: OtherNames defines alternative names for the switch
+                items:
+                  type: string
+                type: array
+              pipelines:
+                additionalProperties:
+                  properties:
+                    maxPorts:
+                      description: MaxPorts defines the maximum number of ports (breakouts)
+                        allowed for the pipeline
+                      type: integer
+                  type: object
+                description: Pipelines defines the switch pipeline configuration
+                type: object
+              platform:
+                description: Platform is what expected to be request by ONIE and displayed
+                  in the NOS
+                type: string
+              portGroups:
+                additionalProperties:
+                  description: Defines a switch port group configuration
+                  properties:
+                    nos:
+                      description: NOSName defines how group is named in the NOS
+                      type: string
+                    profile:
+                      description: Profile defines the possible configuration profile
+                        for the group, could only have speed profile
+                      type: string
+                  type: object
+                description: PortGroups defines the switch port group configuration
+                type: object
+              portProfiles:
+                additionalProperties:
+                  description: Defines a switch port profile configuration
+                  properties:
+                    autoNegAllowed:
+                      description: AutoNegAllowed defines if configuring auto-negotiation
+                        is allowed for the port
+                      type: boolean
+                    autoNegDefault:
+                      description: AutoNegDefault defines the default auto-negotiation
+                        state for the port
+                      type: boolean
+                    breakout:
+                      description: Breakout defines the breakout configuration for
+                        the profile, exclusive with speed
+                      properties:
+                        default:
+                          description: Default defines the default breakout mode for
+                            the profile
+                          type: string
+                        supported:
+                          additionalProperties:
+                            description: Defines a switch port profile breakout mode
+                              configuration
+                            properties:
+                              disablesPortOffsets:
+                                description: DisablesPortOffsets defines the ports
+                                  disabled by the breakout mode as offsets from the
+                                  port number (e.g. 1 for the next port), the disabled
+                                  ports can't be used or configured
+                                items:
+                                  type: string
+                                type: array
+                              offsets:
+                                description: Offsets defines the breakout NOS port
+                                  name offset from the port NOS Name for each breakout
+                                  mode
+                                items:
+                                  type: string
+                                type: array
+                            type: object
+                          description: Supported defines the supported breakout modes
+                            for the profile with the NOS name offsets
+                          type: object
+                      type: object
+                    speed:
+                      description: Speed defines the speed configuration for the profile,
+                        exclusive with breakout
+                      properties:
+                        default:
+                          description: Default defines the default speed for the profile
+                          type: string
+                        supported:
+                          description: Supported defines the supported speeds for
+                            the profile
+                          items:
+                            type: string
+                          type: array
+                      type: object
+                  type: object
+                description: PortProfiles defines the switch port profile configuration
+                type: object
+              ports:
+                additionalProperties:
+                  description: |-
+                    Defines a switch port configuration
+                    Only one of Profile or Group can be set
+                  properties:
+                    baseNOSName:
+                      description: BaseNOSName defines the base NOS name that could
+                        be used together with the profile to generate the actual NOS
+                        name (e.g. breakouts)
+                      type: string
+                    bonus:
+                      description: Bonus defines if the port doesn't count towards
+                        the switch max ports (e.g. extra SFP28 ports on some switches)
+                      type: boolean
+                    group:
+                      description: If port isn't directly manageable, group defines
+                        the group it belongs to, exclusive with profile
+                      type: string
+                    label:
+                      description: Label defines the physical port label you can see
+                        on the actual switch
+                      type: string
+                    management:
+                      description: Management defines if port is a management port,
+                        it's a special case and it can't have a group or profile
+                      type: boolean
+                    nos:
+                      description: NOSName defines how port is named in the NOS
+                      type: string
+                    oniePortName:
+                      description: OniePortName defines the ONIE port name for management
+                        ports only
+                      type: string
+                    pipeline:
+                      description: Pipeline defines the pipeline used by the port,
+                        on some platforms multiple ports share the same pipeline
+                      type: string
+                    profile:
+                      description: If port is directly configurable, profile defines
+                        the profile it belongs to, exclusive with group
+                      type: string
+                  type: object
+                description: Ports defines the switch port configuration
+                type: object
+              switchSilicon:
+                description: SwitchSilicon defines the switch silicon name
+                type: string
+            type: object
+          status:
+            description: SwitchProfileStatus defines the observed state of SwitchProfile
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

@@ -1,0 +1,128 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.23.0
+  name: externalpeerings.vpc.githedgehog.com
+spec:
+  group: vpc.githedgehog.com
+  names:
+    categories:
+    - hedgehog
+    - hh
+    - hhfc
+    kind: ExternalPeering
+    listKind: ExternalPeeringList
+    plural: externalpeerings
+    shortNames:
+    - extpeer
+    singular: externalpeering
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .metadata.annotations.fabric\.githedgehog\.com/topology
+      name: Topo
+      type: string
+    - jsonPath: .spec.permit.vpc.name
+      name: VPC
+      type: string
+    - jsonPath: .spec.permit.vpc.subnets
+      name: VPCSubnets
+      priority: 1
+      type: string
+    - jsonPath: .spec.permit.external.name
+      name: External
+      type: string
+    - jsonPath: .spec.permit.external.prefixes
+      name: ExtPrefixes
+      priority: 1
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      priority: 10
+      type: date
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: ExternalPeering is the Schema for the externalpeerings API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Spec is the desired state of the ExternalPeering
+            properties:
+              permit:
+                description: Permit defines the peering policy - which VPC and External
+                  to peer with and which subnets/prefixes to permit
+                properties:
+                  external:
+                    description: External is the External-side of the configuration
+                      to peer with
+                    properties:
+                      name:
+                        description: Name is the name of the External to peer with
+                        type: string
+                      prefixes:
+                        description: Prefixes is the list of prefixes to permit from
+                          the External to the VPC
+                        items:
+                          description: ExternalPeeringSpecPrefix defines the prefix
+                            to permit from the External to the VPC
+                          properties:
+                            prefix:
+                              description: |-
+                                Prefix is the subnet to permit from the External to the VPC, e.g. 0.0.0.0/0 for any route including default route.
+                                It matches any prefix length less than or equal to 32 effectively permitting all prefixes within the specified one.
+                              type: string
+                          type: object
+                        type: array
+                    type: object
+                  vpc:
+                    description: VPC is the VPC-side of the configuration to peer
+                      with
+                    properties:
+                      name:
+                        description: Name is the name of the VPC to peer with
+                        type: string
+                      subnets:
+                        description: Subnets is the list of subnets to advertise from
+                          VPC to the External
+                        items:
+                          type: string
+                        type: array
+                    type: object
+                type: object
+              topology:
+                description: Topology is where the ExternalPeering sits in the fabric
+                  topology
+                properties:
+                  fabric:
+                    description: Fabric is the name of the Fabric this ExternalPeering
+                      belongs to (if not specified, "default" is used)
+                    type: string
+                type: object
+            type: object
+          status:
+            description: Status is the observed state of the ExternalPeering
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

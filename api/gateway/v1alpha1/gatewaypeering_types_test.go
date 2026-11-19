@@ -1,0 +1,1362 @@
+// Copyright 2025 Hedgehog
+// SPDX-License-Identifier: Apache-2.0
+
+package v1alpha1
+
+import (
+	"context"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.githedgehog.com/fabric/api/meta"
+	vpcv1beta1 "go.githedgehog.com/fabric/api/vpc/v1beta1"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	runtime "k8s.io/apimachinery/pkg/runtime"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+)
+
+func TestPeeringDefaultEmpty(t *testing.T) {
+	ref := &GatewayPeering{
+		Namespace: kmetav1.NamespaceDefault,
+	}
+	ref.Labels = map[string]string{
+		wiringapi.ListLabelFabric(wiringapi.DefaultFabric): "true",
+	}
+	ref.Annotations = map[string]string{}
+	ref.Spec.Topology.Fabric = wiringapi.DefaultFabric
+
+	peering := &GatewayPeering{}
+	peering.Default()
+
+	assert.Equal(t, ref, peering)
+}
+
+func TestPeeringWithVpcsNoNAT(t *testing.T) {
+	common := &GatewayPeering{
+		Name:      "vpc1--vpc2",
+		Namespace: kmetav1.NamespaceDefault,
+	}
+	common.Spec.Peering = map[string]*PeeringEntry{
+		"vpc1": {
+			Expose: []PeeringEntryExpose{
+				{
+					IPs: []PeeringEntryIP{
+						{CIDR: "10.0.1.0/24"},
+					},
+				},
+			},
+		},
+		"vpc2": {
+			Expose: []PeeringEntryExpose{
+				{
+					IPs: []PeeringEntryIP{
+						{CIDR: "10.0.2.0/24"},
+					},
+				},
+			},
+		},
+	}
+
+	ref := common.DeepCopy()
+	ref.Labels = map[string]string{
+		ListLabelVPC("vpc1"): "true",
+		ListLabelVPC("vpc2"): "true",
+		wiringapi.ListLabelFabric(wiringapi.DefaultFabric): "true",
+	}
+	ref.Annotations = map[string]string{
+		LabelVPCs: "vpc1,vpc2",
+	}
+	ref.Spec.GatewayGroup = DefaultGatewayGroup
+	ref.Spec.Topology.Fabric = wiringapi.DefaultFabric
+
+	peering := common.DeepCopy()
+	peering.Default()
+	assert.NoError(t, peering.Validate(t.Context(), nil, nil), "peering should be valid")
+
+	assert.Equal(t, ref, peering)
+}
+
+func TestPeeringWithMultipleItemsInIPs(t *testing.T) {
+	common := &GatewayPeering{
+		Name:      "vpc1--vpc2",
+		Namespace: kmetav1.NamespaceDefault,
+	}
+	common.Spec.Peering = map[string]*PeeringEntry{
+		"vpc1": {
+			Expose: []PeeringEntryExpose{
+				{
+					IPs: []PeeringEntryIP{
+						{CIDR: "10.0.1.0/24", Not: "10.0.1.1/32"},
+					},
+				},
+			},
+		},
+		"vpc2": {
+			Expose: []PeeringEntryExpose{
+				{
+					IPs: []PeeringEntryIP{
+						{CIDR: "10.0.2.0/24"},
+					},
+				},
+			},
+		},
+	}
+
+	ref := common.DeepCopy()
+	ref.Labels = map[string]string{
+		ListLabelVPC("vpc1"): "true",
+		ListLabelVPC("vpc2"): "true",
+		wiringapi.ListLabelFabric(wiringapi.DefaultFabric): "true",
+	}
+
+	peering := common.DeepCopy()
+	peering.Default()
+	assert.Error(t, peering.Validate(t.Context(), nil, nil), "multiple selection in the same PeeringEntryIP should be invalid")
+}
+
+func TestPeeringWithMultipleItemsInAs(t *testing.T) {
+	common := &GatewayPeering{
+		Name:      "vpc1--vpc2",
+		Namespace: kmetav1.NamespaceDefault,
+	}
+	common.Spec.Peering = map[string]*PeeringEntry{
+		"vpc1": {
+			Expose: []PeeringEntryExpose{
+				{
+					IPs: []PeeringEntryIP{
+						{CIDR: "10.0.1.0/24"},
+					},
+					As: []PeeringEntryAs{
+						{CIDR: "192.168.1.0/24", Not: "192.168.1.1/32"},
+					},
+					NAT: &PeeringNAT{
+						Static: &PeeringNATStatic{},
+					},
+				},
+			},
+		},
+		"vpc2": {
+			Expose: []PeeringEntryExpose{
+				{
+					IPs: []PeeringEntryIP{
+						{CIDR: "10.0.2.0/24"},
+					},
+				},
+			},
+		},
+	}
+
+	ref := common.DeepCopy()
+	ref.Labels = map[string]string{
+		ListLabelVPC("vpc1"): "true",
+		ListLabelVPC("vpc2"): "true",
+		wiringapi.ListLabelFabric(wiringapi.DefaultFabric): "true",
+	}
+	ref.Spec.GatewayGroup = DefaultGatewayGroup
+	ref.Spec.Topology.Fabric = wiringapi.DefaultFabric
+
+	peering := common.DeepCopy()
+	peering.Default()
+	assert.Error(t, peering.Validate(t.Context(), nil, nil), "multiple selection in the same PeeringEntryAs should be invalid")
+}
+
+func TestPeeringWithStaticNAT(t *testing.T) {
+	common := &GatewayPeering{
+		Name:      "vpc1--vpc2",
+		Namespace: kmetav1.NamespaceDefault,
+	}
+	common.Spec.Peering = map[string]*PeeringEntry{
+		"vpc1": {
+			Expose: []PeeringEntryExpose{
+				{
+					IPs: []PeeringEntryIP{
+						{CIDR: "10.0.1.0/24"},
+					},
+					As: []PeeringEntryAs{
+						{CIDR: "192.168.1.0/24"},
+					},
+					NAT: &PeeringNAT{
+						Static: &PeeringNATStatic{},
+					},
+				},
+			},
+		},
+		"vpc2": {
+			Expose: []PeeringEntryExpose{
+				{
+					IPs: []PeeringEntryIP{
+						{CIDR: "10.0.2.0/24"},
+					},
+					As: []PeeringEntryAs{
+						{CIDR: "192.168.2.0/24"},
+					},
+					NAT: &PeeringNAT{
+						Static: &PeeringNATStatic{},
+					},
+				},
+			},
+		},
+	}
+
+	ref := common.DeepCopy()
+	ref.Labels = map[string]string{
+		ListLabelVPC("vpc1"): "true",
+		ListLabelVPC("vpc2"): "true",
+		wiringapi.ListLabelFabric(wiringapi.DefaultFabric): "true",
+	}
+	ref.Annotations = map[string]string{
+		LabelVPCs: "vpc1,vpc2",
+		LabelNAT:  "static",
+	}
+	ref.Spec.GatewayGroup = DefaultGatewayGroup
+	ref.Spec.Topology.Fabric = wiringapi.DefaultFabric
+
+	peering := common.DeepCopy()
+	peering.Default()
+	assert.NoError(t, peering.Validate(t.Context(), nil, nil), "peering should be valid")
+
+	assert.Equal(t, ref, peering)
+}
+
+func TestPeeringWithPortForwardNAT(t *testing.T) {
+	common := &GatewayPeering{
+		Name:      "vpc1--vpc2",
+		Namespace: kmetav1.NamespaceDefault,
+	}
+	common.Spec.Peering = map[string]*PeeringEntry{
+		"vpc1": {
+			Expose: []PeeringEntryExpose{
+				{
+					IPs: []PeeringEntryIP{
+						{CIDR: "10.0.1.0/24"},
+					},
+					As: []PeeringEntryAs{
+						{CIDR: "192.168.1.0/24"},
+					},
+					NAT: &PeeringNAT{
+						PortForward: &PeeringNATPortForward{
+							Ports: []PeeringNATPortForwardEntry{
+								{Protocol: "tcp", Port: "80", As: "8080"},
+								{Protocol: "udp", Port: "90-100", As: "8090-8100"},
+								{Port: "88", As: "8088"},
+							},
+						},
+					},
+				},
+			},
+		},
+		"vpc2": {
+			Expose: []PeeringEntryExpose{
+				{
+					IPs: []PeeringEntryIP{
+						{CIDR: "10.0.2.0/24"},
+					},
+				},
+			},
+		},
+	}
+
+	ref := common.DeepCopy()
+	ref.Labels = map[string]string{
+		ListLabelVPC("vpc1"): "true",
+		ListLabelVPC("vpc2"): "true",
+		wiringapi.ListLabelFabric(wiringapi.DefaultFabric): "true",
+	}
+	ref.Annotations = map[string]string{
+		LabelVPCs: "vpc1,vpc2",
+		LabelNAT:  "port-forward",
+	}
+	ref.Spec.GatewayGroup = DefaultGatewayGroup
+	ref.Spec.Topology.Fabric = wiringapi.DefaultFabric
+	ref.Spec.Peering["vpc1"].Expose[0].NAT.PortForward.IdleTimeout.Duration = DefaultPortForwardIdleTimeout
+
+	peering := common.DeepCopy()
+	peering.Default()
+	assert.NoError(t, peering.Validate(t.Context(), nil, nil), "peering should be valid")
+
+	assert.Equal(t, ref, peering)
+}
+
+func TestPeeringWithPortForwardAndMasqueradeSameSideNAT(t *testing.T) {
+	common := &GatewayPeering{
+		Name:      "vpc1--vpc2",
+		Namespace: kmetav1.NamespaceDefault,
+	}
+	common.Spec.Peering = map[string]*PeeringEntry{
+		"vpc1": {
+			Expose: []PeeringEntryExpose{
+				{
+					IPs: []PeeringEntryIP{
+						{CIDR: "10.0.1.0/24"},
+					},
+					As: []PeeringEntryAs{
+						{CIDR: "192.168.1.0/24"},
+					},
+					NAT: &PeeringNAT{
+						PortForward: &PeeringNATPortForward{
+							Ports: []PeeringNATPortForwardEntry{
+								{Protocol: "tcp", Port: "80", As: "8080"},
+								{Protocol: "udp", Port: "90-100", As: "8090-8100"},
+								{Port: "88", As: "8088"},
+							},
+							IdleTimeout: kmetav1.Duration{Duration: DefaultPortForwardIdleTimeout},
+						},
+					},
+				},
+				{
+					IPs: []PeeringEntryIP{
+						{CIDR: "10.0.2.0/24"},
+					},
+					As: []PeeringEntryAs{
+						{CIDR: "192.168.2.0/24"},
+					},
+					NAT: &PeeringNAT{
+						Masquerade: &PeeringNATMasquerade{
+							IdleTimeout: kmetav1.Duration{Duration: 3 * time.Minute},
+						},
+					},
+				},
+			},
+		},
+		"vpc2": {
+			Expose: []PeeringEntryExpose{
+				{
+					IPs: []PeeringEntryIP{
+						{CIDR: "10.0.3.0/24"},
+					},
+				},
+			},
+		},
+	}
+
+	ref := common.DeepCopy()
+	ref.Labels = map[string]string{
+		ListLabelVPC("vpc1"): "true",
+		ListLabelVPC("vpc2"): "true",
+		wiringapi.ListLabelFabric(wiringapi.DefaultFabric): "true",
+	}
+	ref.Annotations = map[string]string{
+		LabelVPCs: "vpc1,vpc2",
+		LabelNAT:  "masquerade,port-forward",
+	}
+	ref.Spec.GatewayGroup = DefaultGatewayGroup
+	ref.Spec.Topology.Fabric = wiringapi.DefaultFabric
+	peering := common.DeepCopy()
+	peering.Default()
+	assert.NoError(t, peering.Validate(t.Context(), nil, nil), "peering should be valid")
+	assert.Equal(t, ref, peering)
+}
+
+func TestValidateDefaultDestination(t *testing.T) {
+	for _, tt := range []struct {
+		name   string
+		expose PeeringEntryExpose
+		error  bool
+	}{
+		{
+			name: "default with nothing else",
+			expose: PeeringEntryExpose{
+				DefaultDestination: true,
+			},
+			error: false,
+		},
+		{
+			name: "default with IP",
+			expose: PeeringEntryExpose{
+				IPs: []PeeringEntryIP{
+					{
+						CIDR: "10.0.1.0/24",
+					},
+				},
+				DefaultDestination: true,
+			},
+			error: true,
+		},
+		{
+			name: "default with As",
+			expose: PeeringEntryExpose{
+				As: []PeeringEntryAs{
+					{
+						CIDR: "10.0.1.0/24",
+					},
+				},
+				DefaultDestination: true,
+			},
+			error: true,
+		},
+		{
+			name: "default with NAT",
+			expose: PeeringEntryExpose{
+				NAT: &PeeringNAT{
+					Static: &PeeringNATStatic{},
+				},
+				DefaultDestination: true,
+			},
+			error: true,
+		},
+		{
+			name: "IP with no default",
+			expose: PeeringEntryExpose{
+				IPs: []PeeringEntryIP{
+					{
+						CIDR: "10.0.1.0/24",
+					},
+				},
+				DefaultDestination: false,
+			},
+			error: false,
+		},
+		{
+			name: "no default and no IP",
+			expose: PeeringEntryExpose{
+				As: []PeeringEntryAs{
+					{
+						CIDR: "10.0.1.0/24",
+					},
+				},
+			},
+			error: true,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			peering := &GatewayPeering{
+				Name: "vpc1--vpc2",
+				Spec: PeeringSpec{
+					GatewayGroup: DefaultGatewayGroup,
+					Peering: map[string]*PeeringEntry{
+						"vpc1": {
+							Expose: []PeeringEntryExpose{
+								tt.expose,
+							},
+						},
+						"vpc2": {
+							Expose: []PeeringEntryExpose{
+								{
+									IPs: []PeeringEntryIP{
+										{
+											CIDR: "10.10.1.0/24",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			}
+			ctx := t.Context()
+			peering.Default()
+			err := peering.Validate(ctx, nil, nil)
+			if tt.error {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func withName[T kclient.Object](name string, obj T) T {
+	obj.SetName(name)
+	obj.SetNamespace(kmetav1.NamespaceDefault)
+
+	return obj
+}
+
+func generatePeering(name string, f ...func(p *GatewayPeering)) *GatewayPeering {
+	peering := withName(name, &GatewayPeering{
+		Spec: PeeringSpec{
+			GatewayGroup: DefaultGatewayGroup,
+			Peering: map[string]*PeeringEntry{
+				"vpc-1": {
+					Expose: []PeeringEntryExpose{
+						{
+							IPs: []PeeringEntryIP{
+								{
+									CIDR: "10.0.1.0/24",
+								},
+							},
+						},
+					},
+				},
+				"vpc-2": {
+					Expose: []PeeringEntryExpose{
+						{
+							IPs: []PeeringEntryIP{
+								{
+									CIDR: "10.0.2.0/24",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+	peering.Default()
+
+	for _, fn := range f {
+		fn(peering)
+	}
+
+	return peering
+}
+
+func generateExternalPeering(name string, f ...func(p *GatewayPeering)) *GatewayPeering {
+	peering := withName(name, &GatewayPeering{
+		Spec: PeeringSpec{
+			GatewayGroup: DefaultGatewayGroup,
+			Peering: map[string]*PeeringEntry{
+				"vpc-1": {
+					Expose: []PeeringEntryExpose{
+						{
+							IPs: []PeeringEntryIP{
+								{
+									CIDR: "10.0.1.0/24",
+								},
+							},
+						},
+					},
+				},
+				"ext.out-1": {
+					Expose: []PeeringEntryExpose{
+						{
+							DefaultDestination: true,
+						},
+					},
+				},
+			},
+		},
+	})
+	peering.Default()
+
+	for _, fn := range f {
+		fn(peering)
+	}
+
+	return peering
+}
+
+func TestValidateCIDRBelongsToVPC(t *testing.T) {
+	gwGroup := withName(DefaultGatewayGroup, &GatewayGroup{})
+	vpc1 := withName("vpc-1", &vpcv1beta1.VPC{
+		Spec: vpcv1beta1.VPCSpec{
+			Subnets: map[string]*vpcv1beta1.VPCSubnet{
+				"sub1": {Subnet: "10.0.1.0/24"},
+			},
+		},
+	})
+	vpc2 := withName("vpc-2", &vpcv1beta1.VPC{
+		Spec: vpcv1beta1.VPCSpec{
+			Subnets: map[string]*vpcv1beta1.VPCSubnet{
+				"sub1": {Subnet: "10.0.2.0/24"},
+			},
+		},
+	})
+	external := withName("out-1", &vpcv1beta1.External{
+		Spec: vpcv1beta1.ExternalSpec{},
+	})
+
+	vpc2Other := vpc2.DeepCopy()
+	vpc2Other.Spec.Topology.Fabric = "other"
+	// a group in plane-b, and a VPC and an External in it
+	gwGroupB := gwGroup.DeepCopy()
+	gwGroupB.Spec.Topology.Domain = "plane-b"
+	vpc1Both := vpc1.DeepCopy()
+	vpc1Both.Spec.Topology.Domains = []string{"default", "plane-b"}
+	vpc2B := vpc2.DeepCopy()
+	vpc2B.Spec.Topology.Domains = []string{"plane-b"}
+	externalB := external.DeepCopy()
+	externalB.Spec.Topology.Domain = "plane-b"
+	nilVPC2 := func(p *GatewayPeering) { p.Spec.Peering["vpc-2"] = nil }
+
+	// stored objects have been defaulted by the mutating webhook
+	for _, obj := range []interface{ Default() }{gwGroup, vpc1, vpc2, external, vpc2Other, gwGroupB, vpc1Both, vpc2B, externalB} {
+		obj.Default()
+	}
+	fabric := withName(wiringapi.DefaultFabric, &wiringapi.Fabric{Spec: wiringapi.FabricSpec{Domains: map[string]wiringapi.FabricDomainSpec{
+		wiringapi.DefaultFabricDomain: {SpineASN: 65100, GatewayASN: 65101},
+		"plane-b":                     {SpineASN: 65098, GatewayASN: 65099},
+	}}})
+
+	tests := []struct {
+		name    string
+		peering *GatewayPeering
+		objs    []kclient.Object
+		err     bool
+	}{
+		{
+			name:    "exact subnet match",
+			peering: generatePeering("exact-match"),
+			objs:    []kclient.Object{gwGroup, vpc1, vpc2},
+		},
+		{
+			name: "CIDR is sub-range of VPC subnet",
+			peering: generatePeering("sub-range", func(p *GatewayPeering) {
+				p.Spec.Peering["vpc-1"].Expose[0].IPs[0].CIDR = "10.0.1.128/25"
+			}),
+			objs: []kclient.Object{gwGroup, vpc1, vpc2},
+		},
+		{
+			name: "CIDR not in any VPC subnet",
+			peering: generatePeering("cidr-not-in-vpc", func(p *GatewayPeering) {
+				p.Spec.Peering["vpc-1"].Expose[0].IPs[0].CIDR = "192.168.1.0/24"
+			}),
+			objs: []kclient.Object{gwGroup, vpc1, vpc2},
+			err:  true,
+		},
+		{
+			name: "CIDR is exact subnet match of another VPC",
+			peering: generatePeering("match-wrong-vpc", func(p *GatewayPeering) {
+				p.Spec.Peering["vpc-1"].Expose[0].IPs[0].CIDR = "10.0.2.0/24"
+				p.Spec.Peering["vpc-2"].Expose[0].IPs[0].CIDR = "10.0.1.0/24"
+			}),
+			objs: []kclient.Object{gwGroup, vpc1, vpc2},
+			err:  true,
+		},
+		{
+			name:    "VPC not found",
+			peering: generatePeering("vpc-not-found"),
+			objs:    []kclient.Object{gwGroup, vpc1}, // vpc-2 absent
+			err:     true,
+		},
+		{
+			name:    "VPC in another fabric",
+			peering: generatePeering("vpc-other-fabric"),
+			objs:    []kclient.Object{gwGroup, vpc1, vpc2Other},
+			err:     true,
+		},
+		{
+			name:    "VPC outside the group domain",
+			peering: generatePeering("vpc-other-domain"),
+			objs:    []kclient.Object{gwGroup, vpc1, vpc2B},
+			err:     true,
+		},
+		{
+			name:    "VPCs in the group domain and another",
+			peering: generatePeering("vpc-two-domains"),
+			objs:    []kclient.Object{gwGroupB, vpc1Both, vpc2B},
+		},
+		{
+			name:    "external outside the group domain",
+			peering: generateExternalPeering("ext-other-domain"),
+			objs:    []kclient.Object{gwGroup, vpc1, externalB},
+			err:     true,
+		},
+		{
+			name:    "external in the group domain",
+			peering: generateExternalPeering("ext-group-domain"),
+			objs:    []kclient.Object{gwGroupB, vpc1Both, externalB},
+		},
+		{
+			name:    "nil entry",
+			peering: generatePeering("nil-entry", nilVPC2),
+			objs:    []kclient.Object{gwGroup, vpc1, vpc2},
+		},
+		{
+			name:    "nil entry VPC not found",
+			peering: generatePeering("nil-entry-not-found", nilVPC2),
+			objs:    []kclient.Object{gwGroup, vpc1},
+			err:     true,
+		},
+		{
+			name:    "nil entry VPC in another fabric",
+			peering: generatePeering("nil-entry-other-fabric", nilVPC2),
+			objs:    []kclient.Object{gwGroup, vpc1, vpc2Other},
+			err:     true,
+		},
+		{
+			name: "default destination skipped",
+			peering: generatePeering("default-destination", func(p *GatewayPeering) {
+				p.Spec.Peering["vpc-1"].Expose = []PeeringEntryExpose{
+					{DefaultDestination: true},
+				}
+			}),
+			objs: []kclient.Object{gwGroup, vpc1, vpc2},
+		},
+		{
+			name: "VPCSubnet reference exists",
+			peering: generatePeering("vpcsubnet-valid", func(p *GatewayPeering) {
+				p.Spec.Peering["vpc-1"].Expose[0].IPs[0] = PeeringEntryIP{VPCSubnet: "sub1"}
+			}),
+			objs: []kclient.Object{gwGroup, vpc1, vpc2},
+		},
+		{
+			name: "VPCSubnet reference not found in VPC",
+			peering: generatePeering("vpcsubnet-invalid", func(p *GatewayPeering) {
+				p.Spec.Peering["vpc-1"].Expose[0].IPs[0] = PeeringEntryIP{VPCSubnet: "nonexistent"}
+			}),
+			objs: []kclient.Object{gwGroup, vpc1, vpc2},
+			err:  true,
+		},
+		{
+			name:    "external peering with default flag",
+			peering: generateExternalPeering("ext-default"),
+			objs:    []kclient.Object{gwGroup, vpc1, external},
+		},
+		{
+			name: "external peering with IP CIDR",
+			peering: generateExternalPeering("ext-ip", func(p *GatewayPeering) {
+				expose := PeeringEntryExpose{
+					DefaultDestination: false,
+					IPs: []PeeringEntryIP{
+						{
+							CIDR: "1.0.0.0/8",
+						},
+					},
+				}
+				p.Spec.Peering["ext.out-1"].Expose[0] = expose
+			}),
+			objs: []kclient.Object{gwGroup, vpc1, external},
+		},
+		{
+			name:    "external not found",
+			peering: generateExternalPeering("ext-missing"),
+			objs:    []kclient.Object{gwGroup, vpc1},
+			err:     true,
+		},
+		{
+			name: "external with VPCSubnet",
+			peering: generateExternalPeering("ext-vpcsubnet", func(p *GatewayPeering) {
+				expose := PeeringEntryExpose{
+					DefaultDestination: false,
+					IPs: []PeeringEntryIP{
+						{
+							VPCSubnet: "subnet-01",
+						},
+					},
+				}
+				p.Spec.Peering["ext.out-1"].Expose[0] = expose
+			}),
+			objs: []kclient.Object{gwGroup, vpc1, external},
+			err:  true,
+		},
+	}
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, AddToScheme(scheme))
+	require.NoError(t, vpcv1beta1.AddToScheme(scheme))
+	require.NoError(t, wiringapi.AddToScheme(scheme))
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := t.Context()
+			kube := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(fabric).
+				WithObjects(tt.objs...).
+				Build()
+			tt.peering.Default()
+			actual := tt.peering.Validate(ctx, kube, nil)
+			if tt.err {
+				require.Error(t, actual)
+			} else {
+				require.NoError(t, actual)
+
+				cfg := &meta.FabricConfig{EnableGateway: true}
+				require.ErrorContains(t, tt.peering.Validate(ctx, kube, cfg), "peering extra validator is not set")
+				cfg.ExtraValidators.Peering = func(context.Context, kclient.Reader, kclient.Object) error { return nil }
+				require.NoError(t, tt.peering.Validate(ctx, kube, cfg))
+			}
+		})
+	}
+}
+
+func TestValidateACLNoKube(t *testing.T) {
+	for _, tt := range []struct {
+		name string
+		acl  *PeeringACL
+		err  bool
+	}{
+		{
+			name: "nil ACL is valid",
+			acl:  nil,
+		},
+		{
+			name: "empty ACL defaults to deny-unless-exposed",
+			acl:  &PeeringACL{},
+		},
+		{
+			name: "explicit deny default",
+			acl:  &PeeringACL{Default: ACLDefaultDeny},
+		},
+		{
+			name: "invalid default action",
+			acl:  &PeeringACL{Default: "bogus"},
+			err:  true,
+		},
+		{
+			name: "valid rule with from only",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{From: "vpc-1", Action: ACLActionAllow},
+				},
+			},
+		},
+		{
+			name: "valid rule with to only",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{To: "vpc-2", Action: ACLActionDeny},
+				},
+			},
+		},
+		{
+			name: "invalid action",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{From: "vpc-1", Action: "bogus"},
+				},
+			},
+			err: true,
+		},
+		{
+			name: "invalid scope",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{From: "vpc-1", Action: ACLActionDeny, Scope: "bogus"},
+				},
+			},
+			err: true,
+		},
+		{
+			name: "neither from nor to set",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{Action: ACLActionAllow},
+				},
+			},
+			err: true,
+		},
+		{
+			name: "from does not match either VPC",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{From: "vpc-3", Action: ACLActionAllow},
+				},
+			},
+			err: true,
+		},
+		{
+			name: "to does not match either VPC",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{To: "vpc-3", Action: ACLActionAllow},
+				},
+			},
+			err: true,
+		},
+		{
+			name: "valid rule name",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{Name: "web-traffic", From: "vpc-1", Action: ACLActionAllow},
+				},
+			},
+		},
+		{
+			name: "invalid rule name characters",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{Name: "Web_Traffic!", From: "vpc-1", Action: ACLActionAllow},
+				},
+			},
+			err: true,
+		},
+		{
+			name: "rule name too long",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{Name: strings.Repeat("a", 65), From: "vpc-1", Action: ACLActionAllow},
+				},
+			},
+			err: true,
+		},
+		{
+			name: "source CIDR and VPCSubnet both set",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{
+						From:   "vpc-1",
+						Action: ACLActionAllow,
+						Match: PeeringACLMatch{
+							Source: []PeeringACLMatchEndpoint{
+								{CIDR: "10.0.1.0/24", VPCSubnet: "sub1"},
+							},
+						},
+					},
+				},
+			},
+			err: true,
+		},
+		{
+			name: "destination CIDR and VPCSubnet both set",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{
+						From:   "vpc-1",
+						Action: ACLActionAllow,
+						Match: PeeringACLMatch{
+							Destination: []PeeringACLMatchEndpoint{
+								{CIDR: "10.0.2.0/24", VPCSubnet: "sub1"},
+							},
+						},
+					},
+				},
+			},
+			err: true,
+		},
+		{
+			name: "invalid source CIDR",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{
+						From:   "vpc-1",
+						Action: ACLActionAllow,
+						Match: PeeringACLMatch{
+							Source: []PeeringACLMatchEndpoint{
+								{CIDR: "not-a-cidr"},
+							},
+						},
+					},
+				},
+			},
+			err: true,
+		},
+		{
+			name: "invalid destination CIDR",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{
+						From:   "vpc-1",
+						Action: ACLActionAllow,
+						Match: PeeringACLMatch{
+							Destination: []PeeringACLMatchEndpoint{
+								{CIDR: "not-a-cidr"},
+							},
+						},
+					},
+				},
+			},
+			err: true,
+		},
+		{
+			name: "valid source and destination CIDR with ports",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{
+						From:   "vpc-1",
+						To:     "vpc-2",
+						Action: ACLActionAllow,
+						Match: PeeringACLMatch{
+							Source:      []PeeringACLMatchEndpoint{{CIDR: "10.0.1.0/24", Ports: []string{"80", "443"}}},
+							Destination: []PeeringACLMatchEndpoint{{CIDR: "10.0.2.0/24", Ports: []string{"8080-8090"}}},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "invalid source port",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{
+						From:   "vpc-1",
+						Action: ACLActionAllow,
+						Match: PeeringACLMatch{
+							Source: []PeeringACLMatchEndpoint{{CIDR: "10.0.1.0/24", Ports: []string{"not-a-port"}}},
+						},
+					},
+				},
+			},
+			err: true,
+		},
+		{
+			name: "invalid destination port",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{
+						From:   "vpc-1",
+						Action: ACLActionAllow,
+						Match: PeeringACLMatch{
+							Destination: []PeeringACLMatchEndpoint{{CIDR: "10.0.2.0/24", Ports: []string{"not-a-port"}}},
+						},
+					},
+				},
+			},
+			err: true,
+		},
+		{
+			name: "valid string match protocol",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{
+						From:   "vpc-1",
+						Action: ACLActionAllow,
+						Match: PeeringACLMatch{
+							Source:   []PeeringACLMatchEndpoint{{CIDR: "10.0.1.0/24"}},
+							Protocol: ACLMatchProtocolTCP,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "valid tcp filters",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{
+						From:   "vpc-1",
+						Action: ACLActionAllow,
+						Scope:  ACLScopePacket,
+						Match: PeeringACLMatch{
+							Source:   []PeeringACLMatchEndpoint{{CIDR: "10.0.1.0/24"}},
+							Protocol: ACLMatchProtocolTCP,
+							TCPFilters: &PeeringACLMatchTCPFilters{
+								Flags: &PeeringACLMatchTCPFlags{SYN: new(true), ACK: new(false)},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "valid tcp filters with numeric tcp protocol",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{
+						From:   "vpc-1",
+						Action: ACLActionAllow,
+						Scope:  ACLScopePacket,
+						Match: PeeringACLMatch{
+							Source:   []PeeringACLMatchEndpoint{{CIDR: "10.0.1.0/24"}},
+							Protocol: "6",
+							TCPFilters: &PeeringACLMatchTCPFilters{
+								Flags: &PeeringACLMatchTCPFlags{SYN: new(true)},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "tcp filters with udp protocol",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{
+						From:   "vpc-1",
+						Action: ACLActionAllow,
+						Scope:  ACLScopePacket,
+						Match: PeeringACLMatch{
+							Source:   []PeeringACLMatchEndpoint{{CIDR: "10.0.1.0/24"}},
+							Protocol: ACLMatchProtocolUDP,
+							TCPFilters: &PeeringACLMatchTCPFilters{
+								Flags: &PeeringACLMatchTCPFlags{SYN: new(true)},
+							},
+						},
+					},
+				},
+			},
+			err: true,
+		},
+		{
+			name: "tcp filters without protocol",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{
+						From:   "vpc-1",
+						Action: ACLActionAllow,
+						Scope:  ACLScopePacket,
+						Match: PeeringACLMatch{
+							Source: []PeeringACLMatchEndpoint{{CIDR: "10.0.1.0/24"}},
+							TCPFilters: &PeeringACLMatchTCPFilters{
+								Flags: &PeeringACLMatchTCPFlags{SYN: new(true)},
+							},
+						},
+					},
+				},
+			},
+			err: true,
+		},
+		{
+			name: "valid numeric match protocol",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{
+						From:   "vpc-1",
+						Action: ACLActionAllow,
+						Match: PeeringACLMatch{
+							Source:   []PeeringACLMatchEndpoint{{CIDR: "10.0.1.0/24"}},
+							Protocol: "42",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "invalid string match protocol",
+			acl: &PeeringACL{
+				Rules: []PeeringACLRule{
+					{
+						From:   "vpc-1",
+						Action: ACLActionAllow,
+						Match: PeeringACLMatch{
+							Source:   []PeeringACLMatchEndpoint{{CIDR: "10.0.1.0/24"}},
+							Protocol: "not-a-protocol",
+						},
+					},
+				},
+			},
+			err: true,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			peering := generatePeering("test-peering", func(p *GatewayPeering) {
+				p.Spec.ACL = tt.acl
+			})
+			peering.Default()
+			err := peering.Validate(t.Context(), nil, nil)
+			if tt.err {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestValidateACLVPCSubnet(t *testing.T) {
+	gwGroup := withName(DefaultGatewayGroup, &GatewayGroup{})
+	vpc1 := withName("vpc-1", &vpcv1beta1.VPC{
+		Spec: vpcv1beta1.VPCSpec{
+			Subnets: map[string]*vpcv1beta1.VPCSubnet{
+				"sub1": {Subnet: "10.0.1.0/24"},
+			},
+		},
+	})
+	vpc2 := withName("vpc-2", &vpcv1beta1.VPC{
+		Spec: vpcv1beta1.VPCSpec{
+			Subnets: map[string]*vpcv1beta1.VPCSubnet{
+				"sub1": {Subnet: "10.0.2.0/24"},
+			},
+		},
+	})
+	external := withName("out-1", &vpcv1beta1.External{
+		Spec: vpcv1beta1.ExternalSpec{},
+	})
+
+	// stored objects have been defaulted by the mutating webhook
+	for _, obj := range []interface{ Default() }{gwGroup, vpc1, vpc2, external} {
+		obj.Default()
+	}
+	fabric := withName(wiringapi.DefaultFabric, &wiringapi.Fabric{Spec: wiringapi.FabricSpec{Domains: map[string]wiringapi.FabricDomainSpec{
+		wiringapi.DefaultFabricDomain: {SpineASN: 65100, GatewayASN: 65101},
+	}}})
+
+	tests := []struct {
+		name    string
+		peering *GatewayPeering
+		objs    []kclient.Object
+		err     bool
+	}{
+		{
+			name: "source VPCSubnet reference exists, from implicit",
+			peering: generatePeering("acl-src-implicit-from", func(p *GatewayPeering) {
+				p.Spec.ACL = &PeeringACL{
+					Rules: []PeeringACLRule{
+						{
+							To:     "vpc-2",
+							Action: ACLActionAllow,
+							Match: PeeringACLMatch{
+								Source: []PeeringACLMatchEndpoint{{VPCSubnet: "sub1"}},
+							},
+						},
+					},
+				}
+			}),
+			objs: []kclient.Object{gwGroup, vpc1, vpc2},
+		},
+		{
+			name: "destination VPCSubnet reference exists, to implicit",
+			peering: generatePeering("acl-dst-implicit-to", func(p *GatewayPeering) {
+				p.Spec.ACL = &PeeringACL{
+					Rules: []PeeringACLRule{
+						{
+							From:   "vpc-1",
+							Action: ACLActionAllow,
+							Match: PeeringACLMatch{
+								Destination: []PeeringACLMatchEndpoint{{VPCSubnet: "sub1"}},
+							},
+						},
+					},
+				}
+			}),
+			objs: []kclient.Object{gwGroup, vpc1, vpc2},
+		},
+		{
+			name: "source VPCSubnet reference not found in VPC",
+			peering: generatePeering("acl-src-invalid-subnet", func(p *GatewayPeering) {
+				p.Spec.ACL = &PeeringACL{
+					Rules: []PeeringACLRule{
+						{
+							From:   "vpc-1",
+							To:     "vpc-2",
+							Action: ACLActionAllow,
+							Match: PeeringACLMatch{
+								Source: []PeeringACLMatchEndpoint{{VPCSubnet: "nonexistent"}},
+							},
+						},
+					},
+				}
+			}),
+			objs: []kclient.Object{gwGroup, vpc1, vpc2},
+			err:  true,
+		},
+		{
+			name: "destination VPCSubnet reference not found in VPC",
+			peering: generatePeering("acl-dst-invalid-subnet", func(p *GatewayPeering) {
+				p.Spec.ACL = &PeeringACL{
+					Rules: []PeeringACLRule{
+						{
+							From:   "vpc-1",
+							To:     "vpc-2",
+							Action: ACLActionAllow,
+							Match: PeeringACLMatch{
+								Destination: []PeeringACLMatchEndpoint{{VPCSubnet: "nonexistent"}},
+							},
+						},
+					},
+				}
+			}),
+			objs: []kclient.Object{gwGroup, vpc1, vpc2},
+			err:  true,
+		},
+		{
+			name: "source VPCSubnet referencing an external peering entry",
+			peering: generateExternalPeering("acl-src-external", func(p *GatewayPeering) {
+				p.Spec.ACL = &PeeringACL{
+					Rules: []PeeringACLRule{
+						{
+							From:   "ext.out-1",
+							To:     "vpc-1",
+							Action: ACLActionAllow,
+							Match: PeeringACLMatch{
+								Source: []PeeringACLMatchEndpoint{{VPCSubnet: "sub1"}},
+							},
+						},
+					},
+				}
+			}),
+			objs: []kclient.Object{gwGroup, vpc1, external},
+			err:  true,
+		},
+	}
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, AddToScheme(scheme))
+	require.NoError(t, vpcv1beta1.AddToScheme(scheme))
+	require.NoError(t, wiringapi.AddToScheme(scheme))
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := t.Context()
+			kube := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(fabric).
+				WithObjects(tt.objs...).
+				Build()
+			tt.peering.Default()
+			actual := tt.peering.Validate(ctx, kube, nil)
+			if tt.err {
+				require.Error(t, actual)
+			} else {
+				require.NoError(t, actual)
+			}
+		})
+	}
+}
+
+func TestValidatePort(t *testing.T) {
+	for _, tt := range []struct {
+		in    string
+		error bool
+	}{
+		{in: "", error: true},
+		{in: "80", error: false},
+		{in: "80-80", error: false},
+		{in: "80,443", error: true},
+		{in: "80,443,3000-3100", error: true},
+		{in: "80,443,3000-3100,", error: true},
+		{in: "80,443,3000-3100,8080", error: true},
+		{in: "  80  ", error: true},
+		{in: "  80  ,  443  ", error: true},
+		{in: "  80  ,  443  ,  3000-3100  ", error: true},
+		{in: "  80  ,443,3000-3100,8080", error: true},
+		{in: "80-79", error: true},
+		{in: "0", error: true},
+		{in: "65536", error: true},
+		{in: "1-65536", error: true},
+		{in: "0-80", error: true},
+		{in: "-80", error: true},
+		{in: "80-", error: true},
+		{in: "  -  80  ", error: true},
+		{in: "  80  -  ", error: true},
+		{in: "1-80,65536", error: true},
+	} {
+		t.Run("_"+strings.ReplaceAll(tt.in, " ", "_"), func(t *testing.T) {
+			err := validatePort(tt.in)
+			require.Equal(t, tt.error, err != nil)
+		})
+	}
+}
+
+// defaulting sets them, so only an object the refresh on fabric-ctrl initialization had to leave alone or one
+// validated without defaulting can miss them
+func TestTopologyDomainRequired(t *testing.T) {
+	gw := withName("gw-1", &Gateway{})
+	gw.Default()
+	gw.Spec.Topology.Domain = ""
+	require.ErrorContains(t, gw.Validate(t.Context(), nil, nil), "topology.domain is required")
+
+	gwGroup := withName("gwgr-1", &GatewayGroup{})
+	gwGroup.Default()
+	gwGroup.Spec.Topology.Domain = ""
+	require.ErrorContains(t, gwGroup.Validate(t.Context(), nil, nil), "topology.domain is required")
+
+	vpcInfo := withName("vpc-1", &VPCInfo{})
+	vpcInfo.Default()
+	vpcInfo.Spec.Topology.Domains = nil
+	require.ErrorContains(t, vpcInfo.Validate(t.Context(), nil, nil), "vpcinfo must be in at least one domain")
+
+	fabricNotSet := withName("vpc-1", &VPCInfo{})
+	require.ErrorIs(t, fabricNotSet.Validate(t.Context(), nil, nil), wiringapi.ErrFabricNotSet)
+}
+
+func TestPeeringGroupWithoutDomain(t *testing.T) {
+	gwGroup := withName(DefaultGatewayGroup, &GatewayGroup{})
+	vpc1 := withName("vpc-1", &vpcv1beta1.VPC{Spec: vpcv1beta1.VPCSpec{Subnets: map[string]*vpcv1beta1.VPCSubnet{
+		"sub1": {Subnet: "10.0.1.0/24"},
+	}}})
+	external := withName("out-1", &vpcv1beta1.External{})
+	for _, obj := range []interface{ Default() }{gwGroup, vpc1, external} {
+		obj.Default()
+	}
+	// stored as the refresh on fabric-ctrl initialization had to leave them
+	gwGroup.Spec.Topology.Domain = ""
+	external.Spec.Topology.Domain = ""
+	fabric := withName(wiringapi.DefaultFabric, &wiringapi.Fabric{Spec: wiringapi.FabricSpec{Domains: map[string]wiringapi.FabricDomainSpec{
+		wiringapi.DefaultFabricDomain: {SpineASN: 65100, GatewayASN: 65101},
+	}}})
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, AddToScheme(scheme))
+	require.NoError(t, vpcv1beta1.AddToScheme(scheme))
+	require.NoError(t, wiringapi.AddToScheme(scheme))
+	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(fabric, gwGroup, vpc1, external).Build()
+
+	peering := generateExternalPeering("ext-group-without-domain")
+	peering.Default()
+	require.ErrorContains(t, peering.Validate(t.Context(), kube, nil), "gateway group default has no domain")
+}

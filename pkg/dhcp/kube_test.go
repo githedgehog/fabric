@@ -1,0 +1,423 @@
+// Copyright 2025 Hedgehog
+// SPDX-License-Identifier: Apache-2.0
+
+package dhcp
+
+import (
+	"context"
+	"net/netip"
+	"sync"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	"golang.org/x/time/rate"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ktypes "k8s.io/apimachinery/pkg/types"
+	toolscache "k8s.io/client-go/tools/cache"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+func newTestServer() *Server {
+	return &Server{
+		subnets:        map[string]*subnet{},
+		switchToIP:     map[string]string{},
+		relayAllowlist: map[string]struct{}{},
+	}
+}
+
+func testSubnet(name, circuitID, rv string) *dhcpapi.DHCPSubnet {
+	return &dhcpapi.DHCPSubnet{
+		Name:            name,
+		Namespace:       kmetav1.NamespaceDefault,
+		UID:             ktypes.UID("uid-" + name),
+		ResourceVersion: rv,
+		Spec:            dhcpapi.DHCPSubnetSpec{VRF: "VrfV1", CircuitID: circuitID},
+	}
+}
+
+func recreated(obj *dhcpapi.DHCPSubnet) *dhcpapi.DHCPSubnet {
+	obj = obj.DeepCopy()
+	obj.UID += "-recreated"
+
+	return obj
+}
+
+func testSwitch(name string, role wiringapi.SwitchRole, ip string) *wiringapi.Switch {
+	return &wiringapi.Switch{
+		Name: name, Namespace: kmetav1.NamespaceDefault,
+		Spec: wiringapi.SwitchSpec{Role: role, IP: ip},
+	}
+}
+
+func TestSubnetHandler(t *testing.T) {
+	keyA := subnetKey("VrfV1", "Vlan1000")
+	keyB := subnetKey("VrfV1", "Vlan1001")
+
+	t.Run("add stores a copy", func(t *testing.T) {
+		s := newTestServer()
+		h := s.subnetHandler()
+
+		in := testSubnet("a", "Vlan1000", "1")
+		h.OnAdd(in, true)
+
+		require.Contains(t, s.subnets, keyA)
+		obj := s.subnets[keyA].obj.Load()
+		assert.Equal(t, "1", obj.ResourceVersion)
+		assert.NotNil(t, obj.Status.Allocated)
+		assert.Nil(t, in.Status.Allocated, "informer object must not be modified")
+		assert.NotSame(t, in, obj)
+	})
+
+	t.Run("update keeps the wrapper and moves forward", func(t *testing.T) {
+		s := newTestServer()
+		h := s.subnetHandler()
+
+		old := testSubnet("a", "Vlan1000", "1")
+		h.OnAdd(old, true)
+		sn := s.subnets[keyA]
+		h.OnUpdate(old, testSubnet("a", "Vlan1000", "3"))
+		h.OnUpdate(old, testSubnet("a", "Vlan1000", "2")) // late event
+
+		require.Same(t, sn, s.subnets[keyA])
+		assert.Equal(t, "3", sn.obj.Load().ResourceVersion)
+		assert.False(t, sn.deleted.Load())
+	})
+
+	t.Run("update with a new key moves the wrapper", func(t *testing.T) {
+		s := newTestServer()
+		h := s.subnetHandler()
+
+		old := testSubnet("a", "Vlan1000", "1")
+		h.OnAdd(old, true)
+		sn := s.subnets[keyA]
+		h.OnUpdate(old, testSubnet("a", "Vlan1001", "2"))
+
+		assert.NotContains(t, s.subnets, keyA)
+		require.Same(t, sn, s.subnets[keyB])
+		assert.Equal(t, "2", sn.obj.Load().ResourceVersion)
+		assert.False(t, sn.deleted.Load())
+	})
+
+	t.Run("update with a new key keeps another subnet on the old one", func(t *testing.T) {
+		s := newTestServer()
+		h := s.subnetHandler()
+
+		old := testSubnet("a", "Vlan1000", "1")
+		h.OnAdd(old, true)
+		h.OnAdd(testSubnet("b", "Vlan1000", "2"), true)
+		h.OnUpdate(old, testSubnet("a", "Vlan1001", "3"))
+
+		require.Contains(t, s.subnets, keyA)
+		assert.Equal(t, "b", s.subnets[keyA].obj.Load().Name)
+		require.Contains(t, s.subnets, keyB)
+		assert.Equal(t, "a", s.subnets[keyB].obj.Load().Name)
+	})
+
+	t.Run("update with a new key replaces another subnet on the new one", func(t *testing.T) {
+		s := newTestServer()
+		h := s.subnetHandler()
+
+		old := testSubnet("a", "Vlan1000", "1")
+		h.OnAdd(old, true)
+		h.OnAdd(testSubnet("b", "Vlan1001", "2"), true)
+		snB := s.subnets[keyB]
+		h.OnUpdate(old, testSubnet("a", "Vlan1001", "3"))
+
+		assert.NotContains(t, s.subnets, keyA)
+		require.Contains(t, s.subnets, keyB)
+		assert.Equal(t, "a", s.subnets[keyB].obj.Load().Name)
+		assert.True(t, snB.deleted.Load())
+	})
+
+	t.Run("recreated subnet gets a new wrapper", func(t *testing.T) {
+		s := newTestServer()
+		h := s.subnetHandler()
+
+		old := testSubnet("a", "Vlan1000", "1")
+		h.OnAdd(old, true)
+		sn := s.subnets[keyA]
+		h.OnUpdate(old, recreated(testSubnet("a", "Vlan1000", "2"))) // delete and create missed while disconnected
+
+		require.Contains(t, s.subnets, keyA)
+		assert.NotSame(t, sn, s.subnets[keyA])
+		assert.Equal(t, "uid-a-recreated", string(s.subnets[keyA].uid))
+		assert.True(t, sn.deleted.Load())
+	})
+
+	t.Run("recreated subnet with a new key drops the old wrapper", func(t *testing.T) {
+		s := newTestServer()
+		h := s.subnetHandler()
+
+		old := testSubnet("a", "Vlan1000", "1")
+		h.OnAdd(old, true)
+		sn := s.subnets[keyA]
+		h.OnUpdate(old, recreated(testSubnet("a", "Vlan1001", "2")))
+
+		assert.NotContains(t, s.subnets, keyA)
+		require.Contains(t, s.subnets, keyB)
+		assert.Equal(t, "uid-a-recreated", string(s.subnets[keyB].uid))
+		assert.True(t, sn.deleted.Load())
+	})
+
+	t.Run("delete", func(t *testing.T) {
+		s := newTestServer()
+		h := s.subnetHandler()
+
+		in := testSubnet("a", "Vlan1000", "1")
+		h.OnAdd(in, true)
+		sn := s.subnets[keyA]
+		h.OnDelete(in)
+
+		assert.NotContains(t, s.subnets, keyA)
+		assert.True(t, sn.deleted.Load())
+	})
+
+	t.Run("delete missed while disconnected", func(t *testing.T) {
+		s := newTestServer()
+		h := s.subnetHandler()
+
+		in := testSubnet("a", "Vlan1000", "1")
+		h.OnAdd(in, true)
+		sn := s.subnets[keyA]
+		h.OnDelete(toolscache.DeletedFinalStateUnknown{Key: "default/a", Obj: in})
+
+		assert.NotContains(t, s.subnets, keyA)
+		assert.True(t, sn.deleted.Load())
+	})
+
+	t.Run("delete keeps another subnet on the same key", func(t *testing.T) {
+		s := newTestServer()
+		h := s.subnetHandler()
+
+		h.OnAdd(testSubnet("b", "Vlan1000", "2"), true)
+		sn := s.subnets[keyA]
+		h.OnDelete(testSubnet("a", "Vlan1000", "1"))
+
+		require.Same(t, sn, s.subnets[keyA])
+		assert.False(t, sn.deleted.Load())
+	})
+
+	t.Run("delete keeps the recreated subnet", func(t *testing.T) {
+		s := newTestServer()
+		h := s.subnetHandler()
+
+		h.OnAdd(recreated(testSubnet("a", "Vlan1000", "2")), true)
+		sn := s.subnets[keyA]
+		h.OnDelete(testSubnet("a", "Vlan1000", "1"))
+
+		require.Same(t, sn, s.subnets[keyA])
+		assert.False(t, sn.deleted.Load())
+	})
+
+	t.Run("unexpected objects are ignored", func(t *testing.T) {
+		s := newTestServer()
+		h := s.subnetHandler()
+
+		h.OnAdd("garbage", true)
+		h.OnDelete(toolscache.DeletedFinalStateUnknown{Key: "default/a", Obj: "garbage"})
+
+		assert.Empty(t, s.subnets)
+	})
+}
+
+func TestSwitchHandler(t *testing.T) {
+	t.Run("leaf is allowlisted", func(t *testing.T) {
+		s := newTestServer()
+		h := s.switchHandler()
+
+		h.OnAdd(testSwitch("leaf-01", wiringapi.SwitchRoleServerLeaf, "172.30.0.8/21"), true)
+
+		assert.Contains(t, s.relayAllowlist, "172.30.0.8")
+		assert.Equal(t, "172.30.0.8", s.switchToIP["leaf-01"])
+	})
+
+	t.Run("spine is not allowlisted", func(t *testing.T) {
+		s := newTestServer()
+		h := s.switchHandler()
+
+		h.OnAdd(testSwitch("spine-01", wiringapi.SwitchRoleSpine, "172.30.0.2/21"), true)
+
+		assert.Empty(t, s.relayAllowlist)
+	})
+
+	t.Run("ip change replaces the entry", func(t *testing.T) {
+		s := newTestServer()
+		h := s.switchHandler()
+
+		old := testSwitch("leaf-01", wiringapi.SwitchRoleServerLeaf, "172.30.0.8/21")
+		h.OnAdd(old, true)
+		h.OnUpdate(old, testSwitch("leaf-01", wiringapi.SwitchRoleServerLeaf, "172.30.0.9/21"))
+
+		assert.NotContains(t, s.relayAllowlist, "172.30.0.8")
+		assert.Contains(t, s.relayAllowlist, "172.30.0.9")
+	})
+
+	for _, tt := range []struct {
+		name string
+		sw   *wiringapi.Switch
+	}{
+		{"leaf becomes spine", testSwitch("leaf-01", wiringapi.SwitchRoleSpine, "172.30.0.8/21")},
+		{"ip removed", testSwitch("leaf-01", wiringapi.SwitchRoleServerLeaf, "")},
+		{"ip becomes unparseable", testSwitch("leaf-01", wiringapi.SwitchRoleServerLeaf, "garbage")},
+	} {
+		t.Run(tt.name+" removes the entry", func(t *testing.T) {
+			s := newTestServer()
+			h := s.switchHandler()
+
+			old := testSwitch("leaf-01", wiringapi.SwitchRoleServerLeaf, "172.30.0.8/21")
+			h.OnAdd(old, true)
+			h.OnUpdate(old, tt.sw)
+
+			assert.Empty(t, s.relayAllowlist)
+			assert.Empty(t, s.switchToIP)
+		})
+	}
+
+	t.Run("delete", func(t *testing.T) {
+		s := newTestServer()
+		h := s.switchHandler()
+
+		in := testSwitch("leaf-01", wiringapi.SwitchRoleServerLeaf, "172.30.0.8/21")
+		h.OnAdd(in, true)
+		h.OnDelete(in)
+
+		assert.Empty(t, s.relayAllowlist)
+		assert.Empty(t, s.switchToIP)
+	})
+
+	t.Run("delete missed while disconnected", func(t *testing.T) {
+		s := newTestServer()
+		h := s.switchHandler()
+
+		in := testSwitch("leaf-01", wiringapi.SwitchRoleServerLeaf, "172.30.0.8/21")
+		h.OnAdd(in, true)
+		h.OnDelete(toolscache.DeletedFinalStateUnknown{Key: "default/leaf-01", Obj: in})
+
+		assert.Empty(t, s.relayAllowlist)
+		assert.Empty(t, s.switchToIP)
+	})
+}
+
+func TestUpdateBudget(t *testing.T) {
+	t.Run("update over the budget fails right away", func(t *testing.T) {
+		fake, sn, calls := newFakeKube(t, testLeaseSubnet(), nil)
+		stats := &budgetStats{}
+		kube := withUpdateBudget(fake, rate.NewLimiter(rate.Every(time.Hour), 1), stats)
+
+		_, _, err := sn.lease(t.Context(), kube, testCfg, request(t, 0, "", ""))
+		require.NoError(t, err)
+
+		ctx, cancel := context.WithTimeout(t.Context(), time.Second)
+		defer cancel()
+		start := time.Now()
+		_, _, err = sn.lease(ctx, kube, testCfg, request(t, 1, "", ""))
+		require.ErrorIs(t, err, errUpdateBudget)
+		assert.Less(t, time.Since(start), 100*time.Millisecond, "doesn't wait for a token it can't get in time")
+		assert.EqualValues(t, 1, calls.updates.Load())
+		assert.EqualValues(t, 1, stats.dropped.Load())
+
+		require.NoError(t, kube.Get(t.Context(), kclient.ObjectKeyFromObject(sn.obj.Load()), &dhcpapi.DHCPSubnet{}), "reads don't use the budget")
+	})
+
+	t.Run("update waits for the budget", func(t *testing.T) {
+		fake, sn, calls := newFakeKube(t, testLeaseSubnet(), nil)
+		stats := &budgetStats{}
+		kube := withUpdateBudget(fake, rate.NewLimiter(rate.Every(50*time.Millisecond), 1), stats)
+
+		for idx := range 2 {
+			_, _, err := sn.lease(t.Context(), kube, testCfg, request(t, idx, "", ""))
+			require.NoError(t, err)
+		}
+
+		assert.EqualValues(t, 2, calls.updates.Load())
+		assert.EqualValues(t, 1, stats.delayed.Load())
+		assert.EqualValues(t, 0, stats.dropped.Load())
+	})
+
+	t.Run("write with a token is finished after the request expires", func(t *testing.T) {
+		fake, sn, calls := newFakeKube(t, testLeaseSubnet(), func(ctx context.Context, _ kclient.Client) error {
+			time.Sleep(100 * time.Millisecond)
+			assert.NoError(t, ctx.Err(), "not cancelled with the request")
+			deadline, ok := ctx.Deadline()
+			assert.True(t, ok, "has its own deadline")
+			assert.WithinDuration(t, time.Now().Add(updateTimeout), deadline, time.Second)
+
+			return nil
+		})
+		kube := withUpdateBudget(fake, rate.NewLimiter(rate.Inf, 0), &budgetStats{})
+
+		ctx, cancel := context.WithTimeout(t.Context(), 50*time.Millisecond)
+		defer cancel()
+		ip, _, err := sn.lease(ctx, kube, testCfg, request(t, 0, "", ""))
+		require.NoError(t, err)
+		assert.EqualValues(t, 1, calls.updates.Load())
+		assert.Equal(t, ip.String(), getStored(t, kube).Status.Allocated[mac(0)].IP)
+	})
+
+	t.Run("requests that write nothing don't wait for a write", func(t *testing.T) {
+		fake, sn, calls := newFakeKube(t, testLeaseSubnet(), nil)
+		limiter := rate.NewLimiter(rate.Every(500*time.Millisecond), 1)
+		kube := withUpdateBudget(fake, limiter, &budgetStats{})
+
+		renewed, _, err := sn.lease(t.Context(), kube, testCfg, request(t, 0, "", ""))
+		require.NoError(t, err)
+
+		var waiting netip.Addr
+		var waitErr error
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			waiting, _, waitErr = sn.lease(t.Context(), kube, testCfg, request(t, 1, "", ""))
+		}()
+		require.Eventually(t, func() bool { return limiter.Tokens() < 0 }, time.Second, time.Millisecond,
+			"request waits for the next token")
+
+		start := time.Now()
+		offered, _, err := sn.lease(t.Context(), kube, testCfg, req(2))
+		require.NoError(t, err)
+		again, _, err := sn.lease(t.Context(), kube, testCfg, request(t, 0, "", renewed.String()))
+		require.NoError(t, err)
+		assert.Less(t, time.Since(start), 100*time.Millisecond)
+		assert.Equal(t, renewed, again)
+
+		<-done
+		require.NoError(t, waitErr)
+		assert.NotEqual(t, waiting, offered, "the IP is held for the waiting request")
+		assert.EqualValues(t, 2, calls.updates.Load())
+	})
+
+	t.Run("retransmit waiting for its own write doesn't write again", func(t *testing.T) {
+		fake, sn, calls := newFakeKube(t, testLeaseSubnet(), nil)
+		stats := &budgetStats{}
+		limiter := rate.NewLimiter(rate.Every(500*time.Millisecond), 1)
+		kube := withUpdateBudget(fake, limiter, stats)
+
+		_, _, err := sn.lease(t.Context(), kube, testCfg, request(t, 0, "", ""))
+		require.NoError(t, err)
+
+		wg := sync.WaitGroup{}
+		var first netip.Addr
+		wg.Go(func() {
+			var err error
+			first, _, err = sn.lease(t.Context(), kube, testCfg, request(t, 1, "", ""))
+			assert.NoError(t, err)
+		})
+		require.Eventually(t, func() bool { return limiter.Tokens() < 0 }, time.Second, time.Millisecond,
+			"first copy waits for the next token")
+
+		// nothing is stored yet, so the retransmit needs a write too and has to wait for the first copy's update
+		start := time.Now()
+		retransmit, _, err := sn.lease(t.Context(), kube, testCfg, request(t, 1, "", ""))
+		require.NoError(t, err)
+		assert.Greater(t, time.Since(start), 200*time.Millisecond, "waited for the first copy's update")
+		wg.Wait()
+
+		assert.Equal(t, first, retransmit)
+		assert.EqualValues(t, 2, calls.updates.Load(), "no update for the retransmit")
+		assert.EqualValues(t, 1, stats.delayed.Load(), "no token for the retransmit")
+	})
+}

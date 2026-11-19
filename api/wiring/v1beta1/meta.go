@@ -1,0 +1,152 @@
+// Copyright 2023 Hedgehog
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package v1beta1
+
+import (
+	"strings"
+
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+const (
+	PortNameSeparator    = "/"
+	DefaultVLANNamespace = "default"
+	DefaultFabric        = "default"
+	DefaultFabricDomain  = "default"
+)
+
+var (
+	// TODO should it be same as group name? or just standard prefix for all APIs?
+	LabelPrefix               = "fabric.githedgehog.com/"
+	LabelSwitch               = LabelName("switch")
+	LabelProfile              = LabelName("profile")
+	LabelServer               = LabelName("server")
+	LabelServerType           = LabelName("server-type")
+	LabelConnection           = LabelName("connection")
+	LabelConnectionType       = LabelName("connection-type")
+	LabelSwitches             = LabelName("switches")
+	LabelServers              = LabelName("servers")
+	LabelVPC                  = LabelName("vpc")
+	ListLabelValue            = "true"
+	ConnectionLabelTypeServer = "server"
+	ConnectionLabelTypeSwitch = "switch"
+	AnnotationPorts           = LabelName("ports")
+	AnnotationTopology        = LabelName("topology")
+)
+
+func LabelName(name string) string {
+	return LabelPrefix + name
+}
+
+func ListLabelPrefix(listType string) string {
+	return listType + "." + LabelPrefix
+}
+
+func ListLabel(listType, val string) string {
+	return ListLabelPrefix(listType) + val
+}
+
+func ListLabelServer(serverName string) string {
+	return ListLabel(ConnectionLabelTypeServer, serverName)
+}
+
+func ListLabelSwitch(switchName string) string {
+	return ListLabel(ConnectionLabelTypeSwitch, switchName)
+}
+
+func ListLabelVLANNamespace(vlanNamespace string) string {
+	return ListLabel("vlanns", vlanNamespace)
+}
+
+func ListLabelSwitchGroup(groupName string) string {
+	return ListLabel("switchgroup", groupName)
+}
+
+func ListLabelFabric(fabricName string) string {
+	return ListLabel("fabric", fabricName)
+}
+
+func ListLabelDomain(domainName string) string {
+	return ListLabel("fabricdomain", domainName)
+}
+
+// TopologySummary is empty for the default fabric and domain, so the print column only stands out for the rest
+func TopologySummary(fabric string, domains ...string) string {
+	if fabric == DefaultFabric && (len(domains) == 0 || len(domains) == 1 && domains[0] == DefaultFabricDomain) {
+		return ""
+	}
+	if len(domains) == 0 {
+		return fabric
+	}
+
+	return fabric + "/" + strings.Join(domains, ",")
+}
+
+func SetTopologyAnnotation(obj kmetav1.Object, fabric string, domains ...string) {
+	anns := obj.GetAnnotations()
+	summary := TopologySummary(fabric, domains...)
+	if summary == "" {
+		delete(anns, AnnotationTopology)
+	} else {
+		if anns == nil {
+			anns = map[string]string{}
+		}
+		anns[AnnotationTopology] = summary
+	}
+	obj.SetAnnotations(anns)
+}
+
+func MatchingLabelsForListLabelServer(serverName string) kclient.MatchingLabels {
+	return kclient.MatchingLabels{
+		ListLabel(ConnectionLabelTypeServer, serverName): ListLabelValue,
+	}
+}
+
+func MatchingLabelsForListLabelSwitch(switchName string) kclient.MatchingLabels {
+	return kclient.MatchingLabels{
+		ListLabel(ConnectionLabelTypeSwitch, switchName): ListLabelValue,
+	}
+}
+
+func MatchingLabelsForSwitchGroup(groupName string) kclient.MatchingLabels {
+	return kclient.MatchingLabels{
+		ListLabelSwitchGroup(groupName): ListLabelValue,
+	}
+}
+
+type ApplyStatus struct {
+	Generation int64            `json:"gen,omitempty"`
+	Time       kmetav1.Time     `json:"time,omitempty"`
+	Detailed   map[string]int64 `json:"detailed,omitempty"`
+}
+
+func CleanupFabricLabels(labels map[string]string) {
+	for key := range labels {
+		if strings.Contains(key, LabelPrefix) {
+			delete(labels, key)
+		}
+	}
+}
+
+const SwitchLLDPDescriptionPrefix = "Hedgehog Fabric"
+
+func SwitchLLDPDescription(deploymentID string) string {
+	if deploymentID == "" {
+		return SwitchLLDPDescriptionPrefix
+	}
+
+	return SwitchLLDPDescriptionPrefix + " " + deploymentID
+}

@@ -1,0 +1,145 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.23.0
+  name: externals.vpc.githedgehog.com
+spec:
+  group: vpc.githedgehog.com
+  names:
+    categories:
+    - hedgehog
+    - hh
+    - hhfc
+    kind: External
+    listKind: ExternalList
+    plural: externals
+    shortNames:
+    - ext
+    singular: external
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .metadata.annotations.fabric\.githedgehog\.com/topology
+      name: Topo
+      type: string
+    - jsonPath: .spec.ipv4Namespace
+      name: IPv4NS
+      type: string
+    - jsonPath: .spec.inboundCommunity
+      name: InComm
+      type: string
+    - jsonPath: .spec.outboundCommunity
+      name: OutComm
+      type: string
+    - jsonPath: .spec.localASN
+      name: LocalASN
+      priority: 1
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      priority: 10
+      type: date
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          External object represents an external system connected to the Fabric and available to the specific IPv4Namespace.
+          Users can do external peering with the external system by specifying the name of the External Object without need to
+          worry about the details of how external system is attached to the Fabric.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Spec is the desired state of the External
+            properties:
+              inboundCommunity:
+                description: InboundCommunity is the optional inbound community to
+                  filter routes from the external system (e.g. 65102:5000)
+                type: string
+              inboundPrefixes:
+                additionalProperties:
+                  description: ExternalInboundPrefix defines the prefix lengths accepted
+                    within an inbound prefix of an External
+                  properties:
+                    maxPrefixLen:
+                      description: |-
+                        MaxPrefixLen is the longest prefix length accepted within the prefix, defaults to minPrefixLen, so
+                        that a prefix without either matches exactly
+                      maximum: 32
+                      type: integer
+                    minPrefixLen:
+                      description: MinPrefixLen is the shortest prefix length accepted
+                        within the prefix, defaults to its own length
+                      maximum: 32
+                      type: integer
+                  type: object
+                description: |-
+                  InboundPrefixes (optional) limits the routes accepted from the external system to these prefixes,
+                  keyed by prefix. Without it any prefix outside the IPv4Namespace is accepted
+                type: object
+              ipv4Namespace:
+                description: IPv4Namespace is the name of the IPv4Namespace this External
+                  belongs to
+                type: string
+              localASN:
+                description: |-
+                  LocalASN makes every attachment to this External present the same ASN to the external system
+                  instead of each border leaf's own. Changing it resets all sessions to this External, and the
+                  external system has to change its remote-as to match. Static attachments ignore it.
+                format: int64
+                maximum: 4294967295
+                minimum: 0
+                type: integer
+              outboundCommunity:
+                description: OutboundCommunity is the optional outbound community
+                  that all outbound routes will be stamped with (e.g. 50000:50001)
+                type: string
+              static:
+                description: Static contains parameters specific to static externals
+                properties:
+                  prefixes:
+                    description: Prefixes is the list of IPv4 prefixes reachable via
+                      the external
+                    items:
+                      type: string
+                    type: array
+                type: object
+              topology:
+                description: Topology is where the External sits in the fabric topology
+                properties:
+                  domain:
+                    description: |-
+                      Domain is the Fabric domain the External is in (if not specified, "default" is used). It can
+                      only be attached to switches in that domain, and it is immutable
+                    type: string
+                  fabric:
+                    description: Fabric is the name of the Fabric this External belongs
+                      to (if not specified, "default" is used)
+                    type: string
+                type: object
+            type: object
+          status:
+            description: Status is the observed state of the External
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

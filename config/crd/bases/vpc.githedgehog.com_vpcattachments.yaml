@@ -1,0 +1,94 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.23.0
+  name: vpcattachments.vpc.githedgehog.com
+spec:
+  group: vpc.githedgehog.com
+  names:
+    categories:
+    - hedgehog
+    - hh
+    - hhfc
+    kind: VPCAttachment
+    listKind: VPCAttachmentList
+    plural: vpcattachments
+    shortNames:
+    - vpcattach
+    singular: vpcattachment
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .metadata.annotations.fabric\.githedgehog\.com/topology
+      name: Topo
+      type: string
+    - jsonPath: .spec.subnet
+      name: VPCSUBNET
+      type: string
+    - jsonPath: .spec.connection
+      name: Connection
+      type: string
+    - jsonPath: .spec.nativeVLAN
+      name: NativeVLAN
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      priority: 10
+      type: date
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: VPCAttachment is the Schema for the vpcattachments API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Spec is the desired state of the VPCAttachment
+            properties:
+              connection:
+                description: Connection is the name of the connection to attach to
+                  the VPC
+                type: string
+              nativeVLAN:
+                description: NativeVLAN is the flag to indicate if the native VLAN
+                  should be used for attaching the VPC subnet
+                type: boolean
+              subnet:
+                description: Subnet is the full name of the VPC subnet to attach to,
+                  such as "vpc-1/default"
+                type: string
+              topology:
+                description: Topology is where the VPCAttachment sits in the fabric
+                  topology
+                properties:
+                  fabric:
+                    description: Fabric is the name of the Fabric this VPCAttachment
+                      belongs to (if not specified, "default" is used)
+                    type: string
+                type: object
+            type: object
+          status:
+            description: Status is the observed state of the VPCAttachment
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

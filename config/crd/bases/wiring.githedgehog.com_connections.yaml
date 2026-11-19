@@ -1,0 +1,391 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.23.0
+  name: connections.wiring.githedgehog.com
+spec:
+  group: wiring.githedgehog.com
+  names:
+    categories:
+    - hedgehog
+    - hh
+    - hhfc
+    kind: Connection
+    listKind: ConnectionList
+    plural: connections
+    shortNames:
+    - conn
+    singular: connection
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .metadata.annotations.fabric\.githedgehog\.com/topology
+      name: Topo
+      type: string
+    - jsonPath: .metadata.labels.fabric\.githedgehog\.com/connection-type
+      name: Type
+      type: string
+    - jsonPath: .metadata.annotations.fabric\.githedgehog\.com/switches
+      name: Switches
+      priority: 1
+      type: string
+    - jsonPath: .metadata.annotations.fabric\.githedgehog\.com/servers
+      name: Servers
+      priority: 1
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      priority: 10
+      type: date
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          Connection object represents a logical and physical connections between any devices in the Fabric (Switch, Server
+          and External objects). It's needed to define all physical and logical connections between the devices in the Wiring
+          Diagram. Connection type is defined by the top-level field in the ConnectionSpec. Exactly one of them could be used
+          in a single Connection object.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Spec is the desired state of the Connection
+            properties:
+              bundled:
+                description: Bundled defines the bundled connection (port channel,
+                  single server to a single switch with multiple links)
+                properties:
+                  fallback:
+                    description: Fallback is the optional flag that used to indicate
+                      one of the links in LACP port channel to be used as a fallback
+                      link
+                    type: boolean
+                  links:
+                    description: Links is the list of server-to-switch links
+                    items:
+                      description: ServerToSwitchLink defines the server-to-switch
+                        link
+                      properties:
+                        server:
+                          description: Server is the server side of the connection
+                          properties:
+                            port:
+                              description: |-
+                                Port defines the full name of the switch port in the format of "device/port", such as "spine-1/E1/1".
+                                SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
+                              type: string
+                          type: object
+                        switch:
+                          description: Switch is the switch side of the connection
+                          properties:
+                            port:
+                              description: |-
+                                Port defines the full name of the switch port in the format of "device/port", such as "spine-1/E1/1".
+                                SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
+                              type: string
+                          type: object
+                      type: object
+                    type: array
+                  mtu:
+                    description: MTU is the MTU to be configured on the switch port
+                      or port channel
+                    type: integer
+                type: object
+              eslag:
+                description: ESLAG defines the ESLAG connection (port channel, single
+                  server to 1-4 switches with one or more links)
+                properties:
+                  fallback:
+                    description: Fallback is the optional flag that used to indicate
+                      one of the links in LACP port channel to be used as a fallback
+                      link
+                    type: boolean
+                  links:
+                    description: Links is the list of server-to-switch links
+                    items:
+                      description: ServerToSwitchLink defines the server-to-switch
+                        link
+                      properties:
+                        server:
+                          description: Server is the server side of the connection
+                          properties:
+                            port:
+                              description: |-
+                                Port defines the full name of the switch port in the format of "device/port", such as "spine-1/E1/1".
+                                SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
+                              type: string
+                          type: object
+                        switch:
+                          description: Switch is the switch side of the connection
+                          properties:
+                            port:
+                              description: |-
+                                Port defines the full name of the switch port in the format of "device/port", such as "spine-1/E1/1".
+                                SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
+                              type: string
+                          type: object
+                      type: object
+                    minItems: 1
+                    type: array
+                  mtu:
+                    description: MTU is the MTU to be configured on the switch port
+                      or port channel
+                    type: integer
+                type: object
+              external:
+                description: External defines the external connection (single switch
+                  to a single external device with a single link)
+                properties:
+                  link:
+                    description: Link is the external connection link
+                    properties:
+                      switch:
+                        description: BasePortName defines the full name of the switch
+                          port
+                        properties:
+                          port:
+                            description: |-
+                              Port defines the full name of the switch port in the format of "device/port", such as "spine-1/E1/1".
+                              SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
+                            type: string
+                        type: object
+                    type: object
+                type: object
+              fabric:
+                description: Fabric defines the fabric connection (single spine to
+                  a single leaf with at least one link)
+                properties:
+                  links:
+                    description: Links is the list of spine-to-leaf links
+                    items:
+                      description: FabricLink defines the fabric connection link
+                      properties:
+                        leaf:
+                          description: Leaf is the leaf side of the fabric link
+                          properties:
+                            ip:
+                              description: IP is the IP address of the switch side
+                                of the fabric link (switch port configuration)
+                              pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
+                              type: string
+                            port:
+                              description: |-
+                                Port defines the full name of the switch port in the format of "device/port", such as "spine-1/E1/1".
+                                SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
+                              type: string
+                          type: object
+                        spine:
+                          description: Spine is the spine side of the fabric link
+                          properties:
+                            ip:
+                              description: IP is the IP address of the switch side
+                                of the fabric link (switch port configuration)
+                              pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
+                              type: string
+                            port:
+                              description: |-
+                                Port defines the full name of the switch port in the format of "device/port", such as "spine-1/E1/1".
+                                SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
+                              type: string
+                          type: object
+                      type: object
+                    minItems: 1
+                    type: array
+                type: object
+              gateway:
+                description: Gateway defines the gateway connection (single spine
+                  to a single gateway with at least one link)
+                properties:
+                  links:
+                    description: Links is the list of spine to gateway links
+                    items:
+                      description: GatewayLink defines the gateway connection link
+                      properties:
+                        gateway:
+                          description: Gateway is the gateway side of the gateway
+                            link
+                          properties:
+                            ip:
+                              description: IP is the IP address of the switch side
+                                of the fabric link (switch port configuration)
+                              pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
+                              type: string
+                            port:
+                              description: |-
+                                Port defines the full name of the switch port in the format of "device/port", such as "spine-1/E1/1".
+                                SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
+                              type: string
+                          type: object
+                        switch:
+                          description: Switch is the switch (spine or leaf) side of
+                            the gateway link
+                          properties:
+                            ip:
+                              description: IP is the IP address of the switch side
+                                of the fabric link (switch port configuration)
+                              pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
+                              type: string
+                            port:
+                              description: |-
+                                Port defines the full name of the switch port in the format of "device/port", such as "spine-1/E1/1".
+                                SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
+                              type: string
+                          type: object
+                      type: object
+                    minItems: 1
+                    type: array
+                type: object
+              mesh:
+                description: Mesh defines the mesh connection (direct leaf to leaf
+                  connection with at least one link)
+                properties:
+                  links:
+                    description: Links is the list of leaf to leaf links
+                    items:
+                      description: MeshLink defines the mesh connection link, i.e.
+                        a direct leaf to leaf connection
+                      properties:
+                        leaf1:
+                          description: ConnFabricLinkSwitch defines the switch side
+                            of the fabric (or gateway) link
+                          properties:
+                            ip:
+                              description: IP is the IP address of the switch side
+                                of the fabric link (switch port configuration)
+                              pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
+                              type: string
+                            port:
+                              description: |-
+                                Port defines the full name of the switch port in the format of "device/port", such as "spine-1/E1/1".
+                                SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
+                              type: string
+                          type: object
+                        leaf2:
+                          description: ConnFabricLinkSwitch defines the switch side
+                            of the fabric (or gateway) link
+                          properties:
+                            ip:
+                              description: IP is the IP address of the switch side
+                                of the fabric link (switch port configuration)
+                              pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
+                              type: string
+                            port:
+                              description: |-
+                                Port defines the full name of the switch port in the format of "device/port", such as "spine-1/E1/1".
+                                SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
+                              type: string
+                          type: object
+                      type: object
+                    minItems: 1
+                    type: array
+                type: object
+              staticExternal:
+                description: StaticExternal defines the static external connection
+                  (single switch to a single external device with a single link)
+                properties:
+                  link:
+                    description: Link is the static external connection link
+                    properties:
+                      switch:
+                        description: Switch is the switch side of the static external
+                          connection link
+                        properties:
+                          ip:
+                            description: IP is the IP address of the switch side of
+                              the static external connection link (switch port configuration)
+                            pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}/([1-2]?[0-9]|3[0-2])$
+                            type: string
+                          nextHop:
+                            description: NextHop is the next hop IP address for static
+                              routes that will be created for the subnets
+                            pattern: ^((25[0-5]|(2[0-4]|1\d|[1-9]|)\d)\.?\b){4}$
+                            type: string
+                          port:
+                            description: |-
+                              Port defines the full name of the switch port in the format of "device/port", such as "spine-1/E1/1".
+                              SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
+                            type: string
+                          subnets:
+                            description: Subnets is the list of subnets that will
+                              get static routes using the specified next hop
+                            items:
+                              type: string
+                            type: array
+                          vlan:
+                            description: VLAN is the optional VLAN ID to be configured
+                              on the switch port
+                            type: integer
+                        type: object
+                    type: object
+                  withinVPC:
+                    description: WithinVPC is the optional VPC name to provision the
+                      static external connection within the VPC VRF instead of default
+                      one to make resource available to the specific VPC
+                    type: string
+                type: object
+              topology:
+                description: Topology is where the connection sits in the fabric topology
+                properties:
+                  fabric:
+                    description: |-
+                      Fabric is the name of the Fabric this connection belongs to (if not specified, "default" is used).
+                      It is the Fabric the connected devices are in, unrelated to the fabric connection type
+                    type: string
+                type: object
+              unbundled:
+                description: Unbundled defines the unbundled connection (no port channel,
+                  single server to a single switch with a single link)
+                properties:
+                  link:
+                    description: Link is the server-to-switch link
+                    properties:
+                      server:
+                        description: Server is the server side of the connection
+                        properties:
+                          port:
+                            description: |-
+                              Port defines the full name of the switch port in the format of "device/port", such as "spine-1/E1/1".
+                              SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
+                            type: string
+                        type: object
+                      switch:
+                        description: Switch is the switch side of the connection
+                        properties:
+                          port:
+                            description: |-
+                              Port defines the full name of the switch port in the format of "device/port", such as "spine-1/E1/1".
+                              SONiC port name is used as a port name and switch name should be same as the name of the Switch object.
+                            type: string
+                        type: object
+                    type: object
+                  mtu:
+                    description: MTU is the MTU to be configured on the switch port
+                      or port channel
+                    type: integer
+                type: object
+            type: object
+          status:
+            description: Status is the observed state of the Connection
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

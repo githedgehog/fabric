@@ -1,0 +1,239 @@
+apiVersion: agent.githedgehog.com/v1beta1
+kind: Agent
+metadata:
+  creationTimestamp: "2026-02-19T10:22:39Z"
+  generation: 1
+  name: spine-01
+  namespace: default
+  resourceVersion: "28023"
+  uid: 5807f9f4-4325-41aa-b61a-b415bcc35869
+spec:
+  alloy: {}
+  catalog: {}
+  config:
+    alloy:
+      hostname: spine-01
+      kube: {}
+      logFiles:
+        agent:
+          pathTargets:
+            - path: /var/log/agent.log
+        syslog:
+          pathTargets:
+            - path: /var/log/syslog
+      proxyURL: http://172.30.0.1:31028
+      pyroscope: {}
+      scrapes:
+        agent:
+          address: 127.0.0.1:7042
+          intervalSeconds: 60
+          self: {}
+          unix: {}
+        node:
+          intervalSeconds: 60
+          self: {}
+          unix:
+            collectors:
+              - cpu
+              - loadavg
+              - meminfo
+              - filesystem
+            enable: true
+      targets: {}
+    baseVPCCommunity: "50000:0"
+    controlVIP: 172.30.0.1/32
+    defaultMaxPathsEBGP: 64
+    domains:
+      default:
+        gatewayASN: 65534
+        spineASN: 65100
+    eslagESIPrefix: "00:f2:00:00:"
+    eslagMACBase: f2:00:00:00:00:00
+    fabricMTU: 9100
+    fabricSubnet: 172.30.128.0/17
+    gatewayASN: 65534
+    gatewayBFD: true
+    gatewayCommunities:
+      "0": "50001:0"
+      "1": "50001:1"
+      "2": "50001:2"
+      "3": "50001:3"
+      "4": "50001:4"
+      "5": "50001:5"
+      "6": "50001:6"
+      "7": "50001:7"
+      "8": "50001:8"
+      "9": "50001:9"
+    protocolSubnet: 172.30.8.0/22
+    proxyExternalSubnet: 172.30.16.0/22
+    serverFacingMTUOffset: 64
+    spineASN: 65100
+    spineLeaf: {}
+    vtepSubnet: 172.30.12.0/22
+  connections:
+    spine-01--fabric--leaf-01:
+      fabric:
+        links:
+          - leaf:
+              ip: 172.30.128.1/31
+              port: leaf-01/E1/5
+            spine:
+              ip: 172.30.128.0/31
+              port: spine-01/E1/1
+          - leaf:
+              ip: 172.30.128.3/31
+              port: leaf-01/E1/6
+            spine:
+              ip: 172.30.128.2/31
+              port: spine-01/E1/2/1
+    spine-01--fabric--leaf-02:
+      fabric:
+        links:
+          - leaf:
+              ip: 172.30.128.5/31
+              port: leaf-02/E1/4
+            spine:
+              ip: 172.30.128.4/31
+              port: spine-01/E1/3
+          - leaf:
+              ip: 172.30.128.7/31
+              port: leaf-02/E1/5
+            spine:
+              ip: 172.30.128.6/31
+              port: spine-01/E1/4
+    spine-01--gateway--gateway-1:
+      gateway:
+        links:
+          - gateway:
+              ip: 172.30.128.9/31
+              port: gateway-1/enp2s1
+            switch:
+              ip: 172.30.128.8/31
+              port: spine-01/E1/5
+  description: VS-03
+  externals:
+    ext-snp-02:
+      ipv4Namespace: default
+      static:
+        prefixes:
+          - 0.0.0.0/0
+    ext-sp-01:
+      ipv4Namespace: default
+      static:
+        prefixes:
+          - 0.0.0.0/0
+  ipv4Namespaces:
+    default:
+      subnets:
+        - 10.0.0.0/16
+  role: spine
+  statusUpdates:
+    - apiVersion: wiring.githedgehog.com/v1beta1
+      generation: 1
+      kind: Switch
+      name: spine-01
+      namespace: default
+  switch:
+    asn: 65100
+    boot:
+      mac: 0c:20:12:ff:02:00
+    description: VS-03
+    ecmp: {}
+    linkFlapErrDisable:
+      flapThreshold: 3
+      samplingInterval: 30
+      recoveryInterval: 300
+    enableAllPorts: true
+    ip: 172.30.0.7/21
+    portBreakouts:
+      E1/1: 2x400G
+      E1/9: 8x100G
+    profile: nvidia-sn5610
+    protocolIP: 172.30.8.0/32
+    redundancy: {}
+    role: spine
+    topology:
+      domains:
+        - default
+      fabric: default
+    vlanNamespaces:
+      - default
+  switches:
+    leaf-01:
+      asn: 65101
+      boot:
+        mac: 0c:20:12:ff:00:00
+      description: VS-01
+      ecmp: {}
+      ip: 172.30.0.9/21
+      profile: nvidia-sn5610
+      protocolIP: 172.30.8.2/32
+      redundancy: {}
+      role: server-leaf
+      vlanNamespaces:
+        - default
+      vtepIP: 172.30.12.0/32
+    leaf-02:
+      asn: 65102
+      boot:
+        mac: 0c:20:12:ff:01:00
+      description: VS-02
+      ecmp: {}
+      ip: 172.30.0.10/21
+      profile: nvidia-sn5610
+      protocolIP: 172.30.8.3/32
+      redundancy: {}
+      role: server-leaf
+      vlanNamespaces:
+        - default
+      vtepIP: 172.30.12.1/32
+    spine-01:
+      asn: 65100
+      boot:
+        mac: 0c:20:12:ff:02:00
+      description: VS-03
+      ecmp: {}
+      ip: 172.30.0.7/21
+      profile: nvidia-sn5610
+      protocolIP: 172.30.8.0/32
+      redundancy: {}
+      role: spine
+      vlanNamespaces:
+        - default
+  users:
+    - name: admin
+      password: $5$8nAYPGcl4l6G7Av1$Qi4/gnM0yPtGv9kjpMh78NuNSfQWy7vR1rulHpurL36
+      role: admin
+      sshKeys:
+        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGpF2+9I1Nj4BcN7y6DjzTbq1VcUYIRGyfzId5ZoBEFj
+        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIILr33oUspqfHiKC9BaenkKG3nIznbi/Ep3mmsMZjS4U
+    - name: op
+      password: $5$8nAYPGcl4l6G7Av1$Qi4/gnM0yPtGv9kjpMh78NuNSfQWy7vR1rulHpurL36
+      role: operator
+      sshKeys:
+        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGpF2+9I1Nj4BcN7y6DjzTbq1VcUYIRGyfzId5ZoBEFj
+        - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIILr33oUspqfHiKC9BaenkKG3nIznbi/Ep3mmsMZjS4U
+  version:
+    alloyRepo: 172.30.0.1:31000/githedgehog/fabricator/alloy-bin
+    alloyVersion: v1.13.1
+    ca: |
+      -----BEGIN CERTIFICATE-----
+      MIIBbDCCARKgAwIBAgIIVUOo6lbkY3AwCgYIKoZIzj0EAwIwGjEYMBYGA1UEAxMP
+      aGVkZ2Vob2ctZmFiLWNhMB4XDTI2MDIxOTEwMDM0OVoXDTM2MDIxOTEwMTg0OVow
+      GjEYMBYGA1UEAxMPaGVkZ2Vob2ctZmFiLWNhMFkwEwYHKoZIzj0CAQYIKoZIzj0D
+      AQcDQgAEfztkRFuFIqcb2ezMRoMtPnRgiVrLJ5ZkS4JzpCjjWXuXeqRlJQ2E5m1C
+      g3MMgTmd5jtueCLd0xK34MEnqK3wCqNCMEAwDgYDVR0PAQH/BAQDAgKEMA8GA1Ud
+      EwEB/wQFMAMBAf8wHQYDVR0OBBYEFDFKMgnJ8HBUdBaKB8jhf032pnjqMAoGCCqG
+      SM49BAMCA0gAMEUCIQDCr8Hn5uBbpsk7sZS8lyQTcAVvVwH5qaV4cGD6nzoiIgIg
+      KNXzc6yv6mgXh37Y3qf2gwCTkXgQk9YjQcZwLVQGzQw=
+      -----END CERTIFICATE-----
+    default: v0.106.0
+    password: secret
+    repo: 172.30.0.1:31000/githedgehog/fabric/agent
+    username: reader
+  vlanNamespaces:
+    default:
+      ranges:
+        - from: 1000
+          to: 2999
+status: {}

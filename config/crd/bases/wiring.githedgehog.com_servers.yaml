@@ -1,0 +1,84 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.23.0
+  name: servers.wiring.githedgehog.com
+spec:
+  group: wiring.githedgehog.com
+  names:
+    categories:
+    - hedgehog
+    - hh
+    - hhfc
+    kind: Server
+    listKind: ServerList
+    plural: servers
+    shortNames:
+    - srv
+    singular: server
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.type
+      name: Type
+      type: string
+    - jsonPath: .spec.description
+      name: Descr
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      priority: 10
+      type: date
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: Server is the Schema for the servers API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Spec is desired state of the server
+            properties:
+              description:
+                description: Description is a description of the server
+                type: string
+              inspect:
+                description: Inspect is the expectations used to check the server
+                  against what's observed in the Fabric
+                properties:
+                  expectedSysName:
+                    description: |-
+                      ExpectedSystemName is the LLDP system name the server advertises, usually its hostname, if it isn't the
+                      name of this object, e.g. a server-1 running as server-1.example.com
+                    type: string
+                type: object
+              profile:
+                description: Profile is the profile of the server, name of the ServerProfile
+                  object to be used for this server, currently not used by the Fabric
+                type: string
+            type: object
+          status:
+            description: Status is the observed state of the server
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

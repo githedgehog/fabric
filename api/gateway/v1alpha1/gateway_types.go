@@ -1,0 +1,639 @@
+// Copyright 2025 Hedgehog
+// SPDX-License-Identifier: Apache-2.0
+
+package v1alpha1
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"math"
+	"net"
+	"net/netip"
+	"regexp"
+	"slices"
+	"strconv"
+	"strings"
+
+	"go.githedgehog.com/fabric/api/meta"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+var ErrInvalidGW = errors.New("invalid gateway")
+
+// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+
+// GatewayTopology is where a Gateway sits in the fabric topology
+type GatewayTopology struct {
+	// Fabric is the name of the Fabric this Gateway belongs to (if not specified, "default" is used)
+	Fabric string `json:"fabric,omitempty"`
+	// Domain is the Fabric domain (spine layer) this Gateway is cabled into (if not specified, "default" is used).
+	// It is immutable
+	Domain string `json:"domain,omitempty"`
+}
+
+// GatewaySpec defines the desired state of Gateway.
+type GatewaySpec struct {
+	// Topology is where the Gateway sits in the fabric topology
+	Topology GatewayTopology `json:"topology,omitempty"`
+	// ProtocolIP is used as a loopback IP and BGP Router ID
+	ProtocolIP string `json:"protocolIP,omitempty"`
+	// VTEP IP to be used by the gateway
+	VTEPIP string `json:"vtepIP,omitempty"`
+	// VTEP MAC address to be used by the gateway
+	VTEPMAC string `json:"vtepMAC,omitempty"`
+	// ASN is the ASN of the gateway
+	// +kubebuilder:validation:Format=int64
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=4294967295
+	ASN uint32 `json:"asn,omitempty"`
+	// VTEPMTU is the MTU for the VTEP interface
+	VTEPMTU uint32 `json:"vtepMTU,omitempty"`
+	// Interfaces is a map of interface names to their configurations
+	Interfaces map[string]GatewayInterface `json:"interfaces,omitempty"`
+	// Neighbors is a list of BGP neighbors
+	Neighbors []GatewayBGPNeighbor `json:"neighbors,omitempty"`
+	// Logs defines the configuration for logging levels
+	Logs GatewayLogs `json:"logs,omitempty"`
+	// Profiling defines the configuration for profiling
+	Profiling GatewayProfiling `json:"profiling,omitempty"`
+	// Workers defines the number of worker threads to use for dataplane
+	Workers uint8 `json:"workers,omitempty"`
+	// Groups is a list of group memberships for the gateway
+	Groups []GatewayGroupMembership `json:"groups,omitempty"`
+	// FlowTableCapacity defines the maximum number of flow entres
+	FlowTableCapacity uint32 `json:"flowTableCapacity,omitempty"`
+	// Driver is the dataplane driver for the interfaces, kernel or dpdk
+	Driver GatewayDriver `json:"driver,omitempty"`
+}
+
+type GatewayDriver string
+
+const (
+	GatewayDriverKernel GatewayDriver = "kernel"
+	GatewayDriverDPDK   GatewayDriver = "dpdk"
+)
+
+var GatewayDrivers = []GatewayDriver{
+	GatewayDriverKernel,
+	GatewayDriverDPDK,
+}
+
+// GatewayInterface defines the configuration for a gateway interface
+type GatewayInterface struct {
+	// PCI address of the interface (required for dpdk driver, optional for kernel driver), e.g. 0000:00:01.0
+	PCI string `json:"pci,omitempty"`
+	// Kernel is the kernel name of the interface to use (kernel driver only, ignored for dpdk driver or if it's the same
+	// as the interface name), e.g. enp2s1
+	Kernel string `json:"kernel,omitempty"`
+	// IPs is the list of IP address to assign to the interface
+	IPs []string `json:"ips,omitempty"`
+	// MTU for the interface
+	MTU uint32 `json:"mtu,omitempty"`
+}
+
+// GatewayBGPNeighbor defines the configuration for a BGP neighbor
+type GatewayBGPNeighbor struct {
+	// Source is the source interface for the BGP neighbor configuration
+	Source string `json:"source,omitempty"`
+	// IP is the IP address of the BGP neighbor
+	IP string `json:"ip,omitempty"`
+	// ASN is the remote ASN of the BGP neighbor
+	// +kubebuilder:validation:Format=int64
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=4294967295
+	ASN uint32 `json:"asn,omitempty"`
+}
+
+// GatewayLogs defines the configuration for logging levels
+type GatewayLogs struct {
+	Default   GatewayLogLevel            `json:"default,omitempty"`
+	Tags      map[string]GatewayLogLevel `json:"tags,omitempty"`
+	RateLimit *GatewayLogRateLimit       `json:"rateLimit,omitempty"`
+}
+
+// GatewayLogRateLimit configures the token-bucket rate limiter applied to logs
+type GatewayLogRateLimit struct {
+	// +kubebuilder:validation:Minimum=0
+	// token bucket capacity (default 50)
+	Burst uint32 `json:"burst,omitempty"`
+	// +kubebuilder:validation:Minimum=0
+	// ReplenishPerSecond is the number of tokens (messages) replenished per second (default 5)
+	ReplenishPerSecond uint32 `json:"replenishPerSecond,omitempty"`
+}
+
+const (
+	DefaultGatewayLogRateLimitBurst              uint32 = 50
+	DefaultGatewayLogRateLimitReplenishPerSecond uint32 = 5
+)
+
+type GatewayLogLevel string
+
+const (
+	GatewayLogLevelOff     GatewayLogLevel = "off"
+	GatewayLogLevelError   GatewayLogLevel = "error"
+	GatewayLogLevelWarning GatewayLogLevel = "warning"
+	GatewayLogLevelInfo    GatewayLogLevel = "info"
+	GatewayLogLevelDebug   GatewayLogLevel = "debug"
+	GatewayLogLevelTrace   GatewayLogLevel = "trace"
+)
+
+var GatewayLogLevels = []GatewayLogLevel{
+	GatewayLogLevelOff,
+	GatewayLogLevelError,
+	GatewayLogLevelWarning,
+	GatewayLogLevelInfo,
+	GatewayLogLevelDebug,
+	GatewayLogLevelTrace,
+}
+
+type GatewayProfiling struct {
+	Enabled bool `json:"enabled,omitempty"`
+}
+
+type GatewayGroupMembership struct {
+	// Name is the name of the group to which the gateway belongs
+	Name string `json:"name,omitempty"`
+	// Priority is the priority of the gateway within the group
+	Priority uint32 `json:"priority,omitempty"`
+}
+
+// GatewayStatus defines the observed state of Gateway.
+type GatewayStatus struct{}
+
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:categories=hedgehog;hh;hhgw,shortName=gw
+// +kubebuilder:printcolumn:name="Topo",type=string,JSONPath=`.metadata.annotations.fabric\.githedgehog\.com/topology`,priority=0
+// +kubebuilder:printcolumn:name="Driver",type=string,JSONPath=`.spec.driver`,priority=0
+// +kubebuilder:printcolumn:name="Workers",type=integer,JSONPath=`.spec.workers`,priority=1
+// +kubebuilder:printcolumn:name="VTEPIP",type=string,JSONPath=`.spec.vtepIP`,priority=0
+// +kubebuilder:printcolumn:name="Groups",type=string,JSONPath=`.spec.groups`,priority=0
+// +kubebuilder:printcolumn:name="ProtoIP",type=string,JSONPath=`.spec.protocolIP`,priority=1
+// +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`,priority=10
+// Gateway is the Schema for the gateways API.
+type Gateway struct {
+	kmetav1.TypeMeta   `json:",inline"`
+	kmetav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   GatewaySpec   `json:"spec,omitempty"`
+	Status GatewayStatus `json:"status,omitempty"`
+}
+
+// +kubebuilder:object:root=true
+
+// GatewayList contains a list of Gateway.
+type GatewayList struct {
+	kmetav1.TypeMeta `json:",inline"`
+	kmetav1.ListMeta `json:"metadata,omitempty"`
+	Items            []Gateway `json:"items"`
+}
+
+func init() {
+	SchemeBuilder.Register(func(s *runtime.Scheme) error {
+		s.AddKnownTypes(GroupVersion, &Gateway{}, &GatewayList{})
+
+		return nil
+	})
+}
+
+func (gw *Gateway) Default() {
+	if gw.Namespace == "" {
+		gw.Namespace = kmetav1.NamespaceDefault
+	}
+
+	if gw.Spec.Logs.Default == "" {
+		gw.Spec.Logs.Default = GatewayLogLevelInfo
+	}
+	if len(gw.Spec.Logs.Tags) == 0 {
+		gw.Spec.Logs.Tags = map[string]GatewayLogLevel{
+			"all": GatewayLogLevelInfo,
+		}
+	}
+	if rl := gw.Spec.Logs.RateLimit; rl != nil {
+		if rl.Burst == 0 {
+			rl.Burst = DefaultGatewayLogRateLimitBurst
+		}
+		if rl.ReplenishPerSecond == 0 {
+			rl.ReplenishPerSecond = DefaultGatewayLogRateLimitReplenishPerSecond
+		}
+	}
+	if gw.Spec.Workers == 0 {
+		gw.Spec.Workers = 4
+	}
+
+	if gw.Spec.Driver == "" {
+		// keeps the driver of the gateways created before it was explicit, it was dpdk with only PCI addresses set
+		pcis, kernels := 0, 0
+		for _, iface := range gw.Spec.Interfaces {
+			if iface.PCI != "" {
+				pcis++
+			}
+			if iface.Kernel != "" {
+				kernels++
+			}
+		}
+
+		gw.Spec.Driver = GatewayDriverKernel
+		if pcis > 0 && kernels == 0 {
+			gw.Spec.Driver = GatewayDriverDPDK
+		}
+	}
+
+	if gw.Spec.Topology.Fabric == "" {
+		gw.Spec.Topology.Fabric = wiringapi.DefaultFabric
+	}
+	if gw.Spec.Topology.Domain == "" {
+		gw.Spec.Topology.Domain = wiringapi.DefaultFabricDomain
+	}
+
+	if gw.Labels == nil {
+		gw.Labels = map[string]string{}
+	}
+
+	wiringapi.CleanupFabricLabels(gw.Labels)
+
+	gw.Labels[wiringapi.ListLabelFabric(gw.Spec.Topology.Fabric)] = ListLabelValue
+	gw.Labels[wiringapi.ListLabelDomain(gw.Spec.Topology.Domain)] = ListLabelValue
+	wiringapi.SetTopologyAnnotation(gw, gw.Spec.Topology.Fabric, gw.Spec.Topology.Domain)
+
+	slices.SortFunc(gw.Spec.Groups, func(a, b GatewayGroupMembership) int {
+		return strings.Compare(a.Name, b.Name)
+	})
+
+	if len(gw.Spec.Groups) == 0 {
+		gw.Spec.Groups = []GatewayGroupMembership{
+			{Name: DefaultGatewayGroup, Priority: 0},
+		}
+	}
+}
+
+var linuxIfaceNameRegex = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_.-]{0,8}[a-zA-Z0-9]$`)
+
+// MaxGatewayNameLength leaves room for the gateway's daemonset names, gw--<name>--dataplane at most (from older releases),
+// which are used as the app.kubernetes.io/name label value of their pods as well, and label values are capped at 63
+// characters
+const MaxGatewayNameLength = 63 - len("gw--") - len("--dataplane")
+
+// DaemonSetName is the name of the daemonset running the gateway's dataplane (incl. FRR) in the gateway namespace, it's
+// the app.kubernetes.io/name label value of its pods as well
+func DaemonSetName(gwName string) string {
+	return "gw--" + gwName
+}
+
+func (gw *Gateway) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) error {
+	if fabricCfg != nil && !fabricCfg.EnableGateway {
+		return fmt.Errorf("gateway support is not enabled: %w", ErrInvalidGW)
+	}
+	if err := meta.ValidateObjectMetadata(gw); err != nil {
+		return fmt.Errorf("%w: %w", ErrInvalidGW, err)
+	}
+	if len(gw.Name) > MaxGatewayNameLength {
+		return fmt.Errorf("name %s is too long, must be <= %d characters: %w", gw.Name, MaxGatewayNameLength, ErrInvalidGW)
+	}
+
+	if err := wiringapi.CheckFabricExists(ctx, kube, gw.Namespace, gw.Spec.Topology.Fabric); err != nil {
+		return fmt.Errorf("%w: %w", ErrInvalidGW, err)
+	}
+	if gw.Spec.Topology.Domain == "" {
+		return fmt.Errorf("topology.domain is required: %w", ErrInvalidGW)
+	}
+
+	if gw.Spec.Workers == 0 || gw.Spec.Workers > 64 {
+		return fmt.Errorf("workers should be between 1 and 64: %w", ErrInvalidGW)
+	}
+
+	if rl := gw.Spec.Logs.RateLimit; rl != nil {
+		if rl.Burst == 0 {
+			return fmt.Errorf("log rate limit burst must be greater than 0: %w", ErrInvalidGW)
+		}
+		if rl.ReplenishPerSecond == 0 {
+			return fmt.Errorf("log rate limit replenishPerSecond must be greater than 0: %w", ErrInvalidGW)
+		}
+	}
+
+	protoIP, err := netip.ParsePrefix(gw.Spec.ProtocolIP)
+	if err != nil {
+		return fmt.Errorf("invalid ProtocolIP %s: %w", gw.Spec.ProtocolIP, errors.Join(err, ErrInvalidGW))
+	}
+	if protoIP.Bits() != 32 {
+		return fmt.Errorf("ProtocolIP %s must be a /32 prefix: %w", gw.Spec.ProtocolIP, ErrInvalidGW)
+	}
+	if !protoIP.Addr().Is4() {
+		return fmt.Errorf("ProtocolIP %s must be an IPv4 address: %w", gw.Spec.ProtocolIP, ErrInvalidGW)
+	}
+
+	vtepIP, err := netip.ParsePrefix(gw.Spec.VTEPIP)
+	if err != nil {
+		return fmt.Errorf("invalid VTEPIP %s: %w", gw.Spec.VTEPIP, errors.Join(err, ErrInvalidGW))
+	}
+	if vtepIP.Bits() != 32 {
+		return fmt.Errorf("VTEPIP %s must be a /32 prefix: %w", gw.Spec.VTEPIP, ErrInvalidGW)
+	}
+	if !vtepIP.Addr().Is4() {
+		return fmt.Errorf("VTEPIP %s must be an IPv4 address: %w", gw.Spec.VTEPIP, ErrInvalidGW)
+	}
+	if vtepIP.Addr().IsMulticast() || vtepIP.Addr().IsLoopback() || vtepIP.Addr().IsUnspecified() {
+		return fmt.Errorf("VTEPIP %s must be a unicast IPv4 address: %w", gw.Spec.VTEPIP, ErrInvalidGW)
+	}
+	localhostNet, err := netip.ParsePrefix("127.0.0.0/8")
+	if err != nil {
+		return fmt.Errorf("internal error: cannot parse localhost network: %w", err)
+	}
+	if localhostNet.Contains(vtepIP.Addr()) {
+		return fmt.Errorf("VTEPIP %s must not be in the localhost range: %w", gw.Spec.VTEPIP, ErrInvalidGW)
+	}
+
+	if gw.Spec.VTEPMAC == "" {
+		return fmt.Errorf("VTEPMAC must be set: %w", ErrInvalidGW)
+	}
+	vtepMAC, err := net.ParseMAC(gw.Spec.VTEPMAC)
+	if err != nil {
+		return fmt.Errorf("invalid VTEPMAC %s: %w", gw.Spec.VTEPMAC, errors.Join(err, ErrInvalidGW))
+	}
+	if vtepMAC.String() == "00:00:00:00:00:00" {
+		return fmt.Errorf("VTEPMAC must not be all zeros: %w", ErrInvalidGW)
+	}
+	if (vtepMAC[0] & 1) == 1 {
+		return fmt.Errorf("VTEPMAC %s must be a unicast MAC address: %w", gw.Spec.VTEPMAC, ErrInvalidGW)
+	}
+
+	if gw.Spec.ASN == 0 {
+		return fmt.Errorf("ASN must be set: %w", ErrInvalidGW)
+	}
+	if fabricCfg != nil && kube != nil {
+		// leaves peer with every gateway of their domain using the domain gateway ASN
+		fabric, err := wiringapi.GetFabricSpec(ctx, kube, gw.Namespace, gw.Spec.Topology.Fabric)
+		if err != nil {
+			return fmt.Errorf("getting fabric: %w", err)
+		}
+		domainName := gw.Spec.Topology.Domain
+		domain, exists := fabric.Domains[domainName]
+		if !exists {
+			return fmt.Errorf("domain %s not found in fabric %s: %w", domainName, gw.Spec.Topology.Fabric, ErrInvalidGW)
+		}
+		if gw.Spec.ASN != domain.GatewayASN {
+			return fmt.Errorf("ASN %d is not the gateway ASN %d of domain %s: %w", gw.Spec.ASN, domain.GatewayASN, domainName, ErrInvalidGW)
+		}
+	}
+
+	if !slices.Contains(GatewayDrivers, gw.Spec.Driver) {
+		return fmt.Errorf("driver %q must be one of %v: %w", gw.Spec.Driver, GatewayDrivers, ErrInvalidGW)
+	}
+
+	if _, _, err := gw.HugePages(0, 0); err != nil {
+		return err
+	}
+
+	if len(gw.Spec.Interfaces) == 0 {
+		return fmt.Errorf("at least one interface must be defined: %w", ErrInvalidGW)
+	}
+	pcis := map[string]string{}
+	for name, iface := range gw.Spec.Interfaces {
+		if len(name) > 15 {
+			return fmt.Errorf("interface name %s is too long: %w", name, ErrInvalidGW)
+		}
+		if !linuxIfaceNameRegex.MatchString(name) {
+			return fmt.Errorf("interface name %s must be a valid linux interface name (2-10 characters): %w", name, ErrInvalidGW)
+		}
+
+		if len(iface.IPs) == 0 {
+			return fmt.Errorf("interface %s must have at least one IP address: %w", name, ErrInvalidGW)
+		}
+		for _, ifaceIP := range iface.IPs {
+			ifaceIP, err := netip.ParsePrefix(ifaceIP)
+			if err != nil {
+				return fmt.Errorf("invalid interface %s IP %s: %w", name, ifaceIP, errors.Join(err, ErrInvalidGW))
+			}
+			if !ifaceIP.Addr().Is4() {
+				return fmt.Errorf("interface %s IP %s must be an IPv4 address: %w", name, ifaceIP, ErrInvalidGW)
+			}
+		}
+
+		// same range as the dataplane accepts, 0 means unset
+		if iface.MTU != 0 && (iface.MTU < 68 || iface.MTU > math.MaxUint16) {
+			return fmt.Errorf("interface %s MTU %d must be between 68 and %d: %w", name, iface.MTU, math.MaxUint16, ErrInvalidGW)
+		}
+
+		// kernel name is allowed but ignored with the dpdk driver
+		if gw.Spec.Driver == GatewayDriverDPDK && iface.PCI == "" {
+			return fmt.Errorf("interface %s must have PCI address with dpdk driver: %w", name, ErrInvalidGW)
+		}
+		if iface.PCI != "" {
+			if err := validatePCI(name, iface.PCI); err != nil {
+				return err
+			}
+
+			pci := strings.ToLower(iface.PCI)
+			if other, exist := pcis[pci]; exist {
+				return fmt.Errorf("interfaces %s and %s have the same PCI address %s: %w", other, name, iface.PCI, ErrInvalidGW)
+			}
+			pcis[pci] = name
+		}
+		if iface.Kernel != "" && !linuxIfaceNameRegex.MatchString(iface.Kernel) {
+			return fmt.Errorf("kernel name %s must be a valid linux interface name (2-10 characters): %w", iface.Kernel, ErrInvalidGW)
+		}
+	}
+
+	if len(gw.Spec.Neighbors) == 0 {
+		return fmt.Errorf("at least one BGP neighbor must be defined: %w", ErrInvalidGW)
+	}
+	for _, neigh := range gw.Spec.Neighbors {
+		if neigh.IP == "" {
+			return fmt.Errorf("BGP neighbor must have an IP address: %w", ErrInvalidGW)
+		}
+		neighIP, err := netip.ParseAddr(neigh.IP)
+		if err != nil {
+			return fmt.Errorf("invalid neighbor IP %s: %w", neigh.IP, errors.Join(err, ErrInvalidGW))
+		}
+		if !neighIP.Is4() {
+			return fmt.Errorf("BGP neighbor IP %s must be an IPv4 address: %w", neigh.IP, ErrInvalidGW)
+		}
+		if neighIP.IsMulticast() || neighIP.IsUnspecified() {
+			return fmt.Errorf("BGP neighbor IP %s must be a unicast IPv4 address: %w", neigh.IP, ErrInvalidGW)
+		}
+
+		if neigh.ASN == 0 {
+			return fmt.Errorf("BGP neighbor %s must have an ASN: %w", neigh.IP, ErrInvalidGW)
+		}
+	}
+
+	if len(gw.Spec.Groups) == 0 {
+		return fmt.Errorf("at least one gateway group must be defined: %w", ErrInvalidGW)
+	}
+	usedGwGroups := map[string]bool{}
+	for _, gwGroup := range gw.Spec.Groups {
+		if usedGwGroups[gwGroup.Name] {
+			return fmt.Errorf("gateway %s group %s is duplicate: %w", gw.Name, gwGroup.Name, ErrInvalidGW)
+		}
+		usedGwGroups[gwGroup.Name] = true
+	}
+
+	// uniqueness checks
+	if kube != nil {
+		protocolIPs := map[netip.Addr]bool{}
+		vtepIPs := map[netip.Addr]bool{}
+		vtepMACs := map[string]bool{}
+		gwGroupMembers := map[string]int{}
+		gateways := &GatewayList{}
+		switches := &wiringapi.SwitchList{}
+		if err := kube.List(ctx, gateways); err != nil {
+			return fmt.Errorf("listing gateways: %w", err)
+		}
+		for _, other := range gateways.Items {
+			if other.Name == gw.Name {
+				continue
+			}
+			if other.Spec.ProtocolIP != "" {
+				if ip, err := netip.ParsePrefix(other.Spec.ProtocolIP); err == nil {
+					protocolIPs[ip.Addr()] = true
+				}
+			}
+			if other.Spec.VTEPIP != "" {
+				if ip, err := netip.ParsePrefix(other.Spec.VTEPIP); err == nil {
+					vtepIPs[ip.Addr()] = true
+				}
+			}
+			if other.Spec.VTEPMAC != "" {
+				if mac, err := net.ParseMAC(other.Spec.VTEPMAC); err == nil {
+					vtepMACs[mac.String()] = true
+				}
+			}
+			for _, group := range other.Spec.Groups {
+				gwGroupMembers[group.Name]++
+			}
+		}
+		// ProtocolIP and VTEPIP ranges are shared with switches too
+		if err := kube.List(ctx, switches); err != nil {
+			return fmt.Errorf("listing switches: %w", err)
+		}
+		for _, sw := range switches.Items {
+			if sw.Spec.ProtocolIP != "" {
+				if ip, err := netip.ParsePrefix(sw.Spec.ProtocolIP); err == nil {
+					protocolIPs[ip.Addr()] = true
+				}
+			}
+			if sw.Spec.VTEPIP != "" {
+				if ip, err := netip.ParsePrefix(sw.Spec.VTEPIP); err == nil {
+					vtepIPs[ip.Addr()] = true
+				}
+			}
+		}
+
+		if _, exist := protocolIPs[protoIP.Addr()]; exist {
+			return fmt.Errorf("gateway %s protocol IP %s is already in use: %w", gw.Name, protoIP, ErrInvalidGW)
+		}
+		if _, exist := vtepIPs[vtepIP.Addr()]; exist {
+			return fmt.Errorf("gateway %s VTEP IP %s is already in use: %w", gw.Name, vtepIP, ErrInvalidGW)
+		}
+		if _, exist := vtepMACs[vtepMAC.String()]; exist {
+			return fmt.Errorf("gateway %s VTEP MAC %s is already in use: %w", gw.Name, vtepMAC, ErrInvalidGW)
+		}
+
+		gwGroupList := &GatewayGroupList{}
+		if err := kube.List(ctx, gwGroupList, kclient.InNamespace(kmetav1.NamespaceDefault)); err != nil {
+			return fmt.Errorf("listing gateway groups: %w", err)
+		}
+		gwGroupTopologies := map[string]GatewayGroupTopology{}
+		for _, gwGroup := range gwGroupList.Items {
+			gwGroupTopologies[gwGroup.Name] = gwGroup.Spec.Topology
+		}
+		gwFabric := gw.Spec.Topology.Fabric
+		gwDomain := gw.Spec.Topology.Domain
+		for _, gwGroup := range gw.Spec.Groups {
+			groupTopology, exists := gwGroupTopologies[gwGroup.Name]
+			if !exists {
+				return fmt.Errorf("gateway group %s not found: %w", gwGroup.Name, ErrInvalidGW)
+			}
+			if groupFabric := groupTopology.Fabric; groupFabric != gwFabric {
+				return fmt.Errorf("gateway is in fabric %s but gateway group %s is in fabric %s: %w", gwFabric, gwGroup.Name, groupFabric, ErrInvalidGW)
+			}
+			if groupDomain := groupTopology.Domain; groupDomain != gwDomain {
+				return fmt.Errorf("gateway is in domain %s but gateway group %s is in domain %s: %w", gwDomain, gwGroup.Name, groupDomain, ErrInvalidGW)
+			}
+			if fabricCfg != nil && len(fabricCfg.GatewayCommunities) > 0 && gwGroupMembers[gwGroup.Name] >= len(fabricCfg.GatewayCommunities) {
+				return fmt.Errorf("gateway group %s already has too many members (%d), max is %d: %w", gwGroup.Name, gwGroupMembers[gwGroup.Name], len(fabricCfg.GatewayCommunities), ErrInvalidGW)
+			}
+		}
+	}
+
+	return nil
+}
+
+// HugePages returns the 1G and 2M hugepages counts set by the gateway annotations, the given defaults (usually from the
+// fabric config) are used for the ones that aren't set
+func (gw *Gateway) HugePages(default1G, default2M int64) (int64, int64, error) {
+	hp1G, err := hugePagesAnnotation(gw, AnnotationHugePages1G, default1G, meta.MaxGatewayHugePages1G)
+	if err != nil {
+		return 0, 0, err
+	}
+	hp2M, err := hugePagesAnnotation(gw, AnnotationHugePages2M, default2M, meta.MaxGatewayHugePages2M)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	return hp1G, hp2M, nil
+}
+
+func hugePagesAnnotation(gw *Gateway, key string, def, upTo int64) (int64, error) {
+	val, ok := gw.Annotations[key]
+	if !ok {
+		return def, nil
+	}
+
+	count, err := strconv.ParseInt(val, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("annotation %s value %q must be an integer: %w", key, val, errors.Join(err, ErrInvalidGW))
+	}
+	if count < 0 || count > upTo {
+		return 0, fmt.Errorf("annotation %s value %d must be between 0 and %d: %w", key, count, upTo, ErrInvalidGW)
+	}
+
+	return count, nil
+}
+
+func validatePCI(name, pci string) error {
+	invalidPCI := fmt.Errorf("interface %s PCI %s must be a valid PCI address (e.g. 0000:02:00.0): %w", name, pci, ErrInvalidGW)
+	if len(pci) != 12 {
+		return invalidPCI
+	}
+
+	parts := strings.Split(pci, ".")
+	if len(parts) != 2 {
+		return invalidPCI
+	}
+
+	if function, err := strconv.ParseInt(parts[1], 16, 64); err != nil {
+		return fmt.Errorf("invalid interface %s PCI address %s function: %w", name, pci, errors.Join(err, ErrInvalidGW))
+	} else if function < 0 || function > 7 {
+		return fmt.Errorf("invalid interface %s PCI address %s function (0-7): %w", name, pci, ErrInvalidGW)
+	}
+
+	parts = strings.Split(parts[0], ":")
+	if len(parts) != 3 {
+		return invalidPCI
+	}
+
+	if domain, err := strconv.ParseInt(parts[0], 16, 64); err != nil {
+		return fmt.Errorf("invalid interface %s PCI address %s domain: %w", name, pci, errors.Join(err, ErrInvalidGW))
+	} else if domain < 0 || domain > 0xFFFF {
+		return fmt.Errorf("invalid interface %s PCI address %s domain (0-FFFF): %w", name, pci, ErrInvalidGW)
+	}
+
+	if bus, err := strconv.ParseInt(parts[1], 16, 64); err != nil {
+		return fmt.Errorf("invalid interface %s PCI address %s bus: %w", name, pci, errors.Join(err, ErrInvalidGW))
+	} else if bus < 0 || bus > 0xFF {
+		return fmt.Errorf("invalid interface %s PCI address %s bus (0-FF): %w", name, pci, ErrInvalidGW)
+	}
+
+	if device, err := strconv.ParseInt(parts[2], 16, 64); err != nil {
+		return fmt.Errorf("invalid interface %s PCI address %s device: %w", name, pci, errors.Join(err, ErrInvalidGW))
+	} else if device < 0 || device > 0x1F {
+		return fmt.Errorf("invalid interface %s PCI address %s device (0-1F): %w", name, pci, ErrInvalidGW)
+	}
+
+	return nil
+}

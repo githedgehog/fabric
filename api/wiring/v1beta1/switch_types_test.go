@@ -1,0 +1,902 @@
+// Copyright 2025 Hedgehog
+// SPDX-License-Identifier: Apache-2.0
+
+package v1beta1_test
+
+import (
+	"fmt"
+	"testing"
+	"time"
+
+	"github.com/samber/lo"
+	"github.com/stretchr/testify/require"
+	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
+	"go.githedgehog.com/fabric/api/meta"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	runtime "k8s.io/apimachinery/pkg/runtime"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+)
+
+func TestHydrationValidation(t *testing.T) {
+	ctx := t.Context()
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, wiringapi.AddToScheme(scheme))
+	require.NoError(t, gwapi.AddToScheme(scheme))
+	leafSwitch := &wiringapi.Switch{
+		Name:      "leaf1",
+		Namespace: "default",
+		Spec: wiringapi.SwitchSpec{
+			Role:       wiringapi.SwitchRoleServerLeaf,
+			Redundancy: wiringapi.SwitchRedundancy{},
+			ASN:        65101,
+			IP:         "172.30.0.8/21",
+			VTEPIP:     "172.30.12.0/32",
+			ProtocolIP: "172.30.8.2/32",
+		},
+	}
+	leafSwitch.Default()
+	getLeaf := func(name string, asn uint32, ip string) *wiringapi.Switch {
+		leaf := leafSwitch.DeepCopy()
+		leaf.Name = name
+		leaf.Spec.ASN = asn
+		leaf.Spec.IP = ip
+
+		return leaf
+	}
+	spineSwitch := &wiringapi.Switch{
+		Name:      "spine1",
+		Namespace: "default",
+		Spec: wiringapi.SwitchSpec{
+			Role:       wiringapi.SwitchRoleSpine,
+			Redundancy: wiringapi.SwitchRedundancy{},
+			ASN:        65100,
+			IP:         "172.30.0.8/21",
+			VTEPIP:     "172.30.12.0/32",
+			ProtocolIP: "172.30.8.2/32",
+		},
+	}
+	spineSwitch.Default()
+	getSpine := func(name string, asn uint32) *wiringapi.Switch {
+		spine := spineSwitch.DeepCopy()
+		spine.Name = name
+		spine.Spec.ASN = asn
+
+		return spine
+	}
+	fabricCfg := &meta.FabricConfig{
+		ControlVIP:          "172.30.0.1/32",
+		ProtocolSubnet:      "172.30.8.0/22",
+		VTEPSubnet:          "172.30.12.0/22",
+		ManagementSubnet:    "172.30.0.0/21",
+		ManagementDHCPStart: "172.30.4.0",
+		ManagementDHCPEnd:   "172.30.7.254",
+		EnableGateway:       true,
+	}
+
+	defaultFabric := &wiringapi.Fabric{
+		Name: wiringapi.DefaultFabric, Namespace: kmetav1.NamespaceDefault,
+		Spec: wiringapi.FabricSpec{
+			LeafASNStart: 65101,
+			LeafASNEnd:   65200,
+			Domains:      map[string]wiringapi.FabricDomainSpec{wiringapi.DefaultFabricDomain: {SpineASN: 65100, GatewayASN: 65201}},
+		},
+	}
+	backendFabric := &wiringapi.Fabric{
+		Name: "backend", Namespace: "default",
+		Spec: wiringapi.FabricSpec{
+			LeafASNStart: 64101,
+			LeafASNEnd:   64199,
+			Domains:      map[string]wiringapi.FabricDomainSpec{wiringapi.DefaultFabricDomain: {SpineASN: 64100, GatewayASN: 64200}},
+		},
+	}
+	inBackend := func(sw *wiringapi.Switch) *wiringapi.Switch {
+		sw.Spec.Topology.Fabric = "backend"
+		sw.Default()
+
+		return sw
+	}
+	// otherLeaf collides with nothing on leafSwitch but the boot serial and MAC
+	otherLeaf := func(serial, mac string) *wiringapi.Switch {
+		return &wiringapi.Switch{
+			Name: "leaf5", Namespace: "default",
+			Spec: wiringapi.SwitchSpec{
+				Role:       wiringapi.SwitchRoleServerLeaf,
+				ASN:        65102,
+				IP:         "172.30.0.5/21",
+				VTEPIP:     "172.30.12.2/32",
+				ProtocolIP: "172.30.8.5/32",
+				Boot:       wiringapi.SwitchBoot{Serial: serial, MAC: mac},
+			},
+		}
+	}
+	withBoot := func(serial, mac string) *wiringapi.Switch {
+		sw := leafSwitch.DeepCopy()
+		sw.Spec.Boot = wiringapi.SwitchBoot{Serial: serial, MAC: mac}
+
+		return sw
+	}
+
+	for _, test := range []struct {
+		name        string
+		objects     []kclient.Object
+		dut         *wiringapi.Switch
+		expectError bool
+	}{
+		{
+			name:        "emptyList",
+			objects:     []kclient.Object{},
+			dut:         leafSwitch,
+			expectError: false,
+		},
+		{
+			name: "VTEPCollision",
+			objects: []kclient.Object{
+				&wiringapi.Switch{
+					Name:      "leaf5",
+					Namespace: "default",
+					Spec: wiringapi.SwitchSpec{
+						Role:       wiringapi.SwitchRoleServerLeaf,
+						Redundancy: wiringapi.SwitchRedundancy{},
+						ASN:        65102,
+						IP:         "172.30.0.5/21",
+						VTEPIP:     "172.30.12.0/32",
+						ProtocolIP: "172.30.8.5/32",
+					},
+				},
+			},
+			dut:         leafSwitch,
+			expectError: true,
+		},
+		{
+			name: "IPCollision",
+			objects: []kclient.Object{
+				&wiringapi.Switch{
+					Name:      "leaf5",
+					Namespace: "default",
+					Spec: wiringapi.SwitchSpec{
+						Role:       wiringapi.SwitchRoleServerLeaf,
+						Redundancy: wiringapi.SwitchRedundancy{},
+						ASN:        65102,
+						IP:         "172.30.0.8/21",
+						VTEPIP:     "172.30.12.2/32",
+						ProtocolIP: "172.30.8.5/32",
+					},
+				},
+			},
+			dut:         leafSwitch,
+			expectError: true,
+		},
+		{
+			name: "ProtocolIPCollision",
+			objects: []kclient.Object{
+				&wiringapi.Switch{
+					Name:      "leaf5",
+					Namespace: "default",
+					Spec: wiringapi.SwitchSpec{
+						Role:       wiringapi.SwitchRoleServerLeaf,
+						Redundancy: wiringapi.SwitchRedundancy{},
+						ASN:        65102,
+						IP:         "172.30.0.5/21",
+						VTEPIP:     "172.30.12.2/32",
+						ProtocolIP: "172.30.8.2/32",
+					},
+				},
+			},
+			dut:         leafSwitch,
+			expectError: true,
+		},
+		{
+			name: "ASNCollision",
+			objects: []kclient.Object{
+				&wiringapi.Switch{
+					Name:      "leaf5",
+					Namespace: "default",
+					Spec: wiringapi.SwitchSpec{
+						Role:       wiringapi.SwitchRoleServerLeaf,
+						Redundancy: wiringapi.SwitchRedundancy{},
+						ASN:        65101,
+						IP:         "172.30.0.5/21",
+						VTEPIP:     "172.30.12.2/32",
+						ProtocolIP: "172.30.8.5/32",
+					},
+				},
+			},
+			dut:         leafSwitch,
+			expectError: true,
+		},
+		{
+			name: "noCollision",
+			objects: []kclient.Object{
+				&wiringapi.Switch{
+					Name:      "leaf5",
+					Namespace: "default",
+					Spec: wiringapi.SwitchSpec{
+						Role:       wiringapi.SwitchRoleServerLeaf,
+						Redundancy: wiringapi.SwitchRedundancy{},
+						ASN:        65102,
+						IP:         "172.30.0.5/21",
+						VTEPIP:     "172.30.12.2/32",
+						ProtocolIP: "172.30.8.5/32",
+					},
+				},
+			},
+			dut:         leafSwitch,
+			expectError: false,
+		},
+		{
+			name:        "leafASNOutOfRange",
+			objects:     []kclient.Object{},
+			dut:         getLeaf("leaf-out-of-range", 65000, "172.30.0.8/21"),
+			expectError: true,
+		},
+		{
+			name:        "leafInOtherFabric",
+			objects:     []kclient.Object{backendFabric},
+			dut:         inBackend(getLeaf("leaf-backend", 64150, "172.30.0.8/21")),
+			expectError: false,
+		},
+		{
+			// within the default fabric's range, which does not apply to the backend fabric
+			name:        "leafInOtherFabricOutOfRange",
+			objects:     []kclient.Object{backendFabric},
+			dut:         inBackend(getLeaf("leaf-backend", 65101, "172.30.0.8/21")),
+			expectError: true,
+		},
+		{
+			name:        "leafFabricNotFound",
+			objects:     []kclient.Object{},
+			dut:         inBackend(getLeaf("leaf-backend", 64150, "172.30.0.8/21")),
+			expectError: true,
+		},
+		{
+			name:        "spineInOtherFabric",
+			objects:     []kclient.Object{backendFabric},
+			dut:         inBackend(getSpine("spine-backend", 64100)),
+			expectError: false,
+		},
+		{
+			name:        "mgmtIPOutOfRange",
+			objects:     []kclient.Object{},
+			dut:         getLeaf("leaf-mgmt-out-of-range", 65101, "172.29.240.33/21"),
+			expectError: true,
+		},
+		{
+			name:        "mgmtIPInDHCPRange",
+			objects:     []kclient.Object{},
+			dut:         getLeaf("leaf-mgmt-in-dhcp-range", 65101, "172.30.5.123/21"),
+			expectError: true,
+		},
+		{
+			name: "spineCorrectASN",
+			objects: []kclient.Object{
+				&wiringapi.Switch{
+					Name:      "spine2",
+					Namespace: "default",
+					Spec: wiringapi.SwitchSpec{
+						Role:       wiringapi.SwitchRoleSpine,
+						Redundancy: wiringapi.SwitchRedundancy{},
+						ASN:        65100,
+						IP:         "172.30.0.9/21",
+						VTEPIP:     "172.30.12.1/32",
+						ProtocolIP: "172.30.8.3/32",
+					},
+				},
+			},
+			dut:         spineSwitch,
+			expectError: false,
+		},
+		{
+			name:        "spineWrongASN",
+			objects:     []kclient.Object{},
+			dut:         getSpine("spine-wrong-asn", 65101),
+			expectError: true,
+		},
+		{
+			name: "VTEPCollisionWithGateway",
+			objects: []kclient.Object{
+				&gwapi.Gateway{
+					Name:      "gw-1",
+					Namespace: "default",
+					Spec: gwapi.GatewaySpec{
+						ProtocolIP: "172.30.8.45/32",
+						VTEPIP:     "172.30.12.0/32",
+					},
+				},
+			},
+			dut:         leafSwitch,
+			expectError: true,
+		},
+		{
+			name: "ProtocolIPCollisionWithGateway",
+			objects: []kclient.Object{
+				&gwapi.Gateway{
+					Name:      "gw-1",
+					Namespace: "default",
+					Spec: gwapi.GatewaySpec{
+						ProtocolIP: "172.30.8.2/32",
+						VTEPIP:     "172.30.12.45/32",
+					},
+				},
+			},
+			dut:         leafSwitch,
+			expectError: true,
+		},
+		{
+			name: "noCollisionWithGateway",
+			objects: []kclient.Object{
+				&gwapi.Gateway{
+					Name:      "gw-1",
+					Namespace: "default",
+					Spec: gwapi.GatewaySpec{
+						ProtocolIP: "172.30.8.45/32",
+						VTEPIP:     "172.30.12.45/32",
+					},
+				},
+			},
+			dut:         leafSwitch,
+			expectError: false,
+		},
+		{
+			name:        "bootSerialCollision",
+			objects:     []kclient.Object{otherLeaf("sn-0001", "")},
+			dut:         withBoot(" SN-0001 ", ""),
+			expectError: true,
+		},
+		{
+			name:        "bootMACCollision",
+			objects:     []kclient.Object{otherLeaf("", "0c:20:12:fe:01:00")},
+			dut:         withBoot("", "0C-20-12-FE-01-00"),
+			expectError: true,
+		},
+		{
+			name:        "bootNoCollision",
+			objects:     []kclient.Object{otherLeaf("sn-0002", "0c:20:12:fe:02:00")},
+			dut:         withBoot("sn-0001", "0c:20:12:fe:01:00"),
+			expectError: false,
+		},
+		{
+			// e.g. VLAB, where switches only have MACs
+			name:        "bootNoSerials",
+			objects:     []kclient.Object{otherLeaf("", "0c:20:12:fe:02:00")},
+			dut:         withBoot("", "0c:20:12:fe:01:00"),
+			expectError: false,
+		},
+		{
+			name:        "bootInvalidMAC",
+			objects:     []kclient.Object{},
+			dut:         withBoot("", "not-a-mac"),
+			expectError: true,
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			// stored objects carry their defaults and the default fabric always exists
+			for _, obj := range test.objects {
+				if defaulter, ok := obj.(interface{ Default() }); ok {
+					defaulter.Default()
+				}
+			}
+			kube := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(withObjs([]kclient.Object{defaultFabric}, test.objects...)...).
+				Build()
+
+			err := test.dut.HydrationValidation(ctx, kube, fabricCfg)
+			if test.expectError {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestNormalizePortLocator(t *testing.T) {
+	now := time.Now().UTC()
+
+	for _, test := range []struct {
+		name        string
+		in          string
+		expectError bool
+		// expectExpire is the expected expire time as an offset from now, ignored if expectExpired is true
+		expectExpire  time.Duration
+		expectExpired bool
+	}{
+		{name: "empty", in: "", expectExpire: wiringapi.PortLocatorDefaultExpire},
+		{name: "duration", in: "10m", expectExpire: 10 * time.Minute},
+		{name: "durationSeconds", in: "90s", expectExpire: 90 * time.Second},
+		{name: "durationZero", in: "0s", expectExpired: true},
+		{name: "durationTooLong", in: "1h", expectExpire: wiringapi.PortLocatorMaxExpire},
+		{name: "durationExactlyMax", in: "20m", expectExpire: wiringapi.PortLocatorMaxExpire},
+		{name: "durationNegative", in: "-1m", expectExpired: true},
+		{name: "time", in: now.Add(7 * time.Minute).Format(time.DateTime), expectExpire: 7 * time.Minute},
+		{name: "timeTooLate", in: now.Add(3 * time.Hour).Format(time.DateTime), expectExpire: wiringapi.PortLocatorMaxExpire},
+		{name: "timeInPast", in: now.Add(-7 * time.Minute).Format(time.DateTime), expectExpired: true},
+		{name: "garbage", in: "whenever", expectError: true},
+		{name: "timeWrongFormat", in: now.Format(time.RFC3339), expectError: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			ok, expire, err := wiringapi.NormalizePortLocator(test.in)
+			if test.expectError {
+				require.Error(t, err)
+
+				return
+			}
+			require.NoError(t, err)
+
+			if test.expectExpired {
+				require.False(t, ok)
+				require.Empty(t, expire)
+
+				return
+			}
+			require.True(t, ok)
+
+			parsed, err := time.ParseInLocation(time.DateTime, expire, time.UTC)
+			require.NoError(t, err)
+			require.WithinDuration(t, now.Add(test.expectExpire), parsed, 5*time.Second)
+		})
+	}
+}
+
+func TestSwitchDefaultPortLocators(t *testing.T) {
+	now := time.Now().UTC()
+	past := now.Add(-1 * time.Hour).Format(time.DateTime)
+
+	for _, test := range []struct {
+		name string
+		in   map[string]string
+		want []string // expected port names, values are checked to be within the allowed range
+	}{
+		{
+			name: "perPort",
+			in:   map[string]string{"E1/1": "10m", "E1/2": ""},
+			want: []string{"E1/1", "E1/2"},
+		},
+		{
+			name: "allPortsSupersedesPerPort",
+			in:   map[string]string{"*": "10m", "E1/1": "10m", "E1/2": ""},
+			want: []string{"*"},
+		},
+		{
+			name: "allPortsExpired",
+			in:   map[string]string{"*": past, "E1/1": "10m"},
+			want: []string{},
+		},
+		{
+			name: "expiredPerPortDropped",
+			in:   map[string]string{"E1/1": past, "E1/2": "10m"},
+			want: []string{"E1/2"},
+		},
+		{
+			name: "unparseableKept",
+			in:   map[string]string{"E1/1": "whenever"},
+			want: []string{"E1/1"},
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			sw := &wiringapi.Switch{
+				Name: "leaf1", Namespace: "default",
+				Spec: wiringapi.SwitchSpec{PortLocators: test.in},
+			}
+			sw.Default()
+
+			require.ElementsMatch(t, test.want, lo.Keys(sw.Spec.PortLocators))
+
+			for name, value := range sw.Spec.PortLocators {
+				if test.in[name] == "whenever" {
+					require.Equal(t, "whenever", value, "unparseable value should be left as-is")
+
+					continue
+				}
+
+				expire, err := time.ParseInLocation(time.DateTime, value, time.UTC)
+				require.NoError(t, err, "defaulted value should be an exact time")
+				require.WithinRange(t, expire, now, now.Add(wiringapi.PortLocatorMaxExpire+5*time.Second))
+			}
+		})
+	}
+}
+
+func TestSwitchDomainsValidation(t *testing.T) {
+	const otherFabric = "plane-a-fabric"
+	swGen := func(f ...func(sw *wiringapi.Switch)) *wiringapi.Switch {
+		sw := withName("leaf-01", &wiringapi.Switch{
+			Spec: wiringapi.SwitchSpec{
+				Role:       wiringapi.SwitchRoleServerLeaf,
+				Profile:    switchprofile.DellS5232FON.Name,
+				ASN:        65101,
+				IP:         "172.30.1.1/21",
+				ProtocolIP: "172.30.11.1/32",
+				VTEPIP:     "172.30.12.1/32",
+			},
+		})
+		for _, fn := range f {
+			fn(sw)
+		}
+		sw.Default()
+
+		return sw
+	}
+	spine := func(asn uint32) func(sw *wiringapi.Switch) {
+		return func(sw *wiringapi.Switch) {
+			sw.Spec.Role = wiringapi.SwitchRoleSpine
+			sw.Spec.ASN = asn
+			sw.Spec.VTEPIP = ""
+		}
+	}
+	// a second leaf, with addresses of its own
+	leaf2 := func(sw *wiringapi.Switch) {
+		sw.Name = "leaf-02"
+		sw.Spec.ASN = 65102
+		sw.Spec.IP = "172.30.1.2/21"
+		sw.Spec.ProtocolIP = "172.30.11.2/32"
+		sw.Spec.VTEPIP = "172.30.12.2/32"
+	}
+	domains := func(domains ...string) func(sw *wiringapi.Switch) {
+		return func(sw *wiringapi.Switch) { sw.Spec.Topology.Domains = domains }
+	}
+	eslag := func(sw *wiringapi.Switch) {
+		sw.Spec.Redundancy = wiringapi.SwitchRedundancy{Group: "eslag-1", Type: meta.RedundancyTypeESLAG}
+	}
+
+	// all odd ports at 8x make 256 ports as they disable the even ones, the 2 bonus ports aren't counted on top of it
+	sn5610FullBreakout := func(sw *wiringapi.Switch) {
+		sw.Spec.Profile = switchprofile.CumulusNvidiaSN5610.Name
+		sw.Spec.PortBreakouts = map[string]string{}
+		for port := 1; port <= 63; port += 2 {
+			sw.Spec.PortBreakouts[fmt.Sprintf("E1/%d", port)] = "8x100G"
+		}
+	}
+
+	// E1/1 at 4x25G disables the speed port E1/2
+	disablesSpeedPortProfile := withName("disables-speed-port", &wiringapi.SwitchProfile{
+		Spec: wiringapi.SwitchProfileSpec{
+			DisplayName:   "Test",
+			SwitchSilicon: "test",
+			Features:      wiringapi.SwitchProfileFeatures{Subinterfaces: true, ACLs: true, L2VNI: true, L3VNI: true},
+			NOSType:       meta.NOSTypeCumulusMlx,
+			Platform:      "test",
+			Ports: map[string]wiringapi.SwitchProfilePort{
+				"M1":   {NOSName: "eth0", Management: true, OniePortName: "eth0"},
+				"E1/1": {NOSName: "swp1", Label: "1", Profile: "QSFP28-100G"},
+				"E1/2": {NOSName: "swp2", Label: "2", Profile: "SFP28-25G"},
+			},
+			PortProfiles: map[string]wiringapi.SwitchProfilePortProfile{
+				"QSFP28-100G": {Breakout: &wiringapi.SwitchProfilePortProfileBreakout{
+					Default: "1x100G",
+					Supported: map[string]wiringapi.SwitchProfilePortProfileBreakoutMode{
+						"1x100G": {Offsets: []string{"0"}},
+						"4x25G":  {Offsets: []string{"0", "1", "2", "3"}, DisablesPortOffsets: []string{"1"}},
+					},
+				}},
+				"SFP28-25G": {Speed: &wiringapi.SwitchProfilePortProfileSpeed{Default: "25G", Supported: []string{"10G", "25G"}}},
+			},
+		},
+	})
+
+	serverConn := func(port string) *wiringapi.Connection {
+		conn := withName("server-01--unbundled--leaf-01", &wiringapi.Connection{Spec: wiringapi.ConnectionSpec{
+			Unbundled: &wiringapi.ConnUnbundled{Link: wiringapi.ServerToSwitchLink{
+				Server: wiringapi.BasePortName{Port: "server-01/enp2s1"},
+				Switch: wiringapi.BasePortName{Port: "leaf-01/" + port},
+			}},
+		}})
+		conn.Default()
+
+		return conn
+	}
+
+	eslagGroup := withName("eslag-1", &wiringapi.SwitchGroup{})
+	eslagGroup.Default()
+
+	base := []kclient.Object{
+		vlanNSGen("default", []meta.VLANRange{{From: 1000, To: 2999}}),
+		eslagGroup,
+		withName("default", &wiringapi.Fabric{Spec: wiringapi.FabricSpec{LeafASNStart: 65101, LeafASNEnd: 65200, Domains: map[string]wiringapi.FabricDomainSpec{
+			"default": {SpineASN: 65100, GatewayASN: 65534},
+			"plane-b": {SpineASN: 65099, GatewayASN: 65535},
+		}}}),
+		withName(otherFabric, &wiringapi.Fabric{Spec: wiringapi.FabricSpec{LeafASNStart: 65101, LeafASNEnd: 65200, Domains: map[string]wiringapi.FabricDomainSpec{
+			"plane-a": {SpineASN: 64100, GatewayASN: 64201},
+		}}}),
+	}
+
+	for _, tt := range []struct {
+		name    string
+		sw      *wiringapi.Switch
+		objects []kclient.Object
+		err     string
+	}{
+		{name: "defaulted", sw: swGen()},
+		{name: "shared leaf", sw: swGen(domains("plane-b", "default"))},
+		{name: "spine", sw: swGen(spine(65099), domains("plane-b"))},
+		{
+			name: "spine with the ASN of another domain", err: "spine leaf-01 ASN 65100 is not the spine ASN 65099 of domain plane-b",
+			sw: swGen(spine(65100), domains("plane-b")),
+		},
+		{
+			name: "spine in two domains", err: "spine must be in exactly one domain",
+			sw: swGen(spine(65099), domains("plane-b", "default")),
+		},
+		{
+			name: "domain not in fabric", err: "domain plane-c not found in fabric default",
+			sw: swGen(domains("plane-c")),
+		},
+		{
+			name: "duplicate domain", err: "domains must be unique",
+			sw: swGen(domains("default", "default")),
+		},
+		{
+			name: "defaulted in a fabric without a default domain", err: "domain default not found in fabric plane-a-fabric",
+			sw: swGen(func(sw *wiringapi.Switch) { sw.Spec.Topology.Fabric = otherFabric }),
+		},
+		{
+			name: "named domain in another fabric",
+			sw: swGen(domains("plane-a"), func(sw *wiringapi.Switch) {
+				sw.Spec.Topology.Fabric = otherFabric
+			}),
+		},
+		{
+			name:    "redundancy group with the same domains",
+			sw:      swGen(eslag, domains("default", "plane-b")),
+			objects: []kclient.Object{swGen(leaf2, eslag, domains("plane-b", "default"))},
+		},
+		{
+			name:    "redundancy group sharing only some domains",
+			sw:      swGen(eslag, domains("default", "plane-b")),
+			objects: []kclient.Object{swGen(leaf2, eslag)},
+			err:     "switches of redundancy group eslag-1 must be in the same domains, switch leaf-02 is in domains [default]",
+		},
+		{
+			name:    "redundancy group sharing no domain",
+			sw:      swGen(eslag, domains("plane-b")),
+			objects: []kclient.Object{swGen(leaf2, eslag)},
+			err:     "switches of redundancy group eslag-1 must be in the same domains, switch leaf-02 is in domains [default]",
+		},
+		{
+			// an empty value no longer means the default domain: such a member is one the refresh of stored
+			// objects on initialization had to leave alone
+			name: "redundancy group member written before domains existed",
+			sw:   swGen(eslag),
+			objects: []kclient.Object{func() *wiringapi.Switch {
+				sw := swGen(leaf2, eslag)
+				sw.Spec.Topology.Domains = nil
+
+				return sw
+			}()},
+			err: "switches of redundancy group eslag-1 must be in the same domains, switch leaf-02 is in domains []",
+		},
+		{
+			name: "invalid boot MAC", err: `invalid boot MAC: parsing MAC "not-a-mac"`,
+			sw: swGen(func(sw *wiringapi.Switch) { sw.Spec.Boot.MAC = "not-a-mac" }),
+		},
+		{
+			name: "boot MAC in another format",
+			sw:   swGen(func(sw *wiringapi.Switch) { sw.Spec.Boot.MAC = "0C-20-12-FE-01-00" }),
+		},
+		{
+			name: "invalid role", err: `invalid role "leaf"`,
+			sw: swGen(func(sw *wiringapi.Switch) { sw.Spec.Role = "leaf" }),
+		},
+		{
+			name: "invalid FEC mode", err: `invalid FEC mode "none" for port E1/1`,
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Spec.PortFECs = map[string]wiringapi.PortFECMode{"E1/1": "none"}
+			}),
+		},
+		{
+			name: "link-flap flap threshold out of range", err: "flap threshold 51 is not in 1-50",
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Spec.LinkFlapErrDisable = &wiringapi.SwitchLinkFlapErrDisable{FlapThreshold: new(uint8(51))}
+			}),
+		},
+		{
+			name: "link-flap sampling interval out of range", err: "sampling interval 0 is not in 1-65535",
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Spec.LinkFlapErrDisable = &wiringapi.SwitchLinkFlapErrDisable{SamplingInterval: new(uint32(0))}
+			}),
+		},
+		{
+			name: "link-flap recovery interval out of range", err: "recovery interval 65535 is above 65534",
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Spec.LinkFlapErrDisable = &wiringapi.SwitchLinkFlapErrDisable{RecoveryInterval: new(uint32(65535))}
+			}),
+		},
+		{
+			name: "link-flap defaulted",
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Spec.LinkFlapErrDisable = &wiringapi.SwitchLinkFlapErrDisable{}
+			}),
+		},
+		{
+			name: "syslog debug annotation",
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Annotations = map[string]string{wiringapi.AnnotationSwitchSyslogDebug: "true"}
+			}),
+		},
+		{
+			name: "invalid syslog debug annotation", err: "annotation fabric.githedgehog.com/syslog-debug must be a boolean",
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Annotations = map[string]string{wiringapi.AnnotationSwitchSyslogDebug: "yes"}
+			}),
+		},
+		{
+			name: "bcm mutate annotation as yaml",
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Annotations = map[string]string{wiringapi.AnnotationSwitchBCMMutate: "rules:\n  - keep@acl/x/65000\n  - add@communityList/y/65000:100\n"}
+			}),
+		},
+		{
+			name: "bcm mutate annotation as json",
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Annotations = map[string]string{wiringapi.AnnotationSwitchBCMMutate: `{"rules": ["override@staticRoute/default/10.0.0.0/8"]}`}
+			}),
+		},
+		{
+			name: "invalid bcm mutate annotation", err: "parsing annotation fabric.alpha.githedgehog.com/bcm-mutate",
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Annotations = map[string]string{wiringapi.AnnotationSwitchBCMMutate: "rules: keep@acl/x"}
+			}),
+		},
+		{
+			name: "bcm mutate annotation with unknown field", err: `unknown field "rule"`,
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Annotations = map[string]string{wiringapi.AnnotationSwitchBCMMutate: `{"rule": ["keep@acl/x"]}`}
+			}),
+		},
+		{
+			name: "bcm mutate annotation with invalid rule", err: "annotation fabric.alpha.githedgehog.com/bcm-mutate: invalid bcm mutate rule",
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Annotations = map[string]string{wiringapi.AnnotationSwitchBCMMutate: `{"rules": ["keep@acl/x/0"]}`}
+			}),
+		},
+		{
+			name: "bcm mutate annotation on non-bcm switch",
+			err:  "annotation fabric.alpha.githedgehog.com/bcm-mutate is only supported for Broadcom SONiC switches",
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Spec.Profile = switchprofile.CumulusVX.Name
+				sw.Annotations = map[string]string{wiringapi.AnnotationSwitchBCMMutate: `{"rules": ["keep@acl/x"]}`}
+			}),
+		},
+		{
+			name: "max ports with disabled and bonus ports",
+			sw:   swGen(sn5610FullBreakout),
+		},
+		{
+			name: "breakout of a disabled port", err: "port E1/2 is disabled by the breakout of port E1/1 and can't have a breakout",
+			sw: swGen(sn5610FullBreakout, func(sw *wiringapi.Switch) { sw.Spec.PortBreakouts["E1/2"] = "1x800G" }),
+		},
+		{
+			name: "speed of a disabled port", err: "port E1/2 is disabled by the breakout of port E1/1 and can't have a speed",
+			objects: []kclient.Object{disablesSpeedPortProfile},
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Spec.Profile = disablesSpeedPortProfile.Name
+				sw.Spec.PortBreakouts = map[string]string{"E1/1": "4x25G"}
+				sw.Spec.PortSpeeds = map[string]string{"E1/2": "10G"}
+			}),
+		},
+		{
+			name:    "speed of a port that isn't disabled",
+			objects: []kclient.Object{disablesSpeedPortProfile},
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Spec.Profile = disablesSpeedPortProfile.Name
+				sw.Spec.PortSpeeds = map[string]string{"E1/2": "10G"}
+			}),
+		},
+		{
+			name: "breakout disabling a connected port", err: "port E1/2 used by connection server-01--unbundled--leaf-01 isn't available",
+			objects: []kclient.Object{serverConn("E1/2")},
+			sw:      swGen(func(sw *wiringapi.Switch) { sw.Spec.Profile = switchprofile.CumulusNvidiaSN5610.Name }, sn5610FullBreakout),
+		},
+		{
+			name: "breakout removing a connected sub-port", err: "port E1/1/2 used by connection server-01--unbundled--leaf-01 isn't available",
+			objects: []kclient.Object{serverConn("E1/1/2")},
+			sw:      swGen(func(sw *wiringapi.Switch) { sw.Spec.Profile = switchprofile.CumulusNvidiaSN5610.Name }),
+		},
+		{
+			name:    "breakout keeping a connected sub-port",
+			objects: []kclient.Object{serverConn("E1/1/2")},
+			sw:      swGen(sn5610FullBreakout),
+		},
+		{
+			name: "FEC on a disabled port", err: "port E1/2 does not support configuring FEC",
+			sw: swGen(sn5610FullBreakout, func(sw *wiringapi.Switch) {
+				sw.Spec.PortFECs = map[string]wiringapi.PortFECMode{"E1/2": wiringapi.PortFECModeRS}
+			}),
+		},
+		{
+			name: "bcm mutate annotation without rules on non-bcm switch",
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Spec.Profile = switchprofile.CumulusVX.Name
+				sw.Annotations = map[string]string{wiringapi.AnnotationSwitchBCMMutate: `{"rules": []}`}
+			}),
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &meta.FabricConfig{
+				ControlVIP:          "172.30.0.1/32",
+				ProtocolSubnet:      "172.30.8.0/21",
+				VTEPSubnet:          "172.30.12.0/22",
+				ManagementSubnet:    "172.30.0.0/21",
+				ManagementDHCPStart: "172.30.4.0",
+				IncludeCumulus:      true,
+				// keeps the test only profiles from the objects
+				AllowExtraSwitchProfiles: true,
+			}
+			scheme := runtime.NewScheme()
+			require.NoError(t, wiringapi.AddToScheme(scheme))
+			kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(withObjs(base, tt.objects...)...).Build()
+			profiles := switchprofile.NewDefaultSwitchProfiles()
+			require.NoError(t, profiles.RegisterAll(t.Context(), kube, cfg))
+			require.NoError(t, profiles.Enforce(t.Context(), kube, cfg, false))
+
+			_, err := tt.sw.Validate(t.Context(), kube, cfg)
+			if tt.err == "" {
+				require.NoError(t, err)
+
+				return
+			}
+			require.ErrorContains(t, err, tt.err)
+		})
+	}
+}
+
+func TestSwitchDefaultDomains(t *testing.T) {
+	sw := &wiringapi.Switch{}
+	sw.Default()
+	require.Equal(t, []string{wiringapi.DefaultFabricDomain}, sw.Spec.Topology.Domains)
+	require.Contains(t, sw.Labels, wiringapi.ListLabelDomain(wiringapi.DefaultFabricDomain))
+
+	sw = &wiringapi.Switch{Spec: wiringapi.SwitchSpec{Topology: wiringapi.SwitchTopology{Domains: []string{"plane-b", "plane-a"}}}}
+	sw.Default()
+	require.Equal(t, []string{"plane-a", "plane-b"}, sw.Spec.Topology.Domains)
+
+	sw = &wiringapi.Switch{Spec: wiringapi.SwitchSpec{Topology: wiringapi.SwitchTopology{Domains: []string{"plane-a", ""}}}}
+	sw.Default()
+	require.NotContains(t, sw.Labels, wiringapi.ListLabelDomain(""))
+}
+
+func TestNormalizeBootMAC(t *testing.T) {
+	for _, test := range []struct {
+		in          string
+		expected    string
+		expectError bool
+	}{
+		{in: "", expected: ""},
+		{in: "  ", expected: ""},
+		{in: "0c:20:12:fe:01:00", expected: "0c:20:12:fe:01:00"},
+		{in: " 0C:20:12:FE:01:00\t", expected: "0c:20:12:fe:01:00"},
+		{in: "0C-20-12-FE-01-00", expected: "0c:20:12:fe:01:00"},
+		{in: "0c20.12fe.0100", expected: "0c:20:12:fe:01:00"},
+		{in: "not-a-mac", expectError: true},
+		{in: "0c:20:12:fe:01", expectError: true},
+		{in: "0c:20:12:fe:01:00:00:01", expectError: true},
+	} {
+		t.Run(test.in, func(t *testing.T) {
+			mac, err := wiringapi.NormalizeBootMAC(test.in)
+			if test.expectError {
+				require.Error(t, err)
+
+				return
+			}
+
+			require.NoError(t, err)
+			require.Equal(t, test.expected, mac)
+		})
+	}
+}
+
+func TestSwitchDefaultBoot(t *testing.T) {
+	sw := &wiringapi.Switch{Spec: wiringapi.SwitchSpec{Boot: wiringapi.SwitchBoot{Serial: " SN-0001 ", MAC: "0C-20-12-FE-01-00"}}}
+	sw.Default()
+	require.Equal(t, wiringapi.SwitchBoot{Serial: "SN-0001", MAC: "0c:20:12:fe:01:00"}, sw.Spec.Boot)
+
+	// kept as is for the validation to reject
+	sw = &wiringapi.Switch{Spec: wiringapi.SwitchSpec{Boot: wiringapi.SwitchBoot{MAC: "not-a-mac"}}}
+	sw.Default()
+	require.Equal(t, "not-a-mac", sw.Spec.Boot.MAC)
+}

@@ -1,0 +1,274 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.23.0
+  name: switches.wiring.githedgehog.com
+spec:
+  group: wiring.githedgehog.com
+  names:
+    categories:
+    - hedgehog
+    - hh
+    - hhfc
+    kind: Switch
+    listKind: SwitchList
+    plural: switches
+    shortNames:
+    - sw
+    singular: switch
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .metadata.annotations.fabric\.githedgehog\.com/topology
+      name: Topo
+      type: string
+    - jsonPath: .spec.profile
+      name: Profile
+      type: string
+    - jsonPath: .spec.role
+      name: Role
+      type: string
+    - jsonPath: .spec.description
+      name: Descr
+      type: string
+    - jsonPath: .spec.boot
+      name: Boot
+      type: string
+    - jsonPath: .spec.vtepIP
+      name: VTEPIP
+      type: string
+    - jsonPath: .spec.redundancy.type
+      name: Redundancy
+      priority: 1
+      type: string
+    - jsonPath: .spec.groups
+      name: Groups
+      priority: 1
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      priority: 10
+      type: date
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: Switch is the Schema for the switches API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Spec is desired state of the switch
+            properties:
+              asn:
+                description: ASN is the ASN of the switch
+                format: int64
+                maximum: 4294967295
+                minimum: 0
+                type: integer
+              boot:
+                description: Boot is the boot/provisioning information of the switch
+                properties:
+                  mac:
+                    description: |-
+                      Identify switch by MAC address of the management port, accepted in any common format and normalized to lower case
+                      colon-separated form, e.g. 0c:20:12:fe:01:00
+                    type: string
+                  serial:
+                    description: Identify switch by serial number, compared case-insensitively
+                    type: string
+                type: object
+              description:
+                description: Description is a description of the switch
+                type: string
+              ecmp:
+                description: ECMP is the ECMP configuration for the switch
+                properties:
+                  roceQPN:
+                    description: RoCEQPN is a flag to enable RoCE QPN hashing
+                    type: boolean
+                type: object
+              enableAllPorts:
+                description: EnableAllPorts is a flag to enable all ports on the switch
+                  regardless of them being used or not
+                type: boolean
+              groups:
+                description: Groups is a list of switch groups the switch belongs
+                  to
+                items:
+                  type: string
+                type: array
+              ip:
+                description: IP is the IP of the switch that could be used to access
+                  it from other switches and control nodes in the Fabric
+                type: string
+              linkFlapErrDisable:
+                description: |-
+                  LinkFlapErrDisable, if set, enables link-flap errdisable protection on all fabric-facing ports.
+                  When a port exceeds FlapThreshold link-down events within SamplingInterval seconds it is
+                  disabled; RecoveryInterval controls how long before it is automatically re-enabled (0 = never).
+                properties:
+                  flapThreshold:
+                    default: 3
+                    description: |-
+                      FlapThreshold is the number of link-down events within SamplingInterval that triggers errdisable.
+                      Defaults to 3.
+                    maximum: 50
+                    minimum: 1
+                    type: integer
+                  recoveryInterval:
+                    default: 300
+                    description: |-
+                      RecoveryInterval is how long in seconds before the port is automatically re-enabled.
+                      0 means the port is never automatically re-enabled and must be recovered manually.
+                      Defaults to 300 s.
+                    format: int32
+                    maximum: 65534
+                    minimum: 0
+                    type: integer
+                  samplingInterval:
+                    default: 30
+                    description: |-
+                      SamplingInterval is the observation window in seconds for counting flap events.
+                      Defaults to 30 s.
+                    format: int32
+                    maximum: 65535
+                    minimum: 1
+                    type: integer
+                type: object
+              portAutoNegs:
+                additionalProperties:
+                  type: boolean
+                description: PortAutoNegs is a map of port auto negotiation, key is
+                  the port name, value is true or false
+                type: object
+              portBreakouts:
+                additionalProperties:
+                  type: string
+                description: 'PortBreakouts is a map of port breakouts, key is the
+                  port name, value is the breakout configuration, such as "1/55: 4x25G"'
+                type: object
+              portFECs:
+                additionalProperties:
+                  description: PortFECMode is the FEC mode for a port
+                  enum:
+                  - rs
+                  - fc
+                  - auto
+                  - disabled
+                  type: string
+                description: |-
+                  PortFECs is a map of port FEC modes, key is the port name, value is the FEC mode (rs/fc/auto/disabled).
+                  Use only as last resort: removing a value from the map does NOT reset the port's FEC to its default,
+                  instead that value persists on the device until a full config reset or a new explicit config
+                type: object
+              portGroupSpeeds:
+                additionalProperties:
+                  type: string
+                description: 'PortGroupSpeeds is a map of port group speeds, key is
+                  the port group name, value is the speed, such as ''"2": 10G'''
+                type: object
+              portLocators:
+                additionalProperties:
+                  type: string
+                description: |-
+                  PortLocators is a map of port locator LED expire times, key is the port name such as E1/1 (incl. breakout
+                  sub-ports such as E1/53/1) or "*" to apply to all ports of the switch, value is a duration relative to now
+                  such as 10m, an exact expire time in the "2026-08-05 18:45:47" (UTC) format or empty for the default 5 minutes.
+                  Values are normalized to the exact expire time and clamped to at most 20 minutes from now, already expired
+                  entries are removed as well as all per-port ones if "*" is present
+                type: object
+              portSpeeds:
+                additionalProperties:
+                  type: string
+                description: PortSpeeds is a map of port speeds, key is the port name,
+                  value is the speed
+                type: object
+              profile:
+                description: Profile is the profile of the switch, name of the SwitchProfile
+                  object to be used for this switch, currently not used by the Fabric
+                type: string
+              protocolIP:
+                description: ProtocolIP is used as BGP Router ID for switch configuration
+                type: string
+              redundancy:
+                description: Redundancy is the switch redundancy configuration including
+                  name of the redundancy group switch belongs to and its type, used
+                  for ESLAG connections
+                properties:
+                  group:
+                    description: Group is the name of the redundancy group switch
+                      belongs to
+                    type: string
+                  type:
+                    description: Type is the type of the redundancy group, although
+                      only eslag is supported now
+                    enum:
+                    - eslag
+                    type: string
+                type: object
+              roce:
+                description: RoCE is a flag to enable RoCEv2 support on the switch
+                  which includes lossless queues and QoS configuration
+                type: boolean
+              role:
+                description: Role is the role of the switch, could be spine, server-leaf
+                  or border-leaf or mixed-leaf
+                enum:
+                - spine
+                - server-leaf
+                - border-leaf
+                - mixed-leaf
+                type: string
+              topology:
+                description: Topology is where the switch sits in the fabric topology
+                properties:
+                  domains:
+                    description: |-
+                      Domains is the list of the Fabric domains (spine layers) this switch belongs to (if not specified, "default" is used).
+                      A spine belongs to exactly one, a leaf to several if it uplinks to the spines of several. Immutable,
+                      and the switches of a redundancy group must be in the same domains
+                    items:
+                      type: string
+                    type: array
+                  fabric:
+                    description: Fabric is the name of the Fabric this switch belongs
+                      to (if not specified, "default" is used)
+                    type: string
+                type: object
+              vlanNamespaces:
+                description: VLANNamespaces is a list of VLAN namespaces the switch
+                  is part of, their VLAN ranges could not overlap
+                items:
+                  type: string
+                type: array
+              vtepIP:
+                description: VTEPIP is the VTEP IP of the switch
+                type: string
+            required:
+            - role
+            type: object
+          status:
+            description: Status is the observed state of the switch
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

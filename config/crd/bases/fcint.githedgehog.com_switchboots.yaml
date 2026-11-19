@@ -1,0 +1,130 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.23.0
+  name: switchboots.fcint.githedgehog.com
+spec:
+  group: fcint.githedgehog.com
+  names:
+    categories:
+    - hhint
+    - hhfcint
+    kind: SwitchBoot
+    listKind: SwitchBootList
+    plural: switchboots
+    shortNames:
+    - swboot
+    singular: switchboot
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.serial
+      name: Serial
+      type: string
+    - jsonPath: .spec.mac
+      name: MAC
+      type: string
+    - jsonPath: .spec.nosType
+      name: NOS
+      type: string
+    - jsonPath: .spec.agentVersion
+      name: Agent
+      type: string
+    - jsonPath: .status.lastAttempt.type
+      name: Attempt
+      type: string
+    - jsonPath: .status.lastAttempt.result
+      name: Result
+      type: string
+    - jsonPath: .status.lastAttempt.time
+      name: Attempted
+      type: date
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      priority: 10
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          SwitchBoot is the Schema for the switchboots API. It's managed by the fabric controller for each switch and holds
+          everything needed to bootstrap it (ONIE NOS install or ZTP): how to identify the switch and what to install on it.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: SwitchBootSpec defines the desired state of SwitchBoot.
+            properties:
+              agentVersion:
+                description: AgentVersion is the version of the agent the switch should
+                  be installed with
+                type: string
+              mac:
+                description: MAC is the normalized MAC address of the switch management
+                  port to identify it during the bootstrap
+                type: string
+              nosType:
+                description: NOSType is the NOS type the switch should be installed
+                  with
+                type: string
+              serial:
+                description: Serial is the normalized serial number of the switch
+                  to identify it during the bootstrap
+                type: string
+            type: object
+          status:
+            description: SwitchBootStatus defines the observed state of SwitchBoot.
+              It's written by the boot server only, as a whole.
+            properties:
+              lastAttempt:
+                description: LastAttempt is the last boot attempt of the switch
+                properties:
+                  remote:
+                    description: Remote is the IP address the request came from
+                    type: string
+                  result:
+                    description: Result is what the switch got
+                    enum:
+                    - served
+                    - agent-not-cached
+                    - error
+                    type: string
+                  time:
+                    description: Time is when the request was received, precise enough
+                      to order the attempts
+                    format: date-time
+                    type: string
+                  type:
+                    description: Type is how the switch attempted to boot
+                    enum:
+                    - onie
+                    - cumulus-ztp
+                    type: string
+                required:
+                - result
+                - time
+                - type
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

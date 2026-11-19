@@ -1,0 +1,1407 @@
+// Copyright 2023 Hedgehog
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package agent
+
+import (
+	"bytes"
+	"context"
+	_ "embed"
+	"fmt"
+	"log/slog"
+	"maps"
+	"os"
+	"os/exec"
+	"os/signal"
+	"path/filepath"
+	"slices"
+	"strings"
+	"sync"
+	"syscall"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/pkg/errors"
+	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
+	fmeta "go.githedgehog.com/fabric/api/meta"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	"go.githedgehog.com/fabric/pkg/agent/alloy"
+	"go.githedgehog.com/fabric/pkg/agent/clsp"
+	"go.githedgehog.com/fabric/pkg/agent/cmls"
+	"go.githedgehog.com/fabric/pkg/agent/dozer"
+	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm"
+	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/clsds5000"
+	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
+	"go.githedgehog.com/fabric/pkg/agent/switchstate"
+	"go.githedgehog.com/fabric/pkg/agent/upgrade"
+	"go.githedgehog.com/fabric/pkg/boot/nosinstall"
+	"go.githedgehog.com/fabric/pkg/util/kubeutil"
+	"go.githedgehog.com/fabric/pkg/util/logutil"
+	"go.githedgehog.com/fabric/pkg/util/uefiutil"
+	"go.githedgehog.com/fabric/pkg/version"
+	kmeta "k8s.io/apimachinery/pkg/api/meta"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ktypes "k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/watch"
+	"k8s.io/client-go/util/retry"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	kyaml "sigs.k8s.io/yaml"
+)
+
+const (
+	ConfigFile               = "agent-config.yaml"
+	KubeconfigFile           = "agent-kubeconfig"
+	RebootRequiredFile       = "reboot-required"
+	InstallIDFile            = "install-id"
+	DefaultHeartbeatInterval = 15 * time.Second
+	DefaultEnforceInterval   = 2 * time.Minute
+	shadowPath               = "/etc/shadow"
+	rsyslogDropDebugPath     = "/etc/rsyslog.d/18-hh-drop-debug.conf"
+)
+
+func intervals(agent *agentapi.Agent) (time.Duration, time.Duration) {
+	heartbeat := max(DefaultHeartbeatInterval, time.Duration(agent.Spec.Config.HeartbeatInterval)*time.Second)
+	enforce := max(DefaultEnforceInterval, time.Duration(agent.Spec.Config.EnforceInterval)*time.Second)
+
+	return heartbeat, enforce
+}
+
+//go:embed motd.txt
+var motd []byte
+
+//go:embed sonic-rsyslog-drop-debug.conf
+var rsyslogDropDebug []byte
+
+type Service struct {
+	Basedir string
+
+	DryRun          bool
+	SkipControlLink bool
+	ApplyOnce       bool
+	SkipActions     bool
+
+	gnmiClient     *gnmi.Client
+	processor      dozer.Processor
+	name           string
+	installID      string
+	runID          string
+	bootID         string
+	rebootRequired bool
+
+	reg *switchstate.Registry
+
+	lastHeartbeat time.Time
+	lastApplied   time.Time
+	lastStatus    *agentapi.AgentStatus
+
+	mutate             agentapi.MutateStatus
+	appliedAnnotations map[string]string
+}
+
+func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, error)) error {
+	svc.reg = switchstate.NewRegistry()
+	svc.reg.AgentMetrics.Version.WithLabelValues(version.Version).Set(1)
+
+	bootID, err := os.ReadFile("/proc/sys/kernel/random/boot_id")
+	if err != nil {
+		return errors.Wrapf(err, "failed to read boot ID")
+	}
+	svc.bootID = strings.TrimSpace(string(bootID))
+
+	if !svc.ApplyOnce && !svc.DryRun {
+		go func() {
+			if err := svc.reg.ServeMetrics(fmeta.AgentExporterPort); err != nil {
+				slog.Error("Failed to serve metrics", "err", err)
+				panic(err)
+			}
+		}()
+	}
+
+	if svc.Basedir == "" {
+		return errors.New("basedir is required")
+	}
+	if version.Version == "" {
+		return errors.New("version is required")
+	}
+
+	slog.Info("Starting", "version", version.Version, "basedir", svc.Basedir)
+
+	agent, err := svc.loadConfigFromFile()
+	if err != nil {
+		return errors.Wrap(err, "failed to load config")
+	}
+
+	slog.Info("Config loaded from file", "name", agent.Name, "gen", agent.Generation, "res", agent.ResourceVersion)
+
+	isBCM := slices.Contains(fmeta.NOSTypesSONiCBCM, agent.Spec.SwitchProfile.NOSType)
+	isClsP := slices.Contains(fmeta.NOSTypesSONiCCLSPlus, agent.Spec.SwitchProfile.NOSType)
+	isCumulus := slices.Contains(fmeta.NOSTypesCumulus, agent.Spec.SwitchProfile.NOSType)
+
+	switch {
+	case isBCM:
+		bcmProcessor := bcm.Processor()
+		svc.processor = bcmProcessor
+	case isClsP:
+		svc.processor = clsp.Processor()
+	case isCumulus:
+		svc.SkipControlLink = true
+		cmlsProcessor := cmls.Processor()
+		svc.processor = cmlsProcessor
+	default:
+		return fmt.Errorf("unsupported nos type: %s", agent.Spec.SwitchProfile.NOSType) //nolint:err113
+	}
+
+	if !svc.DryRun {
+		if !svc.SkipControlLink {
+			if err := svc.processor.EnsureControlLink(ctx, agent); err != nil {
+				return errors.Wrap(err, "failed to ensure control link at startup")
+			}
+			slog.Info("Initial control link configuration applied")
+		}
+
+		if changed, err := clsds5000.Patch(); err != nil {
+			slog.Error("Failed to patch Celestica DS5000 switch pddf-device.json", "err", err)
+
+			return fmt.Errorf("patching clsds5000: %w", err)
+		} else if changed {
+			slog.Info("Successfully patched Celestica DS5000 switch pddf-device.json, power cycle is required to apply the fix")
+
+			if err := os.WriteFile(filepath.Join(svc.Basedir, RebootRequiredFile), []byte(svc.bootID), 0o644); err != nil { //nolint:gosec
+				return fmt.Errorf("writing reboot-required: %w", err)
+			}
+		}
+
+		rebootReqPath := filepath.Join(svc.Basedir, RebootRequiredFile)
+		if data, err := os.ReadFile(rebootReqPath); err != nil {
+			if !os.IsNotExist(err) {
+				return fmt.Errorf("reading reboot-required file: %w", err)
+			}
+		} else {
+			if string(data) == svc.bootID {
+				svc.rebootRequired = true
+			} else {
+				if err := os.Remove(rebootReqPath); err != nil {
+					slog.Warn("Failed to remove reboot-required, ignoring", "path", rebootReqPath)
+				} else {
+					slog.Info("Removed stale reboot-required", "path", rebootReqPath)
+				}
+			}
+		}
+
+		if isBCM || isClsP {
+			if err := prepareSONiC(ctx); err != nil {
+				return fmt.Errorf("preparing SONiC: %w", err)
+			}
+		}
+
+		if slices.Contains(fmeta.VirtualSwitchProfiles, agent.Spec.Switch.Profile) {
+			if err := disableVirtualGRO(ctx); err != nil {
+				return fmt.Errorf("disabling GRO on virtual switch: %w", err)
+			}
+		}
+	}
+
+	// setup gNMI client for Broadcom SONiC
+	if isBCM {
+		retriesStart := time.Now()
+		for time.Since(retriesStart) < 10*time.Minute {
+			svc.gnmiClient, err = getClient()
+			if err != nil {
+				slog.Warn("Failed to create gNMI client", "err", err)
+				time.Sleep(15 * time.Second)
+
+				continue
+			}
+
+			break
+		}
+		if err != nil {
+			return errors.Wrap(err, "failed to create gNMI client after retries")
+		}
+		defer svc.gnmiClient.Close()
+		svc.processor.(*bcm.BroadcomProcessor).SetClient(svc.gnmiClient)
+	}
+
+	if !svc.DryRun && !svc.ApplyOnce && !isCumulus {
+		err = os.WriteFile("/etc/motd", motd, 0o644) //nolint:gosec
+		if err != nil {
+			slog.Warn("Failed to write motd", "err", err)
+		}
+	}
+
+	err = svc.processAgent(ctx, agent, true)
+	if err != nil {
+		return errors.Wrap(err, "failed to process agent config from file")
+	}
+
+	if svc.DryRun {
+		// make sure we can actually collect switch state
+		if err := svc.processor.UpdateSwitchState(ctx, agent, svc.reg); err != nil {
+			return errors.Wrapf(err, "failed to update switch state")
+		}
+
+		slog.Info("Dry run, exiting")
+
+		return nil
+	}
+
+	if svc.ApplyOnce {
+		slog.Info("Apply once, exiting")
+
+		return nil
+	}
+
+	if err := svc.setInstallAndRunIDs(); err != nil {
+		return errors.Wrap(err, "failed to set install and run IDs")
+	}
+
+	kubeconfigPath := filepath.Join(svc.Basedir, KubeconfigFile)
+	kube, err := kubeutil.NewClient(ctx, kubeconfigPath, agentapi.AddToScheme)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create K8s client")
+	}
+
+	currentGen := agent.Generation
+	currentUID := agent.UID
+
+	err = kube.Get(ctx, kclient.ObjectKey{Name: agent.Name, Namespace: kmetav1.NamespaceDefault}, agent)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get initial agent config from k8s")
+	}
+
+	// reset observability state
+	now := kmetav1.Time{Time: time.Now()}
+	agent.Status.LastAttemptTime = now
+	agent.Status.LastAttemptGen = currentGen
+	agent.Status.LastAppliedTime = now
+	svc.lastApplied = agent.Status.LastAppliedTime.Time
+	agent.Status.LastAppliedGen = currentGen
+	agent.Status.InstallID = svc.installID
+	agent.Status.RunID = svc.runID
+	agent.Status.BootID = svc.bootID
+	agent.Status.Version = version.Version
+	agent.Status.StatusUpdates = agent.Spec.StatusUpdates
+	if agent.Status.Conditions == nil {
+		agent.Status.Conditions = []kmetav1.Condition{}
+	}
+
+	// config from the file is already applied, replace the condition left by the previous run or install,
+	// a newer generation, a recreated agent, changed annotations or a RoCE mismatch are handled by the first watch event
+	inSync := agent.UID == currentUID && agent.Generation == currentGen && maps.Equal(knownAnnotations(agent), svc.appliedAnnotations)
+	if inSync && isBCM {
+		// RoCE is only switched when processing the agent from K8s, after the config is saved to the file,
+		// so it isn't applied after an install and may have failed or not rebooted the switch
+		roce, err := svc.processor.GetRoCE(ctx)
+		if err != nil {
+			return fmt.Errorf("getting RoCE state: %w", err)
+		}
+		if roce != agent.Spec.Switch.RoCE {
+			slog.Warn("RoCE mode not applied, processing the config again", "actual", roce, "desired", agent.Spec.Switch.RoCE)
+			inSync = false
+			currentGen = 0 // no agent has generation 0, so the first watch event processes it
+		}
+	}
+	if inSync {
+		kmeta.SetStatusCondition(&agent.Status.Conditions, kmetav1.Condition{
+			Type:               "Applied",
+			Status:             kmetav1.ConditionTrue,
+			Reason:             "ApplySucceeded",
+			ObservedGeneration: currentGen,
+			LastTransitionTime: now,
+			Message:            fmt.Sprintf("Config applied, gen=%d", currentGen),
+		})
+	} else {
+		kmeta.SetStatusCondition(&agent.Status.Conditions, kmetav1.Condition{
+			Type:               "Applied",
+			Status:             kmetav1.ConditionFalse,
+			Reason:             "ApplyPending",
+			ObservedGeneration: agent.Generation,
+			LastTransitionTime: now,
+			Message:            fmt.Sprintf("Config will be applied, gen=%d", agent.Generation),
+		})
+	}
+
+	if err := svc.processor.UpdateSwitchState(ctx, agent, svc.reg); err != nil {
+		return errors.Wrapf(err, "failed to update switch state")
+	}
+	if st := svc.reg.GetSwitchState(); st != nil {
+		agent.Status.State = *st
+	}
+
+	agent.Status.LastHeartbeat = kmetav1.Time{Time: time.Now()}
+	svc.lastHeartbeat = agent.Status.LastHeartbeat.Time
+
+	if err := svc.updateStatus(ctx, kube, agent); err != nil {
+		return errors.Wrapf(err, "failed to reset agent observability status") // TODO gracefully handle case if resourceVersion changed
+	}
+
+	slog.Debug("Starting watch for config changes in K8s")
+
+	watcher, err := kube.Watch(ctx, &agentapi.AgentList{}, kclient.InNamespace(kmetav1.NamespaceDefault), kclient.MatchingFields{
+		"metadata.name": svc.name,
+	})
+	if err != nil {
+		return errors.Wrapf(err, "failed to watch agent config in k8s")
+	}
+	defer watcher.Stop()
+
+	heartbeatInterval, enforceInterval := intervals(agent)
+	slog.Info("Intervals", "heartbeat", heartbeatInterval, "enforce", enforceInterval)
+
+	enforceTicker := time.NewTicker(enforceInterval)
+	defer enforceTicker.Stop()
+
+	heartbeatTicker := time.NewTicker(heartbeatInterval)
+	defer heartbeatTicker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			slog.Info("Context done, exiting")
+
+			return nil
+		case <-enforceTicker.C:
+			if time.Since(svc.lastApplied) < enforceInterval/2 {
+				slog.Debug("Skipping config enforcement, already applied recently", "name", agent.Name)
+
+				continue
+			}
+
+			if err := svc.processAgent(ctx, agent, false); err != nil {
+				return errors.Wrap(err, "failed to process agent config (enforce)")
+			}
+
+			svc.lastApplied = time.Now()
+		case <-heartbeatTicker.C:
+			if time.Since(svc.lastHeartbeat) < heartbeatInterval/2 {
+				slog.Debug("Skipping heartbeat, already sent recently", "name", agent.Name)
+
+				continue
+			}
+
+			slog.Debug("Sending heartbeat", "name", agent.Name)
+			hbStart := time.Now()
+
+			if svc.lastStatus != nil {
+				agent.Status = *svc.lastStatus
+			}
+
+			if err := svc.processor.UpdateSwitchState(ctx, agent, svc.reg); err != nil {
+				return errors.Wrapf(err, "failed to update switch state")
+			}
+			if st := svc.reg.GetSwitchState(); st != nil {
+				agent.Status.State = *st
+			}
+
+			agent.Status.LastHeartbeat = kmetav1.Time{Time: time.Now()}
+			svc.lastHeartbeat = agent.Status.LastHeartbeat.Time
+
+			if err := svc.updateStatus(ctx, kube, agent); err != nil {
+				return errors.Wrapf(err, "failed to update agent heartbeat") // TODO gracefully handle case if resourceVersion changed
+			}
+
+			svc.reg.AgentMetrics.HeartbeatDuration.Observe(time.Since(hbStart).Seconds())
+			svc.reg.AgentMetrics.HeartbeatsTotal.Inc()
+		case event, ok := <-watcher.ResultChan():
+			// TODO check why channel gets closed
+			if !ok {
+				slog.Warn("K8s watch channel closed, restarting agent")
+
+				return errors.New("k8s watch channel closed")
+			}
+
+			// skip queued events
+			startSkip := time.Now()
+			skipped := 0
+		skip:
+			for {
+				if time.Since(startSkip) > 5*time.Second {
+					slog.Debug("Skipping events for too long, processing")
+
+					break skip
+				}
+
+				select {
+				case <-ctx.Done():
+					slog.Info("Context done while skipping events, exiting")
+
+					return nil
+				case newEvent, ok := <-watcher.ResultChan():
+					if !ok {
+						slog.Warn("K8s watch channel closed while skipping events, restarting agent")
+
+						return errors.New("k8s watch channel closed while skipping events")
+					}
+					event = newEvent
+					skipped++
+				case <-time.After(1 * time.Second):
+					break skip
+				}
+			}
+			if skipped > 0 {
+				slog.Debug("Skipped queued events", "count", skipped)
+			}
+
+			// TODO why are we getting nil events?
+			if event.Object == nil {
+				slog.Warn("Received nil object from K8s, restarting agent")
+
+				return errors.New("k8s watch event object is nil")
+			}
+
+			// TODO handle bookmarks and delete events
+			if event.Type == watch.Deleted || event.Type == watch.Bookmark {
+				slog.Info("Received watch event, ignoring", "event", event.Type)
+
+				continue
+			}
+			if event.Type == watch.Error {
+				slog.Error("Received watch error", "event", event.Type, "object", event.Object)
+				if err, ok := event.Object.(error); ok {
+					return errors.Wrapf(err, "watch error")
+				}
+
+				return errors.New("watch error")
+			}
+
+			agent = event.Object.(*agentapi.Agent)
+			if svc.lastStatus != nil {
+				agent.Status = *svc.lastStatus
+			}
+
+			err = svc.processAgentFromKube(ctx, kube, agent, &currentGen, &currentUID)
+			if err != nil {
+				return errors.Wrap(err, "failed to process agent config from k8s")
+			}
+
+			newHeartbeat, newEnforce := intervals(agent)
+			if newHeartbeat != heartbeatInterval {
+				heartbeatInterval = newHeartbeat
+				heartbeatTicker.Reset(heartbeatInterval)
+				slog.Info("Heartbeat interval changed", "interval", heartbeatInterval)
+			}
+			if newEnforce != enforceInterval {
+				enforceInterval = newEnforce
+				enforceTicker.Reset(enforceInterval)
+				slog.Info("Enforce interval changed", "interval", enforceInterval)
+			}
+		}
+	}
+}
+
+func (svc *Service) setInstallAndRunIDs() error {
+	svc.runID = uuid.New().String()
+
+	installIDFile := filepath.Join(svc.Basedir, "install-id")
+	installID, err := os.ReadFile(installIDFile)
+	if os.IsNotExist(err) { //nolint:gocritic
+		newInstallID := uuid.New().String()
+		err = os.WriteFile(installIDFile, []byte(newInstallID), 0o644) //nolint:gosec
+		if err != nil {
+			return errors.Wrapf(err, "failed to write install ID file %q", installIDFile)
+		}
+		svc.installID = newInstallID
+	} else if err != nil {
+		return errors.Wrapf(err, "failed to read install ID file %q", installIDFile)
+	} else {
+		svc.installID = strings.TrimSpace(string(installID))
+	}
+
+	slog.Info("IDs", "install", svc.installID, "boot", svc.bootID, "run", svc.runID)
+
+	return nil
+}
+
+func enforceState(ctx context.Context, processor dozer.Processor, agent *agentapi.Agent, basedir string, dryRun bool) (agentapi.MutateStatus, error) {
+	isBCM := slices.Contains(fmeta.NOSTypesSONiCBCM, agent.Spec.SwitchProfile.NOSType)
+	isClsP := slices.Contains(fmeta.NOSTypesSONiCCLSPlus, agent.Spec.SwitchProfile.NOSType)
+	isCumulus := slices.Contains(fmeta.NOSTypesCumulus, agent.Spec.SwitchProfile.NOSType)
+
+	mutateRules, err := wiringapi.SwitchBCMMutateRules(agent.Annotations)
+	if err != nil {
+		return agentapi.MutateStatus{}, fmt.Errorf("checking bcm mutate rules: %w", err)
+	}
+	if len(mutateRules) > 0 && !isBCM {
+		slog.Warn("BCM mutate rules are only supported for Broadcom SONiC, ignoring", "annotation", wiringapi.AnnotationSwitchBCMMutate)
+	}
+
+	switch {
+	case isBCM:
+		return enforceBroadcomState(ctx, processor, agent, basedir, dryRun, mutateRules)
+	case isClsP:
+		return agentapi.MutateStatus{}, enforceCelesticaState(ctx, processor, agent, basedir, dryRun)
+	case isCumulus:
+		return agentapi.MutateStatus{}, cmls.Enforce(ctx, processor, agent, basedir, dryRun) //nolint:wrapcheck
+	}
+
+	return agentapi.MutateStatus{}, fmt.Errorf("NOS type %s not supported", agent.Spec.SwitchProfile.NOSType) //nolint:err113
+}
+
+func enforceBroadcomState(ctx context.Context, processor dozer.Processor, agent *agentapi.Agent, basedir string, dryRun bool, mutateRules []wiringapi.BCMMutateRule) (agentapi.MutateStatus, error) {
+	mutate := agentapi.MutateStatus{}
+
+	desired, err := processor.PlanDesiredState(ctx, agent)
+	if err != nil {
+		return mutate, fmt.Errorf("planning spec: %w", err)
+	}
+	slog.Debug("Desired state generated")
+
+	startActual := time.Now()
+	actual, err := processor.LoadActualState(ctx, agent)
+	if err != nil {
+		return mutate, fmt.Errorf("loading actual state: %w", err)
+	}
+	slog.Debug("Actual state loaded", "took", time.Since(startActual))
+
+	// before anything compares actual with desired, so the content taken from the switch is the same on both sides
+	if len(mutateRules) > 0 {
+		applied, warnings := dozer.ApplyMutateRules(actual, desired, mutateRules)
+		for _, warning := range warnings {
+			slog.Warn("Skipped bcm mutate rule: " + warning)
+		}
+		mutate.Enabled = true
+		mutate.Applied = applied
+		slog.Debug("Applied bcm mutate rules", "rules", applied)
+	}
+
+	actions, err := processor.CalculateActions(ctx, actual, desired)
+	if err != nil {
+		return mutate, fmt.Errorf("calculating actions: %w", err)
+	}
+	slog.Debug("Actions calculated", "count", len(actions))
+
+	actual.CleanupSensetive()
+	desired.CleanupSensetive()
+
+	desiredData, err := desired.MarshalYAML()
+	if err != nil {
+		return mutate, fmt.Errorf("marshaling desired spec: %w", err)
+	}
+
+	err = os.WriteFile(filepath.Join(basedir, "last-desired.yaml"), desiredData, 0o644) //nolint:gosec
+	if err != nil {
+		return mutate, fmt.Errorf("writing desired spec: %w", err)
+	}
+
+	actualData, err := actual.MarshalYAML()
+	if err != nil {
+		return mutate, fmt.Errorf("marshaling actual spec: %w", err)
+	}
+
+	err = os.WriteFile(filepath.Join(basedir, "last-actual.yaml"), actualData, 0o644) //nolint:gosec
+	if err != nil {
+		return mutate, fmt.Errorf("writing actual spec: %w", err)
+	}
+
+	diff, err := dozer.SpecTextDiff(actualData, desiredData)
+	if err != nil {
+		return mutate, fmt.Errorf("generating diff: %w", err)
+	}
+
+	if slog.Default().Enabled(ctx, slog.LevelDebug) {
+		// TODO skip if diff is empty
+		for _, line := range strings.SplitAfter(string(diff), "\n") {
+			line = strings.TrimRight(line, "\n")
+			if strings.ReplaceAll(line, " ", "") == "" {
+				continue
+			}
+			slog.Debug("Actual <> Desired", "diff", line)
+		}
+	}
+
+	if dryRun {
+		slog.Warn("Dry run, exiting")
+
+		return mutate, nil
+	}
+
+	slog.Info("Applying actions", "count", len(actions))
+
+	warnings, err := processor.ApplyActions(ctx, actions)
+	if err != nil {
+		return mutate, fmt.Errorf("applying actions: %w", err)
+	}
+	for _, warning := range warnings {
+		slog.Warn("Action warning: " + warning)
+	}
+
+	return mutate, nil
+}
+
+func enforceCelesticaState(ctx context.Context, _ /* processor */ dozer.Processor, agent *agentapi.Agent, _ /* basedir */ string, dryRun bool) error {
+	if dryRun {
+		slog.Warn("Dry run, exiting")
+
+		return nil
+	}
+
+	slog.Info("Celestica SONiC+ configuration not supported, just enforcing admin password and turning off ZTP")
+
+	// temp hack to patch shadow file for admin user on Celestica SONiC+ to avoid prompt for changing password
+	for _, user := range agent.Spec.Users {
+		name := user.Name
+
+		if name != "admin" {
+			continue
+		}
+
+		if err := patchShadowFile(name, user.Password); err != nil {
+			return fmt.Errorf("patching shadow file: %w", err)
+		}
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "sudo", "ztp", "disable", "--yes")
+	cmd.Stdout = logutil.NewSink(ctx, slog.Debug, "ztp-disable: ")
+	cmd.Stderr = logutil.NewSink(ctx, slog.Debug, "ztp-disable: ")
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("ztp-disable: %w", err)
+	}
+
+	return nil
+}
+
+func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, readyCheck bool) error {
+	start := time.Now()
+	slog.Info("Processing agent config", "name", agent.Name, "gen", agent.Generation, "res", agent.ResourceVersion)
+
+	if !svc.SkipControlLink {
+		if err := svc.processor.EnsureControlLink(ctx, agent); err != nil {
+			return errors.Wrap(err, "failed to ensure control link")
+		}
+		slog.Info("Control link configuration applied")
+	}
+
+	if readyCheck {
+		if err := svc.processor.WaitReady(ctx); err != nil {
+			return errors.Wrap(err, "failed to wait for system status ready")
+		}
+	}
+
+	// Workaround to make sure we have an actual RoCE state in the agent status before planning the desired state
+	if slices.Contains(fmeta.NOSTypesSONiCBCM, agent.Spec.SwitchProfile.NOSType) {
+		roce, err := svc.processor.GetRoCE(ctx)
+		if err != nil {
+			return errors.Wrap(err, "failed to get RoCE state")
+		}
+		agent.Status.State.RoCE = roce
+	}
+
+	mutate, err := enforceState(ctx, svc.processor, agent, svc.Basedir, svc.DryRun)
+	if err != nil {
+		return err
+	}
+	svc.mutate = mutate
+
+	slog.Info("Config applied", "name", agent.Name, "gen", agent.Generation, "res", agent.ResourceVersion, "took", time.Since(start))
+
+	svc.reg.AgentMetrics.Generation.Set(float64(agent.Generation))
+	svc.reg.AgentMetrics.ConfigApplyDuration.Observe(time.Since(start).Seconds())
+
+	if !svc.DryRun {
+		if err := alloy.EnsureInstalled(ctx, agent, svc.Basedir); err != nil {
+			return fmt.Errorf("ensuring alloy installed: %w", err)
+		}
+
+		if slices.Contains(fmeta.NOSTypesSONiCBCM, agent.Spec.SwitchProfile.NOSType) {
+			if err := ensureSyslogDropDebug(ctx, agent); err != nil {
+				return fmt.Errorf("ensuring rsyslog drop debug: %w", err)
+			}
+		}
+	}
+
+	return nil
+}
+
+func (svc *Service) processAgentFromKube(ctx context.Context, kube kclient.Client, agent *agentapi.Agent, currentGen *int64, currentUID *ktypes.UID) error {
+	// changing annotations doesn't bump the generation, but the ones the agent uses are a config change as well
+	annotations := knownAnnotations(agent)
+	annotationsChanged := !maps.Equal(annotations, svc.appliedAnnotations)
+	if agent.UID == *currentUID && agent.Generation == *currentGen && !annotationsChanged {
+		return nil
+	}
+
+	start := time.Now()
+
+	logArgs := []any{"current", *currentGen, "new", agent.Generation}
+	if agent.UID != *currentUID {
+		logArgs = append(logArgs, "currentUID", *currentUID, "newUID", agent.UID)
+	}
+	if annotationsChanged {
+		logArgs = append(logArgs, "annotationsChanged", true)
+	}
+	slog.Info("Agent config changed", logArgs...)
+
+	if agent.Status.Conditions == nil {
+		agent.Status.Conditions = []kmetav1.Condition{}
+	}
+
+	// TODO better handle status condtions
+	kmeta.SetStatusCondition(&agent.Status.Conditions, kmetav1.Condition{
+		Type:               "Applied",
+		Status:             kmetav1.ConditionFalse,
+		Reason:             "ApplyPending",
+		ObservedGeneration: agent.Generation,
+		LastTransitionTime: kmetav1.Time{Time: time.Now()},
+		Message:            fmt.Sprintf("Config will be applied, gen=%d", agent.Generation),
+	})
+
+	// demonstrating that we're going to try to apply config
+	agent.Status.LastAttemptGen = agent.Generation
+	agent.Status.LastAttemptTime = kmetav1.Time{Time: time.Now()}
+
+	if err := svc.updateStatus(ctx, kube, agent); err != nil {
+		return errors.Wrapf(err, "error updating agent last attempt") // TODO gracefully handle case if resourceVersion changed
+	}
+
+	if err := svc.processActions(ctx, agent); err != nil {
+		return errors.Wrap(err, "failed to process agent actions from k8s")
+	}
+
+	if err := svc.processAgent(ctx, agent, false); err != nil {
+		return errors.Wrap(err, "failed to process agent config loaded from k8s")
+	}
+
+	if err := svc.saveConfigToFile(agent); err != nil {
+		return errors.Wrap(err, "failed to save agent config to file")
+	}
+
+	// workaround for Broadcom SONiC RoCE handling
+	if slices.Contains(fmeta.NOSTypesSONiCBCM, agent.Spec.SwitchProfile.NOSType) {
+		roce, err := svc.processor.GetRoCE(ctx)
+		if err != nil {
+			return errors.Wrap(err, "failed to get RoCE state")
+		}
+		if roce != agent.Spec.Switch.RoCE {
+			slog.Info("Requesting RoCE mode change, switch will reboot automatically...", "roce", agent.Spec.Switch.RoCE)
+
+			for range 5 {
+				if err := svc.processor.SetRoCE(ctx, agent.Spec.Switch.RoCE); err != nil {
+					slog.Warn("Failed to set RoCE state, retrying", "error", err, "desired", agent.Spec.Switch.RoCE)
+					time.Sleep(5 * time.Second)
+
+					continue
+				}
+
+				break // retries
+			}
+
+			slog.Info("Waiting for switch to reboot after RoCE change, it may take a while...")
+			time.Sleep(5 * time.Minute)
+
+			return fmt.Errorf("switch didn't reboot after switching roce to %t", agent.Spec.Switch.RoCE) //nolint:err113
+		}
+	}
+
+	// report that we've been able to apply config
+	agent.Status.LastAppliedGen = agent.Generation
+	agent.Status.LastAppliedTime = kmetav1.Time{Time: time.Now()}
+	svc.lastApplied = agent.Status.LastAppliedTime.Time
+
+	// TODO not the best way to use conditions, but it's the easiest way to then wait for agents
+	kmeta.SetStatusCondition(&agent.Status.Conditions, kmetav1.Condition{
+		Type:               "Applied",
+		Status:             kmetav1.ConditionTrue,
+		Reason:             "ApplySucceeded",
+		ObservedGeneration: agent.Generation,
+		LastTransitionTime: kmetav1.Time{Time: time.Now()},
+		Message:            fmt.Sprintf("Config applied, gen=%d", agent.Generation),
+	})
+
+	svc.reg.AgentMetrics.KubeApplyDuration.Observe(time.Since(start).Seconds())
+
+	if err := svc.processor.UpdateSwitchState(ctx, agent, svc.reg); err != nil {
+		return errors.Wrapf(err, "failed to update switch state")
+	}
+	if st := svc.reg.GetSwitchState(); st != nil {
+		agent.Status.State = *st
+	}
+
+	agent.Status.LastHeartbeat = kmetav1.Time{Time: time.Now()}
+	svc.lastHeartbeat = agent.Status.LastHeartbeat.Time
+
+	if err := svc.updateStatus(ctx, kube, agent); err != nil {
+		return errors.Wrapf(err, "failed to update status") // TODO gracefully handle case if resourceVersion changed
+	}
+
+	*currentGen = agent.Generation
+	*currentUID = agent.UID
+	svc.appliedAnnotations = annotations
+
+	return nil
+}
+
+func (svc *Service) updateStatus(ctx context.Context, kube kclient.Client, agOrig *agentapi.Agent) error {
+	ag := agOrig.DeepCopy()
+	fetch := false
+
+	if err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		if fetch {
+			slog.Debug("Fetching latest agent to update status")
+			if err := kube.Get(ctx, kclient.ObjectKeyFromObject(ag), ag); err != nil {
+				return fmt.Errorf("fetching latest agent: %w", err)
+			}
+		}
+		fetch = true
+
+		ag.Status = agOrig.Status
+		ag.Status.RebootRequired = svc.rebootRequired
+		ag.Status.Mutate = svc.mutate
+		ag.Status.Notes = ag.Status.BuildNotes()
+
+		if err := kube.Status().Update(ctx, ag); err != nil {
+			return fmt.Errorf("updating agent status: %w", err)
+		}
+
+		svc.lastStatus = &ag.Status
+
+		return nil
+	}); err != nil {
+		return fmt.Errorf("retrying: %w", err)
+	}
+
+	return nil
+}
+
+func (svc *Service) processActions(ctx context.Context, agent *agentapi.Agent) error {
+	if agent.Spec.PowerReset != "" && agent.Spec.PowerReset == svc.bootID {
+		slog.Info("Power reset requested, executing in 5 seconds", "bootID", agent.Spec.PowerReset)
+		time.Sleep(5 * time.Second)
+		if !svc.SkipActions {
+			slog.Info("Power resetting")
+
+			file, err := os.OpenFile("/proc/sysrq-trigger", os.O_WRONLY, 0o200)
+			if err != nil {
+				return errors.Wrapf(err, "error opening /proc/sysrq-trigger")
+			}
+			defer file.Close()
+
+			if _, err := file.WriteString("b"); err != nil {
+				if !os.IsExist(err) {
+					return errors.Wrapf(err, "error writing to /proc/sysrq-trigger")
+				}
+			}
+		}
+	}
+
+	reboot := false
+	if agent.Spec.Reinstall != "" && agent.Spec.Reinstall == svc.installID {
+		slog.Info("Reinstall requested", "installID", agent.Spec.Reinstall)
+		if !svc.SkipActions {
+			slog.Info("Making ONIE next boot entry")
+
+			if err := uefiutil.MakeONIEDefaultBootEntryAndCleanup(); err != nil {
+				return fmt.Errorf("failed to make ONIE default boot entry: %w", err)
+			}
+
+			slog.Info("Make ONIE grub NOS Install entry default")
+
+			if err := svc.setONIENOSInstall(ctx); err != nil {
+				return fmt.Errorf("failed to set ONIE to install: %w", err)
+			}
+
+			reboot = true
+		}
+	}
+
+	if agent.Spec.Reboot != "" && agent.Spec.Reboot == svc.bootID {
+		slog.Info("Reboot requested", "bootID", agent.Spec.Reboot)
+		if !svc.SkipActions {
+			reboot = true
+		}
+	}
+
+	if reboot {
+		if err := doRebootNow(ctx); err != nil {
+			return err
+		}
+	}
+
+	upgraded, err := upgrade.AgentUpgrade(ctx, version.Version, agent.Spec.Version, svc.SkipActions, []string{"apply", "--dry-run=true", "--basedir=" + svc.Basedir})
+	if err != nil {
+		if errors.Is(err, upgrade.ErrAgentUpgradeDownloadFailed) { //nolint:gocritic
+			// TODO properly retry it without restarting the agent
+			slog.Warn("Failed to download new agent version, restarting agent to retry", "err", err)
+
+			return errors.New("failed to download new agent version")
+		} else if errors.Is(err, upgrade.ErrAgentUpgradeCheckFailed) {
+			// TODO properly report it in the Agent object status
+			slog.Warn("Failed to check new agent version, skipping upgrade", "err", err)
+
+			// not failing here, as new agent seems to be not working
+		} else {
+			slog.Warn("Failed to upgrade agent", "err", err)
+
+			return errors.Wrap(err, "failed to upgrade agent")
+		}
+	} else if upgraded {
+		slog.Info("Agent upgraded, restarting")
+
+		os.Exit(0) // TODO graceful agent restart
+	}
+
+	return nil
+}
+
+func doRebootNow(ctx context.Context) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "wall", "Hedgehog Agent initiated reboot")
+	err := cmd.Run()
+	if err != nil {
+		slog.Warn("Failed to send wall message", "err", err)
+	}
+
+	slog.Info("Rebooting in 5 seconds")
+	time.Sleep(5 * time.Second)
+
+	cmd = exec.CommandContext(ctx, "reboot")
+	cmd.Stdout = logutil.NewSink(ctx, slog.Debug, "reboot: ")
+	cmd.Stderr = logutil.NewSink(ctx, slog.Debug, "reboot: ")
+
+	if err := cmd.Run(); err != nil {
+		return errors.Wrap(err, "failed to reboot")
+	}
+
+	return nil
+}
+
+func (svc *Service) configFilePath() string {
+	return filepath.Join(svc.Basedir, ConfigFile)
+}
+
+func (svc *Service) loadConfigFromFile() (*agentapi.Agent, error) {
+	data, err := os.ReadFile(svc.configFilePath())
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to read config file %s", svc.configFilePath())
+	}
+
+	interim := map[string]any{}
+	if err := kyaml.Unmarshal(data, &interim); err != nil {
+		return nil, errors.Wrapf(err, "failed to unmarshal config file %s to cleanup", svc.configFilePath())
+	}
+	delete(interim, "status")
+
+	data, err = kyaml.Marshal(interim)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to marshal config file %s to cleanup", svc.configFilePath())
+	}
+
+	config := &agentapi.Agent{}
+	err = kyaml.UnmarshalStrict(data, config)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to unmarshal config file %s", svc.configFilePath())
+	}
+	svc.name = config.Name
+	svc.appliedAnnotations = knownAnnotations(config)
+
+	return config, nil
+}
+
+func knownAnnotations(agent *agentapi.Agent) map[string]string {
+	known := map[string]string{}
+	for _, key := range []string{wiringapi.AnnotationSwitchSyslogDebug, wiringapi.AnnotationSwitchRouteSumm, wiringapi.AnnotationSwitchBCMMutate} {
+		if value, ok := agent.Annotations[key]; ok {
+			known[key] = value
+		}
+	}
+
+	return known
+}
+
+func (svc *Service) saveConfigToFile(agent *agentapi.Agent) error {
+	if agent == nil {
+		return errors.New("no config to save")
+	}
+
+	agCopy := agent.DeepCopy()
+	agCopy.Status = agentapi.AgentStatus{}
+
+	data, err := kyaml.Marshal(agCopy)
+	if err != nil {
+		return errors.Wrapf(err, "failed to marshal config")
+	}
+
+	err = os.WriteFile(svc.configFilePath(), data, 0o644) //nolint:gosec
+	if err != nil {
+		return errors.Wrapf(err, "failed to write config file %s", svc.configFilePath())
+	}
+
+	return nil
+}
+
+func (svc *Service) setONIENOSInstall(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+
+	if err := nosinstall.EnsureONIEBootPartition(ctx); err != nil {
+		return errors.Wrap(err, "failed to ensure ONIE boot partition")
+	}
+
+	cmd := exec.CommandContext(ctx, "/mnt/onie-boot/onie/tools/bin/onie-boot-mode", "-o", "install")
+	cmd.Stdout = logutil.NewSink(ctx, slog.Debug, "onie-boot-mode: ")
+	cmd.Stderr = logutil.NewSink(ctx, slog.Debug, "onie-boot-mode: ")
+
+	if err := cmd.Run(); err != nil {
+		return errors.Wrap(err, "failed to run onie-boot-mode set install")
+	}
+
+	cmd = exec.CommandContext(ctx, "/mnt/onie-boot/onie/tools/bin/onie-boot-mode", "-l")
+	cmd.Stdout = logutil.NewSink(ctx, slog.Debug, "onie-boot-mode: ")
+	cmd.Stderr = logutil.NewSink(ctx, slog.Debug, "onie-boot-mode: ")
+
+	if err := cmd.Run(); err != nil {
+		return errors.Wrap(err, "failed to run onie-boot-mode list")
+	}
+
+	return nil
+}
+
+func patchShadowFile(name string, password string) error {
+	sh, err := os.ReadFile(shadowPath)
+	if err != nil {
+		return fmt.Errorf("reading shadow file: %w", err)
+	}
+
+	changed := false
+	newSh := &strings.Builder{}
+	for line := range strings.Lines(string(sh)) {
+		if !strings.HasPrefix(line, name+":") || strings.HasPrefix(line, name+":"+password+":") {
+			newSh.WriteString(line)
+		} else {
+			changed = true
+			fmt.Fprintf(newSh, "%s:%s:%d:0:99999:15:::\n", name, password, time.Now().Unix()/(24*60*60))
+		}
+	}
+
+	if changed {
+		if err := os.WriteFile(shadowPath, []byte(newSh.String()), 0o600); err != nil {
+			return fmt.Errorf("writing shadow file %s: %w", shadowPath, err)
+		}
+		slog.Info("Updated user passwords in /etc/shadow")
+	}
+
+	return nil
+}
+
+type RunRemotelyOpts struct {
+	SwitchName   string
+	Basedir      string
+	DryRun       bool
+	CollectStats bool
+	PrintStatus  bool
+	AutoSSH      string
+}
+
+func RunRemotely(ctx context.Context, getClient func() (*gnmi.Client, error), opts RunRemotelyOpts) error {
+	signalCtx, stopSignal := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-signalCtx.Done()
+
+		slog.Warn("Received signal and stopping, repeat after 2 seconds to force stop")
+		time.Sleep(2 * time.Second)
+		stopSignal()
+	}()
+
+	ctx, cancel := context.WithCancel(signalCtx)
+	wg := sync.WaitGroup{}
+
+	defer func() {
+		cancel()
+		wg.Wait()
+	}()
+
+	start := time.Now()
+
+	slog.Info("Applying config remotely", "switch", opts.SwitchName, "dryRun", opts.DryRun, "stats", opts.CollectStats, "printStatus", opts.PrintStatus, "autoSSH", opts.AutoSSH)
+
+	kube, err := kubeutil.NewClient(ctx, "", agentapi.AddToScheme)
+	if err != nil {
+		return fmt.Errorf("creating K8s client: %w", err)
+	}
+
+	agent := &agentapi.Agent{}
+	if err := kube.Get(ctx, kclient.ObjectKey{Name: opts.SwitchName, Namespace: kmetav1.NamespaceDefault}, agent); err != nil {
+		return fmt.Errorf("getting initial agent config from k8s: %w", err)
+	}
+
+	if opts.AutoSSH != "" {
+		wg.Go(func() {
+			swIP, _, _ := strings.Cut(agent.Spec.Switch.IP, "/")
+			slog.Info("Running SSH port forwarding for switch", "ip", swIP)
+
+			cmd := exec.CommandContext(ctx, "ssh", //nolint:gosec
+				"-o", "GlobalKnownHostsFile=/dev/null", "-o", "UserKnownHostsFile=/dev/null", "-o", "StrictHostKeyChecking=no",
+				"-o", "LogLevel=ERROR", "-o", "ExitOnForwardFailure=yes", "-o", "ControlMaster=no", "-o", "ControlPath=none", "-o", "ControlPersist=no",
+				"-L", "127.0.0.1:8080:"+swIP+":8080", opts.AutoSSH, "sleep", "infinity")
+			cmd.Stdout = logutil.NewSink(ctx, slog.Debug, "forward: ")
+			cmd.Stderr = logutil.NewSink(ctx, slog.Debug, "forward: ")
+			if err := cmd.Run(); err != nil && ctx.Err() == nil {
+				slog.Error("SSH port forwarding failed", "error", err)
+				os.Exit(2)
+			}
+
+			slog.Debug("SSH port forwarding finished")
+		})
+
+		// just give a tunnel chance to establish before creating the client
+		time.Sleep(1 * time.Second)
+	}
+
+	var gnmiClient *gnmi.Client
+	for attempt := range 5 {
+		if attempt > 0 {
+			slog.Debug("Failed to create gNMI client, retrying", "err", err.Error())
+			time.Sleep(1 * time.Second)
+		}
+
+		gnmiClient, err = getClient()
+		if err == nil {
+			break
+		}
+	}
+	if err != nil {
+		return fmt.Errorf("creating gNMI client: %w", err)
+	}
+
+	processor := bcm.Processor()
+	processor.SetClient(gnmiClient)
+	processor.SetSkipCustomFuncs(true)
+
+	if _, err := enforceState(ctx, processor, agent, opts.Basedir, opts.DryRun); err != nil {
+		return fmt.Errorf("enforcing state: %w", err)
+	}
+
+	slog.Info("Config applied remotely", "took", time.Since(start))
+
+	if opts.CollectStats {
+		reg := switchstate.NewRegistry()
+		if err := processor.UpdateSwitchState(ctx, agent, reg); err != nil {
+			return fmt.Errorf("updating switch state: %w", err)
+		}
+		if st := reg.GetSwitchState(); st != nil {
+			agent.Status.State = *st
+		}
+	}
+
+	data, err := kyaml.Marshal(agent)
+	if err != nil {
+		return fmt.Errorf("marshaling agent: %w", err)
+	}
+
+	if err := os.WriteFile(filepath.Join(opts.Basedir, "last-agent.yaml"), data, 0o600); err != nil {
+		return fmt.Errorf("writing agent to file: %w", err)
+	}
+
+	slog.Info("See last-* files for the last state & agent data")
+
+	if opts.PrintStatus {
+		statusData, err := kyaml.Marshal(agent.Status)
+		if err != nil {
+			return fmt.Errorf("marshaling agent status: %w", err)
+		}
+
+		slog.Info("Agent status:")
+		if _, err := os.Stdout.Write(statusData); err != nil {
+			return fmt.Errorf("writing agent status: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func prepareSONiC(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+
+	// TODO replace with better handling
+	// Workaround for VXLAN on VS
+	{
+		cmd := exec.CommandContext(ctx, "bash", "-c",
+			"(sudo dmidecode -t system | grep 'QEMU')"+
+				" && (sudo iptables -t filter -C INPUT -p udp --dport 4789 -j ACCEPT || sudo iptables -t filter -I INPUT 1 -p udp --dport 4789 -j ACCEPT)"+
+				" || true")
+		cmd.Stdout = logutil.NewSink(ctx, slog.Debug, "iptables(vs): ")
+		cmd.Stderr = logutil.NewSink(ctx, slog.Debug, "iptables(vs): ")
+		err := cmd.Run()
+		if err != nil {
+			return fmt.Errorf("fixing iptables for vxlan on VS: %w", err)
+		}
+	}
+
+	for _, e := range []struct {
+		iface  string
+		port   uint16
+		proto  string
+		reject string
+	}{
+		{iface: "Vrf+", port: 22, proto: "tcp", reject: "tcp-reset"},               // SSH
+		{iface: "Vrf+", port: 443, proto: "tcp", reject: "tcp-reset"},              // REST API
+		{iface: "Vrf+", port: 8080, proto: "tcp", reject: "tcp-reset"},             // GNMI API
+		{iface: "VrfE+", port: 67, proto: "udp", reject: "icmp-port-unreachable"},  // DHCP (for externals only)
+		{iface: "Vrf+", port: 161, proto: "udp", reject: "icmp-port-unreachable"},  // SNMP
+		{iface: "Vrf+", port: 4789, proto: "udp", reject: "icmp-port-unreachable"}, // VXLAN (only makes sense on VS)
+	} {
+		cmd := exec.CommandContext(ctx, "bash", "-c", fmt.Sprintf( //nolint:gosec
+			"sudo iptables -C INPUT -i %s -p %s --dport %d -j REJECT --reject-with %s 2>/dev/null"+
+				" || sudo iptables -A INPUT -i %s -p %s --dport %d -j REJECT --reject-with %s",
+			e.iface, e.proto, e.port, e.reject, e.iface, e.proto, e.port, e.reject))
+		cmd.Stdout = logutil.NewSink(ctx, slog.Debug, fmt.Sprintf("iptables(%s/%d): ", e.proto, e.port))
+		cmd.Stderr = logutil.NewSink(ctx, slog.Debug, fmt.Sprintf("iptables(%s/%d): ", e.proto, e.port))
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("applying iptables for %s/%d: %w", e.proto, e.port, err)
+		}
+	}
+
+	// remove entry for SSH reject-with icmp-port-unreachable as we're using tcp-reset instead
+	{
+		cmd := exec.CommandContext(ctx, "bash", "-c",
+			"sudo iptables -C INPUT -i Vrf+ -p tcp --dport 22 -j REJECT --reject-with icmp-port-unreachable 2>/dev/null"+
+				" && sudo iptables -D INPUT -i Vrf+ -p tcp --dport 22 -j REJECT --reject-with icmp-port-unreachable"+
+				" || true")
+		cmd.Stdout = logutil.NewSink(ctx, slog.Debug, "iptables(ssh): ")
+		cmd.Stderr = logutil.NewSink(ctx, slog.Debug, "iptables(ssh): ")
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("removing duplicate iptables entry for SSH: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// rsyslog reads its config only at startup, so restart it only if the drop-in changed
+func ensureSyslogDropDebug(ctx context.Context, agent *agentapi.Agent) error {
+	debug, err := wiringapi.SwitchSyslogDebug(agent.Annotations)
+	if err != nil {
+		return fmt.Errorf("checking syslog debug: %w", err)
+	}
+
+	cur, err := os.ReadFile(rsyslogDropDebugPath)
+	if err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("reading %s: %w", rsyslogDropDebugPath, err)
+	}
+	exists := err == nil
+
+	if debug {
+		if !exists {
+			return nil
+		}
+		if err := os.Remove(rsyslogDropDebugPath); err != nil {
+			return fmt.Errorf("removing %s: %w", rsyslogDropDebugPath, err)
+		}
+	} else {
+		if exists && bytes.Equal(cur, rsyslogDropDebug) {
+			return nil
+		}
+		if err := os.WriteFile(rsyslogDropDebugPath, rsyslogDropDebug, 0o644); err != nil { //nolint:gosec
+			return fmt.Errorf("writing %s: %w", rsyslogDropDebugPath, err)
+		}
+	}
+
+	if err := restartRsyslog(ctx); err != nil {
+		// restore the previous state so the next run sees the change again and retries the restart
+		var revertErr error
+		if exists {
+			revertErr = os.WriteFile(rsyslogDropDebugPath, cur, 0o644) //nolint:gosec
+		} else {
+			revertErr = os.Remove(rsyslogDropDebugPath)
+		}
+		if revertErr != nil {
+			return fmt.Errorf("%w, reverting %s: %w", err, rsyslogDropDebugPath, revertErr)
+		}
+
+		return err
+	}
+
+	if debug {
+		slog.Info("Removed rsyslog drop-in, debug logs are kept", "path", rsyslogDropDebugPath)
+	} else {
+		slog.Info("Installed rsyslog drop-in, debug logs are dropped", "path", rsyslogDropDebugPath,
+			"keepWith", wiringapi.AnnotationSwitchSyslogDebug+"=true")
+	}
+
+	return nil
+}
+
+func restartRsyslog(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Minute)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, "systemctl", "restart", "rsyslog")
+	cmd.Stdout = logutil.NewSink(ctx, slog.Debug, "rsyslog: ")
+	cmd.Stderr = logutil.NewSink(ctx, slog.Debug, "rsyslog: ")
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("restarting rsyslog: %w", err)
+	}
+
+	return nil
+}
+
+func disableVirtualGRO(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Minute)
+	defer cancel()
+
+	ports, err := virtualSwitchPorts("/sys/class/net")
+	if err != nil {
+		return err
+	}
+	if len(ports) == 0 {
+		return fmt.Errorf("no switch ports found") //nolint:err113
+	}
+
+	slog.Info("Disabling GRO on virtual switch ports", "ports", ports)
+
+	for _, port := range ports {
+		cmd := exec.CommandContext(ctx, "sudo", "ethtool", "-K", port, "gro", "off")
+		cmd.Stdout = logutil.NewSink(ctx, slog.Debug, "ethtool("+port+"): ")
+		cmd.Stderr = logutil.NewSink(ctx, slog.Debug, "ethtool("+port+"): ")
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("disabling GRO on %s: %w", port, err)
+		}
+	}
+
+	return nil
+}
+
+func virtualSwitchPorts(sysClassNet string) ([]string, error) {
+	entries, err := os.ReadDir(sysClassNet)
+	if err != nil {
+		return nil, fmt.Errorf("listing netdevs: %w", err)
+	}
+
+	ports := []string{}
+	for _, entry := range entries {
+		name := entry.Name()
+		if name == "eth0" {
+			continue
+		}
+
+		if _, err := os.Stat(filepath.Join(sysClassNet, name, "device")); err != nil {
+			// not a netdev, e.g. bonding_masters
+			if os.IsNotExist(err) || errors.Is(err, syscall.ENOTDIR) {
+				continue
+			}
+
+			return nil, fmt.Errorf("checking netdev %s: %w", name, err)
+		}
+
+		ports = append(ports, name)
+	}
+
+	return ports, nil
+}

@@ -1,0 +1,106 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.23.0
+  name: vpcpeerings.vpc.githedgehog.com
+spec:
+  group: vpc.githedgehog.com
+  names:
+    categories:
+    - hedgehog
+    - hh
+    - hhfc
+    kind: VPCPeering
+    listKind: VPCPeeringList
+    plural: vpcpeerings
+    shortNames:
+    - vpcpeer
+    singular: vpcpeering
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .metadata.annotations.fabric\.githedgehog\.com/topology
+      name: Topo
+      type: string
+    - jsonPath: .metadata.labels.fabric\.githedgehog\.com/vpc1
+      name: VPC1
+      type: string
+    - jsonPath: .metadata.labels.fabric\.githedgehog\.com/vpc2
+      name: VPC2
+      type: string
+    - jsonPath: .spec.remote
+      name: Remote
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      priority: 10
+      type: date
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: "VPCPeering represents a peering between two VPCs with corresponding
+          filtering rules.\nMinimal example of the VPC peering showing vpc-1 to vpc-2
+          peering with all subnets allowed:\n\n\tspec:\n\t  permit:\n\t  - vpc-1:
+          {}\n\t    vpc-2: {}"
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Spec is the desired state of the VPCPeering
+            properties:
+              permit:
+                description: Permit defines a list of the peering policies - which
+                  VPC subnets will have access to the peer VPC subnets.
+                items:
+                  additionalProperties:
+                    properties:
+                      subnets:
+                        description: Subnets is the list of subnets to advertise from
+                          current VPC to the peer VPC
+                        items:
+                          type: string
+                        maxItems: 10
+                        minItems: 1
+                        type: array
+                    type: object
+                  type: object
+                maxItems: 10
+                minItems: 1
+                type: array
+              remote:
+                description: Deprecated and no longer supported
+                type: string
+              topology:
+                description: Topology is where the VPCPeering sits in the fabric topology
+                properties:
+                  fabric:
+                    description: Fabric is the name of the Fabric this VPCPeering
+                      belongs to (if not specified, "default" is used)
+                    type: string
+                type: object
+            type: object
+          status:
+            description: Status is the observed state of the VPCPeering
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

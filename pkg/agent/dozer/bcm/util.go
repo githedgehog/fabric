@@ -1,0 +1,139 @@
+// Copyright 2023 Hedgehog
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package bcm
+
+import (
+	"fmt"
+	"strconv"
+	"strings"
+
+	"go.githedgehog.com/fabric-bcm-ygot/pkg/oc"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+)
+
+func UnmarshalPortSpeed(speedRaw oc.E_OpenconfigIfEthernet_ETHERNET_SPEED) *string {
+	speed := ""
+	if speedRaw > oc.OpenconfigIfEthernet_ETHERNET_SPEED_UNSET && speedRaw < oc.OpenconfigIfEthernet_ETHERNET_SPEED_SPEED_UNKNOWN {
+		speed = oc.ΛEnum["E_OpenconfigIfEthernet_ETHERNET_SPEED"][int64(speedRaw)].Name
+	} else {
+		return nil
+	}
+
+	speed = strings.TrimPrefix(speed, "SPEED_")
+	speed = strings.TrimSuffix(speed, "B")
+
+	if speed == "2500M" {
+		speed = "2.5G"
+	}
+
+	return new(speed)
+}
+
+func MarshalPortSpeed(speed string) (oc.E_OpenconfigIfEthernet_ETHERNET_SPEED, bool) {
+	if speed == "2.5G" {
+		speed = "2500M"
+	}
+
+	if !strings.HasPrefix(speed, "SPEED_") {
+		speed = "SPEED_" + speed
+	}
+	if !strings.HasSuffix(speed, "B") {
+		speed += "B"
+	}
+	res := oc.OpenconfigIfEthernet_ETHERNET_SPEED_UNSET
+
+	ok := false
+	for speedVal, name := range oc.ΛEnum["E_OpenconfigIfEthernet_ETHERNET_SPEED"] {
+		if name.Name == speed {
+			res = oc.E_OpenconfigIfEthernet_ETHERNET_SPEED(speedVal)
+			ok = true
+
+			break
+		}
+	}
+
+	return res, ok
+}
+
+func MarshalPortFEC(fec string) (oc.E_OpenconfigPlatformTypes_FEC_MODE_TYPE, bool) {
+	switch wiringapi.PortFECMode(fec) {
+	case wiringapi.PortFECModeRS:
+		return oc.OpenconfigPlatformTypes_FEC_MODE_TYPE_FEC_RS, true
+	case wiringapi.PortFECModeFC:
+		return oc.OpenconfigPlatformTypes_FEC_MODE_TYPE_FEC_FC, true
+	case wiringapi.PortFECModeAuto:
+		return oc.OpenconfigPlatformTypes_FEC_MODE_TYPE_FEC_AUTO, true
+	case wiringapi.PortFECModeDisabled:
+		return oc.OpenconfigPlatformTypes_FEC_MODE_TYPE_FEC_DISABLED, true
+	default:
+		return oc.OpenconfigPlatformTypes_FEC_MODE_TYPE_UNSET, false
+	}
+}
+
+func UnmarshalPortFEC(fec oc.E_OpenconfigPlatformTypes_FEC_MODE_TYPE) (string, bool) {
+	switch fec { //nolint:exhaustive
+	case oc.OpenconfigPlatformTypes_FEC_MODE_TYPE_FEC_DISABLED:
+		return string(wiringapi.PortFECModeDisabled), true
+	case oc.OpenconfigPlatformTypes_FEC_MODE_TYPE_FEC_AUTO:
+		return string(wiringapi.PortFECModeAuto), true
+	case oc.OpenconfigPlatformTypes_FEC_MODE_TYPE_FEC_FC:
+		return string(wiringapi.PortFECModeFC), true
+	case oc.OpenconfigPlatformTypes_FEC_MODE_TYPE_FEC_RS:
+		return string(wiringapi.PortFECModeRS), true
+	default:
+		// UNSET / DEFAULT and any other unsupported mode are treated as "not managed".
+		return "", false
+	}
+}
+
+func UnmarshalPortBreakout(mode string) string {
+	// not really needed right now, just in case
+	mode = strings.TrimSuffix(mode, "B")
+
+	return mode
+}
+
+// UnmarshalAS accepts an AS number as a uint32 or as a string, plain or in asdot(+) notation (RFC 5396),
+// as SONiC returns it as a string once the BGP instance uses a dotted notation
+func UnmarshalAS(val any) (*uint32, error) {
+	switch val := val.(type) {
+	case nil:
+		return nil, nil //nolint:nilnil
+	case oc.UnionUint32:
+		return new(uint32(val)), nil
+	case oc.UnionString:
+		high, low, dotted := strings.Cut(string(val), ".")
+		if !dotted {
+			as, err := strconv.ParseUint(high, 10, 32)
+			if err != nil {
+				return nil, fmt.Errorf("parsing AS %q: %w", val, err)
+			}
+
+			return new(uint32(as)), nil
+		}
+		highAS, err := strconv.ParseUint(high, 10, 16)
+		if err != nil {
+			return nil, fmt.Errorf("parsing AS %q: %w", val, err)
+		}
+		lowAS, err := strconv.ParseUint(low, 10, 16)
+		if err != nil {
+			return nil, fmt.Errorf("parsing AS %q: %w", val, err)
+		}
+
+		return new(uint32(highAS)<<16 | uint32(lowAS)), nil
+	default:
+		return nil, fmt.Errorf("unexpected AS %v of type %T", val, val) //nolint:err113
+	}
+}

@@ -1,0 +1,58 @@
+name: Govulncheck Security Scan
+
+on:
+  push:
+    branches:
+      - master
+  schedule:
+    - cron: '0 13 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  govulncheck:
+    runs-on: lab
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: Run govulncheck
+        id: govulncheck
+        continue-on-error: true
+        run: |
+          govulncheck -show verbose ./...
+
+      - name: Generate SARIF file
+        if: always()
+        run: govulncheck -format=sarif ./... > govulncheck.sarif
+
+      # govulncheck emits identical call stacks twice for some stdlib results,
+      # which the SARIF schema (uniqueItems) rejects on upload, so dedupe them.
+      - name: Dedupe SARIF call stacks
+        if: always()
+        run: |
+          jq '.runs[].results[] |= (if .stacks then .stacks |= unique else . end)' \
+            govulncheck.sarif > govulncheck-deduped.sarif
+
+      - name: Upload SARIF file
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4.39.3
+        with:
+          sarif_file: govulncheck-deduped.sarif
+          category: govulncheck
+
+      - name: Fail if vulnerabilities found
+        if: steps.govulncheck.outcome == 'failure'
+        run: exit 1

@@ -1,0 +1,295 @@
+version: "2"
+
+# Migrated from golangci-lint v1.64.8 keeping the v1 coverage. Everything the upgraded or new checks report on the
+# current code is disabled below with a TODO. Plan to enable them, roughly cheapest first (issue counts as of v2.15.0
+# on Linux):
+#
+#   1. staticcheck QF* quickfix checks (new in v2): 84 issues, auto-fixable with `just lint-fix`
+#   2. Default exclusions inherited from v1, see linters.exclusions.presets
+#   3. nolintlint require-explanation: 512 directives without explanation
+#   4. Linters with issues on the current code: forcetypeassert (28), godoclint (83), perfsprint (195)
+#   5. Stricter sloglint options: msg-style capitalized (27), static-msg (5), key-naming-case camel (19) or snake
+#      (16), args-on-sep-lines (97), no-raw-keys (254)
+#   6. goconst detection in function call arguments (470 issues) and composite literals (1522 issues, mostly the
+#      port names and speeds in the switch profiles), needs evaluation as it may be too noisy
+#   7. revive unused-parameter rule (from kubebuilder): 32 issues, mostly to be renamed to _
+#
+# Complexity and line length linters (cyclop, funlen, gocognit, gocyclo, maintidx, nestif, lll, ...) aren't planned.
+# wastedassign isn't planned either as ineffassign already reports the lost values, it only adds the zero value
+# initializations like `x := ""` that are a matter of style.
+
+run:
+  # kept from the v1 config, v2 has no timeout by default
+  timeout: 10m
+  allow-parallel-runners: true
+  build-tags:
+    - containers_image_openpgp
+    - containers_image_storage_stub
+
+issues:
+  # report all issues instead of the first 50 per linter and 3 with the same text
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+linters:
+  default: none
+  # Look at this for details: https://golangci-lint.run/docs/linters/
+  enable:
+    # enabled by default
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck # includes gosimple and stylecheck since v2
+    - unused
+    # disabled by default
+    - asasalint
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - canonicalheader
+    - containedctx
+    - contextcheck
+    - depguard
+    - dogsled
+    - dupword
+    - durationcheck
+    - errchkjson
+    - errname
+    - errorlint
+    - exhaustive
+    - exptostd
+    - copyloopvar
+    - fatcontext
+    - forbidigo
+    - ginkgolinter
+    - gocheckcompilerdirectives
+    - gochecksumtype
+    - goconst
+    - gocritic
+    - err113
+    - gomoddirectives
+    - goprintffuncname
+    - gosec
+    - iface
+    - importas
+    - intrange
+    - iotamixing
+    - loggercheck
+    - makezero
+    - mirror
+    - misspell
+    - modernize
+    - musttag
+    - nakedret
+    - nilerr
+    - nilnesserr
+    - nilnil
+    - nlreturn
+    - noctx
+    - nolintlint
+    - nonamedreturns
+    - nosprintfhostport
+    - prealloc
+    - predeclared
+    - promlinter
+    - reassign
+    - recvcheck
+    - revive
+    - sloglint
+    # Not planned: conflicts with the K8s API conventions (e.g. vtepIP instead of vtepIp) and external APIs field
+    # names, 130 issues
+    # - tagliatelle
+    - unconvert
+    - unparam
+    - usestdlibvars
+    - usetesting
+    - whitespace
+    - wrapcheck
+
+  settings:
+    forbidigo:
+      # match by the actual package, so aliased imports are caught too
+      analyze-types: true
+      forbid:
+        # the default pattern, replaced by this list: catches the debug prints, the actual output goes to an
+        # explicit writer, e.g. fmt.Fprintln(os.Stdout, ...)
+        - pattern: ^(fmt\.Print(|f|ln)|print|println)$
+        - pattern: ^ptr\.To$
+          pkg: ^k8s\.io/utils/ptr$
+          msg: use new(x)
+    exhaustive:
+      check:
+        - switch
+        - mapliteral # renamed from map in v2
+    goconst:
+      exclude-types:
+        # TODO evaluate detection in function call arguments (v1 and v2 default to skip it): 470 issues
+        - Call
+        # TODO evaluate detection in composite literals added in goconst v1.11.0 (v1 had v1.7.1): 1522 issues, mostly
+        # the port names and speeds in the switch profiles, so it may be too noisy
+        - CompositeLit
+    gosec:
+      excludes:
+        # Not planned: unhandled errors duplicate errcheck
+        - G104
+      config:
+        # Allow 0755 instead of 0750 for dirs as the system ones have to be world-readable
+        G301: "0755"
+    gomoddirectives:
+      replace-allow-list:
+        # our fork for performance improvements
+        - github.com/openconfig/ygot
+    iface:
+      # all analyzers, only identical is enabled by default
+      enable:
+        - identical
+        - unused
+        - opaque
+        - unexported
+        - unusedmethod
+    modernize:
+      disable:
+        # Not planned: against the K8s API conventions that use omitempty for the optional fields (disabled by
+        # controller-runtime and kubebuilder as well)
+        - omitzero
+    govet:
+      enable-all: true
+      disable:
+        # Not planned: optimizes struct memory layout at the cost of readable fields order, 214 issues
+        - fieldalignment
+        # Not planned: reports the idiomatic err shadowing, 112 of 119 issues are about err
+        - shadow
+    importas:
+      no-unaliased: true
+      alias:
+        - pkg: k8s.io/apimachinery/pkg/types
+          alias: ktypes
+        - pkg: k8s.io/apimachinery/pkg/apis/meta/v1
+          alias: kmetav1
+        - pkg: k8s.io/apimachinery/pkg/api/errors
+          alias: kapierrors
+        - pkg: k8s.io/apimachinery/pkg/util/errors
+          alias: kerrors
+        - pkg: k8s.io/apimachinery/pkg/api/meta
+          alias: kmeta
+        - pkg: sigs.k8s.io/controller-runtime/pkg/log
+          alias: kctrllog
+        - pkg: sigs.k8s.io/yaml
+          alias: kyaml
+        - pkg: sigs.k8s.io/controller-runtime
+          alias: kctrl
+        - pkg: sigs.k8s.io/controller-runtime/pkg/client
+          alias: kclient
+    depguard:
+      rules:
+        main:
+          deny:
+            # TODO deny github.com/pkg/errors in favor of the stdlib errors package: used in 95 files
+            # - pkg: "github.com/pkg/errors$"
+            #   desc: use stdlib errors package
+            # golang.org/x/exp maps and slices are reported by exptostd, but not slog
+            - pkg: "golang.org/x/exp/slog$"
+              desc: use stdlib slog package
+            - pkg: "k8s.io/utils/strings/slices$"
+              desc: use stdlib slices or samber/lo package
+            - pkg: "sort$"
+              desc: use stdlib slices package
+            # deprecated in favor of k8s.io/utils/ptr, and new(x) replaces its helpers since Go 1.26 (ptr.To is
+            # forbidden by forbidigo while the rest of k8s.io/utils/ptr is fine)
+            - pkg: "k8s.io/utils/pointer$"
+              desc: use new(x)
+            - pkg: gopkg.in/yaml
+              desc: use sigs.k8s.io/yaml
+    predeclared:
+      # v1 behavior, v2 defaults to shadow only
+      mode:
+        - declare
+        - shadow
+    reassign:
+      patterns:
+        - ".*"
+    recvcheck:
+      exclusions:
+        # generated for the K8s API types next to their value receiver methods
+        - "*.DeepCopy"
+        - "*.DeepCopyInto"
+    revive:
+      # By default, revive will enable only the linting rules that are named in the configuration file.
+      # So, it's needed to explicitly enable all required rules here.
+      rules:
+        # The following rules are recommended https://github.com/mgechev/revive#recommended-configuration
+        - name: blank-imports
+        - name: context-as-argument
+          arguments:
+            # test helpers take the *testing.T first
+            - allowTypesBefore: "*testing.T"
+        - name: context-keys-type
+        - name: dot-imports
+        - name: error-return
+        - name: error-strings
+        - name: error-naming
+        - name: if-return
+        - name: increment-decrement
+        - name: var-naming
+        - name: package-naming # split out of var-naming in revive v1.15.0, v1 had v1.7.0
+        - name: var-declaration
+        - name: range
+        - name: receiver-naming
+        - name: time-naming
+        - name: unexported-return
+        - name: indent-error-flow
+        - name: errorf
+        - name: superfluous-else
+        - name: unreachable-code
+        - name: redefines-builtin-id
+        #
+        # Rules in addition to the recommended configuration above.
+        #
+        - name: bool-literal-in-expr
+        - name: constant-logical-expr
+        - name: empty-block
+        - name: comment-spacings
+        - name: import-shadowing
+    sloglint:
+      # key-value pairs only, no slog.Attr, as it's what's used everywhere
+      kv-only: true
+    staticcheck:
+      # v1 ran all checks of staticcheck, gosimple and stylecheck while v2 defaults skip ST1000, ST1003, ST1016,
+      # ST1020, ST1021 and ST1022 (the ones about comments are still excluded by the comments preset)
+      checks:
+        - all
+        # TODO enable quickfix checks (new in v2): 84 issues, QF1008 x40, QF1012 x32, QF1003 x6, QF1001 x6
+        - -QF*
+
+  exclusions:
+    # v1 default, v2 defaults to strict
+    generated: lax
+    # Default exclusions in v1 (exclude-use-default: true)
+    presets:
+      # TODO enable: 239 issues about missing or malformed doc comments, staticcheck ST1000/ST1020/ST1021/ST1022
+      # (also revive exported and package-comments rules that aren't enabled)
+      - comments
+      # Not planned: gosec G204 subprocess launched with variable x9 and G304 file inclusion via variable x20 as
+      # running the system commands and reading the own config and cache files is what the agent, installer and
+      # boot server do (also G103 unsafe calls, no issues)
+      - common-false-positives
+      # TODO enable: 22 issues, errcheck on Close, Flush, os.Remove(All), fmt.Print*, os.(Un)Setenv and std streams
+      - std-error-handling
+    paths:
+      # Not planned: third-party code
+      - vendor
+
+formatters:
+  enable:
+    - gofmt
+    # stricter gofmt, set "formatting.gofumpt": true in gopls to get it in the editor
+    - gofumpt
+    - goimports
+    # Not planned: gci, goimports already separates the std imports, enforcing a group for our own imports would
+    # either fight the kubebuilder scaffolded files (and drop its +kubebuilder:scaffold:imports marker) or the rest
+  exclusions:
+    # v1 default, v2 defaults to strict
+    generated: lax
+    paths:
+      # Not planned: third-party code
+      - vendor

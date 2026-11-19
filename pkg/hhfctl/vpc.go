@@ -1,0 +1,349 @@
+// Copyright 2023 Hedgehog
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package hhfctl
+
+import (
+	"context"
+	"fmt"
+	"log/slog"
+	"os"
+	"slices"
+	"strings"
+
+	"github.com/pkg/errors"
+	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
+	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
+	"go.githedgehog.com/fabric/pkg/util/kubeutil"
+	kmeta "k8s.io/apimachinery/pkg/api/meta"
+	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	kyaml "sigs.k8s.io/yaml"
+)
+
+type VPCCreateOptions struct {
+	Name                 string
+	Subnet               string
+	VLAN                 uint16
+	DHCP                 vpcapi.VPCDHCP
+	Mode                 vpcapi.VPCMode
+	HostBGP              bool
+	HostBGPMinPrefixLen  uint8
+	HostBGPMaxPrefixLen  uint8
+	HostBGPExtraPrefixes map[string]vpcapi.VPCSubnetHostBGPPrefix
+}
+
+func VPCCreate(ctx context.Context, printYaml bool, options *VPCCreateOptions) error {
+	if !slices.Contains(vpcapi.VPCModes, options.Mode) {
+		return fmt.Errorf("invalid mode %s, must be one of %v", options.Mode, vpcapi.VPCModes) //nolint:err113
+	}
+	vpc := &vpcapi.VPC{
+		Name:      options.Name,
+		Namespace: kmetav1.NamespaceDefault,
+		Spec: vpcapi.VPCSpec{
+			Subnets: map[string]*vpcapi.VPCSubnet{
+				"default": {
+					Subnet:               options.Subnet,
+					VLAN:                 options.VLAN,
+					DHCP:                 options.DHCP,
+					HostBGP:              options.HostBGP,
+					HostBGPMinPrefixLen:  options.HostBGPMinPrefixLen,
+					HostBGPMaxPrefixLen:  options.HostBGPMaxPrefixLen,
+					HostBGPExtraPrefixes: options.HostBGPExtraPrefixes,
+				},
+			},
+			Mode: options.Mode,
+		},
+	}
+
+	kube, err := kubeutil.NewClient(ctx, "", vpcapi.AddToScheme)
+	if err != nil {
+		return errors.Wrap(err, "cannot create kube client")
+	}
+
+	vpc.Default()
+	warnings, err := vpc.Validate(ctx /* validation.WithCtrlRuntime(kube) */, nil, nil)
+	if err != nil {
+		slog.Warn("Validation", "error", err)
+
+		return errors.Errorf("validation failed")
+	}
+	if warnings != nil {
+		slog.Warn("Validation", "warnings", warnings)
+	}
+
+	err = kube.Create(ctx, vpc)
+	if err != nil {
+		return errors.Wrap(err, "cannot create vpc")
+	}
+
+	slog.Info("VPC created", "name", vpc.Name)
+
+	if printYaml {
+		vpc.ObjectMeta.ManagedFields = nil
+		vpc.ObjectMeta.Generation = 0
+		vpc.ObjectMeta.ResourceVersion = ""
+
+		out, err := kyaml.Marshal(vpc)
+		if err != nil {
+			return errors.Wrap(err, "cannot marshal vpc")
+		}
+
+		fmt.Fprintln(os.Stdout, string(out))
+	}
+
+	return nil
+}
+
+type VPCAttachOptions struct {
+	Name       string
+	VPCSubnet  string
+	Connection string
+	NativeVLAN bool
+}
+
+func VPCAttach(ctx context.Context, printYaml bool, options *VPCAttachOptions) error {
+	name := options.Name
+	if name == "" {
+		name = fmt.Sprintf("%s--%s", strings.ReplaceAll(options.VPCSubnet, "/", "--"), options.Connection)
+	}
+
+	attach := &vpcapi.VPCAttachment{
+		Name:      name,
+		Namespace: kmetav1.NamespaceDefault,
+		Spec: vpcapi.VPCAttachmentSpec{
+			Subnet:     options.VPCSubnet,
+			Connection: options.Connection,
+			NativeVLAN: options.NativeVLAN,
+		},
+	}
+
+	kube, err := kubeutil.NewClient(ctx, "", vpcapi.AddToScheme)
+	if err != nil {
+		return errors.Wrap(err, "cannot create kube client")
+	}
+
+	attach.Default()
+	warnings, err := attach.Validate(ctx /* validation.WithCtrlRuntime(kube) */, nil, nil)
+	if err != nil {
+		slog.Warn("Validation", "error", err)
+
+		return errors.Errorf("validation failed")
+	}
+	if warnings != nil {
+		slog.Warn("Validation", "warnings", warnings)
+	}
+
+	err = kube.Create(ctx, attach)
+	if err != nil {
+		return errors.Wrap(err, "cannot create vpc attachment")
+	}
+
+	slog.Info("VPCAttachment created", "name", attach.Name)
+
+	if printYaml {
+		attach.ObjectMeta.ManagedFields = nil
+		attach.ObjectMeta.Generation = 0
+		attach.ObjectMeta.ResourceVersion = ""
+
+		out, err := kyaml.Marshal(attach)
+		if err != nil {
+			return errors.Wrap(err, "cannot marshal vpc attachment")
+		}
+
+		fmt.Fprintln(os.Stdout, string(out))
+	}
+
+	return nil
+}
+
+type VPCPeerOptions struct {
+	Name string
+	VPCs []string
+}
+
+func VPCPeer(ctx context.Context, printYaml bool, options *VPCPeerOptions) error {
+	name := options.Name
+	if name == "" {
+		name = strings.Join(options.VPCs, "--")
+	}
+
+	peering := &vpcapi.VPCPeering{
+		Name:      name,
+		Namespace: kmetav1.NamespaceDefault,
+		Spec: vpcapi.VPCPeeringSpec{
+			Permit: []map[string]vpcapi.VPCPeer{
+				{
+					options.VPCs[0]: {},
+					options.VPCs[1]: {},
+				},
+			},
+		},
+	}
+
+	kube, err := kubeutil.NewClient(ctx, "", vpcapi.AddToScheme)
+	if err != nil {
+		return errors.Wrap(err, "cannot create kube client")
+	}
+
+	peering.Default()
+	warnings, err := peering.Validate(ctx /* validation.WithCtrlRuntime(kube) */, nil, nil)
+	if err != nil {
+		slog.Warn("Validation", "error", err)
+
+		return errors.Errorf("validation failed")
+	}
+	if warnings != nil {
+		slog.Warn("Validation", "warnings", warnings)
+	}
+
+	err = kube.Create(ctx, peering)
+	if err != nil {
+		return errors.Wrap(err, "cannot create vpc peering")
+	}
+
+	slog.Info("VPCPeering created", "name", peering.Name)
+
+	if printYaml {
+		peering.ObjectMeta.ManagedFields = nil
+		peering.ObjectMeta.Generation = 0
+		peering.ObjectMeta.ResourceVersion = ""
+
+		out, err := kyaml.Marshal(peering)
+		if err != nil {
+			return errors.Wrap(err, "cannot marshal vpc peering")
+		}
+
+		fmt.Fprintln(os.Stdout, string(out))
+	}
+
+	return nil
+}
+
+type VPCGwPeerOptions struct {
+	Name       string
+	VPC1       string
+	VPC1Expose gwapi.PeeringEntryExpose
+	VPC2       string
+	VPC2Expose gwapi.PeeringEntryExpose
+}
+
+func VPCGwPeer(ctx context.Context, printYaml bool, options *VPCGwPeerOptions) error {
+	name := options.Name
+	if name == "" {
+		name = fmt.Sprintf("%s--%s", options.VPC1, options.VPC2)
+	}
+
+	peering := &gwapi.GatewayPeering{
+		Name:      name,
+		Namespace: kmetav1.NamespaceDefault,
+		Spec: gwapi.PeeringSpec{
+			Peering: map[string]*gwapi.PeeringEntry{
+				options.VPC1: {
+					Expose: []gwapi.PeeringEntryExpose{
+						options.VPC1Expose,
+					},
+				},
+				options.VPC2: {
+					Expose: []gwapi.PeeringEntryExpose{
+						options.VPC2Expose,
+					},
+				},
+			},
+		},
+	}
+
+	kube, err := kubeutil.NewClient(ctx, "", gwapi.AddToScheme)
+	if err != nil {
+		return errors.Wrap(err, "cannot create kube client")
+	}
+
+	peering.Default()
+	err = peering.Validate(ctx /* validation.WithCtrlRuntime(kube) */, nil, nil)
+	if err != nil {
+		slog.Warn("Validation", "error", err)
+
+		return errors.Errorf("validation failed")
+	}
+
+	err = kube.Create(ctx, peering)
+	if err != nil {
+		return errors.Wrap(err, "cannot create gateway peering")
+	}
+
+	slog.Info("Gateway Peering created", "name", peering.Name)
+
+	if printYaml {
+		peering.ObjectMeta.ManagedFields = nil
+		peering.ObjectMeta.Generation = 0
+		peering.ObjectMeta.ResourceVersion = ""
+
+		out, err := kyaml.Marshal(peering)
+		if err != nil {
+			return errors.Wrap(err, "cannot marshal gateway peering")
+		}
+
+		fmt.Fprintln(os.Stdout, string(out))
+	}
+
+	return nil
+}
+
+// Defined as a separate function so it can be used in release tests
+func VPCWipeWithClient(ctx context.Context, kube kclient.Client) error {
+	delAllOpts := kclient.DeleteAllOfOptions{
+		Namespace: kmetav1.NamespaceDefault,
+	}
+	// delete all external peerings
+	if err := kube.DeleteAllOf(ctx, &vpcapi.ExternalPeering{}, &delAllOpts); err != nil {
+		return errors.Wrap(err, "cannot delete external peerings")
+	}
+
+	// delete all regular peerings
+	if err := kube.DeleteAllOf(ctx, &vpcapi.VPCPeering{}, &delAllOpts); err != nil {
+		return errors.Wrap(err, "cannot delete vpc peerings")
+	}
+
+	// delete all gateway peerings
+	if err := kube.DeleteAllOf(ctx, &gwapi.GatewayPeering{}, &delAllOpts); err != nil && !kmeta.IsNoMatchError(err) {
+		return errors.Wrap(err, "cannot delete gateway peerings")
+	}
+
+	// delete all attachments
+	if err := kube.DeleteAllOf(ctx, &vpcapi.VPCAttachment{}, &delAllOpts); err != nil {
+		return errors.Wrap(err, "cannot delete vpc attachments")
+	}
+
+	// delete all vpcs
+	if err := kube.DeleteAllOf(ctx, &vpcapi.VPC{}, &delAllOpts); err != nil {
+		return errors.Wrap(err, "cannot delete vpcs")
+	}
+
+	return nil
+}
+
+func VPCWipe(ctx context.Context) error {
+	kube, err := kubeutil.NewClient(ctx, "", vpcapi.AddToScheme, gwapi.AddToScheme)
+	if err != nil {
+		return errors.Wrap(err, "cannot create kube client")
+	}
+
+	if err := VPCWipeWithClient(ctx, kube); err != nil {
+		return errors.Wrap(err, "cannot wipe vpcs")
+	}
+
+	slog.Info("All VPCs, attachments and peerings wiped")
+
+	return nil
+}

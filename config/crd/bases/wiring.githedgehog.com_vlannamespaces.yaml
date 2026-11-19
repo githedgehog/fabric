@@ -1,0 +1,75 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.23.0
+  name: vlannamespaces.wiring.githedgehog.com
+spec:
+  group: wiring.githedgehog.com
+  names:
+    categories:
+    - hedgehog
+    - hh
+    - hhfc
+    kind: VLANNamespace
+    listKind: VLANNamespaceList
+    plural: vlannamespaces
+    shortNames:
+    - vlanns
+    singular: vlannamespace
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      priority: 10
+      type: date
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: VLANNamespace is the Schema for the vlannamespaces API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Spec is the desired state of the VLANNamespace
+            properties:
+              ranges:
+                description: Ranges is a list of VLAN ranges to be used in this namespace,
+                  couldn't overlap between each other and with Fabric reserved VLAN
+                  ranges
+                items:
+                  properties:
+                    from:
+                      type: integer
+                    to:
+                      type: integer
+                  type: object
+                maxItems: 20
+                minItems: 1
+                type: array
+            type: object
+          status:
+            description: Status is the observed state of the VLANNamespace
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

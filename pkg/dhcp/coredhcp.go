@@ -1,0 +1,68 @@
+// Copyright 2025 Hedgehog
+// SPDX-License-Identifier: Apache-2.0
+
+//go:build linux
+
+package dhcp
+
+import (
+	"context"
+	"fmt"
+	"log/slog"
+	"os"
+
+	"github.com/coredhcp/coredhcp/config"
+	"github.com/coredhcp/coredhcp/logger"
+	"github.com/coredhcp/coredhcp/plugins"
+	"github.com/coredhcp/coredhcp/server"
+)
+
+const cfgTmpl = `
+server4:
+  listen:
+    - "%s"
+  plugins:
+    - hh: ""
+`
+
+func (s *Server) startCoreDHCP(ctx context.Context) error {
+	forwardToSlog(ctx, logger.GetLogger("main").Logger)
+
+	cfgFile := "/etc/coredhcp.conf"
+
+	if err := os.WriteFile(cfgFile, fmt.Appendf(nil, cfgTmpl, "%"+s.Config.ListenInterface), 0o600); err != nil {
+		return fmt.Errorf("writing config") //nolint:err113
+	}
+
+	cfg, err := config.Load(cfgFile)
+	if err != nil {
+		return fmt.Errorf("loading configuration") //nolint:err113
+	}
+
+	desiredPlugins := []*plugins.Plugin{
+		{
+			Name:   "hh",
+			Setup6: nil,
+			Setup4: s.setupDHCP4Plugin(ctx),
+		},
+	}
+	for _, plugin := range desiredPlugins {
+		if err := plugins.RegisterPlugin(plugin); err != nil {
+			return fmt.Errorf("registering plugin: %s", plugin.Name) //nolint:err113
+		}
+	}
+
+	slog.Info("Starting DHCP server", "iface", s.Config.ListenInterface)
+
+	srv, err := server.Start(cfg)
+	if err != nil {
+		return fmt.Errorf("starting coredhcp") //nolint:err113
+	}
+	s.serving.Store(true)
+
+	if err := srv.Wait(); err != nil {
+		return fmt.Errorf("waiting for coredhcp") //nolint:err113
+	}
+
+	return fmt.Errorf("coredhcp finished unexpectedly") //nolint:err113
+}
