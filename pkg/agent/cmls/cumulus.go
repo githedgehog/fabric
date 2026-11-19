@@ -59,6 +59,7 @@ type ConfigIn struct {
 	VXLANSource  string
 	VPCs         []VPC
 	BGPNeighbors []BGPNeighbor
+	Gateway      *GatewayConfig
 	Ports        []*PortConfig
 	Bonds        []*BondConfig
 	Subnets      []*SubnetConfig
@@ -86,6 +87,11 @@ type BGPNeighbor struct {
 	IP          string
 	PeerGroup   string
 	Description string
+}
+
+type GatewayConfig struct {
+	ASN        uint32
+	VTEPSubnet string
 }
 
 type VPC struct {
@@ -411,7 +417,9 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		})
 	}
 
-	// TODO configure the gateway and external connections, only their ports are brought up for now
+	// TODO configure the external connections, only their ports are brought up for now
+	neighs := []BGPNeighbor{}
+	var gateway *GatewayConfig
 	for connName, conn := range agent.Spec.Connections {
 		switch {
 		case conn.Gateway != nil:
@@ -420,11 +428,43 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 					continue
 				}
 
+				// the gateway only gets the VTEPs and only what it originates is taken from it, so it's never a transit
+				if gateway == nil {
+					domains := agent.Spec.Switch.Topology.Domains
+					if len(domains) != 1 {
+						return nil, fmt.Errorf("conn %s: switch with a gateway connection has to be in a single domain", connName) //nolint:err113
+					}
+					asn := agent.Spec.Config.Domains[domains[0]].GatewayASN
+					if asn == 0 {
+						return nil, fmt.Errorf("conn %s: no gateway ASN for domain %s", connName, domains[0]) //nolint:err113
+					}
+					vtepSubnet, err := netip.ParsePrefix(agent.Spec.Config.VTEPSubnet)
+					if err != nil {
+						return nil, fmt.Errorf("conn %s: parsing VTEP subnet: %w", connName, err)
+					}
+					gateway = &GatewayConfig{ASN: asn, VTEPSubnet: vtepSubnet.Masked().String()}
+				}
+
+				ip, err := netip.ParsePrefix(link.Switch.IP)
+				if err != nil {
+					return nil, fmt.Errorf("conn %s: parsing switch IP %q: %w", connName, link.Switch.IP, err)
+				}
+				gatewayIP, err := netip.ParsePrefix(link.Gateway.IP)
+				if err != nil {
+					return nil, fmt.Errorf("conn %s: parsing gateway IP %q: %w", connName, link.Gateway.IP, err)
+				}
+
 				port, err := usePort(link.Switch.LocalPortName())
 				if err != nil {
 					return nil, fmt.Errorf("conn %s: %w", connName, err)
 				}
 				port.Description = fmt.Sprintf("Gateway %s %s", link.Gateway.Port, connName)
+				port.IP = ip.String()
+				neighs = append(neighs, BGPNeighbor{
+					IP:          gatewayIP.Addr().String(),
+					PeerGroup:   "gateway",
+					Description: fmt.Sprintf("Gateway %s %s", link.Gateway.Port, connName),
+				})
 			}
 		case conn.External != nil:
 			if conn.External.Link.Switch.DeviceName() != agent.Name {
@@ -489,7 +529,6 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		return cmp.Compare(a.id, b.id)
 	})
 
-	neighs := []BGPNeighbor{}
 	for connName, conn := range agent.Spec.Connections {
 		if conn.Fabric == nil {
 			continue
@@ -860,6 +899,7 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		VXLANSource:  vtepIP.Addr().String(),
 		VPCs:         vpcs,
 		BGPNeighbors: neighs,
+		Gateway:      gateway,
 		Ports:        ports,
 		Bonds:        bonds,
 		Subnets:      subnets,
