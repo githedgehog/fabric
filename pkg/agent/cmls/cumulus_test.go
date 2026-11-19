@@ -336,6 +336,59 @@ func TestBuildConfigErrors(t *testing.T) {
 			err: "external attachment leaf-01--ext-01-2: vlan 10 on port swp2 is already used by leaf-01--ext-01",
 		},
 		{
+			name:    "vx-ext-attach-static-no-ip",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: withExtAttachments(map[string]vpcapi.ExternalAttachmentSpec{
+				"leaf-01--ext-01": {Connection: "leaf-01--external", External: "ext-01", Static: &vpcapi.ExternalAttachmentStatic{VLAN: 10, RemoteIP: "100.1.10.1"}},
+			}),
+			err: "external attachment leaf-01--ext-01: no IP",
+		},
+		{
+			name:    "vx-ext-attach-static-invalid-remote-ip",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: withExtAttachments(map[string]vpcapi.ExternalAttachmentSpec{
+				"leaf-01--ext-01": {Connection: "leaf-01--external", External: "ext-01", Static: &vpcapi.ExternalAttachmentStatic{VLAN: 10, IP: "100.1.10.2/24", RemoteIP: "100.1.10"}},
+			}),
+			err: `external attachment leaf-01--ext-01: invalid remote IP "100.1.10"`,
+		},
+		{
+			name:    "vx-ext-attach-static-no-base-community",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: func(agent *agentapi.Agent) {
+				withExtAttachments(map[string]vpcapi.ExternalAttachmentSpec{
+					"leaf-01--ext-01": {Connection: "leaf-01--external", External: "ext-01", Static: &vpcapi.ExternalAttachmentStatic{VLAN: 10, IP: "100.1.10.2/24", RemoteIP: "100.1.10.1"}},
+				})(agent)
+				agent.Spec.Config.BaseVPCCommunity = ""
+			},
+			err: "external attachment leaf-01--ext-01: no base VPC community",
+		},
+		{
+			name:    "vx-ext-static-invalid-prefix",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: func(agent *agentapi.Agent) {
+				withExtAttachments(map[string]vpcapi.ExternalAttachmentSpec{
+					"leaf-01--ext-01": {Connection: "leaf-01--external", External: "ext-01", Static: &vpcapi.ExternalAttachmentStatic{VLAN: 10, IP: "100.1.10.2/24", RemoteIP: "100.1.10.1"}},
+				})(agent)
+				agent.Spec.Externals["ext-01"].Static.Prefixes = []string{"0.0.0.0"}
+			},
+			err: `external ext-01: invalid static prefix "0.0.0.0"`,
+		},
+		{
+			name:    "vx-leaf-no-base-community",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: func(agent *agentapi.Agent) {
+				agent.Spec.Config.SpineLeaf = &agentapi.AgentSpecConfigSpineLeaf{}
+				agent.Spec.Switch.Role = wiringapi.SwitchRoleServerLeaf
+				agent.Spec.Switch.VTEPIP = "172.30.12.0/32"
+			},
+			err: "no base VPC community",
+		},
+		{
 			name:    "sn5610-speed-on-breakout-port",
 			profile: &switchprofile.CumulusNvidiaSN5610,
 			speeds:  map[string]string{"E1/2": "400G"},
@@ -580,8 +633,12 @@ func withExtAttachments(attaches map[string]vpcapi.ExternalAttachmentSpec) func(
 		agent.Spec.Connections["leaf-01--external"] = wiringapi.ConnectionSpec{External: &wiringapi.ConnExternal{
 			Link: wiringapi.ConnExternalLink{Switch: wiringapi.BasePortName{Port: "leaf-01/E1/2"}},
 		}}
-		agent.Spec.Externals = map[string]vpcapi.ExternalSpec{"ext-01": {IPv4Namespace: "default"}}
+		agent.Spec.Externals = map[string]vpcapi.ExternalSpec{"ext-01": {
+			IPv4Namespace: "default",
+			Static:        &vpcapi.ExternalStaticSpec{Prefixes: []string{"0.0.0.0/0"}},
+		}}
 		agent.Spec.Catalog.VPCVNIs["ext@ext-01"] = 300
+		agent.Spec.Config.BaseVPCCommunity = "50000:0"
 		agent.Spec.ExternalAttachments = attaches
 	}
 }

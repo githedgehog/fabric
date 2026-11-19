@@ -1175,6 +1175,12 @@
         state: enabled
       policy:
         community-list:
+          all-externals:
+            rule:
+              '10':
+                action: permit
+                community:
+                  50000:0: {}
           gw-prio-0:
             rule:
               '10':
@@ -1418,9 +1424,24 @@
                   community-list: gw-prio-9
                 set:
                   local-preference: 201
+              '65525':
+                action:
+                  permit: {}
+                match:
+                  community-list: all-externals
+                set:
+                  local-preference: 150
               '65535':
                 action:
                   permit: {}
+          ext-static--ext-snp-02:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                set:
+                  community:
+                    50000:0: {}
           import-vrf--vpc-01:
             rule:
               '10005':
@@ -1706,6 +1727,10 @@
           bgp:
             address-family:
               ipv4-unicast:
+                redistribute:
+                  static:
+                    route-map: ext-static--ext-snp-02
+                    state: enabled
                 route-export:
                   to-evpn:
                     state: enabled
@@ -1714,6 +1739,10 @@
                 state: enabled
             rd: 172.30.8.2:100
             state: enabled
+          static:
+            0.0.0.0/0:
+              via:
+                100.1.20.1: {}
     service:
       dhcp-relay:
         mgmt:
