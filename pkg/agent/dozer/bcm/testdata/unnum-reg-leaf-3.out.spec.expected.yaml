@@ -66,6 +66,12 @@ asPathLists:
     members:
     - _65100_
     - _65534_
+  gateway-origin-any-hop:
+    members:
+    - _65534$
+  leaf-transit:
+    members:
+    - _65100_.*_65100_
 bfdProfiles:
   fabric:
     desiredMinimumTxInterval: 300
@@ -698,11 +704,25 @@ routeMaps:
         conditions:
           matchPrefixLists: static-ext-subnets
         result: accept
+  loopback-import:
+    statements:
+      "20":
+        conditions:
+          matchAsPathList: leaf-transit
+        result: reject
+      "65535":
+        conditions: {}
+        result: accept
   loopback-vtep:
     statements:
       "10":
         conditions:
           matchPrefixLists: vtep-prefix
+        result: accept
+      "20":
+        conditions:
+          matchAsPathList: gateway-origin-any-hop
+          matchPrefixLists: all-vtep-prefixes
         result: accept
       "100":
         conditions:
@@ -952,6 +972,8 @@ vrfs:
           ipv4Unicast: true
           ipv4UnicastExportPolicies:
           - loopback-vtep
+          ipv4UnicastImportPolicies:
+          - loopback-import
           l2vpnEvpn: true
           l2vpnEvpnImportPolicies:
           - l2vpn-neighbors
@@ -964,6 +986,8 @@ vrfs:
           ipv4Unicast: true
           ipv4UnicastExportPolicies:
           - loopback-vtep
+          ipv4UnicastImportPolicies:
+          - loopback-import
           l2vpnEvpn: true
           l2vpnEvpnImportPolicies:
           - l2vpn-neighbors

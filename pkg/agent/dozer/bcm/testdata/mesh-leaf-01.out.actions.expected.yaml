@@ -1383,27 +1383,6 @@
         name: "100"
       name: "100"
   weight: 21
-- path: /routing-policy/policy-definitions/policy-definition[name=loopback-vtep]/statements/statement[name=20]
-  summary: Create Route Map Statement 20
-  type: update
-  value:
-    statement:
-    - actions:
-        config:
-          policy-result: ACCEPT_ROUTE
-      conditions:
-        bgp-conditions:
-          match-as-path-set:
-            config:
-              as-path-set: gateway-origin
-              match-set-options: ANY
-        match-prefix-set:
-          config:
-            prefix-set: all-vtep-prefixes
-      config:
-        name: "20"
-      name: "20"
-  weight: 21
 - path: /routing-policy/policy-definitions/policy-definition[name=protocol-loopback-only]/statements/statement[name=10]
   summary: Create Route Map Statement 10
   type: update

@@ -114,3 +114,62 @@ func TestUnmarshalOCVRFsDottedAS(t *testing.T) {
 	require.Equal(t, new(uint32(65100)), bgp.Neighbors["1.2.3.4"].RemoteAS)
 	require.Equal(t, new(uint32(65536)), bgp.Neighbors["1.2.3.4"].LocalAS)
 }
+
+func TestUnmarshalOCVRFsIPv4AllowOwnAS(t *testing.T) {
+	neighbor := func(addr string, enabled bool) *oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor {
+		return &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor{
+			NeighborAddress: new(addr),
+			Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_Config{
+				NeighborAddress: new(addr),
+			},
+			AfiSafis: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis{
+				AfiSafi: map[oc.E_OpenconfigBgpTypes_AFI_SAFI_TYPE]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis_AfiSafi{ //nolint:exhaustive,nolintlint
+					oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST: {
+						AfiSafiName: oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_IPV4_UNICAST,
+						AllowOwnAs: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis_AfiSafi_AllowOwnAs{
+							Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis_AfiSafi_AllowOwnAs_Config{
+								Enabled: new(enabled),
+								AsCount: new(uint8(1)),
+							},
+						},
+					},
+				},
+			},
+		}
+	}
+
+	ocVal := &oc.OpenconfigNetworkInstance_NetworkInstances{
+		NetworkInstance: map[string]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance{
+			VRFDefault: {
+				Name:   new(VRFDefault),
+				Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Config{Name: new(VRFDefault)},
+				Protocols: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols{
+					Protocol: map[oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Key]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol{
+						{Identifier: oc.OpenconfigPolicyTypes_INSTALL_PROTOCOL_TYPE_BGP, Name: "bgp"}: {
+							Bgp: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp{
+								Global: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global{
+									Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Global_Config{
+										As: oc.UnionUint32(65100),
+									},
+								},
+								Neighbors: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors{
+									Neighbor: map[string]*oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor{
+										"1.2.3.4": neighbor("1.2.3.4", true),
+										"1.2.3.5": neighbor("1.2.3.5", false),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	vrfs, err := unmarshalOCVRFs(ocVal)
+	require.NoError(t, err)
+	neighbors := vrfs[VRFDefault].BGP.Neighbors
+	require.Equal(t, new(uint8(1)), neighbors["1.2.3.4"].IPv4AllowOwnAS)
+	// the switch may keep the count around after disabling it
+	require.Nil(t, neighbors["1.2.3.5"].IPv4AllowOwnAS)
+}

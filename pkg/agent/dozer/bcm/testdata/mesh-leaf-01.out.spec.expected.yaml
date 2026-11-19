@@ -495,11 +495,6 @@ routeMaps:
         conditions:
           matchPrefixLists: vtep-prefix
         result: accept
-      "20":
-        conditions:
-          matchAsPathList: gateway-origin
-          matchPrefixLists: all-vtep-prefixes
-        result: accept
       "100":
         conditions:
           matchPrefixLists: static-ext-subnets
