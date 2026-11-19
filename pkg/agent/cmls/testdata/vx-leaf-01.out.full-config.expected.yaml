@@ -1454,6 +1454,14 @@
                 aspath-ignore: enabled
             rd: 172.30.8.2:300
             state: enabled
+          static:
+            0.0.0.0/0:
+              via:
+                10.0.11.10: {}
+            10.99.0.0/16:
+              via:
+                10.0.1.10: {}
+                10.0.1.20: {}
       vpc-02:
         evpn:
           state: enabled

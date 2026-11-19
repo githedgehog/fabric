@@ -130,13 +130,38 @@ func TestBuildConfigErrors(t *testing.T) {
 			err:     "vpc vpc-01: permit #0: subnet other not found",
 		},
 		{
-			name:    "vx-vpc-static-routes-unsupported",
+			name:    "vx-vpc-static-route-invalid-prefix",
 			profile: &switchprofile.CumulusVX,
 			port:    "E1/1",
-			mutate: withVPC01(func(vpc *vpcapi.VPCSpec) {
-				vpc.StaticRoutes = []vpcapi.VPCStaticRoute{{Prefix: "10.99.0.0/24", NextHops: []string{"10.0.1.10"}}}
-			}),
-			err: "vpc vpc-01: static routes aren't supported",
+			mutate: withStaticRoutes(
+				vpcapi.VPCStaticRoute{Prefix: "10.99.0.0/16", NextHops: []string{"10.0.1.10"}},
+				vpcapi.VPCStaticRoute{Prefix: "fd00::/64", NextHops: []string{"10.0.1.10"}},
+			),
+			err: `vpc vpc-01: static route #1: invalid prefix "fd00::/64"`,
+		},
+		{
+			name:    "vx-vpc-static-route-invalid-next-hop",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate:  withStaticRoutes(vpcapi.VPCStaticRoute{Prefix: "10.99.0.0/16", NextHops: []string{"10.0.1.10", "10.0.1"}}),
+			err:     `vpc vpc-01: static route #0: invalid next hop "10.0.1"`,
+		},
+		{
+			name:    "vx-vpc-static-route-no-next-hops",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate:  withStaticRoutes(vpcapi.VPCStaticRoute{Prefix: "10.99.0.0/16"}),
+			err:     "vpc vpc-01: static route #0: no next hops",
+		},
+		{
+			name:    "vx-vpc-static-route-prefix-twice",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: withStaticRoutes(
+				vpcapi.VPCStaticRoute{Prefix: "10.99.0.0/16", NextHops: []string{"10.0.1.10"}},
+				vpcapi.VPCStaticRoute{Prefix: "10.99.0.0/16", NextHops: []string{"10.0.1.20"}},
+			),
+			err: "vpc vpc-01: static route #1: prefix 10.99.0.0/16 is used more than once",
 		},
 		{
 			name:    "vx-subnet-host-bgp-unsupported",
@@ -424,6 +449,13 @@ func withVPC01(mutate func(vpc *vpcapi.VPCSpec)) func(agent *agentapi.Agent) {
 		vpc := agent.Spec.VPCs["vpc-01"]
 		mutate(&vpc)
 		agent.Spec.VPCs["vpc-01"] = vpc
+	}
+}
+
+func withStaticRoutes(routes ...vpcapi.VPCStaticRoute) func(agent *agentapi.Agent) {
+	return func(agent *agentapi.Agent) {
+		withVPC01(func(vpc *vpcapi.VPCSpec) { vpc.StaticRoutes = routes })(agent)
+		agent.Spec.AttachedVPCs = map[string]bool{"vpc-01": true}
 	}
 }
 

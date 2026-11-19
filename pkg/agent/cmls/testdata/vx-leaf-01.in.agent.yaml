@@ -397,6 +397,14 @@ spec:
       permit:
         - - default
           - subnet-03
+      staticRoutes:
+        - nextHops:
+            - 10.0.1.20
+            - 10.0.1.10
+          prefix: 10.99.0.0/16
+        - nextHops:
+            - 10.0.11.10
+          prefix: 0.0.0.0/0
       subnets:
         default:
           dhcp: {}

@@ -95,6 +95,7 @@ type VPC struct {
 	RouteSumm   []string
 	Peers       []VPCPeer
 	PeerSubnets map[uint32]string // subnet VNI -> subnet of all peered VPCs
+	Routes      map[string][]string
 }
 
 // VPCPeer is a peered VPC, only its own subnets are imported from its VRF
@@ -639,10 +640,36 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 
 	// a VRF per VPC attached to the switch or peered with one, with the VPC VNI as L3VNI
 	vpcs := []VPC{}
-	for vpcName := range agent.Spec.VPCs {
+	for vpcName, vpc := range agent.Spec.VPCs {
 		subnets := map[uint32]string{}
 		for subnetVNI, subnet := range vpcSubnets[vpcName] {
 			subnets[subnetVNI%100] = subnet
+		}
+
+		// static routes are only local to the switches the VPC is attached to, they aren't redistributed
+		routes := map[string][]string{}
+		for idx, route := range vpc.StaticRoutes {
+			if !agent.Spec.AttachedVPCs[vpcName] {
+				break
+			}
+			prefix, err := netip.ParsePrefix(route.Prefix)
+			if err != nil || !prefix.Addr().Is4() {
+				return nil, fmt.Errorf("vpc %s: static route #%d: invalid prefix %q", vpcName, idx, route.Prefix) //nolint:err113
+			}
+			if _, ok := routes[prefix.String()]; ok {
+				return nil, fmt.Errorf("vpc %s: static route #%d: prefix %s is used more than once", vpcName, idx, prefix) //nolint:err113
+			}
+			if len(route.NextHops) == 0 {
+				return nil, fmt.Errorf("vpc %s: static route #%d: no next hops", vpcName, idx) //nolint:err113
+			}
+			for _, nextHop := range route.NextHops {
+				addr, err := netip.ParseAddr(nextHop)
+				if err != nil || !addr.Is4() {
+					return nil, fmt.Errorf("vpc %s: static route #%d: invalid next hop %q", vpcName, idx, nextHop) //nolint:err113
+				}
+				routes[prefix.String()] = append(routes[prefix.String()], addr.String())
+			}
+			slices.Sort(routes[prefix.String()])
 		}
 
 		vpcs = append(vpcs, VPC{
@@ -652,6 +679,7 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 			RouteSumm:   routeSumm[vpcName],
 			Peers:       slices.SortedFunc(slices.Values(peers[vpcName]), func(a, b VPCPeer) int { return cmp.Compare(a.Name, b.Name) }),
 			PeerSubnets: peerSubnets[vpcName],
+			Routes:      routes,
 		})
 	}
 
@@ -958,9 +986,6 @@ func checkSupported(agent *agentapi.Agent) error {
 		vpc := agent.Spec.VPCs[vpcName]
 		if vpc.Mode != vpcapi.VPCModeL2VNI {
 			return fmt.Errorf("vpc %s: mode %s isn't supported", vpcName, vpc.Mode) //nolint:err113
-		}
-		if len(vpc.StaticRoutes) > 0 {
-			return fmt.Errorf("vpc %s: static routes aren't supported", vpcName) //nolint:err113
 		}
 
 		for _, subnetName := range slices.Sorted(maps.Keys(vpc.Subnets)) {
