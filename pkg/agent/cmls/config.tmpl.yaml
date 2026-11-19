@@ -276,8 +276,14 @@
                 action: permit
                 aspath-exp: ^{{ $.Gateway.ASN }}$
         {{- end }}
-        {{- if $.GatewayPrios }}
+        {{- if $.IsLeaf }}
         community-list:
+          all-externals:
+            rule:
+              '10':
+                action: permit
+                community:
+                  {{ $.BaseVPCCommunity }}: {}
           {{- range $prio := $.GatewayPrios }}
           {{ $prio.Name }}:
             rule:
@@ -369,9 +375,28 @@
                 set:
                   local-preference: {{ $prio.LocalPref }}
               {{- end }}
+              '65525':
+                action:
+                  permit: {}
+                match:
+                  community-list: all-externals
+                set:
+                  local-preference: 150
               '65535':
                 action:
                   permit: {}
+          {{- end }}
+          {{- range $ext := $.Externals }}
+          {{- if $ext.Static }}
+          ext-static--{{ $ext.Name }}:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                set:
+                  community:
+                    {{ $.BaseVPCCommunity }}: {}
+          {{- end }}
           {{- end }}
           {{- range $vpc := $.VPCs }}
           {{- if $vpc.Peers }}
@@ -582,6 +607,12 @@
           bgp:
             address-family:
               ipv4-unicast:
+                {{- if $ext.Static }}
+                redistribute:
+                  static:
+                    route-map: ext-static--{{ $ext.Name }}
+                    state: enabled
+                {{- end }}
                 route-export:
                   to-evpn:
                     state: enabled
@@ -590,6 +621,16 @@
                 state: enabled
             rd: {{ $.RouterID }}:{{ $ext.VNI }}
             state: enabled
+          {{- if $ext.Routes }}
+          static:
+            {{- range $prefix, $nextHops := $ext.Routes }}
+            {{ $prefix }}:
+              via:
+                {{- range $nextHop := $nextHops }}
+                {{ $nextHop }}: {}
+                {{- end }}
+            {{- end }}
+          {{- end }}
       {{- end }}
     {{- if $.DHCPServer }}
     service:
