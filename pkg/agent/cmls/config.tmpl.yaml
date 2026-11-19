@@ -360,6 +360,18 @@
             type: ipv4
           {{- end }}
           {{- range $ext := $.Externals }}
+          {{- if $ext.ImportPrefixes }}
+          ext-import--{{ $ext.Name }}:
+            rule:
+              {{- range $seq, $subnet := $ext.ImportPrefixes }}
+              '{{ $seq }}':
+                action: permit
+                match:
+                  {{ $subnet }}:
+                    max-prefix-len: 32
+              {{- end }}
+            type: ipv4
+          {{- end }}
           {{- if and $ext.Neighbors $ext.InboundPrefixes }}
           ext-inbound--{{ $ext.Name }}:
             rule:
@@ -381,6 +393,18 @@
           {{- end }}
           {{- end }}
           {{- range $vpc := $.VPCs }}
+          {{- range $peer := $vpc.ExtPeers }}
+          {{ $peer.PrefixList }}:
+            rule:
+              {{- range $seq, $prefix := $peer.Prefixes }}
+              '{{ $seq }}':
+                action: permit
+                match:
+                  {{ $prefix }}:
+                    max-prefix-len: 32
+              {{- end }}
+            type: ipv4
+          {{- end }}
           vpc-not-subnets--{{ $vpc.Name }}:
             rule:
               {{- range $seq, $subnet := $vpc.Subnets }}
@@ -462,6 +486,16 @@
                   permit: {}
           {{- end }}
           {{- range $ext := $.Externals }}
+          {{- if $ext.ImportPrefixes }}
+          ext-import--{{ $ext.Name }}:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                match:
+                  ip-prefix-list: ext-import--{{ $ext.Name }}
+                  type: ipv4
+          {{- end }}
           {{- if $ext.Neighbors }}
           ext-inbound--{{ $ext.Name }}:
             rule:
@@ -535,9 +569,18 @@
           {{- end }}
           {{- end }}
           {{- range $vpc := $.VPCs }}
-          {{- if $vpc.Peers }}
+          {{- if $vpc.ImportVRFs }}
           import-vrf--{{ $vpc.Name }}:
             rule:
+              {{- range $peer := $vpc.ExtPeers }}
+              '{{ $peer.DenyRuleID }}':
+                action:
+                  deny: {}
+                match:
+                  ip-prefix-list: ipns-subnets--{{ $peer.IPv4Namespace }}
+                  source-vrf: {{ $peer.VRF }}
+                  type: ipv4
+              {{- end }}
               {{- range $peer := $vpc.Peers }}
               '{{ $peer.RuleID }}':
                 action:
@@ -547,12 +590,28 @@
                   source-vrf: {{ $peer.VRF }}
                   type: ipv4
               {{- end }}
+              {{- if $vpc.Peers }}
               '50000':
                 action:
                   permit: {}
                 match:
                   ip-prefix-list: vpc-peers--{{ $vpc.Name }}
                   type: ipv4
+              {{- end }}
+              {{- range $peer := $vpc.ExtPeers }}
+              '{{ $peer.PermitRuleID }}':
+                action:
+                  permit: {}
+                match:
+                  {{- if $peer.CommunityList }}
+                  community-list: {{ $peer.CommunityList }}
+                  {{- end }}
+                  ip-prefix-list: {{ $peer.PrefixList }}
+                  source-vrf: {{ $peer.VRF }}
+                  type: ipv4
+                set:
+                  local-preference: 150
+              {{- end }}
               '65535':
                 action:
                   deny: {}
@@ -697,12 +756,12 @@
                 route-export:
                   to-evpn:
                     state: enabled
-                {{- if $vpc.Peers }}
+                {{- if $vpc.ImportVRFs }}
                 route-import:
                   from-vrf:
                     list:
-                      {{- range $peer := $vpc.Peers }}
-                      {{ $peer.VRF }}: {}
+                      {{- range $vrf := $vpc.ImportVRFs }}
+                      {{ $vrf }}: {}
                       {{- end }}
                     route-map: import-vrf--{{ $vpc.Name }}
                     state: enabled
@@ -752,6 +811,16 @@
                 route-export:
                   to-evpn:
                     state: enabled
+                {{- if $ext.ImportPrefixes }}
+                route-import:
+                  from-vrf:
+                    list:
+                      {{- range $vrf := $ext.ImportVRFs }}
+                      {{ $vrf }}: {}
+                      {{- end }}
+                    route-map: ext-import--{{ $ext.Name }}
+                    state: enabled
+                {{- end }}
                 state: enabled
               l2vpn-evpn:
                 state: enabled
