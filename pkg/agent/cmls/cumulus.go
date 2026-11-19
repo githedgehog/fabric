@@ -121,7 +121,22 @@ type VPC struct {
 	RouteSumm   []string
 	Peers       []VPCPeer
 	PeerSubnets map[uint32]string // subnet VNI -> subnet of all peered VPCs
+	ExtPeers    []VPCExtPeer
+	ImportVRFs  []string
 	Routes      map[string][]string
+}
+
+// VPCExtPeer is an external peered with the VPC, only the permitted prefixes outside of the VPC's IPv4 namespace are
+// imported from its VRF
+type VPCExtPeer struct {
+	Name          string
+	VRF           string
+	DenyRuleID    uint32
+	PermitRuleID  uint32
+	IPv4Namespace string
+	PrefixList    string
+	Prefixes      map[uint32]string // prefix ID -> prefix
+	CommunityList string
 }
 
 // VPCPeer is a peered VPC, only its own subnets are imported from its VRF
@@ -148,6 +163,8 @@ type External struct {
 	InboundPrefixes   map[int]PrefixListEntry // rule ID -> entry
 	SetCommunities    []string                // replace the ones on the routes from the external
 	OutboundCommunity string
+	ImportVRFs        []string
+	ImportPrefixes    map[uint32]string // subnet ID -> permitted VPC subnet
 }
 
 func extVRF(extName string) string {
@@ -979,12 +996,108 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		return cmp.Or(cmp.Compare(a.Port, b.Port), cmp.Compare(a.VLAN, b.VLAN))
 	})
 
+	bgpExternals := len(ipv4Namespaces) > 0
+
+	// the VPCs peered with an external import its permitted prefixes, except for the ones in the VPC's IPv4 namespace, and
+	// the external imports the permitted VPC subnets
+	extPeers := map[string][]VPCExtPeer{}
+	for _, peeringName := range slices.Sorted(maps.Keys(agent.Spec.ExternalPeerings)) {
+		peering := agent.Spec.ExternalPeerings[peeringName]
+		extName, vpcName := peering.Permit.External.Name, peering.Permit.VPC.Name
+		ext, ok := externals[extName]
+		if !ok {
+			return nil, fmt.Errorf("external peering %s: external %s isn't attached to the switch", peeringName, extName) //nolint:err113
+		}
+		vpc, ok := agent.Spec.VPCs[vpcName]
+		if !ok {
+			return nil, fmt.Errorf("external peering %s: vpc %s not found", peeringName, vpcName) //nolint:err113
+		}
+		if _, ok := agent.Spec.IPv4Namespaces[vpc.IPv4Namespace]; !ok {
+			return nil, fmt.Errorf("external peering %s: ipv4 namespace %s not found", peeringName, vpc.IPv4Namespace) //nolint:err113
+		}
+		if slices.ContainsFunc(extPeers[vpcName], func(peer VPCExtPeer) bool { return peer.Name == extName }) {
+			return nil, fmt.Errorf("external peering %s: vpc %s is already peered with external %s", peeringName, vpcName, extName) //nolint:err113
+		}
+		// the import route-map rules of the externals are 5000+ID and 50000+ID, so they don't overlap with the VPC ones
+		extID := agent.Spec.Catalog.ExternalIDs[extName]
+		if extID < 10 || extID >= 5000 {
+			return nil, fmt.Errorf("external %s: external ID %d isn't between 10 and 5000", extName, extID) //nolint:err113
+		}
+		prefixID := func(prefix string) (uint32, error) {
+			id := agent.Spec.Catalog.SubnetIDs[prefix]
+			if id == 0 || id >= 65000 {
+				return 0, fmt.Errorf("external peering %s: prefix %s: ID %d isn't between 1 and 65000", peeringName, prefix, id) //nolint:err113
+			}
+
+			return id, nil
+		}
+
+		for _, subnetName := range peering.Permit.VPC.Subnets {
+			subnet, ok := vpc.Subnets[subnetName]
+			if !ok || subnet == nil {
+				return nil, fmt.Errorf("external peering %s: subnet %s/%s not found", peeringName, vpcName, subnetName) //nolint:err113
+			}
+			id, err := prefixID(subnet.Subnet)
+			if err != nil {
+				return nil, err
+			}
+			if ext.ImportPrefixes == nil {
+				ext.ImportPrefixes = map[uint32]string{}
+			}
+			ext.ImportPrefixes[id] = subnet.Subnet
+			if !slices.Contains(ext.ImportVRFs, vpcVRF(vpcName)) {
+				ext.ImportVRFs = append(ext.ImportVRFs, vpcVRF(vpcName))
+				slices.Sort(ext.ImportVRFs)
+			}
+		}
+
+		prefixes := map[uint32]string{}
+		for _, prefix := range peering.Permit.External.Prefixes {
+			id, err := prefixID(prefix.Prefix)
+			if err != nil {
+				return nil, err
+			}
+			prefixes[id] = prefix.Prefix
+		}
+		if len(prefixes) == 0 {
+			continue
+		}
+		// the routes from a BGP external also have to carry its inbound community
+		commList := ""
+		if ext.InboundCommunity != "" {
+			commList = "ext-inbound--" + extName
+		}
+		// the permit rule matches the source VRF, as another external peered with the VPC could otherwise get its routes
+		// in for the prefixes this one permits
+		extPeers[vpcName] = append(extPeers[vpcName], VPCExtPeer{
+			Name:          extName,
+			VRF:           ext.VRF,
+			DenyRuleID:    5000 + uint32(extID),
+			PermitRuleID:  50000 + uint32(extID),
+			IPv4Namespace: vpc.IPv4Namespace,
+			PrefixList:    fmt.Sprintf("import-vrf--%s--%s", vpcName, extName),
+			Prefixes:      prefixes,
+			CommunityList: commList,
+		})
+		ipv4Namespaces[vpc.IPv4Namespace] = true
+	}
+	for idx := range vpcs {
+		vpc := &vpcs[idx]
+		vpc.ExtPeers = extPeers[vpc.Name]
+		for _, peer := range vpc.Peers {
+			vpc.ImportVRFs = append(vpc.ImportVRFs, peer.VRF)
+		}
+		for _, peer := range vpc.ExtPeers {
+			vpc.ImportVRFs = append(vpc.ImportVRFs, peer.VRF)
+		}
+		slices.Sort(vpc.ImportVRFs)
+	}
+
 	// an external can send back the routes it got from the fabric over another attachment or border leaf, which the BGP
 	// loop prevention doesn't catch as they don't have the leaf's own ASN in the path, so the routes from the BGP
 	// externals with the spine or gateway ASN of the switch's domain in the path are dropped
 	fabricASPaths := map[int]string{}
-	nsList := []IPv4Namespace{}
-	if len(ipv4Namespaces) > 0 {
+	if bgpExternals {
 		domains := agent.Spec.Switch.Topology.Domains
 		if len(domains) != 1 {
 			return nil, fmt.Errorf("switch with a BGP external has to be in a single domain") //nolint:err113
@@ -999,14 +1112,15 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		if domain.GatewayASN != 0 {
 			fabricASPaths[20] = fmt.Sprintf("_%d_", domain.GatewayASN)
 		}
+	}
 
-		for _, nsName := range slices.Sorted(maps.Keys(ipv4Namespaces)) {
-			subnets := map[int]string{}
-			for idx, subnet := range agent.Spec.IPv4Namespaces[nsName].Subnets {
-				subnets[idx+1] = subnet
-			}
-			nsList = append(nsList, IPv4Namespace{Name: nsName, Subnets: subnets})
+	nsList := []IPv4Namespace{}
+	for _, nsName := range slices.Sorted(maps.Keys(ipv4Namespaces)) {
+		subnets := map[int]string{}
+		for idx, subnet := range agent.Spec.IPv4Namespaces[nsName].Subnets {
+			subnets[idx+1] = subnet
 		}
+		nsList = append(nsList, IPv4Namespace{Name: nsName, Subnets: subnets})
 	}
 
 	// the DHCP relay sends a reply out of the first interface with the IP from the link selection it got, so the SVIs
@@ -1186,7 +1300,7 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		VXLANSource:      vtepIP.Addr().String(),
 		VPCs:             vpcs,
 		Externals:        slices.SortedFunc(maps.Values(externals), func(a, b *External) int { return cmp.Compare(a.Name, b.Name) }),
-		BGPExternals:     len(nsList) > 0,
+		BGPExternals:     bgpExternals,
 		FabricASPaths:    fabricASPaths,
 		IPv4Namespaces:   nsList,
 		BFDProfiles:      bfdProfiles,

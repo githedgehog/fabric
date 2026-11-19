@@ -448,6 +448,63 @@ func TestBuildConfigErrors(t *testing.T) {
 			err:     "domain default not found",
 		},
 		{
+			name:    "vx-ext-peering-external-not-attached",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate:  withExtPeering(func(_ *agentapi.Agent, peering *vpcapi.ExternalPeeringSpec) { peering.Permit.External.Name = "ext-02" }),
+			err:     "external peering vpc-01--ext-01: external ext-02 isn't attached to the switch",
+		},
+		{
+			name:    "vx-ext-peering-vpc-not-found",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate:  withExtPeering(func(_ *agentapi.Agent, peering *vpcapi.ExternalPeeringSpec) { peering.Permit.VPC.Name = "vpc-03" }),
+			err:     "external peering vpc-01--ext-01: vpc vpc-03 not found",
+		},
+		{
+			name:    "vx-ext-peering-ipns-not-found",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate:  withExtPeering(func(agent *agentapi.Agent, _ *vpcapi.ExternalPeeringSpec) { agent.Spec.IPv4Namespaces = nil }),
+			err:     "external peering vpc-01--ext-01: ipv4 namespace default not found",
+		},
+		{
+			name:    "vx-ext-peering-twice",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: withExtPeering(func(agent *agentapi.Agent, peering *vpcapi.ExternalPeeringSpec) {
+				agent.Spec.ExternalPeerings["vpc-01--ext-01-2"] = *peering
+			}),
+			err: "external peering vpc-01--ext-01-2: vpc vpc-01 is already peered with external ext-01",
+		},
+		{
+			name:    "vx-ext-peering-ext-id-invalid",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: withExtPeering(func(agent *agentapi.Agent, _ *vpcapi.ExternalPeeringSpec) {
+				agent.Spec.Catalog.ExternalIDs["ext-01"] = 5
+			}),
+			err: "external ext-01: external ID 5 isn't between 10 and 5000",
+		},
+		{
+			name:    "vx-ext-peering-subnet-not-found",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: withExtPeering(func(_ *agentapi.Agent, peering *vpcapi.ExternalPeeringSpec) {
+				peering.Permit.VPC.Subnets = []string{"other"}
+			}),
+			err: "external peering vpc-01--ext-01: subnet vpc-01/other not found",
+		},
+		{
+			name:    "vx-ext-peering-no-prefix-id",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: withExtPeering(func(agent *agentapi.Agent, _ *vpcapi.ExternalPeeringSpec) {
+				delete(agent.Spec.Catalog.SubnetIDs, "0.0.0.0/0")
+			}),
+			err: "external peering vpc-01--ext-01: prefix 0.0.0.0/0: ID 0 isn't between 1 and 65000",
+		},
+		{
 			name:    "vx-leaf-no-base-community",
 			profile: &switchprofile.CumulusVX,
 			port:    "E1/1",
@@ -723,6 +780,26 @@ func withBGPExtAttachment(mutate func(agent *agentapi.Agent)) func(agent *agenta
 		agent.Spec.Switch.Topology.Domains = []string{"default"}
 		agent.Spec.Config.Domains = map[string]wiringapi.FabricDomainSpec{"default": {SpineASN: 65100, GatewayASN: 65534}}
 		mutate(agent)
+	}
+}
+
+// withExtPeering is vpc-01 peered with the static ext-01
+func withExtPeering(mutate func(agent *agentapi.Agent, peering *vpcapi.ExternalPeeringSpec)) func(agent *agentapi.Agent) {
+	return func(agent *agentapi.Agent) {
+		withExtAttachments(map[string]vpcapi.ExternalAttachmentSpec{
+			"leaf-01--ext-01": {Connection: "leaf-01--external", External: "ext-01", Static: &vpcapi.ExternalAttachmentStatic{VLAN: 10, IP: "100.1.10.2/24", RemoteIP: "100.1.10.1"}},
+		})(agent)
+		agent.Spec.IPv4Namespaces = map[string]vpcapi.IPv4NamespaceSpec{"default": {Subnets: []string{"10.0.0.0/16"}}}
+		withVPC01(func(vpc *vpcapi.VPCSpec) { vpc.IPv4Namespace = "default" })(agent)
+		agent.Spec.Catalog.ExternalIDs = map[string]uint16{"ext-01": 10}
+		agent.Spec.Catalog.SubnetIDs = map[string]uint32{"10.0.1.0/24": 100, "0.0.0.0/0": 103}
+		peering := vpcapi.ExternalPeeringSpec{Permit: vpcapi.ExternalPeeringSpecPermit{
+			VPC:      vpcapi.ExternalPeeringSpecVPC{Name: "vpc-01", Subnets: []string{"default"}},
+			External: vpcapi.ExternalPeeringSpecExternal{Name: "ext-01", Prefixes: []vpcapi.ExternalPeeringSpecPrefix{{Prefix: "0.0.0.0/0"}}},
+		}}
+		agent.Spec.ExternalPeerings = map[string]vpcapi.ExternalPeeringSpec{}
+		mutate(agent, &peering)
+		agent.Spec.ExternalPeerings["vpc-01--ext-01"] = peering
 	}
 }
 

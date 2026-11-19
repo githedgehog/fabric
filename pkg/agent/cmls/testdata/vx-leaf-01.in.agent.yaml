@@ -34,6 +34,7 @@ spec:
       10.0.1.0/24: 100
       10.0.2.0/24: 101
       10.0.3.0/24: 102
+      10.0.11.0/24: 105
       10.0.12.0/24: 104
     vpcSubnetVNIs:
       vpc-01:
@@ -240,6 +241,17 @@ spec:
       switch:
         vlan: 30
   externalPeerings:
+    vpc-01--ext-bgp-01:
+      permit:
+        external:
+          name: ext-bgp-01
+          prefixes:
+            - prefix: 0.0.0.0/0
+        vpc:
+          name: vpc-01
+          subnets:
+            - default
+            - subnet-02
     vpc-02--ext-snp-02:
       permit:
         external:

@@ -1320,6 +1320,19 @@
                   10.0.0.0/16:
                     max-prefix-len: 32
             type: ipv4
+          ext-import--ext-bgp-01:
+            rule:
+              '100':
+                action: permit
+                match:
+                  10.0.1.0/24:
+                    max-prefix-len: 32
+              '105':
+                action: permit
+                match:
+                  10.0.11.0/24:
+                    max-prefix-len: 32
+            type: ipv4
           ext-inbound--ext-bgp-01:
             rule:
               '10':
@@ -1337,6 +1350,22 @@
                   203.0.113.0/24:
                     max-prefix-len: 28
                     min-prefix-len: 26
+            type: ipv4
+          ext-import--ext-snp-02:
+            rule:
+              '101':
+                action: permit
+                match:
+                  10.0.2.0/24:
+                    max-prefix-len: 32
+            type: ipv4
+          import-vrf--vpc-01--ext-bgp-01:
+            rule:
+              '103':
+                action: permit
+                match:
+                  0.0.0.0/0:
+                    max-prefix-len: 32
             type: ipv4
           vpc-not-subnets--vpc-01:
             rule:
@@ -1385,6 +1414,14 @@
                 action: permit
                 match:
                   10.0.12.0/24:
+                    max-prefix-len: 32
+            type: ipv4
+          import-vrf--vpc-02--ext-snp-02:
+            rule:
+              '103':
+                action: permit
+                match:
+                  0.0.0.0/0:
                     max-prefix-len: 32
             type: ipv4
           vpc-not-subnets--vpc-02:
@@ -1530,6 +1567,14 @@
               '65535':
                 action:
                   permit: {}
+          ext-import--ext-bgp-01:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                match:
+                  ip-prefix-list: ext-import--ext-bgp-01
+                  type: ipv4
           ext-inbound--ext-bgp-01:
             rule:
               '5':
@@ -1574,6 +1619,14 @@
                 set:
                   community:
                     64102:1000: {}
+          ext-import--ext-snp-02:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                match:
+                  ip-prefix-list: ext-import--ext-snp-02
+                  type: ipv4
           ext-static--ext-snp-02:
             rule:
               '10':
@@ -1584,6 +1637,13 @@
                     50000:0: {}
           import-vrf--vpc-01:
             rule:
+              '5012':
+                action:
+                  deny: {}
+                match:
+                  ip-prefix-list: ipns-subnets--default
+                  source-vrf: ext-ext-bgp-01
+                  type: ipv4
               '10005':
                 action:
                   deny: {}
@@ -1597,6 +1657,16 @@
                 match:
                   ip-prefix-list: vpc-peers--vpc-01
                   type: ipv4
+              '50012':
+                action:
+                  permit: {}
+                match:
+                  community-list: ext-inbound--ext-bgp-01
+                  ip-prefix-list: import-vrf--vpc-01--ext-bgp-01
+                  source-vrf: ext-ext-bgp-01
+                  type: ipv4
+                set:
+                  local-preference: 150
               '65535':
                 action:
                   deny: {}
@@ -1608,6 +1678,27 @@
                 match:
                   ip-prefix-list: vpc-subnets--vpc-01
                   type: ipv4
+          import-vrf--vpc-02:
+            rule:
+              '5010':
+                action:
+                  deny: {}
+                match:
+                  ip-prefix-list: ipns-subnets--default
+                  source-vrf: ext-ext-snp-02
+                  type: ipv4
+              '50010':
+                action:
+                  permit: {}
+                match:
+                  ip-prefix-list: import-vrf--vpc-02--ext-snp-02
+                  source-vrf: ext-ext-snp-02
+                  type: ipv4
+                set:
+                  local-preference: 150
+              '65535':
+                action:
+                  deny: {}
           vpc-redistribute-connected--vpc-02:
             rule:
               '10':
@@ -1760,6 +1851,7 @@
                 route-import:
                   from-vrf:
                     list:
+                      ext-ext-bgp-01: {}
                       vpc-vpc-03: {}
                     route-map: import-vrf--vpc-01
                     state: enabled
@@ -1799,6 +1891,12 @@
                     state: enabled
                 route-export:
                   to-evpn:
+                    state: enabled
+                route-import:
+                  from-vrf:
+                    list:
+                      ext-ext-snp-02: {}
+                    route-map: import-vrf--vpc-02
                     state: enabled
                 state: enabled
               l2vpn-evpn:
@@ -1852,6 +1950,12 @@
               ipv4-unicast:
                 route-export:
                   to-evpn:
+                    state: enabled
+                route-import:
+                  from-vrf:
+                    list:
+                      vpc-vpc-01: {}
+                    route-map: ext-import--ext-bgp-01
                     state: enabled
                 state: enabled
               l2vpn-evpn:
@@ -1912,6 +2016,12 @@
                     state: enabled
                 route-export:
                   to-evpn:
+                    state: enabled
+                route-import:
+                  from-vrf:
+                    list:
+                      vpc-vpc-02: {}
+                    route-map: ext-import--ext-snp-02
                     state: enabled
                 state: enabled
               l2vpn-evpn:
