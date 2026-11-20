@@ -181,6 +181,17 @@ spec:
               port: server-05/enp2s2
             switch:
               port: leaf-01/E1/10
+    server-06--eslag--leaf-01--leaf-02:
+      eslag:
+        links:
+          - server:
+              port: server-06/enp2s1
+            switch:
+              port: leaf-01/E1/13
+          - server:
+              port: server-06/enp2s2
+            switch:
+              port: leaf-02/E1/13
     spine-01--fabric--leaf-01:
       fabric:
         links:
@@ -465,6 +476,9 @@ spec:
         - from: 1000
           to: 2999
   vpcAttachments:
+    s06-v1:
+      connection: server-06--eslag--leaf-01--leaf-02
+      subnet: vpc-01/default
     s1-v3:
       connection: server-01--unbundled--leaf-01
       subnet: vpc-03/default

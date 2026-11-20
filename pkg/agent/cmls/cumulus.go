@@ -1310,6 +1310,10 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		if !ok {
 			continue
 		}
+		// TODO configure the ESLAG connections, they're skipped until then so the fabric can already have them
+		if conn.ESLAG != nil {
+			continue
+		}
 
 		var member *BridgeMember
 		if bond := bondsByConn[attach.Connection]; bond != nil {
