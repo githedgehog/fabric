@@ -102,18 +102,18 @@ func TestBuildConfigErrors(t *testing.T) {
 			profile: &switchprofile.CumulusVX,
 			port:    "E1/1",
 			mutate: func(agent *agentapi.Agent) {
-				agent.Spec.Connections["server-02--eslag--leaf-01--leaf-02"] = wiringapi.ConnectionSpec{ESLAG: &wiringapi.ConnESLAG{
-					Links: []wiringapi.ServerToSwitchLink{{
-						Server: wiringapi.BasePortName{Port: "server-02/enp2s1"},
-						Switch: wiringapi.BasePortName{Port: "leaf-01/E1/2"},
+				agent.Spec.Connections["leaf-01--mesh--leaf-02"] = wiringapi.ConnectionSpec{Mesh: &wiringapi.ConnMesh{
+					Links: []wiringapi.MeshLink{{
+						Leaf1: wiringapi.ConnFabricLinkSwitch{BasePortName: wiringapi.BasePortName{Port: "leaf-01/E1/2"}},
+						Leaf2: wiringapi.ConnFabricLinkSwitch{BasePortName: wiringapi.BasePortName{Port: "leaf-02/E1/2"}},
 					}},
 				}}
-				agent.Spec.VPCAttachments["server-02--vpc-01--default"] = agentapi.VPCAttachmentSpecAnn{
-					Connection: "server-02--eslag--leaf-01--leaf-02",
+				agent.Spec.VPCAttachments["leaf-01--mesh--vpc-01--default"] = agentapi.VPCAttachmentSpecAnn{
+					Connection: "leaf-01--mesh--leaf-02",
 					Subnet:     "vpc-01/default",
 				}
 			},
-			err: "conn server-02--eslag--leaf-01--leaf-02 type isn't supported",
+			err: "conn leaf-01--mesh--leaf-02 type isn't supported",
 		},
 		{
 			name:    "vx-vpc-mode-unsupported",
