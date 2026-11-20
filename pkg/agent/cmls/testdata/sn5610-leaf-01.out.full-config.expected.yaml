@@ -1702,7 +1702,6 @@
                         route-map: w_ecmp_origin
                 bfd:
                   profile: underlay
-                remote-as: external
               underlay_leaf:
                 address-family:
                   ipv4-unicast:
@@ -1711,7 +1710,6 @@
                         route-map: w_ecmp_cumulative
                 bfd:
                   profile: underlay
-                remote-as: external
               overlay:
                 address-family:
                   ipv4-unicast:
@@ -1724,32 +1722,37 @@
                 bfd:
                   profile: overlay
                 multihop-ttl: 2
-                remote-as: external
                 update-source: lo
             neighbor:
               172.30.128.0:
                 description: fabric underlay to spine spine-01/E1/1
                 peer-group: underlay_spine
+                remote-as: 65100
                 type: numbered
               172.30.128.10:
                 description: fabric underlay to spine spine-02/E1/1
                 peer-group: underlay_spine
+                remote-as: 65100
                 type: numbered
               172.30.128.12:
                 description: fabric underlay to spine spine-02/E1/2
                 peer-group: underlay_spine
+                remote-as: 65100
                 type: numbered
               172.30.128.2:
                 description: fabric underlay to spine spine-01/E1/2/1
                 peer-group: underlay_spine
+                remote-as: 65100
                 type: numbered
               172.30.8.0:
                 description: fabric overlay to spine spine-01
                 peer-group: overlay
+                remote-as: 65100
                 type: numbered
               172.30.8.1:
                 description: fabric overlay to spine spine-02
                 peer-group: overlay
+                remote-as: 65100
                 type: numbered
             state: enabled
       vpc-vpc-01:

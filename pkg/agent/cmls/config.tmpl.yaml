@@ -769,7 +769,6 @@
                 bfd:
                   profile: underlay
                 {{- end }}
-                remote-as: external
               underlay_leaf:
                 address-family:
                   ipv4-unicast:
@@ -780,7 +779,6 @@
                 bfd:
                   profile: underlay
                 {{- end }}
-                remote-as: external
               overlay:
                 address-family:
                   ipv4-unicast:
@@ -797,17 +795,23 @@
                   profile: overlay
                 {{- end }}
                 multihop-ttl: 2
-                remote-as: external
                 update-source: lo
             {{- if $.BGPNeighbors }}
             neighbor:
               {{- range $neigh := $.BGPNeighbors }}
-              {{ $neigh.IP }}:
+              {{ $neigh.Key }}:
+                {{- if $neigh.Unnumbered }}
+                capabilities:
+                  extended-nexthop: enabled
+                {{- end }}
                 {{- if $neigh.Description }}
                 description: {{ $neigh.Description }}
                 {{- end }}
                 peer-group: {{ $neigh.PeerGroup }}
-                type: numbered
+                {{- if $neigh.RemoteAS }}
+                remote-as: {{ $neigh.RemoteAS }}
+                {{- end }}
+                type: {{ if $neigh.Unnumbered }}unnumbered{{ else }}numbered{{ end }}
               {{- end }}
             {{- end }}
             state: enabled

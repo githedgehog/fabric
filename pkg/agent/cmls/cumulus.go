@@ -95,8 +95,11 @@ type SSHKey struct {
 	Type string
 }
 
+// BGPNeighbor is keyed by the peer IP, or by the port when unnumbered
 type BGPNeighbor struct {
-	IP          string
+	Key         string
+	Unnumbered  bool
+	RemoteAS    uint32
 	PeerGroup   string
 	Description string
 }
@@ -593,7 +596,7 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 				port.Description = fmt.Sprintf("Gateway %s %s", link.Gateway.Port, connName)
 				port.IP = ip.String()
 				neighs = append(neighs, BGPNeighbor{
-					IP:          gatewayIP.Addr().String(),
+					Key:         gatewayIP.Addr().String(),
 					PeerGroup:   "gateway",
 					Description: fmt.Sprintf("Gateway %s %s", link.Gateway.Port, connName),
 				})
@@ -675,24 +678,20 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 				}
 
 				leafName = link.Leaf.DeviceName()
-				if link.Leaf.IP == "" || link.Spine.IP == "" {
-					return nil, fmt.Errorf("conn %s: unnumbered fabric links are not supported on Cumulus yet", connName) //nolint:err113
-				}
-				leafIP, err := netip.ParsePrefix(link.Leaf.IP)
-				if err != nil {
-					return nil, fmt.Errorf("parsing conn %s leaf IP %s: %w", connName, link.Leaf.IP, err)
-				}
 				port, err := usePort(link.Spine.LocalPortName())
 				if err != nil {
 					return nil, fmt.Errorf("conn %s: %w", connName, err)
 				}
-				neighs = append(neighs, BGPNeighbor{
-					IP:          leafIP.Addr().String(),
-					PeerGroup:   "underlay_leaf",
-					Description: "fabric underlay to leaf " + link.Leaf.Port,
-				})
+				neigh, err := fabricNeighbor(agent, connName, port.Name, link.Spine.IP, link.Leaf.IP, leafName)
+				if err != nil {
+					return nil, err
+				}
+				neigh.PeerGroup = "underlay_leaf"
+				neigh.Description = "fabric underlay to leaf " + link.Leaf.Port
+				neighs = append(neighs, neigh)
 				port.Description = fmt.Sprintf("Fabric %s %s", link.Leaf.Port, connName)
 				port.IP = link.Spine.IP
+				port.IPv6 = neigh.Unnumbered
 				port.AdaptiveRouting = adaptiveRouting(port)
 			}
 
@@ -700,8 +699,13 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 			if err != nil {
 				return nil, fmt.Errorf("parsing sw %s proto IP %s: %w", leafName, agent.Spec.Switches[leafName].ProtocolIP, err)
 			}
+			leafASN, err := peerASN(agent, leafName)
+			if err != nil {
+				return nil, fmt.Errorf("conn %s: %w", connName, err)
+			}
 			neighs = append(neighs, BGPNeighbor{
-				IP:          leafIP.Addr().String(),
+				Key:         leafIP.Addr().String(),
+				RemoteAS:    leafASN,
 				PeerGroup:   "overlay",
 				Description: "fabric overlay to leaf " + leafName,
 			})
@@ -713,24 +717,20 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 				}
 
 				spineName = link.Spine.DeviceName()
-				if link.Spine.IP == "" || link.Leaf.IP == "" {
-					return nil, fmt.Errorf("conn %s: unnumbered fabric links are not supported on Cumulus yet", connName) //nolint:err113
-				}
-				spineIP, err := netip.ParsePrefix(link.Spine.IP)
-				if err != nil {
-					return nil, fmt.Errorf("parsing conn %s spine IP %s: %w", connName, link.Spine.IP, err)
-				}
 				port, err := usePort(link.Leaf.LocalPortName())
 				if err != nil {
 					return nil, fmt.Errorf("conn %s: %w", connName, err)
 				}
-				neighs = append(neighs, BGPNeighbor{
-					IP:          spineIP.Addr().String(),
-					PeerGroup:   "underlay_spine",
-					Description: "fabric underlay to spine " + link.Spine.Port,
-				})
+				neigh, err := fabricNeighbor(agent, connName, port.Name, link.Leaf.IP, link.Spine.IP, spineName)
+				if err != nil {
+					return nil, err
+				}
+				neigh.PeerGroup = "underlay_spine"
+				neigh.Description = "fabric underlay to spine " + link.Spine.Port
+				neighs = append(neighs, neigh)
 				port.Description = fmt.Sprintf("Fabric %s %s", link.Spine.Port, connName)
 				port.IP = link.Leaf.IP
+				port.IPv6 = neigh.Unnumbered
 				port.AdaptiveRouting = adaptiveRouting(port)
 			}
 
@@ -738,8 +738,13 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 			if err != nil {
 				return nil, fmt.Errorf("parsing sw %s proto IP %s: %w", spineName, agent.Spec.Switches[spineName].ProtocolIP, err)
 			}
+			spineASN, err := peerASN(agent, spineName)
+			if err != nil {
+				return nil, fmt.Errorf("conn %s: %w", connName, err)
+			}
 			neighs = append(neighs, BGPNeighbor{
-				IP:          spineIP.Addr().String(),
+				Key:         spineIP.Addr().String(),
+				RemoteAS:    spineASN,
 				PeerGroup:   "overlay",
 				Description: "fabric overlay to spine " + spineName,
 			})
@@ -1351,7 +1356,7 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 
 	slices.SortFunc(neighs, func(a, b BGPNeighbor) int {
 		// not ideal, but gives stable ordering
-		return strings.Compare(a.IP, b.IP)
+		return strings.Compare(a.Key, b.Key)
 	})
 	slices.SortFunc(vpcs, func(a, b VPC) int {
 		return strings.Compare(a.Name, b.Name)
@@ -1497,6 +1502,39 @@ func denyPeerSubnets(agent *agentapi.Agent, subnetsByName map[string]*SubnetConf
 	}
 
 	return nil
+}
+
+// fabricNeighbor is the underlay session over a fabric link, over the IPv6 link-local addresses if neither side has an
+// IP
+func fabricNeighbor(agent *agentapi.Agent, connName, port, ip, peerIP, peer string) (BGPNeighbor, error) {
+	if (ip == "") != (peerIP == "") {
+		return BGPNeighbor{}, fmt.Errorf("conn %s: port %s: IPs have to be set on both sides or on neither", connName, port) //nolint:err113
+	}
+	peerASN, err := peerASN(agent, peer)
+	if err != nil {
+		return BGPNeighbor{}, fmt.Errorf("conn %s: %w", connName, err)
+	}
+
+	if ip == "" {
+		return BGPNeighbor{Key: port, Unnumbered: true, RemoteAS: peerASN}, nil
+	}
+
+	peerPrefix, err := netip.ParsePrefix(peerIP)
+	if err != nil {
+		return BGPNeighbor{}, fmt.Errorf("conn %s: parsing peer IP %s: %w", connName, peerIP, err)
+	}
+
+	return BGPNeighbor{Key: peerPrefix.Addr().String(), RemoteAS: peerASN}, nil
+}
+
+// the fabric sessions expect the peer's own ASN, so a miscabled link or a wrong IP doesn't bring one up
+func peerASN(agent *agentapi.Agent, peer string) (uint32, error) {
+	peerSw, ok := agent.Spec.Switches[peer]
+	if !ok || peerSw.ASN == 0 {
+		return 0, fmt.Errorf("no ASN for peer %s", peer) //nolint:err113
+	}
+
+	return peerSw.ASN, nil
 }
 
 // externalNeighbor is the BGP session of an external attachment, unnumbered over the IPv6 link-local addresses when
