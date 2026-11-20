@@ -108,6 +108,23 @@ Default forwarding table profile:
 ACLs on Spectrum use a single TCAM shared by ingress, egress and multicast and are limited to 1000 IPv4 and 500 IPv6
 rules (non-atomic update). Spectrum-2 and later support 25000 IPv4 and 12500 IPv6 rules.
 
+### Reinstall time
+
+Measured on actual hardware with Cumulus 5.18.1, reinstalling all switches at once with `kubectl fabric switch
+reinstall`: the agent selects the ONIE install mode with `onie-select` and reboots, ONIE gets the installer from the
+boot server, and the installed Cumulus gets the ZTP script that installs the agent. Each phase starts when the previous
+one ends, from the reinstall request to ONIE getting the installer, to Cumulus booting, to the ZTP script request and to
+the agent reporting the new install ID (only measured to about 30 seconds).
+
+| Switch  | Reboot into ONIE | Install | Boot until ZTP request | ZTP until agent reports | Total  |
+| ------- | ---------------- | ------- | ---------------------- | ----------------------- | ------ |
+| SN2201  | 0:56             | 4:50    | 2:54                   | ~2:10                   | ~10:50 |
+| SN2700  | 1:33             | 9:28    | 4:16                   | ~1:50                   | ~17:05 |
+| SN3700C | 1:42             | 5:18    | 2:40                   | ~1:10                   | ~10:50 |
+| SN4600  | 1:58             | 5:53    | 3:37                   | ~1:00                   | ~12:25 |
+| SN4700  | 2:06             | 6:01    | 4:04                   | ~0:45                   | ~12:55 |
+| SN5610  | 3:03             | 5:27    | 1:55                   | ~1:00                   | ~11:25 |
+
 ## Sources
 
 - [Cumulus Linux 5.18 Switch Port Attributes](https://docs.nvidia.com/networking-ethernet-software/cumulus-linux-518/Layer-1-and-Switch-Ports/Interface-Configuration-and-Management/Switch-Port-Attributes/)
