@@ -334,6 +334,22 @@ func TestBuildConfigErrors(t *testing.T) {
 			err: "external attachment leaf-01--ext-01-2: vlan 10 on port swp2 is already used by leaf-01--ext-01",
 		},
 		{
+			name:    "vx-ext-attach-neighbor-twice",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: withExtAttachments(map[string]vpcapi.ExternalAttachmentSpec{
+				"leaf-01--ext-01": {
+					Connection: "leaf-01--external", External: "ext-01",
+					Switch: vpcapi.ExternalAttachmentSwitch{VLAN: 10, IP: "100.1.10.1/24"}, Neighbor: vpcapi.ExternalAttachmentNeighbor{IP: "100.1.10.6", ASN: 64102},
+				},
+				"leaf-01--ext-01-2": {
+					Connection: "leaf-01--external", External: "ext-01",
+					Switch: vpcapi.ExternalAttachmentSwitch{VLAN: 20, IP: "100.1.20.1/24"}, Neighbor: vpcapi.ExternalAttachmentNeighbor{IP: "100.1.10.6", ASN: 64102},
+				},
+			}),
+			err: "external attachment leaf-01--ext-01-2: neighbor 100.1.10.6 is already used by leaf-01--ext-01",
+		},
+		{
 			name:    "vx-ext-attach-static-no-ip",
 			profile: &switchprofile.CumulusVX,
 			port:    "E1/1",
