@@ -6,6 +6,7 @@ package cmls
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"go.githedgehog.com/fabric/api/agent/v1beta1"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
@@ -28,6 +29,14 @@ func (c *CumulusProcessor) Reboot(ctx context.Context, force bool) error {
 // TODO: use onie-select -i (it asks for y/N user input...)
 func (c *CumulusProcessor) Reinstall(ctx context.Context) error {
 	return fmt.Errorf("not implemented") //nolint:err113
+}
+
+// SelectONIEInstall makes the next boot only go to ONIE in install mode, on both legacy BIOS and UEFI switches
+func SelectONIEInstall(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, time.Minute)
+	defer cancel()
+
+	return run(ctx, "onie-select", "/usr/cumulus/bin/onie-select", "-i", "-f")
 }
 
 // TODO
