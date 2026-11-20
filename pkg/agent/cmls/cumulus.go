@@ -899,6 +899,7 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 	egressNamespaces := map[string]string{} // IPv4 namespace -> first external in it
 	acls := []*ACL{}
 	extVLANs := map[string]map[uint16]string{} // port -> VLAN -> attachment
+	extNeighbors := map[string]string{}        // external VRF/neighbor -> attachment
 	for _, attachName := range slices.Sorted(maps.Keys(agent.Spec.ExternalAttachments)) {
 		attach := agent.Spec.ExternalAttachments[attachName]
 		conn, ok := agent.Spec.Connections[attach.Connection]
@@ -999,6 +1000,11 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 			if err != nil {
 				return nil, err
 			}
+			neighID := ext.VRF + "/" + neigh.Key
+			if other, ok := extNeighbors[neighID]; ok {
+				return nil, fmt.Errorf("external attachment %s: neighbor %s is already used by %s", attachName, neigh.Key, other) //nolint:err113
+			}
+			extNeighbors[neighID] = attachName
 			if len(ext.Neighbors) == 0 {
 				if err := externalBGPPolicy(agent, ext, extSpec); err != nil {
 					return nil, err
