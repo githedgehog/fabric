@@ -1,5 +1,245 @@
 - set:
     acl:
+      ext-inbound--swp1-10:
+        rule:
+          '1':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: 100.1.10.1/32
+                protocol: tcp
+                tcp:
+                  dest-port:
+                    '443': {}
+          '2':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: 100.1.10.1/32
+                protocol: tcp
+                tcp:
+                  dest-port:
+                    '8080': {}
+          '3':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: 100.1.10.1/32
+                protocol: udp
+                udp:
+                  dest-port:
+                    '67': {}
+          '4':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: 100.1.10.1/32
+                protocol: udp
+                udp:
+                  dest-port:
+                    '161': {}
+          '5':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: 100.1.10.1/32
+                protocol: udp
+                udp:
+                  dest-port:
+                    '4789': {}
+          '6':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: 100.1.10.1/32
+                protocol: tcp
+                tcp:
+                  dest-port:
+                    '22': {}
+          '65535':
+            action:
+              permit: {}
+        type: ipv4
+      ext-inbound--swp1-30:
+        rule:
+          '10':
+            action:
+              permit: {}
+            match:
+              ip:
+                protocol: tcp
+                tcp:
+                  dest-port:
+                    '179': {}
+          '65535':
+            action:
+              deny: {}
+        type: ipv4
+      ext-inbound--swp1-20:
+        rule:
+          '1':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: 100.1.20.2/32
+                protocol: tcp
+                tcp:
+                  dest-port:
+                    '443': {}
+          '2':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: 100.1.20.2/32
+                protocol: tcp
+                tcp:
+                  dest-port:
+                    '8080': {}
+          '3':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: 100.1.20.2/32
+                protocol: udp
+                udp:
+                  dest-port:
+                    '67': {}
+          '4':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: 100.1.20.2/32
+                protocol: udp
+                udp:
+                  dest-port:
+                    '161': {}
+          '5':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: 100.1.20.2/32
+                protocol: udp
+                udp:
+                  dest-port:
+                    '4789': {}
+          '6':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: 100.1.20.2/32
+                protocol: tcp
+                tcp:
+                  dest-port:
+                    '22': {}
+          '15':
+            action:
+              permit: {}
+            match:
+              ip:
+                dest-ip: 10.50.10.3/32
+                protocol: tcp
+                tcp:
+                  dest-port:
+                    '22': {}
+          '20':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: 10.50.10.3/32
+                protocol: udp
+                udp:
+                  dest-port:
+                    '4789': {}
+          '25':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: 10.50.10.3/32
+                protocol: tcp
+          '30':
+            action:
+              permit: {}
+            match:
+              ip:
+                dest-ip: 10.50.10.3/32
+                protocol: udp
+          '35':
+            action:
+              permit: {}
+            match:
+              ip:
+                protocol: tcp
+                source-ip: 100.1.20.0/24
+                tcp:
+                  dest-port:
+                    '1000-2000': {}
+                  flags:
+                    syn: {}
+                  mask:
+                    syn: {}
+                    ack: {}
+          '40':
+            action:
+              permit: {}
+            match:
+              ip:
+                protocol: tcp
+                tcp:
+                  flags:
+                    none: {}
+                  mask:
+                    syn: {}
+          '45':
+            action:
+              permit: {}
+            match:
+              ip:
+                protocol: tcp
+                tcp:
+                  state: established
+          '50':
+            action:
+              permit: {}
+            match:
+              ip:
+                icmp-type: 8
+                protocol: icmp
+          '55':
+            action:
+              permit: {}
+            match:
+              ip:
+                source-ip: 100.1.20.0/24
+          '65535':
+            action:
+              deny: {}
+        type: ipv4
+      ipns-egress--default:
+        rule:
+          '10':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: 10.0.0.0/16
+          '65535':
+            action:
+              permit: {}
+        type: ipv4
       vpc-restricted--vpc-02--default:
         rule:
           '1':
@@ -998,6 +1238,11 @@
                 '1001': {}
                 '1012': {}
       swp1.10:
+        acl:
+          ext-inbound--swp1-10:
+            inbound: {}
+          ipns-egress--default:
+            outbound: {}
         base-interface: swp1
         description: External leaf-01--ext-bgp-01
         ipv4:
@@ -1009,6 +1254,11 @@
         vlan: 10
         vrf: ext-ext-bgp-01
       swp1.20:
+        acl:
+          ext-inbound--swp1-20:
+            inbound: {}
+          ipns-egress--default:
+            outbound: {}
         base-interface: swp1
         description: External leaf-01--ext-snp-02
         ipv4:
@@ -1020,6 +1270,11 @@
         vlan: 20
         vrf: ext-ext-snp-02
       swp1.30:
+        acl:
+          ext-inbound--swp1-30:
+            inbound: {}
+          ipns-egress--default:
+            outbound: {}
         base-interface: swp1
         description: External leaf-01--ext-bgp-01-unnumbered
         ipv6:

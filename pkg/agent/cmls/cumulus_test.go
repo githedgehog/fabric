@@ -391,6 +391,63 @@ func TestBuildConfigErrors(t *testing.T) {
 			err: "external attachment leaf-01--ext-01: prefix limit isn't supported",
 		},
 		{
+			name:    "vx-ext-attach-acl-icmp-code-unsupported",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: withStaticExtACL(vpcapi.ACLStatement{
+				Seq: 10, Action: vpcapi.ACLActionDeny, Protocol: vpcapi.ACLProtocolICMP, SrcPrefix: vpcapi.ACLAny, DstPrefix: vpcapi.ACLAny,
+				ICMPType: new(uint8(3)), ICMPCode: new(uint8(1)),
+			}),
+			err: "external attachment leaf-01--ext-01: inbound ACL statement 10: ICMP code isn't supported",
+		},
+		{
+			name:    "vx-ext-attach-acl-last-seq-unsupported",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: withStaticExtACL(vpcapi.ACLStatement{
+				Seq: 65535, Action: vpcapi.ACLActionPermit, Protocol: vpcapi.ACLProtocolIP, SrcPrefix: vpcapi.ACLAny, DstPrefix: vpcapi.ACLAny,
+			}),
+			err: "external attachment leaf-01--ext-01: inbound ACL statement 65535: seq isn't supported",
+		},
+		{
+			name:    "vx-ext-attach-acl-reserved-seq",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: withStaticExtACL(vpcapi.ACLStatement{
+				Seq: 5, Action: vpcapi.ACLActionPermit, Protocol: vpcapi.ACLProtocolIP, SrcPrefix: vpcapi.ACLAny, DstPrefix: vpcapi.ACLAny,
+			}),
+			err: "external attachment leaf-01--ext-01: inbound ACL: statement 5: seq is reserved",
+		},
+		{
+			name:    "vx-ext-attach-acl-invalid-prefix",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: withStaticExtACL(vpcapi.ACLStatement{
+				Seq: 10, Action: vpcapi.ACLActionPermit, Protocol: vpcapi.ACLProtocolIP, SrcPrefix: "10.0.0.1", DstPrefix: vpcapi.ACLAny,
+			}),
+			err: "external attachment leaf-01--ext-01: inbound ACL: statement 10: invalid prefix \"10.0.0.1\"",
+		},
+		{
+			name:    "vx-ext-static-ipns-not-found",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: func(agent *agentapi.Agent) {
+				withStaticExtACL()(agent)
+				agent.Spec.IPv4Namespaces = nil
+			},
+			err: "external ext-01: ipv4 namespace default not found",
+		},
+		{
+			name:    "vx-ext-ipns-invalid-subnet",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: func(agent *agentapi.Agent) {
+				withStaticExtACL()(agent)
+				agent.Spec.IPv4Namespaces["default"] = vpcapi.IPv4NamespaceSpec{Subnets: []string{"10.0.0.0"}}
+			},
+			err: "ipv4 namespace default: invalid subnet \"10.0.0.0\"",
+		},
+		{
 			name:    "vx-ext-attach-bgp-no-neighbor-ip",
 			profile: &switchprofile.CumulusVX,
 			port:    "E1/1",
@@ -416,10 +473,8 @@ func TestBuildConfigErrors(t *testing.T) {
 			name:    "vx-ext-bgp-ipns-not-found",
 			profile: &switchprofile.CumulusVX,
 			port:    "E1/1",
-			mutate: withExtAttachments(map[string]vpcapi.ExternalAttachmentSpec{
-				"leaf-01--ext-01": {Connection: "leaf-01--external", External: "ext-01", Switch: vpcapi.ExternalAttachmentSwitch{VLAN: 10}},
-			}),
-			err: "external ext-01: ipv4 namespace default not found",
+			mutate:  withBGPExtAttachment(func(agent *agentapi.Agent) { agent.Spec.IPv4Namespaces = nil }),
+			err:     "external ext-01: ipv4 namespace default not found",
 		},
 		{
 			name:    "vx-ext-bgp-invalid-inbound-prefix",
@@ -465,8 +520,13 @@ func TestBuildConfigErrors(t *testing.T) {
 			name:    "vx-ext-peering-ipns-not-found",
 			profile: &switchprofile.CumulusVX,
 			port:    "E1/1",
-			mutate:  withExtPeering(func(agent *agentapi.Agent, _ *vpcapi.ExternalPeeringSpec) { agent.Spec.IPv4Namespaces = nil }),
-			err:     "external peering vpc-01--ext-01: ipv4 namespace default not found",
+			mutate: withExtPeering(func(agent *agentapi.Agent, _ *vpcapi.ExternalPeeringSpec) {
+				ext := agent.Spec.Externals["ext-01"]
+				ext.IPv4Namespace = "other"
+				agent.Spec.Externals["ext-01"] = ext
+				agent.Spec.IPv4Namespaces = map[string]vpcapi.IPv4NamespaceSpec{"other": {Subnets: []string{"10.1.0.0/16"}}}
+			}),
+			err: "external peering vpc-01--ext-01: ipv4 namespace default not found",
 		},
 		{
 			name:    "vx-ext-peering-twice",
@@ -766,8 +826,20 @@ func withExtAttachments(attaches map[string]vpcapi.ExternalAttachmentSpec) func(
 		}}
 		agent.Spec.Catalog.VPCVNIs["ext@ext-01"] = 300
 		agent.Spec.Config.BaseVPCCommunity = "50000:0"
+		agent.Spec.IPv4Namespaces = map[string]vpcapi.IPv4NamespaceSpec{"default": {Subnets: []string{"10.0.0.0/16"}}}
 		agent.Spec.ExternalAttachments = attaches
 	}
+}
+
+// withStaticExtACL is a static attachment of ext-01 with the given inbound ACL statements
+func withStaticExtACL(stmts ...vpcapi.ACLStatement) func(agent *agentapi.Agent) {
+	return withExtAttachments(map[string]vpcapi.ExternalAttachmentSpec{
+		"leaf-01--ext-01": {
+			Connection: "leaf-01--external", External: "ext-01",
+			Static:     &vpcapi.ExternalAttachmentStatic{VLAN: 10, IP: "100.1.10.2/24", RemoteIP: "100.1.10.1"},
+			InboundACL: &vpcapi.ACLSpec{Statements: stmts},
+		},
+	})
 }
 
 // withBGPExtAttachment is an unnumbered BGP attachment of ext-01 on a switch in the default domain
@@ -776,7 +848,6 @@ func withBGPExtAttachment(mutate func(agent *agentapi.Agent)) func(agent *agenta
 		withExtAttachments(map[string]vpcapi.ExternalAttachmentSpec{
 			"leaf-01--ext-01": {Connection: "leaf-01--external", External: "ext-01", Switch: vpcapi.ExternalAttachmentSwitch{VLAN: 10}},
 		})(agent)
-		agent.Spec.IPv4Namespaces = map[string]vpcapi.IPv4NamespaceSpec{"default": {Subnets: []string{"10.0.0.0/16"}}}
 		agent.Spec.Switch.Topology.Domains = []string{"default"}
 		agent.Spec.Config.Domains = map[string]wiringapi.FabricDomainSpec{"default": {SpineASN: 65100, GatewayASN: 65534}}
 		mutate(agent)
@@ -789,7 +860,6 @@ func withExtPeering(mutate func(agent *agentapi.Agent, peering *vpcapi.ExternalP
 		withExtAttachments(map[string]vpcapi.ExternalAttachmentSpec{
 			"leaf-01--ext-01": {Connection: "leaf-01--external", External: "ext-01", Static: &vpcapi.ExternalAttachmentStatic{VLAN: 10, IP: "100.1.10.2/24", RemoteIP: "100.1.10.1"}},
 		})(agent)
-		agent.Spec.IPv4Namespaces = map[string]vpcapi.IPv4NamespaceSpec{"default": {Subnets: []string{"10.0.0.0/16"}}}
 		withVPC01(func(vpc *vpcapi.VPCSpec) { vpc.IPv4Namespace = "default" })(agent)
 		agent.Spec.Catalog.ExternalIDs = map[string]uint16{"ext-01": 10}
 		agent.Spec.Catalog.SubnetIDs = map[string]uint32{"10.0.1.0/24": 100, "0.0.0.0/0": 103}
