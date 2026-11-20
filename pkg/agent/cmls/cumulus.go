@@ -857,10 +857,11 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 
 		// static routes are only local to the switches the VPC is attached to, they aren't redistributed
 		routes := map[string][]string{}
-		for idx, route := range vpc.StaticRoutes {
-			if !agent.Spec.AttachedVPCs[vpcName] {
-				break
-			}
+		staticRoutes := vpc.StaticRoutes
+		if !agent.Spec.AttachedVPCs[vpcName] {
+			staticRoutes = nil
+		}
+		for idx, route := range staticRoutes {
 			prefix, err := netip.ParsePrefix(route.Prefix)
 			if err != nil || !prefix.Addr().Is4() {
 				return nil, fmt.Errorf("vpc %s: static route #%d: invalid prefix %q", vpcName, idx, route.Prefix) //nolint:err113
