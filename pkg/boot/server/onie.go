@@ -201,16 +201,6 @@ func (svc *service) getAgentAndSecret(ctx context.Context, sb *fcintapi.SwitchBo
 }
 
 func (svc *service) streamNOSInstaller(ctx context.Context, sb *fcintapi.SwitchBoot, agent *agentapi.Agent, secret *corev1.Secret, w io.Writer) error {
-	agentConfig, err := agent.MarshalInstallConfig()
-	if err != nil {
-		return fmt.Errorf("marshaling agent: %w", err)
-	}
-
-	kubeConfig, ok := secret.Data[ctrl.AgentKubeconfigKey]
-	if !ok {
-		return fmt.Errorf("kubeconfig not found") //nolint:err113
-	}
-
 	nosType := sb.Spec.NOSType
 	if nosType == "" || !slices.Contains(meta.NOSTypes, nosType) {
 		return fmt.Errorf("invalid NOS type %q", nosType) //nolint:err113
@@ -229,6 +219,32 @@ func (svc *service) streamNOSInstaller(ctx context.Context, sb *fcintapi.SwitchB
 	nosPath, err := svc.getCachedOrDownload(ctx, nosRepo, nosVersion, false)
 	if err != nil {
 		return fmt.Errorf("getting NOS: %w", err)
+	}
+
+	// ONIE checks the signature of the Cumulus installer on secure boot switches, so it's served unmodified and the agent
+	// is installed by ZTP
+	if slices.Contains(meta.NOSTypesCumulus, nosType) {
+		nosF, err := os.Open(nosPath)
+		if err != nil {
+			return fmt.Errorf("opening NOS: %w", err)
+		}
+		defer nosF.Close()
+
+		if _, err := io.Copy(w, nosF); err != nil {
+			return fmt.Errorf("copying NOS: %w", err)
+		}
+
+		return nil
+	}
+
+	agentConfig, err := agent.MarshalInstallConfig()
+	if err != nil {
+		return fmt.Errorf("marshaling agent: %w", err)
+	}
+
+	kubeConfig, ok := secret.Data[ctrl.AgentKubeconfigKey]
+	if !ok {
+		return fmt.Errorf("kubeconfig not found") //nolint:err113
 	}
 
 	agentPath, err := svc.getCachedOrDownload(ctx, svc.cfg.AgentRef, sb.Spec.AgentVersion, false)

@@ -175,6 +175,11 @@ func Run(ctx context.Context, env Env, dryRun bool) (funcErr error) {
 		return fmt.Errorf("unmarshaling config: %w", err)
 	}
 
+	// checked before installing anything, as only SONiC gets the agent at install time
+	if !slices.Contains(slices.Concat(meta.NOSTypesSONiCBCM, meta.NOSTypesSONiCCLSPlus), config.NOSType) {
+		return fmt.Errorf("NOS type %q isn't supported", config.NOSType) //nolint:err113
+	}
+
 	if dryRun {
 		slog.Info("Dry run, embedded files extracted, not actually running, sleeping for 24 hours", "dir", tmp)
 
@@ -201,13 +206,8 @@ func Run(ctx context.Context, env Env, dryRun bool) (funcErr error) {
 		return fmt.Errorf("running NOS installer: %w", err)
 	}
 
-	switch config.NOSType { //nolint:exhaustive
-	case meta.NOSTypeCumulusVX, meta.NOSTypeCumulusMlx:
-		slog.Info("Agent provisioning at install time not supported")
-	default:
-		if err := sonicInstallAgent(ctx, tmp); err != nil {
-			return fmt.Errorf("installing agent: %w", err)
-		}
+	if err := sonicInstallAgent(ctx, tmp); err != nil {
+		return fmt.Errorf("installing agent: %w", err)
 	}
 
 	slog.Info("Installation complete")
