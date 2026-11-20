@@ -1188,8 +1188,6 @@
                         route-map: gateway-export
                   l2vpn-evpn:
                     state: enabled
-                bfd:
-                  profile: underlay
                 remote-as: 65534
               underlay_spine:
                 address-family:
@@ -1197,8 +1195,6 @@
                     policy:
                       outbound:
                         route-map: w_ecmp_origin
-                bfd:
-                  profile: underlay
                 remote-as: external
               underlay_leaf:
                 address-family:
@@ -1206,8 +1202,6 @@
                     policy:
                       outbound:
                         route-map: w_ecmp_cumulative
-                bfd:
-                  profile: underlay
                 remote-as: external
               overlay:
                 address-family:
@@ -1215,8 +1209,6 @@
                     state: disabled
                   l2vpn-evpn:
                     state: enabled
-                bfd:
-                  profile: overlay
                 multihop-ttl: 2
                 remote-as: external
                 update-source: lo
