@@ -811,6 +811,9 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 
 		vpcSubnets[vpcName] = map[uint32]string{}
 		for subnetName, subnet := range vpc.Subnets {
+			if subnet == nil {
+				return nil, fmt.Errorf("subnet %s/%s: empty", vpcName, subnetName) //nolint:err113
+			}
 			subnetVNI, ok := agent.Spec.Catalog.GetVPCSubnetVNI(vpcName, subnetName)
 			if !ok || subnetVNI == 0 {
 				return nil, fmt.Errorf("subnet %s/%s: no VNI", vpcName, subnetName) //nolint:err113
@@ -1472,6 +1475,14 @@ func denyIsolatedSubnets(agent *agentapi.Agent, subnetCfg *SubnetConfig, vpcName
 // lists of a permit entry default to all subnets
 func denyPeerSubnets(agent *agentapi.Agent, subnetsByName map[string]*SubnetConfig, peering vpcapi.VPCPeeringSpec, vpcName, peerName string) error {
 	peer := agent.Spec.VPCs[peerName]
+	for idx, permit := range peering.Permit {
+		for _, peerSubnetName := range permit[peerName].Subnets {
+			if _, ok := peer.Subnets[peerSubnetName]; !ok {
+				return fmt.Errorf("permit #%d: subnet %s/%s not found", idx, peerName, peerSubnetName) //nolint:err113
+			}
+		}
+	}
+
 	for subnetName := range agent.Spec.VPCs[vpcName].Subnets {
 		subnetCfg, ok := subnetsByName[vpcName+"/"+subnetName]
 		if !ok {

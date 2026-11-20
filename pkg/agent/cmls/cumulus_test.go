@@ -227,6 +227,24 @@ func TestBuildConfigErrors(t *testing.T) {
 			err: "vpc peering vpc-01--vpc-09: vpc vpc-09 not found",
 		},
 		{
+			name:    "vx-vpc-peering-permit-subnet-not-found",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: func(agent *agentapi.Agent) {
+				agent.Spec.VPCPeerings = map[string]vpcapi.VPCPeeringSpec{"vpc-01--vpc-02": {
+					Permit: []map[string]vpcapi.VPCPeer{{"vpc-01": {}, "vpc-02": {Subnets: []string{"other"}}}},
+				}}
+			},
+			err: "vpc peering vpc-01--vpc-02: permit #0: subnet vpc-02/other not found",
+		},
+		{
+			name:    "vx-vpc-subnet-empty",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate:  func(agent *agentapi.Agent) { agent.Spec.VPCs["vpc-02"].Subnets["other"] = nil },
+			err:     "subnet vpc-02/other: empty",
+		},
+		{
 			name:    "vx-gateway-no-domain",
 			profile: &switchprofile.CumulusVX,
 			port:    "E1/1",
