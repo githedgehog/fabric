@@ -24,21 +24,6 @@ func Processor() *CelesticaPlusProcessor {
 }
 
 // TODO
-func (c *CelesticaPlusProcessor) Reboot(ctx context.Context, force bool) error {
-	return bcm.Processor().Reboot(ctx, force) //nolint:wrapcheck
-}
-
-// TODO: use onie-select -i (it asks for y/N user input...)
-func (c *CelesticaPlusProcessor) Reinstall(ctx context.Context) error {
-	return bcm.Processor().Reinstall(ctx) //nolint:wrapcheck
-}
-
-// TODO
-func (c *CelesticaPlusProcessor) FactoryReset(ctx context.Context) error {
-	return fmt.Errorf("not implemented") //nolint:err113
-}
-
-// TODO
 func (c *CelesticaPlusProcessor) EnsureControlLink(ctx context.Context, agent *agentapi.Agent) error {
 	return bcm.Processor().EnsureControlLink(ctx, agent) //nolint:wrapcheck
 }

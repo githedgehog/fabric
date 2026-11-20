@@ -19,8 +19,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"os"
-	"os/exec"
 	"reflect"
 	"slices"
 	"strings"
@@ -32,7 +30,6 @@ import (
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/gnmi"
-	"go.githedgehog.com/fabric/pkg/util/uefiutil"
 )
 
 type BroadcomProcessor struct {
@@ -126,50 +123,6 @@ type SystemStatusResponse struct {
 		Status  int      `json:"status"`
 		Details []string `json:"status-detail"`
 	} `json:"openconfig-system-rpc:output"`
-}
-
-func (p *BroadcomProcessor) Reboot(ctx context.Context, _ /* force */ bool) error {
-	cmd := exec.CommandContext(ctx, "wall", "Hedgehog Agent initiated reboot")
-	err := cmd.Run()
-	if err != nil {
-		slog.Warn("Failed to send wall message", "err", err)
-	}
-
-	// TODO impl force
-	// TODO use sonic-cli for it and then switch to GNOI
-	// reboot force yes
-	cmd = exec.CommandContext(ctx, "reboot")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	return errors.Wrap(cmd.Run(), "failed to reboot")
-}
-
-func (p *BroadcomProcessor) Reinstall(ctx context.Context) error {
-	err := uefiutil.MakeONIEDefaultBootEntryAndCleanup()
-	if err != nil {
-		return errors.Wrapf(err, "failed to make ONIE default boot entry")
-	}
-
-	return p.Reboot(ctx, true)
-}
-
-func (p *BroadcomProcessor) FactoryReset(_ context.Context) error {
-	// TODO use sonic-cli for it and then switch to GNOI
-	// write erase boot
-
-	// stdin, err := cmd.StdinPipe()
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// go func() {
-	// 	defer stdin.Close()
-	// 	// todo test it
-	// 	io.WriteString(stdin, "y\n")
-	// }()
-
-	return fmt.Errorf("not supported") //nolint:err113
 }
 
 func (p *BroadcomProcessor) LoadActualState(ctx context.Context, agent *agentapi.Agent) (*dozer.Spec, error) {
