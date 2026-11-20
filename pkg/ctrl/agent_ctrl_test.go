@@ -440,3 +440,63 @@ func TestIRBVLANReqsMatchReconcile(t *testing.T) {
 	require.Equal(t, agent1.Spec.Catalog.IRBVLANs, reconcile("leaf-1").Spec.Catalog.IRBVLANs)
 	require.Equal(t, agent2.Spec.Catalog.IRBVLANs, reconcile("leaf-2").Spec.Catalog.IRBVLANs)
 }
+
+func TestAgentSpineStaticExternalsByFabric(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, wiringapi.AddToScheme(scheme))
+	require.NoError(t, vpcapi.AddToScheme(scheme))
+	require.NoError(t, agentapi.AddToScheme(scheme))
+	require.NoError(t, corev1.AddToScheme(scheme))
+	require.NoError(t, rbacv1.AddToScheme(scheme))
+
+	objMeta := func(name string) kmetav1.ObjectMeta {
+		return kmetav1.ObjectMeta{Name: name, Namespace: kmetav1.NamespaceDefault}
+	}
+	staticExt := func(name, fabric, withinVPC string) *wiringapi.Connection {
+		c := &wiringapi.Connection{ObjectMeta: objMeta(name), Spec: wiringapi.ConnectionSpec{
+			Topology: wiringapi.ConnectionTopology{Fabric: fabric},
+			StaticExternal: &wiringapi.ConnStaticExternal{
+				Link: wiringapi.ConnStaticExternalLink{Switch: wiringapi.ConnStaticExternalLinkSwitch{
+					BasePortName: wiringapi.BasePortName{Port: "leaf-1/E1/10"},
+					IP:           "172.31.0.1/24",
+					NextHop:      "172.31.0.2",
+				}},
+				WithinVPC: withinVPC,
+			},
+		}}
+		c.Default()
+
+		return c
+	}
+
+	spine := &wiringapi.Switch{ObjectMeta: objMeta("spine-1"), Spec: wiringapi.SwitchSpec{Role: wiringapi.SwitchRoleSpine}}
+	spine.Default()
+	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+		&wiringapi.Fabric{
+			ObjectMeta: objMeta(wiringapi.DefaultFabric),
+			Spec:       wiringapi.FabricSpec{Domains: map[string]wiringapi.FabricDomainSpec{wiringapi.DefaultFabricDomain: {SpineASN: 65100}}},
+		},
+		spine,
+		&corev1.Secret{
+			ObjectMeta: objMeta(AgentServiceAccount("spine-1") + "-satoken"),
+			Data: map[string][]byte{
+				corev1.ServiceAccountRootCAKey:    []byte("ca"),
+				corev1.ServiceAccountTokenKey:     []byte("token"),
+				corev1.ServiceAccountNamespaceKey: []byte(kmetav1.NamespaceDefault),
+			},
+		},
+		staticExt("leaf-1--static-external", wiringapi.DefaultFabric, ""),
+		staticExt("leaf-1--static-external-vpc", wiringapi.DefaultFabric, "vpc-1"),
+		staticExt("leaf-2--static-external-other-fabric", "fabric-2", ""),
+	).Build()
+
+	cfg := &meta.FabricConfig{VPCIRBVLANRanges: []meta.VLANRange{{From: 3000, To: 3099}}}
+	r := &AgentReconciler{Client: kube, cfg: cfg, libr: librarian.NewManager(cfg), lock: unlockedLock()}
+	res, err := r.Reconcile(t.Context(), reconcileReq("spine-1"))
+	require.NoError(t, err)
+	require.Zero(t, res)
+
+	agent := &agentapi.Agent{}
+	require.NoError(t, kube.Get(t.Context(), objKey("spine-1"), agent))
+	require.Equal(t, []string{"leaf-1--static-external"}, slices.Sorted(maps.Keys(agent.Spec.Connections)))
+}
