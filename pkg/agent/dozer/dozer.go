@@ -219,6 +219,7 @@ type SpecVRFBGPNeighbor struct {
 	IPv4UnicastImportPolicies []string `json:"ipv4UnicastImportPolicies,omitempty"`
 	IPv4UnicastExportPolicies []string `json:"ipv4UnicastExportPolicies,omitempty"`
 	IPv4ASOverride            *bool    `json:"ipv4ASOverride,omitempty"`
+	IPv4AllowOwnAS            *uint8   `json:"ipv4AllowOwnAS,omitempty"` // times the own AS may appear in a received path
 	IPv4MaxPrefixes           *uint32  `json:"ipv4MaxPrefixes,omitempty"`
 	IPv4MaxPrefixesRestart    *uint16  `json:"ipv4MaxPrefixesRestart,omitempty"`
 	IPv4MaxPrefixesWarnPct    *uint8   `json:"ipv4MaxPrefixesWarnPct,omitempty"`

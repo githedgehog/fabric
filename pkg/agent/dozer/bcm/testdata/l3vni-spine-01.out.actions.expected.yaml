@@ -198,6 +198,30 @@
         - ^65534$
         as-path-set-name: gateway-origin
   weight: 12
+- path: /routing-policy/defined-sets/bgp-defined-sets/as-path-sets/as-path-set[as-path-set-name=gateway-origin-any-hop]
+  summary: Create AS Path Lists gateway-origin-any-hop
+  type: update
+  value:
+    as-path-set:
+    - as-path-set-name: gateway-origin-any-hop
+      config:
+        action: PERMIT
+        as-path-set-member:
+        - _65534$
+        as-path-set-name: gateway-origin-any-hop
+  weight: 12
+- path: /routing-policy/defined-sets/bgp-defined-sets/as-path-sets/as-path-set[as-path-set-name=leaf-transit]
+  summary: Create AS Path Lists leaf-transit
+  type: update
+  value:
+    as-path-set:
+    - as-path-set-name: leaf-transit
+      config:
+        action: PERMIT
+        as-path-set-member:
+        - _65100_
+        as-path-set-name: leaf-transit
+  weight: 12
 - path: /interfaces/interface[name=Ethernet0]
   summary: Create Interface Ethernet0 Base
   type: update
@@ -338,6 +362,15 @@
     - config:
         name: loopback-all-vteps
       name: loopback-all-vteps
+  weight: 19
+- path: /routing-policy/policy-definitions/policy-definition[name=loopback-import]
+  summary: Create Route Maps Base loopback-import
+  type: update
+  value:
+    policy-definition:
+    - config:
+        name: loopback-import
+      name: loopback-import
   weight: 19
 - path: /routing-policy/policy-definitions/policy-definition[name=protocol-loopback-only]
   summary: Create Route Maps Base protocol-loopback-only
@@ -487,6 +520,57 @@
       config:
         name: "100"
       name: "100"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=loopback-import]/statements/statement[name=10]
+  summary: Create Route Map Statement 10
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        bgp-conditions:
+          match-as-path-set:
+            config:
+              as-path-set: gateway-origin-any-hop
+              match-set-options: ANY
+        match-prefix-set:
+          config:
+            prefix-set: all-vtep-prefixes
+      config:
+        name: "10"
+      name: "10"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=loopback-import]/statements/statement[name=20]
+  summary: Create Route Map Statement 20
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: REJECT_ROUTE
+      conditions:
+        bgp-conditions:
+          match-as-path-set:
+            config:
+              as-path-set: leaf-transit
+              match-set-options: ANY
+      config:
+        name: "20"
+      name: "20"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=loopback-import]/statements/statement[name=65535]
+  summary: Create Route Map Statement 65535
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: ACCEPT_ROUTE
+      config:
+        name: "65535"
+      name: "65535"
   weight: 21
 - path: /routing-policy/policy-definitions/policy-definition[name=protocol-loopback-only]/statements/statement[name=10]
   summary: Create Route Map Statement 10
@@ -1026,10 +1110,16 @@
     - afi-safis:
         afi-safi:
         - afi-safi-name: IPV4_UNICAST
+          allow-own-as:
+            config:
+              as-count: 1
+              enabled: true
           apply-policy:
             config:
               export-policy:
               - loopback-all-vteps
+              import-policy:
+              - loopback-import
           config:
             afi-safi-name: IPV4_UNICAST
             enabled: true
@@ -1060,10 +1150,16 @@
     - afi-safis:
         afi-safi:
         - afi-safi-name: IPV4_UNICAST
+          allow-own-as:
+            config:
+              as-count: 1
+              enabled: true
           apply-policy:
             config:
               export-policy:
               - loopback-all-vteps
+              import-policy:
+              - loopback-import
           config:
             afi-safi-name: IPV4_UNICAST
             enabled: true

@@ -528,7 +528,7 @@ spec:
         - default
       vtepIP: 172.30.12.2/32
     spine-01:
-      asn: 65100
+      asn: 65010
       boot:
         mac: 0c:20:12:ff:05:00
       description: VS-06
@@ -541,7 +541,7 @@ spec:
       vlanNamespaces:
         - default
     spine-02:
-      asn: 65100
+      asn: 65010
       boot:
         mac: 0c:20:12:ff:06:00
       description: VS-07
