@@ -1814,6 +1814,10 @@ func Enforce(ctx context.Context, _ /* processor */ dozer.Processor, agent *agen
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 	defer cancel()
 
+	if err := ensurePasswordlessSudo(ctx, agent); err != nil {
+		return err
+	}
+
 	cfgPath := filepath.Join(basedir, cfgFile)
 	if err := os.WriteFile(cfgPath, cfgBuf.Bytes(), 0o644); err != nil { //nolint:gosec
 		return fmt.Errorf("writing config file: %w", err)
@@ -1849,6 +1853,59 @@ func Enforce(ctx context.Context, _ /* processor */ dozer.Processor, agent *agen
 	if err := os.WriteFile(filepath.Join(basedir, appliedDiffFile), diff, 0o644); err != nil { //nolint:gosec
 		return fmt.Errorf("writing applied diff file: %w", err)
 	}
+
+	return nil
+}
+
+const sudoersPath = "/etc/sudoers.d/hedgehog"
+
+var passwordlessSudoers = []byte("%sudo ALL=(ALL:ALL) NOPASSWD: ALL\n")
+
+// ensurePasswordlessSudo manages the sudoers drop-in directly, as NVUE refuses to install files into /etc/sudoers.d, and
+// checks it with visudo before putting it in place, as a broken one would break sudo; sudo skips the files with a dot in
+// the name, so the temporary one is never read
+func ensurePasswordlessSudo(ctx context.Context, agent *agentapi.Agent) error {
+	enabled, err := wiringapi.SwitchPasswordlessSudo(agent.Annotations)
+	if err != nil {
+		return fmt.Errorf("checking passwordless sudo: %w", err)
+	}
+
+	cur, err := os.ReadFile(sudoersPath)
+	if err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("reading %s: %w", sudoersPath, err)
+	}
+	exists := err == nil
+
+	if !enabled {
+		if !exists {
+			return nil
+		}
+		if err := os.Remove(sudoersPath); err != nil {
+			return fmt.Errorf("removing %s: %w", sudoersPath, err)
+		}
+		slog.Info("Disabled passwordless sudo", "path", sudoersPath)
+
+		return nil
+	}
+
+	if exists && bytes.Equal(cur, passwordlessSudoers) {
+		return nil
+	}
+
+	tmp := sudoersPath + ".tmp"
+	if err := os.Remove(tmp); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("removing %s: %w", tmp, err)
+	}
+	if err := os.WriteFile(tmp, passwordlessSudoers, 0o440); err != nil { //nolint:gosec
+		return fmt.Errorf("writing %s: %w", tmp, err)
+	}
+	if err := run(ctx, "visudo", "visudo", "-c", "-q", "-f", tmp); err != nil {
+		return errors.Join(fmt.Errorf("checking %s: %w", tmp, err), os.Remove(tmp))
+	}
+	if err := os.Rename(tmp, sudoersPath); err != nil {
+		return fmt.Errorf("installing %s: %w", sudoersPath, err)
+	}
+	slog.Info("Enabled passwordless sudo", "path", sudoersPath)
 
 	return nil
 }

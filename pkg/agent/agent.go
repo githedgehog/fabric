@@ -1015,7 +1015,10 @@ func (svc *Service) loadConfigFromFile() (*agentapi.Agent, error) {
 
 func knownAnnotations(agent *agentapi.Agent) map[string]string {
 	known := map[string]string{}
-	for _, key := range []string{wiringapi.AnnotationSwitchSyslogDebug, wiringapi.AnnotationSwitchRouteSumm, wiringapi.AnnotationSwitchBCMMutate} {
+	for _, key := range []string{
+		wiringapi.AnnotationSwitchSyslogDebug, wiringapi.AnnotationSwitchRouteSumm,
+		wiringapi.AnnotationSwitchBCMMutate, wiringapi.AnnotationSwitchPasswordlessSudo,
+	} {
 		if value, ok := agent.Annotations[key]; ok {
 			known[key] = value
 		}

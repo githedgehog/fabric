@@ -725,6 +725,27 @@ func TestSwitchDomainsValidation(t *testing.T) {
 			}),
 		},
 		{
+			name: "passwordless sudo annotation",
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Spec.Profile = switchprofile.CumulusVX.Name
+				sw.Annotations = map[string]string{wiringapi.AnnotationSwitchPasswordlessSudo: "false"}
+			}),
+		},
+		{
+			name: "invalid passwordless sudo annotation", err: "annotation fabric.githedgehog.com/passwordless-sudo must be a boolean",
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Spec.Profile = switchprofile.CumulusVX.Name
+				sw.Annotations = map[string]string{wiringapi.AnnotationSwitchPasswordlessSudo: "no-way"}
+			}),
+		},
+		{
+			name: "passwordless sudo annotation on non-cumulus switch",
+			err:  "annotation fabric.githedgehog.com/passwordless-sudo is only supported for Cumulus switches",
+			sw: swGen(func(sw *wiringapi.Switch) {
+				sw.Annotations = map[string]string{wiringapi.AnnotationSwitchPasswordlessSudo: "true"}
+			}),
+		},
+		{
 			name: "bcm mutate annotation as yaml",
 			sw: swGen(func(sw *wiringapi.Switch) {
 				sw.Annotations = map[string]string{wiringapi.AnnotationSwitchBCMMutate: "rules:\n  - keep@acl/x/65000\n  - add@communityList/y/65000:100\n"}
