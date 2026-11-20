@@ -270,7 +270,8 @@ spec:
     leaf-01--ext-bgp-01-unnumbered:
       connection: leaf-01--external
       external: ext-bgp-01
-      neighbor: {}
+      neighbor:
+        asn: 64102
       switch:
         vlan: 30
       inboundACL:
