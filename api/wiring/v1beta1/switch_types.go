@@ -619,7 +619,7 @@ func SwitchSyslogDebug(annotations map[string]string) (bool, error) {
 	return debug, nil
 }
 
-// SwitchPasswordlessSudo is on unless disabled by the annotation, as SONiC has it built in
+// SwitchPasswordlessSudo is on unless disabled by the annotation
 func SwitchPasswordlessSudo(annotations map[string]string) (bool, error) {
 	v, ok := annotations[AnnotationSwitchPasswordlessSudo]
 	if !ok {
@@ -830,7 +830,6 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 				AnnotationSwitchBCMMutate, sw.Spec.Profile, sp.Spec.NOSType)
 		}
 
-		// SONiC always has it, so the annotation couldn't turn it off there
 		if _, ok := sw.Annotations[AnnotationSwitchPasswordlessSudo]; ok && !slices.Contains(meta.NOSTypesCumulus, sp.Spec.NOSType) {
 			return nil, fmt.Errorf("annotation %s is only supported for Cumulus switches, profile %s has NOS type %s", //nolint:err113
 				AnnotationSwitchPasswordlessSudo, sw.Spec.Profile, sp.Spec.NOSType)
