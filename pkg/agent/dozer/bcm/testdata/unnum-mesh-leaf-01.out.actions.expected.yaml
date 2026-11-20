@@ -550,6 +550,7 @@
       config:
         action: PERMIT
         as-path-set-member:
+        - _65100_
         - _65534_
         as-path-set-name: fabric-gw-aspath
   weight: 12

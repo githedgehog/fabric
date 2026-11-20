@@ -74,12 +74,11 @@ spec:
     domains:
       default:
         gatewayASN: 65534
+        spineASN: 65100
     eslagESIPrefix: '00:f2:00:00:'
     eslagMACBase: f2:00:00:00:00:00
     fabricMTU: 9100
     fabricSubnet: 172.30.128.0/17
-    gatewayASN: 65534
-    gatewayBFD: true
     gatewayCommunities:
       "0": "50001:0"
       "1": "50001:1"
@@ -225,7 +224,6 @@ spec:
       eslag: true
       l2vni: true
       l3vni: true
-      mclag: true
       roce: true
       subinterfaces: true
     nosType: sonic-bcm-vs

@@ -886,6 +886,7 @@ routing-policy:
           config:
             action: PERMIT
             as-path-set-member:
+            - _65100_
             - _65534_
             as-path-set-name: fabric-gw-aspath
         - as-path-set-name: gateway-origin

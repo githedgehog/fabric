@@ -1310,7 +1310,7 @@
         disable-ebgp-connected-route-check: true
         enabled: true
         neighbor-address: 172.30.8.3
-        peer-as: 65101
+        peer-as: 65105
       neighbor-address: 172.30.8.3
       transport:
         config:
@@ -1519,7 +1519,7 @@
         description: Fabric leaf-02/E1/9 spine-01--fabric--leaf-02
         enabled: true
         neighbor-address: Ethernet2
-        peer-as: 65101
+        peer-as: 65105
       enable-bfd:
         config:
           bfd-profile: fabric
@@ -1549,7 +1549,7 @@
         description: Fabric leaf-02/E1/10 spine-01--fabric--leaf-02
         enabled: true
         neighbor-address: Ethernet3
-        peer-as: 65101
+        peer-as: 65105
       enable-bfd:
         config:
           bfd-profile: fabric

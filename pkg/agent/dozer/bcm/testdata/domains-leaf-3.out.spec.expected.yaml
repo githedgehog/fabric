@@ -150,14 +150,6 @@ ecmpRoCEQPN: false
 errDisableGlobal:
   recoveryInterval: 300
 errDisableInterfaces:
-  Ethernet4:
-    flapThreshold: 3
-    recoveryInterval: 300
-    samplingInterval: 30
-  Ethernet5:
-    flapThreshold: 3
-    recoveryInterval: 300
-    samplingInterval: 30
   Ethernet6:
     flapThreshold: 3
     recoveryInterval: 300
@@ -204,24 +196,6 @@ interfaces:
       "0": {}
     trunkVLANs:
     - "1007"
-  Ethernet4:
-    autoNegotiate: false
-    description: Fabric spine-01/E1/5 spine-01--fabric--leaf-03
-    enabled: true
-    subinterfaces:
-      "0":
-        ips:
-          172.30.128.9:
-            prefixLen: 31
-  Ethernet5:
-    autoNegotiate: false
-    description: Fabric spine-01/E1/6 spine-01--fabric--leaf-03
-    enabled: true
-    subinterfaces:
-      "0":
-        ips:
-          172.30.128.11:
-            prefixLen: 31
   Ethernet6:
     autoNegotiate: false
     description: Fabric spine-02/E1/5 spine-02--fabric--leaf-03
@@ -318,12 +292,6 @@ lstGroups:
     allEvpnEsDownstream: true
     timeout: 60
 lstInterfaces:
-  Ethernet4:
-    groups:
-    - spinelink
-  Ethernet5:
-    groups:
-    - spinelink
   Ethernet6:
     groups:
     - spinelink
@@ -969,20 +937,6 @@ vrfs:
         advertiseAllVnis: true
         enable: true
       neighbors:
-        172.30.8.0:
-          description: Fabric spine-01 loopback (spine-link)
-          disableConnectedCheck: true
-          enabled: true
-          ipv4Unicast: true
-          ipv4UnicastExportPolicies:
-          - loopback-vtep
-          ipv4UnicastImportPolicies:
-          - loopback-import
-          l2vpnEvpn: true
-          l2vpnEvpnImportPolicies:
-          - l2vpn-neighbors
-          remoteAS: 65010
-          updateSource: 172.30.8.4
         172.30.8.1:
           description: Fabric spine-02 loopback (spine-link)
           disableConnectedCheck: true
@@ -997,22 +951,6 @@ vrfs:
           - l2vpn-neighbors
           remoteAS: 65010
           updateSource: 172.30.8.4
-        172.30.128.8:
-          bfdProfile: fabric
-          description: Fabric spine-01/E1/5 spine-01--fabric--leaf-03
-          enabled: true
-          ipv4Unicast: true
-          ipv4UnicastExportPolicies:
-          - protocol-loopback-only
-          remoteAS: 65010
-        172.30.128.10:
-          bfdProfile: fabric
-          description: Fabric spine-01/E1/6 spine-01--fabric--leaf-03
-          enabled: true
-          ipv4Unicast: true
-          ipv4UnicastExportPolicies:
-          - protocol-loopback-only
-          remoteAS: 65010
         172.30.128.30:
           bfdProfile: fabric
           description: Fabric spine-02/E1/5 spine-02--fabric--leaf-03

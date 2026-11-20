@@ -64,6 +64,7 @@ acls:
 asPathLists:
   fabric-gw-aspath:
     members:
+    - _65100_
     - _65534_
 bfdProfiles:
   fabric:

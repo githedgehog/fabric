@@ -57,22 +57,6 @@ errDisableInterfaces:
     flapThreshold: 3
     recoveryInterval: 300
     samplingInterval: 30
-  Ethernet4:
-    flapThreshold: 3
-    recoveryInterval: 300
-    samplingInterval: 30
-  Ethernet5:
-    flapThreshold: 3
-    recoveryInterval: 300
-    samplingInterval: 30
-  Ethernet6:
-    flapThreshold: 3
-    recoveryInterval: 300
-    samplingInterval: 30
-  Ethernet7:
-    flapThreshold: 3
-    recoveryInterval: 300
-    samplingInterval: 30
   Ethernet8:
     flapThreshold: 3
     recoveryInterval: 300
@@ -123,42 +107,6 @@ interfaces:
         ips:
           172.30.128.6:
             prefixLen: 31
-  Ethernet4:
-    autoNegotiate: false
-    description: Fabric leaf-03/E1/5 spine-01--fabric--leaf-03
-    enabled: true
-    subinterfaces:
-      "0":
-        ips:
-          172.30.128.8:
-            prefixLen: 31
-  Ethernet5:
-    autoNegotiate: false
-    description: Fabric leaf-03/E1/6 spine-01--fabric--leaf-03
-    enabled: true
-    subinterfaces:
-      "0":
-        ips:
-          172.30.128.10:
-            prefixLen: 31
-  Ethernet6:
-    autoNegotiate: false
-    description: Fabric leaf-04/E1/5 spine-01--fabric--leaf-04
-    enabled: true
-    subinterfaces:
-      "0":
-        ips:
-          172.30.128.12:
-            prefixLen: 31
-  Ethernet7:
-    autoNegotiate: false
-    description: Fabric leaf-04/E1/6 spine-01--fabric--leaf-04
-    enabled: true
-    subinterfaces:
-      "0":
-        ips:
-          172.30.128.14:
-            prefixLen: 31
   Ethernet8:
     autoNegotiate: false
     description: Fabric leaf-05/E1/4 spine-01--fabric--leaf-05
@@ -179,7 +127,7 @@ interfaces:
             prefixLen: 31
   Ethernet10:
     autoNegotiate: false
-    description: Gateway gateway-1/enp2s1 spine-01--gateway--gateway-1
+    description: Gateway gateway-2/enp2s1 spine-01--gateway--gateway-2
     enabled: true
     subinterfaces:
       "0":
@@ -372,37 +320,7 @@ vrfs:
           l2vpnEvpn: true
           l2vpnEvpnImportPolicies:
           - l2vpn-neighbors
-          remoteAS: 65101
-          updateSource: 172.30.8.0
-        172.30.8.4:
-          description: Fabric leaf-03 loopback (spine-link)
-          disableConnectedCheck: true
-          enabled: true
-          ipv4AllowOwnAS: 1
-          ipv4Unicast: true
-          ipv4UnicastExportPolicies:
-          - loopback-all-vteps
-          ipv4UnicastImportPolicies:
-          - loopback-import
-          l2vpnEvpn: true
-          l2vpnEvpnImportPolicies:
-          - l2vpn-neighbors
-          remoteAS: 65102
-          updateSource: 172.30.8.0
-        172.30.8.5:
-          description: Fabric leaf-04 loopback (spine-link)
-          disableConnectedCheck: true
-          enabled: true
-          ipv4AllowOwnAS: 1
-          ipv4Unicast: true
-          ipv4UnicastExportPolicies:
-          - loopback-all-vteps
-          ipv4UnicastImportPolicies:
-          - loopback-import
-          l2vpnEvpn: true
-          l2vpnEvpnImportPolicies:
-          - l2vpn-neighbors
-          remoteAS: 65103
+          remoteAS: 65105
           updateSource: 172.30.8.0
         172.30.8.6:
           description: Fabric leaf-05 loopback (spine-link)
@@ -442,7 +360,7 @@ vrfs:
           ipv4Unicast: true
           ipv4UnicastExportPolicies:
           - protocol-loopback-only
-          remoteAS: 65101
+          remoteAS: 65105
         172.30.128.7:
           bfdProfile: fabric
           description: Fabric leaf-02/E1/10 spine-01--fabric--leaf-02
@@ -450,39 +368,7 @@ vrfs:
           ipv4Unicast: true
           ipv4UnicastExportPolicies:
           - protocol-loopback-only
-          remoteAS: 65101
-        172.30.128.9:
-          bfdProfile: fabric
-          description: Fabric leaf-03/E1/5 spine-01--fabric--leaf-03
-          enabled: true
-          ipv4Unicast: true
-          ipv4UnicastExportPolicies:
-          - protocol-loopback-only
-          remoteAS: 65102
-        172.30.128.11:
-          bfdProfile: fabric
-          description: Fabric leaf-03/E1/6 spine-01--fabric--leaf-03
-          enabled: true
-          ipv4Unicast: true
-          ipv4UnicastExportPolicies:
-          - protocol-loopback-only
-          remoteAS: 65102
-        172.30.128.13:
-          bfdProfile: fabric
-          description: Fabric leaf-04/E1/5 spine-01--fabric--leaf-04
-          enabled: true
-          ipv4Unicast: true
-          ipv4UnicastExportPolicies:
-          - protocol-loopback-only
-          remoteAS: 65103
-        172.30.128.15:
-          bfdProfile: fabric
-          description: Fabric leaf-04/E1/6 spine-01--fabric--leaf-04
-          enabled: true
-          ipv4Unicast: true
-          ipv4UnicastExportPolicies:
-          - protocol-loopback-only
-          remoteAS: 65103
+          remoteAS: 65105
         172.30.128.17:
           bfdProfile: fabric
           description: Fabric leaf-05/E1/4 spine-01--fabric--leaf-05
@@ -501,7 +387,7 @@ vrfs:
           remoteAS: 65104
         172.30.128.21:
           bfdProfile: fabric
-          description: Gateway gateway-1/enp2s1 spine-01--gateway--gateway-1
+          description: Gateway gateway-2/enp2s1 spine-01--gateway--gateway-2
           enabled: true
           ipv4Unicast: true
           ipv4UnicastExportPolicies:

@@ -64,7 +64,6 @@ spec:
     eslagMACBase: f2:00:00:00:00:00
     fabricMTU: 9100
     fabricSubnet: 172.30.128.0/17
-    gatewayASN: 65534
     gatewayCommunities:
       "0": "50001:0"
       "1": "50001:1"
@@ -78,7 +77,6 @@ spec:
       "9": "50001:9"
     protocolSubnet: 172.30.8.0/22
     serverFacingMTUOffset: 64
-    spineASN: 65100
     spineLeaf: {}
     vtepSubnet: 172.30.12.0/22
   connections:
@@ -212,7 +210,6 @@ spec:
       eslag: true
       l2vni: true
       l3vni: true
-      mclag: true
       roce: true
       subinterfaces: true
     nosType: sonic-bcm-vs
@@ -464,38 +461,38 @@ spec:
       asn: 65101
       boot:
         mac: 0c:20:12:ff:00:00
-      description: VS-01 MCLAG 1
+      description: VS-01 ESLAG 2
       ecmp: {}
       groups:
-        - mclag-1
+        - eslag-2
       ip: 172.30.0.9/21
       profile: vs
       protocolIP: 172.30.8.2/32
       redundancy:
-        group: mclag-1
-        type: mclag
+        group: eslag-2
+        type: eslag
       role: server-leaf
       vlanNamespaces:
         - default
       vtepIP: 172.30.12.0/32
     leaf-02:
-      asn: 65101
+      asn: 65105
       boot:
         mac: 0c:20:12:ff:01:00
-      description: VS-02 MCLAG 1
+      description: VS-02 ESLAG 2
       ecmp: {}
       groups:
-        - mclag-1
+        - eslag-2
       ip: 172.30.0.10/21
       profile: vs
       protocolIP: 172.30.8.3/32
       redundancy:
-        group: mclag-1
-        type: mclag
+        group: eslag-2
+        type: eslag
       role: server-leaf
       vlanNamespaces:
         - default
-      vtepIP: 172.30.12.0/32
+      vtepIP: 172.30.12.4/32
     leaf-03:
       asn: 65102
       boot:
