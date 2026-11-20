@@ -1195,12 +1195,14 @@
                     policy:
                       outbound:
                         route-map: w_ecmp_origin
+                    state: enabled
               underlay_leaf:
                 address-family:
                   ipv4-unicast:
                     policy:
                       outbound:
                         route-map: w_ecmp_cumulative
+                    state: enabled
               overlay:
                 address-family:
                   ipv4-unicast:
