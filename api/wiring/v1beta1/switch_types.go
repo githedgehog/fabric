@@ -835,6 +835,9 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 			if !exists {
 				return nil, errors.Errorf("port %s not found in switch profile", name)
 			}
+			if port.Profile == "" && port.Group != "" {
+				return nil, errors.Errorf("port %s is in port group %s, set its speed with portGroupSpeeds", name, port.Group)
+			}
 
 			profile, exists := sp.Spec.PortProfiles[port.Profile]
 			if !exists {
@@ -854,6 +857,9 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 			port, exists := sp.Spec.Ports[name]
 			if !exists {
 				return nil, errors.Errorf("port %s not found in switch profile", name)
+			}
+			if port.Profile == "" && port.Group != "" {
+				return nil, errors.Errorf("port %s is in port group %s and has no breakout", name, port.Group)
 			}
 
 			profile, exists := sp.Spec.PortProfiles[port.Profile]
