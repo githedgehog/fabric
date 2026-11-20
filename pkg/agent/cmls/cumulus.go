@@ -1755,6 +1755,10 @@ func checkSupported(agent *agentapi.Agent) error {
 		if vpc.Mode != vpcapi.VPCModeL2VNI {
 			return fmt.Errorf("vpc %s: mode %s isn't supported", vpcName, vpc.Mode) //nolint:err113
 		}
+		// the peered VPCs only get a VRF here, their subnets are configured on the switches they're attached to
+		if !agent.Spec.AttachedVPCs[vpcName] {
+			continue
+		}
 
 		for _, subnetName := range slices.Sorted(maps.Keys(vpc.Subnets)) {
 			subnet := vpc.Subnets[subnetName]
