@@ -857,7 +857,6 @@
             path-selection:
               multipath:
                 aspath-ignore: enabled
-            rd: {{ $.RouterID }}:{{ $vpc.VNI }}
             state: enabled
           {{- if $vpc.Routes }}
           static:
@@ -935,7 +934,6 @@
                 type: {{ if $neigh.Unnumbered }}unnumbered{{ else }}numbered{{ end }}
               {{- end }}
             {{- end }}
-            rd: {{ $.RouterID }}:{{ $ext.VNI }}
             state: enabled
           {{- if $ext.Routes }}
           static:
