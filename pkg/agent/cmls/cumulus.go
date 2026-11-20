@@ -1205,13 +1205,11 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 
 	// the DHCP relay sends a reply out of the first interface with the IP from the link selection it got, so the SVIs
 	// need unique IPs of their own, taken as base + VLAN
-	sviSubnet, err := netip.ParsePrefix(cmp.Or(agent.Spec.Config.CumulusSVIWorkaroundSubnet, fmeta.DefaultCumulusSVIWorkaroundSubnet))
+	sviSubnet, err := fmeta.ParseCumulusSVIWorkaroundSubnet(agent.Spec.Config.CumulusSVIWorkaroundSubnet)
 	if err != nil {
-		return nil, fmt.Errorf("parsing Cumulus SVI workaround subnet: %w", err)
+		return nil, fmt.Errorf("config: %w", err)
 	}
-	if !sviSubnet.Addr().Is4() {
-		return nil, fmt.Errorf("parsing Cumulus SVI workaround subnet: %s isn't IPv4", sviSubnet) //nolint:err113
-	}
+	sviBase := sviSubnet.Addr().As4()
 
 	// attached VPC subnets are VLANs mapped to the subnet VNIs with an SVI in the VPC VRF, carried by the ports and
 	// bonds of the attached connections
@@ -1282,7 +1280,6 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 			if err != nil {
 				return nil, fmt.Errorf("vpc attachment %q: parsing gateway %s: %w", attachName, subnet.Gateway, err)
 			}
-			sviBase := sviSubnet.Masked().Addr().As4()
 			sviIP := netip.AddrFrom4([4]byte(binary.BigEndian.AppendUint32(nil, binary.BigEndian.Uint32(sviBase[:])+uint32(subnet.VLAN))))
 			if !sviSubnet.Contains(sviIP) {
 				return nil, fmt.Errorf("vpc attachment %q: vlan %d doesn't fit Cumulus SVI workaround subnet %s", attachName, subnet.VLAN, sviSubnet) //nolint:err113
