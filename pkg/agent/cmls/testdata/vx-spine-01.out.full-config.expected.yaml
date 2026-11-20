@@ -979,6 +979,7 @@
                     policy:
                       outbound:
                         route-map: w_ecmp_origin
+                    state: enabled
                 bfd:
                   profile: underlay
               underlay_leaf:
@@ -987,6 +988,7 @@
                     policy:
                       outbound:
                         route-map: w_ecmp_cumulative
+                    state: enabled
                 bfd:
                   profile: underlay
               overlay:
