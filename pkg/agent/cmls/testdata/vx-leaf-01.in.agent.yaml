@@ -165,10 +165,8 @@ spec:
               ip: 172.30.128.0/31
               port: spine-01/E1/1
           - leaf:
-              ip: 172.30.128.3/31
               port: leaf-01/E1/6
             spine:
-              ip: 172.30.128.2/31
               port: spine-01/E1/2
     spine-02--fabric--leaf-01:
       fabric:

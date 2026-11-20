@@ -252,9 +252,7 @@ func TestBuildConfigErrors(t *testing.T) {
 			profile: &switchprofile.CumulusVX,
 			port:    "E1/1",
 			mutate: func(agent *agentapi.Agent) {
-				agent.Spec.Config.SpineLeaf = &agentapi.AgentSpecConfigSpineLeaf{}
-				agent.Spec.Switch.Role = wiringapi.SwitchRoleServerLeaf
-				agent.Spec.Switch.VTEPIP = "172.30.12.0/32"
+				asLeaf(agent)
 				agent.Spec.Config.GatewayCommunities = map[string]string{"0": "50001:0", "high": "50001:1"}
 			},
 			err: `parsing gateway community priority "high"`,
@@ -565,15 +563,32 @@ func TestBuildConfigErrors(t *testing.T) {
 			err: "external peering vpc-01--ext-01: prefix 0.0.0.0/0: ID 0 isn't between 1 and 65000",
 		},
 		{
+			name:    "vx-fabric-link-ip-on-one-side",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate:  withFabricLink("172.30.128.1/31", "", 65100),
+			err:     "conn spine-01--fabric--leaf-01: port swp2: IPs have to be set on both sides or on neither",
+		},
+		{
+			name:    "vx-fabric-link-no-peer-asn",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate:  withFabricLink("", "", 0),
+			err:     "conn spine-01--fabric--leaf-01: no ASN for peer spine-01",
+		},
+		{
+			name:    "vx-fabric-link-invalid-peer-ip",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate:  withFabricLink("172.30.128.1/31", "172.30.128.0", 65100),
+			err:     "conn spine-01--fabric--leaf-01: parsing peer IP 172.30.128.0",
+		},
+		{
 			name:    "vx-leaf-no-base-community",
 			profile: &switchprofile.CumulusVX,
 			port:    "E1/1",
-			mutate: func(agent *agentapi.Agent) {
-				agent.Spec.Config.SpineLeaf = &agentapi.AgentSpecConfigSpineLeaf{}
-				agent.Spec.Switch.Role = wiringapi.SwitchRoleServerLeaf
-				agent.Spec.Switch.VTEPIP = "172.30.12.0/32"
-			},
-			err: "no base VPC community",
+			mutate:  asLeaf,
+			err:     "no base VPC community",
 		},
 		{
 			name:    "sn5610-speed-on-breakout-port",
@@ -828,6 +843,26 @@ func withExtAttachments(attaches map[string]vpcapi.ExternalAttachmentSpec) func(
 		agent.Spec.Config.BaseVPCCommunity = "50000:0"
 		agent.Spec.IPv4Namespaces = map[string]vpcapi.IPv4NamespaceSpec{"default": {Subnets: []string{"10.0.0.0/16"}}}
 		agent.Spec.ExternalAttachments = attaches
+	}
+}
+
+func asLeaf(agent *agentapi.Agent) {
+	agent.Spec.Config.SpineLeaf = &agentapi.AgentSpecConfigSpineLeaf{}
+	agent.Spec.Switch.Role = wiringapi.SwitchRoleServerLeaf
+	agent.Spec.Switch.VTEPIP = "172.30.12.0/32"
+}
+
+// withFabricLink makes leaf-01 a leaf with a single fabric link on E1/2 to spine-01
+func withFabricLink(leafIP, spineIP string, spineASN uint32) func(agent *agentapi.Agent) {
+	return func(agent *agentapi.Agent) {
+		asLeaf(agent)
+		agent.Spec.Switches = map[string]wiringapi.SwitchSpec{"spine-01": {ASN: spineASN, ProtocolIP: "172.30.8.0/32"}}
+		agent.Spec.Connections["spine-01--fabric--leaf-01"] = wiringapi.ConnectionSpec{Fabric: &wiringapi.ConnFabric{
+			Links: []wiringapi.FabricLink{{
+				Spine: wiringapi.ConnFabricLinkSwitch{BasePortName: wiringapi.BasePortName{Port: "spine-01/E1/1"}, IP: spineIP},
+				Leaf:  wiringapi.ConnFabricLinkSwitch{BasePortName: wiringapi.BasePortName{Port: "leaf-01/E1/2"}, IP: leafIP},
+			}},
+		}}
 	}
 }
 
