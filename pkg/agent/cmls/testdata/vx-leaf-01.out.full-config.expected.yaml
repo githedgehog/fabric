@@ -2261,7 +2261,7 @@
                   prepend: disabled
                   replace: enabled
                   state: enabled
-                remote-as: external
+                remote-as: 64102
                 type: unnumbered
             state: enabled
       ext-ext-snp-02:
