@@ -566,10 +566,13 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 		benchTouch = maxBenchTouch(benchTouch, &conn)
 	}
 
-	// for spines, also add static external connections that are not within VPC
+	// for spines, also add static external connections of their fabric that are not within VPC
 	if sw.Spec.Role.IsSpine() {
 		staticConnList := &wiringapi.ConnectionList{}
-		err = r.List(ctx, staticConnList, kclient.InNamespace(sw.Namespace), kclient.MatchingLabels{wiringapi.LabelConnectionType: wiringapi.ConnectionTypeStaticExternal})
+		err = r.List(ctx, staticConnList, kclient.InNamespace(sw.Namespace), kclient.MatchingLabels{
+			wiringapi.LabelConnectionType:                      wiringapi.ConnectionTypeStaticExternal,
+			wiringapi.ListLabelFabric(sw.Spec.Topology.Fabric): wiringapi.ListLabelValue,
+		})
 		if err != nil {
 			return kctrl.Result{}, errors.Wrapf(err, "error getting static external connections for spine %s", sw.Name)
 		}
