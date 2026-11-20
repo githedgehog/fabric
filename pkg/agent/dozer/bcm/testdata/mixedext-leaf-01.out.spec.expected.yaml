@@ -151,6 +151,9 @@ communityLists:
     - "50001:7"
     - "50001:8"
     - "50001:9"
+  any-community:
+    members:
+    - REGEX:.*
   gw-prio-0:
     members:
     - "50001:0"
@@ -524,6 +527,16 @@ prefixLists:
           le: 32
           prefix: 172.30.12.0/32
 routeMaps:
+  ext-evpn-advertise--default:
+    statements:
+      "10":
+        conditions:
+          matchPrefixLists: ipns-subnets--default
+        result: reject
+      "20":
+        conditions:
+          matchCommunityLists: all-externals
+        result: accept
   ext-import--ext-snp-02:
     statements:
       "10":
@@ -730,12 +743,14 @@ routeMaps:
       "10":
         conditions:
           matchPrefixLists: vips-only--vpc-01--default
+        deleteCommunities: any-community
         result: accept
   vips-only--vpc-02--default:
     statements:
       "10":
         conditions:
           matchPrefixLists: vips-only--vpc-02--default
+        deleteCommunities: any-community
         result: accept
   vpc-redistribute-connected--vpc-01:
     statements:
@@ -834,6 +849,8 @@ vrfs:
         maxPaths: 16
       l2vpnEvpn:
         advertiseIPv4Unicast: true
+        advertiseIPv4UnicastRouteMaps:
+        - ext-evpn-advertise--default
         enable: true
       networkImportCheck: true
       routerID: 172.30.8.2
@@ -866,7 +883,7 @@ vrfs:
       l2vpnEvpn:
         advertiseIPv4Unicast: true
         advertiseIPv4UnicastRouteMaps:
-        - ext-inbound--ext-sp-01
+        - ext-evpn-advertise--default
         enable: true
       neighbors:
         100.1.30.1:

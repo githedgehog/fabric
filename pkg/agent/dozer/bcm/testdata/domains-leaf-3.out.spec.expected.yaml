@@ -518,6 +518,16 @@ prefixLists:
           le: 32
           prefix: 172.30.12.1/32
 routeMaps:
+  ext-evpn-advertise--default:
+    statements:
+      "10":
+        conditions:
+          matchPrefixLists: ipns-subnets--default
+        result: reject
+      "20":
+        conditions:
+          matchCommunityLists: all-externals
+        result: accept
   ext-import--external-01:
     statements:
       "10":
@@ -817,7 +827,7 @@ vrfs:
       l2vpnEvpn:
         advertiseIPv4Unicast: true
         advertiseIPv4UnicastRouteMaps:
-        - ext-inbound--external-01
+        - ext-evpn-advertise--default
         enable: true
       neighbors:
         100.1.10.6:

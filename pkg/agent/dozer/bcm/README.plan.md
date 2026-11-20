@@ -882,11 +882,16 @@ IPv6, which we need for the unnumbered BGP sessions. Here's the config for the s
     !
     ```
 1. We create a prefix list and a route-map to only allow /32 routes in the VPC subnet when learning
-routes from the host BGP neighbor:
+routes from the host BGP neighbor. The route-map also removes every community the host sent, so that
+a host cannot set one the fabric acts on, such as `baseVPCCommunity` (see [Externals](#externals)) or
+a gateway priority. They are deleted through an expanded community list matching anything
+(`set community none` would have the same effect):
     ```
+    bgp community-list expanded any-community permit .*
     ip prefix-list vips-only--vpc-01--default seq 10 permit 10.0.1.0/24 ge 32 le 32
     route-map vips-only--vpc-01--default permit 10
      match ip address prefix-list vips-only--vpc-01--default
+     set comm-list any-community delete
     !
     ```
 1. We add the host as an unnumbered BGP neighbor in the VPC VRF instance:
@@ -1030,6 +1035,7 @@ route-map in [Switch Invariants](#switch-invariants)):
 ```
 bgp community-list standard all-externals permit 50000:0
 ```
+The same list decides what an external VRF advertises over EVPN (see [Common external config](#common-external-config)).
 
 Creating an `External` object does not affect the switches in any major way; it is only when an
 External is attached to a particular leaf via an `ExternalAttachment` that that leaf configuration is
@@ -1083,8 +1089,20 @@ subnets that are permitted in the [external peerings](#external-peerings):
     ```
 1. We configure a BGP instance for the external VRF. This is done for all externals,
 not just BGP-speaking ones, because it's part of how we handle external VRFs "as VPCs"
-and peer them via the gateway as needed. 
+and peer them via the gateway as needed. The VRF advertises over EVPN only the routes that
+carry `baseVPCCommunity`, i.e. the ones that came from the external, whether over BGP or as static
+routes. Without this filter it would also advertise the VPC subnets leaked into it by
+[external peerings](#external-peerings), so the gateway and the other border leaves would see
+them as routes of the external. Routes in the IPv4 namespace are denied first, so that a VPC route
+is never advertised whatever communities it carries. The route-map is shared by all externals in
+the same IPv4 namespace.
     ```
+    route-map ext-evpn-advertise--default deny 10
+     match ip address prefix-list ipns-subnets--default
+    !
+    route-map ext-evpn-advertise--default permit 20
+     match community all-externals
+    !
     router bgp 65101 vrf VrfEext-name
      router-id 172.30.8.1
      log-neighbor-changes
@@ -1096,7 +1114,7 @@ and peer them via the gateway as needed.
       import vrf route-map ext-import--ext-name
      !
      address-family l2vpn evpn
-      advertise ipv4 unicast
+      advertise ipv4 unicast route-map ext-evpn-advertise--default
       dup-addr-detection
      !
     !
@@ -1169,10 +1187,6 @@ advertised and accepted.
     ```
     router bgp 65101 vrf VrfEext-name
     [...]
-     address-family l2vpn evpn
-      advertise ipv4 unicast route-map ext-inbound--ext-name
-      dup-addr-detection
-     !
      neighbor 100.1.10.6
       description "External attach leaf-01--ext-name"
       remote-as 64102

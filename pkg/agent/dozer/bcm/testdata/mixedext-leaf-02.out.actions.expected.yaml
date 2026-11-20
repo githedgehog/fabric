@@ -593,6 +593,19 @@
         community-set-name: all-gw-prios
         match-set-options: ANY
   weight: 11
+- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=any-community]
+  summary: Create Community Lists any-community
+  type: update
+  value:
+    community-set:
+    - community-set-name: any-community
+      config:
+        action: PERMIT
+        community-member:
+        - REGEX:.*
+        community-set-name: any-community
+        match-set-options: ANY
+  weight: 11
 - path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=gw-prio-0]
   summary: Create Community Lists gw-prio-0
   type: update
@@ -993,6 +1006,15 @@
     vni: 500
     vrf_name: VrfVvpc-03
   weight: 18
+- path: /routing-policy/policy-definitions/policy-definition[name=ext-evpn-advertise--default]
+  summary: Create Route Maps Base ext-evpn-advertise--default
+  type: update
+  value:
+    policy-definition:
+    - config:
+        name: ext-evpn-advertise--default
+      name: ext-evpn-advertise--default
+  weight: 19
 - path: /routing-policy/policy-definitions/policy-definition[name=ext-import--ext-sp-01]
   summary: Create Route Maps Base ext-import--ext-sp-01
   type: update
@@ -1173,6 +1195,38 @@
         name: vpc-redistribute-static--vpc-03
       name: vpc-redistribute-static--vpc-03
   weight: 19
+- path: /routing-policy/policy-definitions/policy-definition[name=ext-evpn-advertise--default]/statements/statement[name=10]
+  summary: Create Route Map Statement 10
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: REJECT_ROUTE
+      conditions:
+        match-prefix-set:
+          config:
+            prefix-set: ipns-subnets--default
+      config:
+        name: "10"
+      name: "10"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=ext-evpn-advertise--default]/statements/statement[name=20]
+  summary: Create Route Map Statement 20
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        bgp-conditions:
+          config:
+            community-set: all-externals
+      config:
+        name: "20"
+      name: "20"
+  weight: 21
 - path: /routing-policy/policy-definitions/policy-definition[name=ext-import--ext-sp-01]/statements/statement[name=10]
   summary: Create Route Map Statement 10
   type: update
@@ -1750,6 +1804,10 @@
   value:
     statement:
     - actions:
+        bgp-actions:
+          set-community-delete:
+            config:
+              community-set-delete: any-community
         config:
           policy-result: ACCEPT_ROUTE
       conditions:
@@ -1766,6 +1824,10 @@
   value:
     statement:
     - actions:
+        bgp-actions:
+          set-community-delete:
+            config:
+              community-set-delete: any-community
         config:
           policy-result: ACCEPT_ROUTE
       conditions:
@@ -2951,7 +3013,7 @@
             config:
               advertise-afi-safi: IPV4_UNICAST
               route-map:
-              - ext-inbound--ext-sp-01
+              - ext-evpn-advertise--default
   weight: 81
 - path: /network-instances/network-instance[name=VrfVvpc-01]/protocols/protocol[identifier=BGP][name=bgp]/bgp/global/afi-safis/afi-safi[afi-safi-name=L2VPN_EVPN]
   summary: Create VRF VrfVvpc-01 BGP L2VPN

@@ -1150,6 +1150,15 @@
     vni: 400
     vrf_name: VrfVvpc-04
   weight: 18
+- path: /routing-policy/policy-definitions/policy-definition[name=ext-evpn-advertise--default]
+  summary: Create Route Maps Base ext-evpn-advertise--default
+  type: update
+  value:
+    policy-definition:
+    - config:
+        name: ext-evpn-advertise--default
+      name: ext-evpn-advertise--default
+  weight: 19
 - path: /routing-policy/policy-definitions/policy-definition[name=ext-import--external-01]
   summary: Create Route Maps Base ext-import--external-01
   type: update
@@ -1312,6 +1321,38 @@
         name: vpc-redistribute-static--vpc-04
       name: vpc-redistribute-static--vpc-04
   weight: 19
+- path: /routing-policy/policy-definitions/policy-definition[name=ext-evpn-advertise--default]/statements/statement[name=10]
+  summary: Create Route Map Statement 10
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: REJECT_ROUTE
+      conditions:
+        match-prefix-set:
+          config:
+            prefix-set: ipns-subnets--default
+      config:
+        name: "10"
+      name: "10"
+  weight: 21
+- path: /routing-policy/policy-definitions/policy-definition[name=ext-evpn-advertise--default]/statements/statement[name=20]
+  summary: Create Route Map Statement 20
+  type: update
+  value:
+    statement:
+    - actions:
+        config:
+          policy-result: ACCEPT_ROUTE
+      conditions:
+        bgp-conditions:
+          config:
+            community-set: all-externals
+      config:
+        name: "20"
+      name: "20"
+  weight: 21
 - path: /routing-policy/policy-definitions/policy-definition[name=ext-import--external-01]/statements/statement[name=10]
   summary: Create Route Map Statement 10
   type: update
@@ -3326,7 +3367,7 @@
             config:
               advertise-afi-safi: IPV4_UNICAST
               route-map:
-              - ext-inbound--external-01
+              - ext-evpn-advertise--default
   weight: 81
 - path: /network-instances/network-instance[name=VrfVvpc-01]/protocols/protocol[identifier=BGP][name=bgp]/bgp/global/afi-safis/afi-safi[afi-safi-name=L2VPN_EVPN]
   summary: Create VRF VrfVvpc-01 BGP L2VPN

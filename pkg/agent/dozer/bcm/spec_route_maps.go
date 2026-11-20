@@ -212,6 +212,17 @@ var specRouteMapStatementEnforcer = &DefaultValueEnforcer[string, *dozer.SpecRou
 				},
 			}
 		}
+		if statement.DeleteCommunities != nil {
+			if bgpActions == nil {
+				bgpActions = &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions{}
+			}
+
+			bgpActions.SetCommunityDelete = &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions_SetCommunityDelete{
+				Config: &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions_SetCommunityDelete_Config{
+					CommunitySetDelete: statement.DeleteCommunities,
+				},
+			}
+		}
 		if statement.SetLocalPreference != nil {
 			if bgpActions == nil {
 				bgpActions = &oc.OpenconfigRoutingPolicy_RoutingPolicy_PolicyDefinitions_PolicyDefinition_Statements_Statement_Actions_BgpActions{}
@@ -321,8 +332,12 @@ func unmarshalOCRouteMaps(ocVal *oc.OpenconfigRoutingPolicy_RoutingPolicy) (map[
 			}
 
 			var setComms []string
+			var deleteComms *string
 			var setLocalPref *uint32
 			if statement.Actions.BgpActions != nil {
+				if del := statement.Actions.BgpActions.SetCommunityDelete; del != nil && del.Config != nil {
+					deleteComms = del.Config.CommunitySetDelete
+				}
 				if statement.Actions.BgpActions.SetCommunity != nil {
 					setComm := statement.Actions.BgpActions.SetCommunity
 
@@ -355,6 +370,7 @@ func unmarshalOCRouteMaps(ocVal *oc.OpenconfigRoutingPolicy_RoutingPolicy) (map[
 			statements[*statement.Name] = &dozer.SpecRouteMapStatement{
 				Conditions:         conditions,
 				SetCommunities:     setComms,
+				DeleteCommunities:  deleteComms,
 				SetLocalPreference: setLocalPref,
 				Result:             result,
 			}
