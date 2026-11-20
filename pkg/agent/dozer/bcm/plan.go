@@ -55,7 +55,6 @@ const (
 	RouteMapGatewayImport        = "gateway-import"
 	RouteMapGatewayExport        = "gateway-export"
 	RouteMapLoopbackImport       = "loopback-import"
-	PrefixListAny                = "any-prefix"
 	PrefixListAllVTEPPrefixes    = "all-vtep-prefixes"
 	PrefixListVTEPPrefix         = "vtep-prefix"
 	PrefixListProtocolLoopback   = "protocol-loopback-prefix"
@@ -1180,18 +1179,6 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 		}
 	}
 
-	spec.PrefixLists[PrefixListAny] = &dozer.SpecPrefixList{
-		Prefixes: map[uint32]*dozer.SpecPrefixListEntry{
-			10: {
-				Prefix: dozer.SpecPrefixListPrefix{
-					Prefix: "0.0.0.0/0",
-					Le:     32,
-				},
-				Action: dozer.SpecPrefixListActionPermit,
-			},
-		},
-	}
-
 	for connName, conn := range agent.Spec.Connections {
 		if conn.External == nil {
 			continue
@@ -1220,17 +1207,6 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 				},
 				Action: dozer.SpecPrefixListActionPermit,
 			}
-		}
-
-		spec.RouteMaps[ipnsSubnetsRouteMapName(ipnsName)] = &dozer.SpecRouteMap{
-			Statements: map[string]*dozer.SpecRouteMapStatement{
-				"10": {
-					Conditions: dozer.SpecRouteMapConditions{
-						MatchPrefixList: new(ipnsSubnetsPrefixListName(ipnsName)),
-					},
-					Result: dozer.SpecRouteMapResultAccept,
-				},
-			},
 		}
 
 		aclName := ipNsNoExtPeeringACLName(ipnsName)
@@ -3670,10 +3646,6 @@ func vpcRedistributeStaticRouteMapName(vpc string) string {
 }
 
 func ipnsSubnetsPrefixListName(ipns string) string {
-	return fmt.Sprintf("ipns-subnets--%s", ipns)
-}
-
-func ipnsSubnetsRouteMapName(ipns string) string {
 	return fmt.Sprintf("ipns-subnets--%s", ipns)
 }
 

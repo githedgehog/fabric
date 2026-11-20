@@ -274,13 +274,10 @@ These are mostly self-explanatory, so I won't go over them in detail.
 ## IPv4 Namespaces
 The following changes to the configuration are applied when creating an IPv4 namespace:
 
-1. We create a prefix list matching the ranges in the namespace, and a route-map to
-permit those, which will be used in the context of [BGP-speaking externals](#bgp-speaking-externals):
+1. We create a prefix list matching the ranges in the namespace, which will be used in the
+context of [BGP-speaking externals](#bgp-speaking-externals):
     ```
     ip prefix-list ipns-subnets--default seq 1 permit 10.0.0.0/16 le 32
-    route-map ipns-subnets--default permit 10
-     match ip address prefix-list ipns-subnets--default
-    !
     ```
 1. We create an access list to prevent traffic local to the namespace from being
 routed to an external device in the presence of external peerings:
