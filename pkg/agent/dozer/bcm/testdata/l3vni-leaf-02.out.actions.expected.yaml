@@ -583,6 +583,19 @@
         community-set-name: all-gw-prios
         match-set-options: ANY
   weight: 11
+- path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=any-community]
+  summary: Create Community Lists any-community
+  type: update
+  value:
+    community-set:
+    - community-set-name: any-community
+      config:
+        action: PERMIT
+        community-member:
+        - REGEX:.*
+        community-set-name: any-community
+        match-set-options: ANY
+  weight: 11
 - path: /routing-policy/defined-sets/bgp-defined-sets/community-sets/community-set[community-set-name=gw-prio-0]
   summary: Create Community Lists gw-prio-0
   type: update
@@ -1569,6 +1582,10 @@
   value:
     statement:
     - actions:
+        bgp-actions:
+          set-community-delete:
+            config:
+              community-set-delete: any-community
         config:
           policy-result: ACCEPT_ROUTE
       conditions:
@@ -1585,6 +1602,10 @@
   value:
     statement:
     - actions:
+        bgp-actions:
+          set-community-delete:
+            config:
+              community-set-delete: any-community
         config:
           policy-result: ACCEPT_ROUTE
       conditions:

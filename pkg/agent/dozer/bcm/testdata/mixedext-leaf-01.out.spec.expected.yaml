@@ -151,6 +151,9 @@ communityLists:
     - "50001:7"
     - "50001:8"
     - "50001:9"
+  any-community:
+    members:
+    - REGEX:.*
   gw-prio-0:
     members:
     - "50001:0"
@@ -740,12 +743,14 @@ routeMaps:
       "10":
         conditions:
           matchPrefixLists: vips-only--vpc-01--default
+        deleteCommunities: any-community
         result: accept
   vips-only--vpc-02--default:
     statements:
       "10":
         conditions:
           matchPrefixLists: vips-only--vpc-02--default
+        deleteCommunities: any-community
         result: accept
   vpc-redistribute-connected--vpc-01:
     statements:

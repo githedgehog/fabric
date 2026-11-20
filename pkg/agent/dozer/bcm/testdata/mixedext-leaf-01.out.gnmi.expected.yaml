@@ -1539,6 +1539,13 @@ routing-policy:
             - "50001:9"
             community-set-name: all-gw-prios
             match-set-options: ANY
+        - community-set-name: any-community
+          config:
+            action: PERMIT
+            community-member:
+            - REGEX:.*
+            community-set-name: any-community
+            match-set-options: ANY
         - community-set-name: gw-prio-0
           config:
             action: PERMIT
@@ -2465,6 +2472,10 @@ routing-policy:
       statements:
         statement:
         - actions:
+            bgp-actions:
+              set-community-delete:
+                config:
+                  community-set-delete: any-community
             config:
               policy-result: ACCEPT_ROUTE
           conditions:
@@ -2480,6 +2491,10 @@ routing-policy:
       statements:
         statement:
         - actions:
+            bgp-actions:
+              set-community-delete:
+                config:
+                  community-set-delete: any-community
             config:
               policy-result: ACCEPT_ROUTE
           conditions:

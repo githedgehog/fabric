@@ -882,11 +882,16 @@ IPv6, which we need for the unnumbered BGP sessions. Here's the config for the s
     !
     ```
 1. We create a prefix list and a route-map to only allow /32 routes in the VPC subnet when learning
-routes from the host BGP neighbor:
+routes from the host BGP neighbor. The route-map also removes every community the host sent, so that
+a host cannot set one the fabric acts on, such as `baseVPCCommunity` (see [Externals](#externals)) or
+a gateway priority. They are deleted through an expanded community list matching anything
+(`set community none` would have the same effect):
     ```
+    bgp community-list expanded any-community permit .*
     ip prefix-list vips-only--vpc-01--default seq 10 permit 10.0.1.0/24 ge 32 le 32
     route-map vips-only--vpc-01--default permit 10
      match ip address prefix-list vips-only--vpc-01--default
+     set comm-list any-community delete
     !
     ```
 1. We add the host as an unnumbered BGP neighbor in the VPC VRF instance:

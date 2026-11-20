@@ -65,6 +65,7 @@ const (
 	AsPathListGatewayOrigin      = "gateway-origin"
 	BGPCommListAllExternals      = "all-externals"
 	BGPCommListAllGwPrios        = "all-gw-prios"
+	BGPCommListAnyCommunity      = "any-community"
 	MgmtIface                    = "Management0"
 	FabricBFDProfile             = "fabric"
 	ExternalBFDIntervalMS        = uint32(300)
@@ -2932,13 +2933,18 @@ func planHostBGPSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, 
 		Prefixes: prefixes,
 	}
 
-	// create routemap filtering anything that is not the prefix list above
+	// create routemap filtering anything that is not the prefix list above, and dropping the host's
+	// communities so that it can't set the ones the fabric acts on (e.g. all-externals, gateway priorities)
+	spec.CommunityLists[BGPCommListAnyCommunity] = &dozer.SpecCommunityList{
+		Members: []string{"REGEX:.*"},
+	}
 	rmName := vpcSubnetVIPsOnlyRouteMapName(vpcName, subnetName)
 	spec.RouteMaps[rmName] = &dozer.SpecRouteMap{
 		Statements: map[string]*dozer.SpecRouteMapStatement{
 			"10": {
-				Conditions: dozer.SpecRouteMapConditions{MatchPrefixList: new(plName)},
-				Result:     dozer.SpecRouteMapResultAccept,
+				Conditions:        dozer.SpecRouteMapConditions{MatchPrefixList: new(plName)},
+				DeleteCommunities: new(BGPCommListAnyCommunity),
+				Result:            dozer.SpecRouteMapResultAccept,
 			},
 		},
 	}
