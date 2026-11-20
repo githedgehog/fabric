@@ -650,7 +650,7 @@ network-instances:
                 description: Fabric leaf-02/E1/9 spine-01--fabric--leaf-02
                 enabled: true
                 neighbor-address: 172.30.128.5
-                peer-as: 65101
+                peer-as: 65105
               enable-bfd:
                 config:
                   bfd-profile: fabric
@@ -673,7 +673,7 @@ network-instances:
                 description: Fabric leaf-02/E1/10 spine-01--fabric--leaf-02
                 enabled: true
                 neighbor-address: 172.30.128.7
-                peer-as: 65101
+                peer-as: 65105
               enable-bfd:
                 config:
                   bfd-profile: fabric
@@ -765,7 +765,7 @@ network-instances:
                 disable-ebgp-connected-route-check: true
                 enabled: true
                 neighbor-address: 172.30.8.3
-                peer-as: 65101
+                peer-as: 65105
               neighbor-address: 172.30.8.3
               transport:
                 config:
@@ -947,20 +947,6 @@ routing-policy:
         name: all-vtep-prefixes
       - config:
           mode: IPV4
-          name: any-prefix
-        extended-prefixes:
-          extended-prefix:
-          - config:
-              action: PERMIT
-              ip-prefix: 0.0.0.0/0
-              masklength-range: 0..32
-              sequence-number: 10
-            ip-prefix: 0.0.0.0/0
-            masklength-range: 0..32
-            sequence-number: 10
-        name: any-prefix
-      - config:
-          mode: IPV4
           name: ipns-subnets--default
         extended-prefixes:
           extended-prefix:
@@ -1042,21 +1028,6 @@ routing-policy:
                 config:
                   as-path-set: gateway-origin
                   match-set-options: ANY
-          config:
-            name: "10"
-          name: "10"
-    - config:
-        name: ipns-subnets--default
-      name: ipns-subnets--default
-      statements:
-        statement:
-        - actions:
-            config:
-              policy-result: ACCEPT_ROUTE
-          conditions:
-            match-prefix-set:
-              config:
-                prefix-set: ipns-subnets--default
           config:
             name: "10"
           name: "10"

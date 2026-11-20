@@ -108,7 +108,6 @@ spec:
     eslagMACBase: f2:00:00:00:00:00
     fabricMTU: 9100
     fabricSubnet: 172.30.128.0/17
-    gatewayASN: 65534
     gatewayCommunities:
       "0": "50001:0"
       "1": "50001:1"
@@ -122,7 +121,6 @@ spec:
       "9": "50001:9"
     protocolSubnet: 172.30.8.0/22
     serverFacingMTUOffset: 64
-    spineASN: 65010
     spineLeaf: {}
     vtepSubnet: 172.30.12.0/22
   configuredVPCSubnets:
@@ -164,21 +162,6 @@ spec:
             port: server-07/enp2s1
           switch:
             port: leaf-03/E1/4
-    spine-01--fabric--leaf-03:
-      fabric:
-        links:
-          - leaf:
-              ip: 172.30.128.9/31
-              port: leaf-03/E1/5
-            spine:
-              ip: 172.30.128.8/31
-              port: spine-01/E1/5
-          - leaf:
-              ip: 172.30.128.11/31
-              port: leaf-03/E1/6
-            spine:
-              ip: 172.30.128.10/31
-              port: spine-01/E1/6
     spine-02--fabric--leaf-03:
       fabric:
         links:
@@ -278,7 +261,6 @@ spec:
       eslag: true
       l2vni: true
       l3vni: true
-      mclag: true
       roce: true
       subinterfaces: true
     nosType: sonic-bcm-vs
@@ -562,19 +544,6 @@ spec:
       vlanNamespaces:
         - default
       vtepIP: 172.30.12.2/32
-    spine-01:
-      asn: 65010
-      boot:
-        mac: 0c:20:12:ff:05:00
-      description: VS-06
-      ecmp: {}
-      ip: 172.30.0.7/21
-      profile: vs
-      protocolIP: 172.30.8.0/32
-      redundancy: {}
-      role: spine
-      vlanNamespaces:
-        - default
     spine-02:
       asn: 65010
       boot:

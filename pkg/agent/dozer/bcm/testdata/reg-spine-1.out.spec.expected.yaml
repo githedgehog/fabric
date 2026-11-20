@@ -219,13 +219,6 @@ prefixLists:
         prefix:
           le: 32
           prefix: 172.30.12.0/22
-  any-prefix:
-    prefixes:
-      "10":
-        action: permit
-        prefix:
-          le: 32
-          prefix: 0.0.0.0/0
   ipns-subnets--default:
     prefixes:
       "1":
@@ -262,12 +255,6 @@ routeMaps:
       "10":
         conditions:
           matchAsPathList: gateway-origin
-        result: accept
-  ipns-subnets--default:
-    statements:
-      "10":
-        conditions:
-          matchPrefixLists: ipns-subnets--default
         result: accept
   l2vpn-neighbors:
     statements:
@@ -365,7 +352,7 @@ vrfs:
           l2vpnEvpn: true
           l2vpnEvpnImportPolicies:
           - l2vpn-neighbors
-          remoteAS: 65101
+          remoteAS: 65105
           updateSource: 172.30.8.0
         172.30.8.4:
           description: Fabric leaf-03 loopback (spine-link)
@@ -435,7 +422,7 @@ vrfs:
           ipv4Unicast: true
           ipv4UnicastExportPolicies:
           - protocol-loopback-only
-          remoteAS: 65101
+          remoteAS: 65105
         172.30.128.7:
           bfdProfile: fabric
           description: Fabric leaf-02/E1/10 spine-01--fabric--leaf-02
@@ -443,7 +430,7 @@ vrfs:
           ipv4Unicast: true
           ipv4UnicastExportPolicies:
           - protocol-loopback-only
-          remoteAS: 65101
+          remoteAS: 65105
         172.30.128.9:
           bfdProfile: fabric
           description: Fabric leaf-03/E1/5 spine-01--fabric--leaf-03

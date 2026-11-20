@@ -180,11 +180,11 @@ func TestPlan(t *testing.T) {
 		name string
 	}{
 		// group: reg
-		// regular vs vlab with l2vni vpcs, 2 spines, 2 mclag leafs, 2 eslag leafs, 1 standalone
+		// regular vs vlab with l2vni vpcs, 2 spines, 2 pairs of eslag leafs, 1 standalone
 		// virt ext connected to leaf-3 only, 2 subnets per vpc
 		// peers: 1+2 1+3:gw:vpc1=subnet-01:vpc2=subnet-01 3+4 1~external-01:subnets=subnet-01 3~external-01:subnets=subnet-01
 		{name: "reg-leaf-3"},  // eslag, external connected to it, vpc peering and ext peering
-		{name: "reg-leaf-4"},  // eslag, no external, vpc peering, gateway connected to it (so it also advertises the gateway VTEPs)
+		{name: "reg-leaf-4"},  // eslag, no external, vpc peering, gateway connected to it
 		{name: "reg-spine-1"}, // spine
 		// group: l3vni
 		// vs vlab with l3vni vpcs, 2 spines, 2 standalone leaves with multihomed servers, 2 hostbgp vpcs (1 and 2) and one regular vpc
@@ -201,8 +201,8 @@ func TestPlan(t *testing.T) {
 		{name: "mixedext-leaf-02"}, // BGP attachment only, to an external that still has static prefixes; BFD with custom timers
 		// group: mesh
 		// vs lab with 2 eslag leaves and 1 orphan connected via mesh, 3 vpcs with 2 servers each
-		{name: "mesh-leaf-01"}, // eslag, gateway connected to it
-		{name: "mesh-leaf-02"}, // same as above
+		{name: "mesh-leaf-01"}, // eslag, gateway connected to it, unbundled server connection
+		{name: "mesh-leaf-02"}, // eslag, gateway connected to it, bundled server connection
 		{name: "mesh-leaf-03"}, // standalone, bgp externals connected to it
 		// group: localasn
 		// mesh-leaf-03 with localASN 64999 on ext-bgp-01
@@ -219,10 +219,13 @@ func TestPlan(t *testing.T) {
 		// and a prefix limit on the VLAN 10 session
 		{name: "unnumext-leaf-03"}, // unnumbered external sessions, with BFD, with a user inbound ACL
 		// group: domains
-		// the reg group in a fabric with a second domain plane-b (spine ASN 65010, gateway ASN 65011)
-		{name: "domains-spine-1"}, // in default only, rejects EVPN routes that crossed plane-b's spine
-		{name: "domains-leaf-3"},  // border leaf in plane-b only, external deny list has plane-b's ASNs, not default's
-		{name: "domains-leaf-4"},  // in plane-b only, peers with the gateway using plane-b's gateway ASN
+		// the reg group in a fabric with a second domain plane-b (spine ASN 65010, gateway ASN 65011):
+		// spine-01 and gateway-2 in default, spine-02, gateway-1, leaf-03 and leaf-04 in plane-b, so leaf-03/04 have no spine-01 links;
+		// leaf-01, leaf-02 and leaf-05 are linked to both spines, so they are in both domains
+		{name: "domains-spine-1"},     // in default only, rejects EVPN routes that crossed plane-b's spine
+		{name: "domains-leaf-3"},      // border leaf in plane-b only, external deny list has plane-b's ASNs, not default's
+		{name: "domains-leaf-4"},      // in plane-b only, peers with the gateway using plane-b's gateway ASN
+		{name: "domains-leaf-shared"}, // leaf-04 standalone in both domains, without its gateway and ESLAG servers, linked to both spines: passes no gateway VTEPs on
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			updateGoldens := os.Getenv("UPDATE") == "true"

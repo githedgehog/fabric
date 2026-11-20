@@ -84,34 +84,6 @@ errdisable-port:
         flap-threshold: 3
         recovery-interval: 300
         sampling-interval: 30
-    name: Ethernet4
-  - link-flap:
-      config:
-        error-disable: "on"
-        flap-threshold: 3
-        recovery-interval: 300
-        sampling-interval: 30
-    name: Ethernet5
-  - link-flap:
-      config:
-        error-disable: "on"
-        flap-threshold: 3
-        recovery-interval: 300
-        sampling-interval: 30
-    name: Ethernet6
-  - link-flap:
-      config:
-        error-disable: "on"
-        flap-threshold: 3
-        recovery-interval: 300
-        sampling-interval: 30
-    name: Ethernet7
-  - link-flap:
-      config:
-        error-disable: "on"
-        flap-threshold: 3
-        recovery-interval: 300
-        sampling-interval: 30
     name: Ethernet8
   - link-flap:
       config:
@@ -165,7 +137,7 @@ interfaces:
                 secondary: false
               ip: 172.30.128.2
   - config:
-      description: Gateway gateway-1/enp2s1 spine-01--gateway--gateway-1
+      description: Gateway gateway-2/enp2s1 spine-01--gateway--gateway-2
       enabled: true
       name: Ethernet10
     ethernet:
@@ -227,90 +199,6 @@ interfaces:
                 prefix-length: 31
                 secondary: false
               ip: 172.30.128.6
-  - config:
-      description: Fabric leaf-03/E1/5 spine-01--fabric--leaf-03
-      enabled: true
-      name: Ethernet4
-    ethernet:
-      config:
-        auto-negotiate: false
-    name: Ethernet4
-    subinterfaces:
-      subinterface:
-      - config:
-          index: 0
-        index: 0
-        ipv4:
-          addresses:
-            address:
-            - config:
-                ip: 172.30.128.8
-                prefix-length: 31
-                secondary: false
-              ip: 172.30.128.8
-  - config:
-      description: Fabric leaf-03/E1/6 spine-01--fabric--leaf-03
-      enabled: true
-      name: Ethernet5
-    ethernet:
-      config:
-        auto-negotiate: false
-    name: Ethernet5
-    subinterfaces:
-      subinterface:
-      - config:
-          index: 0
-        index: 0
-        ipv4:
-          addresses:
-            address:
-            - config:
-                ip: 172.30.128.10
-                prefix-length: 31
-                secondary: false
-              ip: 172.30.128.10
-  - config:
-      description: Fabric leaf-04/E1/5 spine-01--fabric--leaf-04
-      enabled: true
-      name: Ethernet6
-    ethernet:
-      config:
-        auto-negotiate: false
-    name: Ethernet6
-    subinterfaces:
-      subinterface:
-      - config:
-          index: 0
-        index: 0
-        ipv4:
-          addresses:
-            address:
-            - config:
-                ip: 172.30.128.12
-                prefix-length: 31
-                secondary: false
-              ip: 172.30.128.12
-  - config:
-      description: Fabric leaf-04/E1/6 spine-01--fabric--leaf-04
-      enabled: true
-      name: Ethernet7
-    ethernet:
-      config:
-        auto-negotiate: false
-    name: Ethernet7
-    subinterfaces:
-      subinterface:
-      - config:
-          index: 0
-        index: 0
-        ipv4:
-          addresses:
-            address:
-            - config:
-                ip: 172.30.128.14
-                prefix-length: 31
-                secondary: false
-              ip: 172.30.128.14
   - config:
       description: Fabric leaf-05/E1/4 spine-01--fabric--leaf-05
       enabled: true
@@ -479,75 +367,6 @@ network-instances:
                   config:
                     afi-safi-name: L2VPN_EVPN
               config:
-                description: Fabric leaf-03/E1/6 spine-01--fabric--leaf-03
-                enabled: true
-                neighbor-address: 172.30.128.11
-                peer-as: 65102
-              enable-bfd:
-                config:
-                  bfd-profile: fabric
-                  enabled: true
-              neighbor-address: 172.30.128.11
-            - afi-safis:
-                afi-safi:
-                - afi-safi-name: IPV4_UNICAST
-                  apply-policy:
-                    config:
-                      export-policy:
-                      - protocol-loopback-only
-                  config:
-                    afi-safi-name: IPV4_UNICAST
-                    enabled: true
-                - afi-safi-name: L2VPN_EVPN
-                  config:
-                    afi-safi-name: L2VPN_EVPN
-              config:
-                description: Fabric leaf-04/E1/5 spine-01--fabric--leaf-04
-                enabled: true
-                neighbor-address: 172.30.128.13
-                peer-as: 65103
-              enable-bfd:
-                config:
-                  bfd-profile: fabric
-                  enabled: true
-              neighbor-address: 172.30.128.13
-            - afi-safis:
-                afi-safi:
-                - afi-safi-name: IPV4_UNICAST
-                  apply-policy:
-                    config:
-                      export-policy:
-                      - protocol-loopback-only
-                  config:
-                    afi-safi-name: IPV4_UNICAST
-                    enabled: true
-                - afi-safi-name: L2VPN_EVPN
-                  config:
-                    afi-safi-name: L2VPN_EVPN
-              config:
-                description: Fabric leaf-04/E1/6 spine-01--fabric--leaf-04
-                enabled: true
-                neighbor-address: 172.30.128.15
-                peer-as: 65103
-              enable-bfd:
-                config:
-                  bfd-profile: fabric
-                  enabled: true
-              neighbor-address: 172.30.128.15
-            - afi-safis:
-                afi-safi:
-                - afi-safi-name: IPV4_UNICAST
-                  apply-policy:
-                    config:
-                      export-policy:
-                      - protocol-loopback-only
-                  config:
-                    afi-safi-name: IPV4_UNICAST
-                    enabled: true
-                - afi-safi-name: L2VPN_EVPN
-                  config:
-                    afi-safi-name: L2VPN_EVPN
-              config:
                 description: Fabric leaf-05/E1/4 spine-01--fabric--leaf-05
                 enabled: true
                 neighbor-address: 172.30.128.17
@@ -601,7 +420,7 @@ network-instances:
                     afi-safi-name: L2VPN_EVPN
                     enabled: true
               config:
-                description: Gateway gateway-1/enp2s1 spine-01--gateway--gateway-1
+                description: Gateway gateway-2/enp2s1 spine-01--gateway--gateway-2
                 enabled: true
                 neighbor-address: 172.30.128.21
                 peer-as: 65534
@@ -650,7 +469,7 @@ network-instances:
                 description: Fabric leaf-02/E1/9 spine-01--fabric--leaf-02
                 enabled: true
                 neighbor-address: 172.30.128.5
-                peer-as: 65101
+                peer-as: 65105
               enable-bfd:
                 config:
                   bfd-profile: fabric
@@ -673,35 +492,12 @@ network-instances:
                 description: Fabric leaf-02/E1/10 spine-01--fabric--leaf-02
                 enabled: true
                 neighbor-address: 172.30.128.7
-                peer-as: 65101
+                peer-as: 65105
               enable-bfd:
                 config:
                   bfd-profile: fabric
                   enabled: true
               neighbor-address: 172.30.128.7
-            - afi-safis:
-                afi-safi:
-                - afi-safi-name: IPV4_UNICAST
-                  apply-policy:
-                    config:
-                      export-policy:
-                      - protocol-loopback-only
-                  config:
-                    afi-safi-name: IPV4_UNICAST
-                    enabled: true
-                - afi-safi-name: L2VPN_EVPN
-                  config:
-                    afi-safi-name: L2VPN_EVPN
-              config:
-                description: Fabric leaf-03/E1/5 spine-01--fabric--leaf-03
-                enabled: true
-                neighbor-address: 172.30.128.9
-                peer-as: 65102
-              enable-bfd:
-                config:
-                  bfd-profile: fabric
-                  enabled: true
-              neighbor-address: 172.30.128.9
             - afi-safis:
                 afi-safi:
                 - afi-safi-name: IPV4_UNICAST
@@ -765,76 +561,8 @@ network-instances:
                 disable-ebgp-connected-route-check: true
                 enabled: true
                 neighbor-address: 172.30.8.3
-                peer-as: 65101
+                peer-as: 65105
               neighbor-address: 172.30.8.3
-              transport:
-                config:
-                  local-address: 172.30.8.0
-            - afi-safis:
-                afi-safi:
-                - afi-safi-name: IPV4_UNICAST
-                  allow-own-as:
-                    config:
-                      as-count: 1
-                      enabled: true
-                  apply-policy:
-                    config:
-                      export-policy:
-                      - loopback-all-vteps
-                      import-policy:
-                      - loopback-import
-                  config:
-                    afi-safi-name: IPV4_UNICAST
-                    enabled: true
-                - afi-safi-name: L2VPN_EVPN
-                  apply-policy:
-                    config:
-                      import-policy:
-                      - l2vpn-neighbors
-                  config:
-                    afi-safi-name: L2VPN_EVPN
-                    enabled: true
-              config:
-                description: Fabric leaf-03 loopback (spine-link)
-                disable-ebgp-connected-route-check: true
-                enabled: true
-                neighbor-address: 172.30.8.4
-                peer-as: 65102
-              neighbor-address: 172.30.8.4
-              transport:
-                config:
-                  local-address: 172.30.8.0
-            - afi-safis:
-                afi-safi:
-                - afi-safi-name: IPV4_UNICAST
-                  allow-own-as:
-                    config:
-                      as-count: 1
-                      enabled: true
-                  apply-policy:
-                    config:
-                      export-policy:
-                      - loopback-all-vteps
-                      import-policy:
-                      - loopback-import
-                  config:
-                    afi-safi-name: IPV4_UNICAST
-                    enabled: true
-                - afi-safi-name: L2VPN_EVPN
-                  apply-policy:
-                    config:
-                      import-policy:
-                      - l2vpn-neighbors
-                  config:
-                    afi-safi-name: L2VPN_EVPN
-                    enabled: true
-              config:
-                description: Fabric leaf-04 loopback (spine-link)
-                disable-ebgp-connected-route-check: true
-                enabled: true
-                neighbor-address: 172.30.8.5
-                peer-as: 65103
-              neighbor-address: 172.30.8.5
               transport:
                 config:
                   local-address: 172.30.8.0
@@ -953,20 +681,6 @@ routing-policy:
         name: all-vtep-prefixes
       - config:
           mode: IPV4
-          name: any-prefix
-        extended-prefixes:
-          extended-prefix:
-          - config:
-              action: PERMIT
-              ip-prefix: 0.0.0.0/0
-              masklength-range: 0..32
-              sequence-number: 10
-            ip-prefix: 0.0.0.0/0
-            masklength-range: 0..32
-            sequence-number: 10
-        name: any-prefix
-      - config:
-          mode: IPV4
           name: ipns-subnets--default
         extended-prefixes:
           extended-prefix:
@@ -1048,21 +762,6 @@ routing-policy:
                 config:
                   as-path-set: gateway-origin
                   match-set-options: ANY
-          config:
-            name: "10"
-          name: "10"
-    - config:
-        name: ipns-subnets--default
-      name: ipns-subnets--default
-      statements:
-        statement:
-        - actions:
-            config:
-              policy-result: ACCEPT_ROUTE
-          conditions:
-            match-prefix-set:
-              config:
-                prefix-set: ipns-subnets--default
           config:
             name: "10"
           name: "10"

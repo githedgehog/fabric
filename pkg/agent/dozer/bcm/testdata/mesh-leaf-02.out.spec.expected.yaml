@@ -13,6 +13,7 @@ acls:
 asPathLists:
   fabric-gw-aspath:
     members:
+    - _65100_
     - _65534_
   gateway-origin:
     members:
@@ -297,13 +298,6 @@ prefixLists:
         prefix:
           le: 32
           prefix: 172.30.12.0/22
-  any-prefix:
-    prefixes:
-      "10":
-        action: permit
-        prefix:
-          le: 32
-          prefix: 0.0.0.0/0
   ipns-subnets--default:
     prefixes:
       "1":
@@ -430,12 +424,6 @@ routeMaps:
       "65535":
         conditions: {}
         result: reject
-  ipns-subnets--default:
-    statements:
-      "10":
-        conditions:
-          matchPrefixLists: ipns-subnets--default
-        result: accept
   l2vpn-neighbors:
     statements:
       "1":

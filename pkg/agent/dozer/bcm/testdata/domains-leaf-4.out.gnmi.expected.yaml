@@ -49,20 +49,6 @@ errdisable-port:
         flap-threshold: 3
         recovery-interval: 300
         sampling-interval: 30
-    name: Ethernet4
-  - link-flap:
-      config:
-        error-disable: "on"
-        flap-threshold: 3
-        recovery-interval: 300
-        sampling-interval: 30
-    name: Ethernet5
-  - link-flap:
-      config:
-        error-disable: "on"
-        flap-threshold: 3
-        recovery-interval: 300
-        sampling-interval: 30
     name: Ethernet6
   - link-flap:
       config:
@@ -140,48 +126,6 @@ interfaces:
       - config:
           index: 0
         index: 0
-  - config:
-      description: Fabric spine-01/E1/7 spine-01--fabric--leaf-04
-      enabled: true
-      name: Ethernet4
-    ethernet:
-      config:
-        auto-negotiate: false
-    name: Ethernet4
-    subinterfaces:
-      subinterface:
-      - config:
-          index: 0
-        index: 0
-        ipv4:
-          addresses:
-            address:
-            - config:
-                ip: 172.30.128.13
-                prefix-length: 31
-                secondary: false
-              ip: 172.30.128.13
-  - config:
-      description: Fabric spine-01/E1/8 spine-01--fabric--leaf-04
-      enabled: true
-      name: Ethernet5
-    ethernet:
-      config:
-        auto-negotiate: false
-    name: Ethernet5
-    subinterfaces:
-      subinterface:
-      - config:
-          index: 0
-        index: 0
-        ipv4:
-          addresses:
-            address:
-            - config:
-                ip: 172.30.128.15
-                prefix-length: 31
-                secondary: false
-              ip: 172.30.128.15
   - config:
       description: Fabric spine-02/E1/7 spine-02--fabric--leaf-04
       enabled: true
@@ -404,28 +348,6 @@ loadshare:
 lst:
   interfaces:
     interface:
-    - config:
-        id: Ethernet4
-      id: Ethernet4
-      interface-ref:
-        config:
-          interface: Ethernet4
-      upstream-groups:
-        upstream-group:
-        - config:
-            group-name: spinelink
-          group-name: spinelink
-    - config:
-        id: Ethernet5
-      id: Ethernet5
-      interface-ref:
-        config:
-          interface: Ethernet5
-      upstream-groups:
-        upstream-group:
-        - config:
-            group-name: spinelink
-          group-name: spinelink
     - config:
         id: Ethernet6
       id: Ethernet6
@@ -712,52 +634,6 @@ network-instances:
                   apply-policy:
                     config:
                       export-policy:
-                      - protocol-loopback-only
-                  config:
-                    afi-safi-name: IPV4_UNICAST
-                    enabled: true
-                - afi-safi-name: L2VPN_EVPN
-                  config:
-                    afi-safi-name: L2VPN_EVPN
-              config:
-                description: Fabric spine-01/E1/7 spine-01--fabric--leaf-04
-                enabled: true
-                neighbor-address: 172.30.128.12
-                peer-as: 65010
-              enable-bfd:
-                config:
-                  bfd-profile: fabric
-                  enabled: true
-              neighbor-address: 172.30.128.12
-            - afi-safis:
-                afi-safi:
-                - afi-safi-name: IPV4_UNICAST
-                  apply-policy:
-                    config:
-                      export-policy:
-                      - protocol-loopback-only
-                  config:
-                    afi-safi-name: IPV4_UNICAST
-                    enabled: true
-                - afi-safi-name: L2VPN_EVPN
-                  config:
-                    afi-safi-name: L2VPN_EVPN
-              config:
-                description: Fabric spine-01/E1/8 spine-01--fabric--leaf-04
-                enabled: true
-                neighbor-address: 172.30.128.14
-                peer-as: 65010
-              enable-bfd:
-                config:
-                  bfd-profile: fabric
-                  enabled: true
-              neighbor-address: 172.30.128.14
-            - afi-safis:
-                afi-safi:
-                - afi-safi-name: IPV4_UNICAST
-                  apply-policy:
-                    config:
-                      export-policy:
                       - gateway-export
                       import-policy:
                       - gateway-import
@@ -828,36 +704,6 @@ network-instances:
                   bfd-profile: fabric
                   enabled: true
               neighbor-address: 172.30.128.36
-            - afi-safis:
-                afi-safi:
-                - afi-safi-name: IPV4_UNICAST
-                  apply-policy:
-                    config:
-                      export-policy:
-                      - loopback-vtep
-                      import-policy:
-                      - loopback-import
-                  config:
-                    afi-safi-name: IPV4_UNICAST
-                    enabled: true
-                - afi-safi-name: L2VPN_EVPN
-                  apply-policy:
-                    config:
-                      import-policy:
-                      - l2vpn-neighbors
-                  config:
-                    afi-safi-name: L2VPN_EVPN
-                    enabled: true
-              config:
-                description: Fabric spine-01 loopback (spine-link)
-                disable-ebgp-connected-route-check: true
-                enabled: true
-                neighbor-address: 172.30.8.0
-                peer-as: 65010
-              neighbor-address: 172.30.8.0
-              transport:
-                config:
-                  local-address: 172.30.8.5
             - afi-safis:
                 afi-safi:
                 - afi-safi-name: IPV4_UNICAST
@@ -1078,20 +924,6 @@ routing-policy:
             masklength-range: 22..32
             sequence-number: 10
         name: all-vtep-prefixes
-      - config:
-          mode: IPV4
-          name: any-prefix
-        extended-prefixes:
-          extended-prefix:
-          - config:
-              action: PERMIT
-              ip-prefix: 0.0.0.0/0
-              masklength-range: 0..32
-              sequence-number: 10
-            ip-prefix: 0.0.0.0/0
-            masklength-range: 0..32
-            sequence-number: 10
-        name: any-prefix
       - config:
           mode: IPV4
           name: ipns-subnets--default
@@ -1416,21 +1248,6 @@ routing-policy:
           config:
             name: "65535"
           name: "65535"
-    - config:
-        name: ipns-subnets--default
-      name: ipns-subnets--default
-      statements:
-        statement:
-        - actions:
-            config:
-              policy-result: ACCEPT_ROUTE
-          conditions:
-            match-prefix-set:
-              config:
-                prefix-set: ipns-subnets--default
-          config:
-            name: "10"
-          name: "10"
     - config:
         name: l2vpn-neighbors
       name: l2vpn-neighbors

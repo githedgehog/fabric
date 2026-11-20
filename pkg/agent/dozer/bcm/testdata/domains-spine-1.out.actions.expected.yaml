@@ -64,16 +64,6 @@
         name: all-vtep-prefixes
       name: all-vtep-prefixes
   weight: 8
-- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=any-prefix]
-  summary: Create Prefix List Base any-prefix
-  type: update
-  value:
-    prefix-set:
-    - config:
-        mode: IPV4
-        name: any-prefix
-      name: any-prefix
-  weight: 8
 - path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=ipns-subnets--default]
   summary: Create Prefix List Base ipns-subnets--default
   type: update
@@ -116,20 +106,6 @@
         sequence-number: 10
       ip-prefix: 172.30.12.0/22
       masklength-range: 22..32
-      sequence-number: 10
-  weight: 10
-- path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=any-prefix]/extended-prefixes/extended-prefix[sequence-number=10][ip-prefix=0.0.0.0/0][masklength-range=0..32]
-  summary: Create Prefix Lists Entry 10
-  type: update
-  value:
-    extended-prefix:
-    - config:
-        action: PERMIT
-        ip-prefix: 0.0.0.0/0
-        masklength-range: 0..32
-        sequence-number: 10
-      ip-prefix: 0.0.0.0/0
-      masklength-range: 0..32
       sequence-number: 10
   weight: 10
 - path: /routing-policy/defined-sets/prefix-sets/prefix-set[name=ipns-subnets--default]/extended-prefixes/extended-prefix[sequence-number=1][ip-prefix=10.0.0.0/16][masklength-range=16..32]
@@ -262,7 +238,7 @@
   value:
     interface:
     - config:
-        description: Gateway gateway-1/enp2s1 spine-01--gateway--gateway-1
+        description: Gateway gateway-2/enp2s1 spine-01--gateway--gateway-2
         enabled: true
         name: Ethernet10
       name: Ethernet10
@@ -288,50 +264,6 @@
         enabled: true
         name: Ethernet3
       name: Ethernet3
-  weight: 16
-- path: /interfaces/interface[name=Ethernet4]
-  summary: Create Interface Ethernet4 Base
-  type: update
-  value:
-    interface:
-    - config:
-        description: Fabric leaf-03/E1/5 spine-01--fabric--leaf-03
-        enabled: true
-        name: Ethernet4
-      name: Ethernet4
-  weight: 16
-- path: /interfaces/interface[name=Ethernet5]
-  summary: Create Interface Ethernet5 Base
-  type: update
-  value:
-    interface:
-    - config:
-        description: Fabric leaf-03/E1/6 spine-01--fabric--leaf-03
-        enabled: true
-        name: Ethernet5
-      name: Ethernet5
-  weight: 16
-- path: /interfaces/interface[name=Ethernet6]
-  summary: Create Interface Ethernet6 Base
-  type: update
-  value:
-    interface:
-    - config:
-        description: Fabric leaf-04/E1/5 spine-01--fabric--leaf-04
-        enabled: true
-        name: Ethernet6
-      name: Ethernet6
-  weight: 16
-- path: /interfaces/interface[name=Ethernet7]
-  summary: Create Interface Ethernet7 Base
-  type: update
-  value:
-    interface:
-    - config:
-        description: Fabric leaf-04/E1/6 spine-01--fabric--leaf-04
-        enabled: true
-        name: Ethernet7
-      name: Ethernet7
   weight: 16
 - path: /interfaces/interface[name=Ethernet8]
   summary: Create Interface Ethernet8 Base
@@ -413,15 +345,6 @@
     - config:
         name: gateway-import
       name: gateway-import
-  weight: 19
-- path: /routing-policy/policy-definitions/policy-definition[name=ipns-subnets--default]
-  summary: Create Route Maps Base ipns-subnets--default
-  type: update
-  value:
-    policy-definition:
-    - config:
-        name: ipns-subnets--default
-      name: ipns-subnets--default
   weight: 19
 - path: /routing-policy/policy-definitions/policy-definition[name=l2vpn-neighbors]
   summary: Create Route Maps Base l2vpn-neighbors
@@ -516,22 +439,6 @@
             config:
               as-path-set: gateway-origin
               match-set-options: ANY
-      config:
-        name: "10"
-      name: "10"
-  weight: 21
-- path: /routing-policy/policy-definitions/policy-definition[name=ipns-subnets--default]/statements/statement[name=10]
-  summary: Create Route Map Statement 10
-  type: update
-  value:
-    statement:
-    - actions:
-        config:
-          policy-result: ACCEPT_ROUTE
-      conditions:
-        match-prefix-set:
-          config:
-            prefix-set: ipns-subnets--default
       config:
         name: "10"
       name: "10"
@@ -724,38 +631,6 @@
       config:
         auto-negotiate: false
   weight: 25
-- path: /interfaces/interface[name=Ethernet4]/ethernet
-  summary: Create Interface Ethernet4 Ethernet Base
-  type: update
-  value:
-    ethernet:
-      config:
-        auto-negotiate: false
-  weight: 25
-- path: /interfaces/interface[name=Ethernet5]/ethernet
-  summary: Create Interface Ethernet5 Ethernet Base
-  type: update
-  value:
-    ethernet:
-      config:
-        auto-negotiate: false
-  weight: 25
-- path: /interfaces/interface[name=Ethernet6]/ethernet
-  summary: Create Interface Ethernet6 Ethernet Base
-  type: update
-  value:
-    ethernet:
-      config:
-        auto-negotiate: false
-  weight: 25
-- path: /interfaces/interface[name=Ethernet7]/ethernet
-  summary: Create Interface Ethernet7 Ethernet Base
-  type: update
-  value:
-    ethernet:
-      config:
-        auto-negotiate: false
-  weight: 25
 - path: /interfaces/interface[name=Ethernet8]/ethernet
   summary: Create Interface Ethernet8 Ethernet Base
   type: update
@@ -809,42 +684,6 @@
       index: 0
   weight: 44
 - path: /interfaces/interface[name=Ethernet3]/subinterfaces/subinterface[index=0]
-  summary: Create Subinterface Base 0
-  type: update
-  value:
-    subinterface:
-    - config:
-        index: 0
-      index: 0
-  weight: 44
-- path: /interfaces/interface[name=Ethernet4]/subinterfaces/subinterface[index=0]
-  summary: Create Subinterface Base 0
-  type: update
-  value:
-    subinterface:
-    - config:
-        index: 0
-      index: 0
-  weight: 44
-- path: /interfaces/interface[name=Ethernet5]/subinterfaces/subinterface[index=0]
-  summary: Create Subinterface Base 0
-  type: update
-  value:
-    subinterface:
-    - config:
-        index: 0
-      index: 0
-  weight: 44
-- path: /interfaces/interface[name=Ethernet6]/subinterfaces/subinterface[index=0]
-  summary: Create Subinterface Base 0
-  type: update
-  value:
-    subinterface:
-    - config:
-        index: 0
-      index: 0
-  weight: 44
-- path: /interfaces/interface[name=Ethernet7]/subinterfaces/subinterface[index=0]
   summary: Create Subinterface Base 0
   type: update
   value:
@@ -943,50 +782,6 @@
         prefix-length: 31
         secondary: false
       ip: 172.30.128.6
-  weight: 51
-- path: /interfaces/interface[name=Ethernet4]/subinterfaces/subinterface[index=0]/ipv4/addresses/address
-  summary: Create Subinterface IP 172.30.128.8
-  type: update
-  value:
-    address:
-    - config:
-        ip: 172.30.128.8
-        prefix-length: 31
-        secondary: false
-      ip: 172.30.128.8
-  weight: 51
-- path: /interfaces/interface[name=Ethernet5]/subinterfaces/subinterface[index=0]/ipv4/addresses/address
-  summary: Create Subinterface IP 172.30.128.10
-  type: update
-  value:
-    address:
-    - config:
-        ip: 172.30.128.10
-        prefix-length: 31
-        secondary: false
-      ip: 172.30.128.10
-  weight: 51
-- path: /interfaces/interface[name=Ethernet6]/subinterfaces/subinterface[index=0]/ipv4/addresses/address
-  summary: Create Subinterface IP 172.30.128.12
-  type: update
-  value:
-    address:
-    - config:
-        ip: 172.30.128.12
-        prefix-length: 31
-        secondary: false
-      ip: 172.30.128.12
-  weight: 51
-- path: /interfaces/interface[name=Ethernet7]/subinterfaces/subinterface[index=0]/ipv4/addresses/address
-  summary: Create Subinterface IP 172.30.128.14
-  type: update
-  value:
-    address:
-    - config:
-        ip: 172.30.128.14
-        prefix-length: 31
-        secondary: false
-      ip: 172.30.128.14
   weight: 51
 - path: /interfaces/interface[name=Ethernet8]/subinterfaces/subinterface[index=0]/ipv4/addresses/address
   summary: Create Subinterface IP 172.30.128.16
@@ -1214,50 +1009,6 @@
         recovery-interval: 300
         sampling-interval: 30
   weight: 84
-- path: /openconfig-errdisable-ext:errdisable-port/port[name=Ethernet4]/link-flap
-  summary: Create ErrDisable Interface Ethernet4
-  type: update
-  value:
-    link-flap:
-      config:
-        error-disable: "on"
-        flap-threshold: 3
-        recovery-interval: 300
-        sampling-interval: 30
-  weight: 84
-- path: /openconfig-errdisable-ext:errdisable-port/port[name=Ethernet5]/link-flap
-  summary: Create ErrDisable Interface Ethernet5
-  type: update
-  value:
-    link-flap:
-      config:
-        error-disable: "on"
-        flap-threshold: 3
-        recovery-interval: 300
-        sampling-interval: 30
-  weight: 84
-- path: /openconfig-errdisable-ext:errdisable-port/port[name=Ethernet6]/link-flap
-  summary: Create ErrDisable Interface Ethernet6
-  type: update
-  value:
-    link-flap:
-      config:
-        error-disable: "on"
-        flap-threshold: 3
-        recovery-interval: 300
-        sampling-interval: 30
-  weight: 84
-- path: /openconfig-errdisable-ext:errdisable-port/port[name=Ethernet7]/link-flap
-  summary: Create ErrDisable Interface Ethernet7
-  type: update
-  value:
-    link-flap:
-      config:
-        error-disable: "on"
-        flap-threshold: 3
-        recovery-interval: 300
-        sampling-interval: 30
-  weight: 84
 - path: /openconfig-errdisable-ext:errdisable-port/port[name=Ethernet8]/link-flap
   summary: Create ErrDisable Interface Ethernet8
   type: update
@@ -1308,93 +1059,6 @@
           bfd-profile: fabric
           enabled: true
       neighbor-address: 172.30.128.1
-  weight: 87
-- path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.11]
-  summary: Create VRF BGP neighbor 172.30.128.11
-  type: update
-  value:
-    neighbor:
-    - afi-safis:
-        afi-safi:
-        - afi-safi-name: IPV4_UNICAST
-          apply-policy:
-            config:
-              export-policy:
-              - protocol-loopback-only
-          config:
-            afi-safi-name: IPV4_UNICAST
-            enabled: true
-        - afi-safi-name: L2VPN_EVPN
-          config:
-            afi-safi-name: L2VPN_EVPN
-      config:
-        description: Fabric leaf-03/E1/6 spine-01--fabric--leaf-03
-        enabled: true
-        neighbor-address: 172.30.128.11
-        peer-as: 65102
-      enable-bfd:
-        config:
-          bfd-profile: fabric
-          enabled: true
-      neighbor-address: 172.30.128.11
-  weight: 87
-- path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.13]
-  summary: Create VRF BGP neighbor 172.30.128.13
-  type: update
-  value:
-    neighbor:
-    - afi-safis:
-        afi-safi:
-        - afi-safi-name: IPV4_UNICAST
-          apply-policy:
-            config:
-              export-policy:
-              - protocol-loopback-only
-          config:
-            afi-safi-name: IPV4_UNICAST
-            enabled: true
-        - afi-safi-name: L2VPN_EVPN
-          config:
-            afi-safi-name: L2VPN_EVPN
-      config:
-        description: Fabric leaf-04/E1/5 spine-01--fabric--leaf-04
-        enabled: true
-        neighbor-address: 172.30.128.13
-        peer-as: 65103
-      enable-bfd:
-        config:
-          bfd-profile: fabric
-          enabled: true
-      neighbor-address: 172.30.128.13
-  weight: 87
-- path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.15]
-  summary: Create VRF BGP neighbor 172.30.128.15
-  type: update
-  value:
-    neighbor:
-    - afi-safis:
-        afi-safi:
-        - afi-safi-name: IPV4_UNICAST
-          apply-policy:
-            config:
-              export-policy:
-              - protocol-loopback-only
-          config:
-            afi-safi-name: IPV4_UNICAST
-            enabled: true
-        - afi-safi-name: L2VPN_EVPN
-          config:
-            afi-safi-name: L2VPN_EVPN
-      config:
-        description: Fabric leaf-04/E1/6 spine-01--fabric--leaf-04
-        enabled: true
-        neighbor-address: 172.30.128.15
-        peer-as: 65103
-      enable-bfd:
-        config:
-          bfd-profile: fabric
-          enabled: true
-      neighbor-address: 172.30.128.15
   weight: 87
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.17]
   summary: Create VRF BGP neighbor 172.30.128.17
@@ -1480,7 +1144,7 @@
             afi-safi-name: L2VPN_EVPN
             enabled: true
       config:
-        description: Gateway gateway-1/enp2s1 spine-01--gateway--gateway-1
+        description: Gateway gateway-2/enp2s1 spine-01--gateway--gateway-2
         enabled: true
         neighbor-address: 172.30.128.21
         peer-as: 65534
@@ -1541,7 +1205,7 @@
         description: Fabric leaf-02/E1/9 spine-01--fabric--leaf-02
         enabled: true
         neighbor-address: 172.30.128.5
-        peer-as: 65101
+        peer-as: 65105
       enable-bfd:
         config:
           bfd-profile: fabric
@@ -1570,41 +1234,12 @@
         description: Fabric leaf-02/E1/10 spine-01--fabric--leaf-02
         enabled: true
         neighbor-address: 172.30.128.7
-        peer-as: 65101
+        peer-as: 65105
       enable-bfd:
         config:
           bfd-profile: fabric
           enabled: true
       neighbor-address: 172.30.128.7
-  weight: 87
-- path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.128.9]
-  summary: Create VRF BGP neighbor 172.30.128.9
-  type: update
-  value:
-    neighbor:
-    - afi-safis:
-        afi-safi:
-        - afi-safi-name: IPV4_UNICAST
-          apply-policy:
-            config:
-              export-policy:
-              - protocol-loopback-only
-          config:
-            afi-safi-name: IPV4_UNICAST
-            enabled: true
-        - afi-safi-name: L2VPN_EVPN
-          config:
-            afi-safi-name: L2VPN_EVPN
-      config:
-        description: Fabric leaf-03/E1/5 spine-01--fabric--leaf-03
-        enabled: true
-        neighbor-address: 172.30.128.9
-        peer-as: 65102
-      enable-bfd:
-        config:
-          bfd-profile: fabric
-          enabled: true
-      neighbor-address: 172.30.128.9
   weight: 87
 - path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.8.2]
   summary: Create VRF BGP neighbor 172.30.8.2
@@ -1680,88 +1315,8 @@
         disable-ebgp-connected-route-check: true
         enabled: true
         neighbor-address: 172.30.8.3
-        peer-as: 65101
+        peer-as: 65105
       neighbor-address: 172.30.8.3
-      transport:
-        config:
-          local-address: 172.30.8.0
-  weight: 87
-- path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.8.4]
-  summary: Create VRF BGP neighbor 172.30.8.4
-  type: update
-  value:
-    neighbor:
-    - afi-safis:
-        afi-safi:
-        - afi-safi-name: IPV4_UNICAST
-          allow-own-as:
-            config:
-              as-count: 1
-              enabled: true
-          apply-policy:
-            config:
-              export-policy:
-              - loopback-all-vteps
-              import-policy:
-              - loopback-import
-          config:
-            afi-safi-name: IPV4_UNICAST
-            enabled: true
-        - afi-safi-name: L2VPN_EVPN
-          apply-policy:
-            config:
-              import-policy:
-              - l2vpn-neighbors
-          config:
-            afi-safi-name: L2VPN_EVPN
-            enabled: true
-      config:
-        description: Fabric leaf-03 loopback (spine-link)
-        disable-ebgp-connected-route-check: true
-        enabled: true
-        neighbor-address: 172.30.8.4
-        peer-as: 65102
-      neighbor-address: 172.30.8.4
-      transport:
-        config:
-          local-address: 172.30.8.0
-  weight: 87
-- path: /network-instances/network-instance[name=default]/protocols/protocol[identifier=BGP][name=bgp]/bgp/neighbors/neighbor[neighbor-address=172.30.8.5]
-  summary: Create VRF BGP neighbor 172.30.8.5
-  type: update
-  value:
-    neighbor:
-    - afi-safis:
-        afi-safi:
-        - afi-safi-name: IPV4_UNICAST
-          allow-own-as:
-            config:
-              as-count: 1
-              enabled: true
-          apply-policy:
-            config:
-              export-policy:
-              - loopback-all-vteps
-              import-policy:
-              - loopback-import
-          config:
-            afi-safi-name: IPV4_UNICAST
-            enabled: true
-        - afi-safi-name: L2VPN_EVPN
-          apply-policy:
-            config:
-              import-policy:
-              - l2vpn-neighbors
-          config:
-            afi-safi-name: L2VPN_EVPN
-            enabled: true
-      config:
-        description: Fabric leaf-04 loopback (spine-link)
-        disable-ebgp-connected-route-check: true
-        enabled: true
-        neighbor-address: 172.30.8.5
-        peer-as: 65103
-      neighbor-address: 172.30.8.5
       transport:
         config:
           local-address: 172.30.8.0
