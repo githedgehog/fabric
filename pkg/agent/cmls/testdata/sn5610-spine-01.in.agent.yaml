@@ -43,6 +43,7 @@ spec:
     baseVPCCommunity: "50000:0"
     controlVIP: 172.30.0.1/32
     defaultMaxPathsEBGP: 64
+    disableBFD: true
     domains:
       default:
         gatewayASN: 65534

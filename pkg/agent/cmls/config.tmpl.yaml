@@ -753,8 +753,10 @@
                         route-map: l2vpn-neighbors
                     {{- end }}
                     state: enabled
+                {{- if $.BFD }}
                 bfd:
                   profile: underlay
+                {{- end }}
                 remote-as: {{ $.Gateway.ASN }}
               {{- end }}
               underlay_spine:
@@ -763,8 +765,10 @@
                     policy:
                       outbound:
                         route-map: w_ecmp_origin
+                {{- if $.BFD }}
                 bfd:
                   profile: underlay
+                {{- end }}
                 remote-as: external
               underlay_leaf:
                 address-family:
@@ -772,8 +776,10 @@
                     policy:
                       outbound:
                         route-map: w_ecmp_cumulative
+                {{- if $.BFD }}
                 bfd:
                   profile: underlay
+                {{- end }}
                 remote-as: external
               overlay:
                 address-family:
@@ -786,8 +792,10 @@
                         route-map: l2vpn-neighbors
                     {{- end }}
                     state: enabled
+                {{- if $.BFD }}
                 bfd:
                   profile: overlay
+                {{- end }}
                 multihop-ttl: 2
                 remote-as: external
                 update-source: lo

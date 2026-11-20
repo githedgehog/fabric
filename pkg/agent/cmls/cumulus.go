@@ -65,6 +65,7 @@ type ConfigIn struct {
 	FabricASPaths    map[int]string // rule ID -> AS path regex
 	IPv4Namespaces   []IPv4Namespace
 	BFDProfiles      []BFDProfile
+	BFD              bool
 	BaseVPCCommunity string
 	BGPNeighbors     []BGPNeighbor
 	Gateway          *GatewayConfig
@@ -1372,6 +1373,7 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		FabricASPaths:    fabricASPaths,
 		IPv4Namespaces:   nsList,
 		BFDProfiles:      bfdProfiles,
+		BFD:              !agent.Spec.Config.DisableBFD,
 		BaseVPCCommunity: agent.Spec.Config.BaseVPCCommunity,
 		BGPNeighbors:     neighs,
 		Gateway:          gateway,
