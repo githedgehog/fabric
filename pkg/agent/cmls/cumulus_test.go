@@ -167,15 +167,21 @@ func TestBuildConfigErrors(t *testing.T) {
 			name:    "vx-subnet-host-bgp-unsupported",
 			profile: &switchprofile.CumulusVX,
 			port:    "E1/1",
-			mutate:  func(agent *agentapi.Agent) { agent.Spec.VPCs["vpc-01"].Subnets["default"].HostBGP = true },
-			err:     "vpc vpc-01: subnet default: host BGP isn't supported",
+			mutate: func(agent *agentapi.Agent) {
+				agent.Spec.AttachedVPCs = map[string]bool{"vpc-01": true}
+				agent.Spec.VPCs["vpc-01"].Subnets["default"].HostBGP = true
+			},
+			err: "vpc vpc-01: subnet default: host BGP isn't supported",
 		},
 		{
 			name:    "vx-subnet-dhcp-relay-unsupported",
 			profile: &switchprofile.CumulusVX,
 			port:    "E1/1",
-			mutate:  func(agent *agentapi.Agent) { agent.Spec.VPCs["vpc-01"].Subnets["default"].DHCP.Relay = "10.99.0.1" },
-			err:     "vpc vpc-01: subnet default: DHCP relay to other servers isn't supported",
+			mutate: func(agent *agentapi.Agent) {
+				agent.Spec.AttachedVPCs = map[string]bool{"vpc-01": true}
+				agent.Spec.VPCs["vpc-01"].Subnets["default"].DHCP.Relay = "10.99.0.1"
+			},
+			err: "vpc vpc-01: subnet default: DHCP relay to other servers isn't supported",
 		},
 		{
 			name:    "vx-subnet-isolated-no-id",
@@ -831,6 +837,17 @@ func TestBuildConfigErrors(t *testing.T) {
 			require.ErrorContains(t, err, tt.err)
 		})
 	}
+}
+
+func TestCheckSupportedPeeredVPC(t *testing.T) {
+	agent := &agentapi.Agent{Spec: agentapi.AgentSpec{VPCs: map[string]vpcapi.VPCSpec{"vpc-01": {
+		Mode:    vpcapi.VPCModeL2VNI,
+		Subnets: map[string]*vpcapi.VPCSubnet{"default": {HostBGP: true, DHCP: vpcapi.VPCDHCP{Relay: "10.99.0.1"}}},
+	}}}}
+	require.NoError(t, checkSupported(agent))
+
+	agent.Spec.AttachedVPCs = map[string]bool{"vpc-01": true}
+	require.ErrorContains(t, checkSupported(agent), "vpc vpc-01: subnet default: host BGP isn't supported")
 }
 
 func withVPC01(mutate func(vpc *vpcapi.VPCSpec)) func(agent *agentapi.Agent) {
