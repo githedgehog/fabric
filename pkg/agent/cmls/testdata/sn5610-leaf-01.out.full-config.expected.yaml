@@ -1790,7 +1790,6 @@
             path-selection:
               multipath:
                 aspath-ignore: enabled
-            rd: 172.30.8.2:300
             state: enabled
       vpc-vpc-02:
         evpn:
@@ -1814,7 +1813,6 @@
             path-selection:
               multipath:
                 aspath-ignore: enabled
-            rd: 172.30.8.2:400
             state: enabled
       vpc-vpc-03:
         evpn:
@@ -1847,7 +1845,6 @@
             path-selection:
               multipath:
                 aspath-ignore: enabled
-            rd: 172.30.8.2:500
             state: enabled
       ext-ext-snp-02:
         evpn:
@@ -1869,7 +1866,6 @@
                 state: enabled
               l2vpn-evpn:
                 state: enabled
-            rd: 172.30.8.2:100
             state: enabled
           static:
             0.0.0.0/0:
