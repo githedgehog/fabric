@@ -475,6 +475,7 @@ func (cfg *FabricConfig) WithReservedSubnets() error {
 		{"protocolSubnet", cfg.ProtocolSubnet},
 		{"vtepSubnet", cfg.VTEPSubnet},
 		{"fabricSubnet", cfg.FabricSubnet},
+		{"l2ProxyExternalSubnet", cfg.L2ProxyExternalSubnet},
 	} {
 		if infra.subnet == "" {
 			continue

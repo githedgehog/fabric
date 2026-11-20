@@ -125,6 +125,11 @@ func TestFabricConfigCumulusSVIWorkaroundSubnet(t *testing.T) {
 			mutate: func(cfg *meta.FabricConfig) { cfg.FabricSubnet = "172.30.128.0/17" },
 			err:    "cumulusSVIWorkaroundSubnet 172.30.128.0/20 overlaps fabricSubnet 172.30.128.0/17",
 		},
+		{
+			name: "l2-proxy-external", subnet: "10.99.0.0/16",
+			mutate: func(cfg *meta.FabricConfig) { cfg.L2ProxyExternalSubnet = "10.99.16.0/24" },
+			err:    "cumulusSVIWorkaroundSubnet 10.99.0.0/16 overlaps l2ProxyExternalSubnet 10.99.16.0/24",
+		},
 		{name: "too-small", subnet: "10.99.0.0/21", err: "cumulusSVIWorkaroundSubnet must be IPv4 /20 or bigger"},
 		{name: "ipv6", subnet: "fd00::/64", err: "cumulusSVIWorkaroundSubnet must be IPv4 /20 or bigger"},
 		{name: "invalid", subnet: "10.99.0.0", err: "config: cumulusSVIWorkaroundSubnet"},
