@@ -282,13 +282,60 @@ func TestBuildConfigErrors(t *testing.T) {
 			err: `parsing gateway community priority "high"`,
 		},
 		{
-			name:    "vx-static-external-unsupported",
+			name:    "vx-static-external-spine",
 			profile: &switchprofile.CumulusVX,
 			port:    "E1/1",
 			mutate: func(agent *agentapi.Agent) {
-				agent.Spec.Connections["leaf-01--static-external"] = wiringapi.ConnectionSpec{StaticExternal: &wiringapi.ConnStaticExternal{}}
+				withStaticExternal(func(*wiringapi.ConnStaticExternal) {})(agent)
+				agent.Spec.Switch.Role = wiringapi.SwitchRoleSpine
 			},
-			err: "conn leaf-01--static-external: static externals aren't supported",
+			err: "conn leaf-01--static-external: static externals are only supported on leaves",
+		},
+		{
+			name:    "vx-static-external-invalid-next-hop",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate:  withStaticExternal(func(se *wiringapi.ConnStaticExternal) { se.Link.Switch.NextHop = "172.31.1" }),
+			err:     `conn leaf-01--static-external: invalid next hop "172.31.1"`,
+		},
+		{
+			name:    "vx-static-external-vpc-not-found",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate:  withStaticExternal(func(se *wiringapi.ConnStaticExternal) { se.WithinVPC = "vpc-09" }),
+			err:     "conn leaf-01--static-external: vpc vpc-09 not found",
+		},
+		{
+			name:    "vx-static-external-no-subnet-id",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate:  withStaticExternal(func(se *wiringapi.ConnStaticExternal) { se.Link.Switch.Subnets = []string{"10.98.0.0/16"} }),
+			err:     "conn leaf-01--static-external: subnet 10.98.0.0/16: ID 0 isn't between 100 and 65000",
+		},
+		{
+			name:    "vx-static-external-port-used",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate:  withStaticExternal(func(se *wiringapi.ConnStaticExternal) { se.Link.Switch.Port = "leaf-01/E1/1" }),
+			err:     "port E1/1 is used more than once",
+		},
+		{
+			name:    "vx-static-external-route-twice",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: func(agent *agentapi.Agent) {
+				withStaticExternal(func(*wiringapi.ConnStaticExternal) {})(agent)
+				agent.Spec.Catalog.SubnetIDs["172.31.2.0/24"] = 202
+				agent.Spec.Connections["leaf-01--static-external-2"] = wiringapi.ConnectionSpec{StaticExternal: &wiringapi.ConnStaticExternal{
+					Link: wiringapi.ConnStaticExternalLink{Switch: wiringapi.ConnStaticExternalLinkSwitch{
+						BasePortName: wiringapi.BasePortName{Port: "leaf-01/E1/3"},
+						IP:           "172.31.2.1/24",
+						NextHop:      "172.31.2.2",
+						Subnets:      []string{"10.99.0.0/16"},
+					}},
+				}}
+			},
+			err: "conn leaf-01--static-external-2: route to 10.99.0.0/16 is already configured in vrf default",
 		},
 		{
 			name:    "vx-ext-attach-proxy-unsupported",
@@ -914,6 +961,27 @@ func withFabricLink(leafIP, spineIP string, spineASN uint32) func(agent *agentap
 				Leaf:  wiringapi.ConnFabricLinkSwitch{BasePortName: wiringapi.BasePortName{Port: "leaf-01/E1/2"}, IP: leafIP},
 			}},
 		}}
+	}
+}
+
+// withStaticExternal makes leaf-01 a leaf with a static external on E1/2 routing 10.99.0.0/16 via 172.31.1.2
+func withStaticExternal(mutate func(se *wiringapi.ConnStaticExternal)) func(agent *agentapi.Agent) {
+	return func(agent *agentapi.Agent) {
+		asLeaf(agent)
+		agent.Spec.Config.BaseVPCCommunity = "50000:0"
+		if agent.Spec.Catalog.SubnetIDs == nil {
+			agent.Spec.Catalog.SubnetIDs = map[string]uint32{}
+		}
+		agent.Spec.Catalog.SubnetIDs["172.31.1.0/24"] = 200
+		agent.Spec.Catalog.SubnetIDs["10.99.0.0/16"] = 201
+		se := &wiringapi.ConnStaticExternal{Link: wiringapi.ConnStaticExternalLink{Switch: wiringapi.ConnStaticExternalLinkSwitch{
+			BasePortName: wiringapi.BasePortName{Port: "leaf-01/E1/2"},
+			IP:           "172.31.1.1/24",
+			NextHop:      "172.31.1.2",
+			Subnets:      []string{"10.99.0.0/16"},
+		}}}
+		mutate(se)
+		agent.Spec.Connections["leaf-01--static-external"] = wiringapi.ConnectionSpec{StaticExternal: se}
 	}
 }
 

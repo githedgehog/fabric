@@ -107,23 +107,23 @@
         lldp:
           state: enabled
       swp11:
-        description: Unused
+        description: StaticExternal leaf-01--static-external
         ipv6:
           state: disabled
         link:
           speed: 10G
           state:
-            down: {}
+            up: {}
         lldp:
           state: enabled
       swp12:
-        description: Unused
+        description: StaticExternal leaf-01--static-external--vpc-03
         ipv6:
           state: disabled
         link:
           speed: 10G
           state:
-            down: {}
+            up: {}
         lldp:
           state: enabled
       swp13:

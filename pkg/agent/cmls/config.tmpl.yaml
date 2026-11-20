@@ -390,7 +390,7 @@
                   {{ $prio.Community }}: {}
           {{- end }}
         {{- end }}
-        {{- if or $.VPCs $.Gateway $.BGPExternals }}
+        {{- if or $.VPCs $.Gateway $.BGPExternals $.StaticExtSubnets }}
         prefix-list:
           {{- if $.Gateway }}
           all-vtep-prefixes:
@@ -447,6 +447,17 @@
             type: ipv4
           {{- end }}
           {{- end }}
+          {{- if $.StaticExtSubnets }}
+          static-ext-subnets:
+            rule:
+              {{- range $seq, $subnet := $.StaticExtSubnets }}
+              '{{ $seq }}':
+                action: permit
+                match:
+                  {{ $subnet }}: {}
+              {{- end }}
+            type: ipv4
+          {{- end }}
           {{- range $vpc := $.VPCs }}
           {{- range $peer := $vpc.ExtPeers }}
           {{ $peer.PrefixList }}:
@@ -484,6 +495,17 @@
                 match:
                   {{ $subnet }}:
                     max-prefix-len: 32
+              {{- end }}
+            type: ipv4
+          {{- end }}
+          {{- if $vpc.StaticExtSubnets }}
+          vpc-static-ext-subnets--{{ $vpc.Name }}:
+            rule:
+              {{- range $seq, $subnet := $vpc.StaticExtSubnets }}
+              '{{ $seq }}':
+                action: permit
+                match:
+                  {{ $subnet }}: {}
               {{- end }}
             type: ipv4
           {{- end }}
@@ -688,6 +710,22 @@
                 match:
                   ip-prefix-list: vpc-subnets--{{ $vpc.Name }}
                   type: ipv4
+              {{- if $vpc.StaticExtSubnets }}
+              '20':
+                action:
+                  permit: {}
+                match:
+                  ip-prefix-list: vpc-static-ext-subnets--{{ $vpc.Name }}
+                  type: ipv4
+          vpc-redistribute-static--{{ $vpc.Name }}:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                match:
+                  ip-prefix-list: vpc-static-ext-subnets--{{ $vpc.Name }}
+                  type: ipv4
+              {{- end }}
           {{- end }}
           lo_to_bgp:
             rule:
@@ -698,6 +736,22 @@
                 match:
                   interface: lo
                   type: ipv4
+              {{- if $.StaticExtSubnets }}
+              '20':
+                action:
+                  permit: {}
+                match:
+                  ip-prefix-list: static-ext-subnets
+                  type: ipv4
+          static-ext:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                match:
+                  ip-prefix-list: static-ext-subnets
+                  type: ipv4
+              {{- end }}
           w_ecmp_cumulative:
             rule:
               '10':
@@ -733,6 +787,11 @@
                   connected:
                     route-map: lo_to_bgp
                     state: enabled
+                  {{- if $.StaticExtSubnets }}
+                  static:
+                    route-map: static-ext
+                    state: enabled
+                  {{- end }}
                 state: enabled
               l2vpn-evpn:
                 state: enabled
@@ -817,6 +876,16 @@
               {{- end }}
             {{- end }}
             state: enabled
+          {{- if $.StaticRoutes }}
+          static:
+            {{- range $prefix, $nextHops := $.StaticRoutes }}
+            {{ $prefix }}:
+              via:
+                {{- range $nextHop := $nextHops }}
+                {{ $nextHop }}: {}
+                {{- end }}
+            {{- end }}
+          {{- end }}
       {{- range $vpc := $.VPCs }}
       {{ $vpc.VRF }}:
         evpn:
@@ -831,6 +900,11 @@
                   connected:
                     route-map: vpc-redistribute-connected--{{ $vpc.Name }}
                     state: enabled
+                  {{- if $vpc.StaticExtSubnets }}
+                  static:
+                    route-map: vpc-redistribute-static--{{ $vpc.Name }}
+                    state: enabled
+                  {{- end }}
                 route-export:
                   to-evpn:
                     state: enabled

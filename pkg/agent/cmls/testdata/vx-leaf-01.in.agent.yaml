@@ -36,6 +36,11 @@ spec:
       10.0.3.0/24: 102
       10.0.11.0/24: 105
       10.0.12.0/24: 104
+      10.197.0.0/16: 110
+      10.198.0.0/24: 108
+      10.199.0.0/16: 107
+      172.31.1.0/24: 106
+      172.31.2.0/24: 109
     vpcSubnetVNIs:
       vpc-01:
         default: 301
@@ -122,6 +127,27 @@ spec:
         link:
           switch:
             port: leaf-01/E1/1
+    leaf-01--static-external:
+      staticExternal:
+        link:
+          switch:
+            ip: 172.31.1.1/24
+            nextHop: 172.31.1.2
+            port: leaf-01/E1/11
+            subnets:
+              - 10.199.0.0/16
+              - 10.198.0.0/24
+    leaf-01--static-external--vpc-03:
+      staticExternal:
+        link:
+          switch:
+            ip: 172.31.2.1/24
+            nextHop: 172.31.2.2
+            port: leaf-01/E1/12
+            subnets:
+              - 10.197.0.0/16
+            vlan: 20
+        withinVPC: vpc-03
     server-01--unbundled--leaf-01:
       unbundled:
         link:
