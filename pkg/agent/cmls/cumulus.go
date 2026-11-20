@@ -68,6 +68,8 @@ type ConfigIn struct {
 	BFD              bool
 	BaseVPCCommunity string
 	BGPNeighbors     []BGPNeighbor
+	StaticExtSubnets map[uint32]string // subnet ID -> static external link subnet or routed subnet in the default VRF
+	StaticRoutes     map[string][]string
 	Gateway          *GatewayConfig
 	GatewayPrios     []GatewayPrio
 	Ports            []*PortConfig
@@ -129,6 +131,8 @@ type VPC struct {
 	ExtPeers    []VPCExtPeer
 	ImportVRFs  []string
 	Routes      map[string][]string
+
+	StaticExtSubnets map[uint32]string // subnet ID -> static external link subnet or routed subnet in the VPC
 }
 
 // VPCExtPeer is an external peered with the VPC, only the permitted prefixes outside of the VPC's IPv4 namespace are
@@ -1059,6 +1063,86 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		})
 	}
 
+	// static external connections get the IP on the port or a VLAN subinterface in the default or the VPC VRF and the
+	// routes to their subnets via the next hop, the link subnet and the routed subnets are redistributed into the
+	// underlay or the VPC, the VPC peerings only import the VPC subnets, so they aren't leaked to the peers
+	staticExtSubnets := map[uint32]string{}
+	staticRoutes := map[string][]string{}
+	for _, connName := range slices.Sorted(maps.Keys(agent.Spec.Connections)) {
+		conn := agent.Spec.Connections[connName]
+		if conn.StaticExternal == nil || conn.StaticExternal.Link.Switch.DeviceName() != agent.Name {
+			continue
+		}
+		if !isLeaf {
+			return nil, fmt.Errorf("conn %s: static externals are only supported on leaves", connName) //nolint:err113
+		}
+
+		cfg := conn.StaticExternal.Link.Switch
+		ip, err := netip.ParsePrefix(cfg.IP)
+		if err != nil || !ip.Addr().Is4() {
+			return nil, fmt.Errorf("conn %s: invalid IP %q", connName, cfg.IP) //nolint:err113
+		}
+		nextHop, err := netip.ParseAddr(cfg.NextHop)
+		if err != nil || !nextHop.Is4() {
+			return nil, fmt.Errorf("conn %s: invalid next hop %q", connName, cfg.NextHop) //nolint:err113
+		}
+
+		vrf, prefixes, routes := "default", staticExtSubnets, staticRoutes
+		if vpcName := conn.StaticExternal.WithinVPC; vpcName != "" {
+			idx := slices.IndexFunc(vpcs, func(vpc VPC) bool { return vpc.Name == vpcName })
+			if idx < 0 {
+				return nil, fmt.Errorf("conn %s: vpc %s not found", connName, vpcName) //nolint:err113
+			}
+			vpc := &vpcs[idx]
+			if vpc.StaticExtSubnets == nil {
+				vpc.StaticExtSubnets = map[uint32]string{}
+			}
+			vrf, prefixes, routes = vpc.VRF, vpc.StaticExtSubnets, vpc.Routes
+		}
+
+		port, err := usePort(cfg.LocalPortName())
+		if err != nil {
+			return nil, fmt.Errorf("conn %s: %w", connName, err)
+		}
+		port.Description = "StaticExternal " + connName
+		if cfg.VLAN == 0 {
+			port.IP = ip.String()
+			if vrf != "default" {
+				port.VRF = vrf
+			}
+		} else {
+			subifs = append(subifs, &SubinterfaceConfig{
+				Name:        fmt.Sprintf("%s.%d", port.Name, cfg.VLAN),
+				Port:        port.Name,
+				VLAN:        cfg.VLAN,
+				IP:          ip.String(),
+				VRF:         vrf,
+				Description: "StaticExternal " + connName,
+			})
+		}
+
+		for idx, subnet := range append([]string{ip.Masked().String()}, cfg.Subnets...) {
+			prefix, err := netip.ParsePrefix(subnet)
+			if err != nil || !prefix.Addr().Is4() {
+				return nil, fmt.Errorf("conn %s: invalid subnet %q", connName, subnet) //nolint:err113
+			}
+			id := agent.Spec.Catalog.SubnetIDs[subnet]
+			if id < 100 || id >= 65000 {
+				return nil, fmt.Errorf("conn %s: subnet %s: ID %d isn't between 100 and 65000", connName, subnet, id) //nolint:err113
+			}
+			prefixes[id] = prefix.String()
+
+			// the first one is the link subnet
+			if idx == 0 {
+				continue
+			}
+			if _, ok := routes[prefix.String()]; ok {
+				return nil, fmt.Errorf("conn %s: route to %s is already configured in vrf %s", connName, prefix, vrf) //nolint:err113
+			}
+			routes[prefix.String()] = []string{nextHop.String()}
+		}
+	}
+
 	// the traffic from the fabric to the IPv4 namespace subnets mustn't leave through an external
 	for _, nsName := range slices.Sorted(maps.Keys(egressNamespaces)) {
 		ns, ok := agent.Spec.IPv4Namespaces[nsName]
@@ -1388,6 +1472,8 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		BFD:              !agent.Spec.Config.DisableBFD,
 		BaseVPCCommunity: agent.Spec.Config.BaseVPCCommunity,
 		BGPNeighbors:     neighs,
+		StaticExtSubnets: staticExtSubnets,
+		StaticRoutes:     staticRoutes,
 		Gateway:          gateway,
 		GatewayPrios:     gwPrios,
 		Ports:            ports,
@@ -1779,11 +1865,6 @@ func checkSupported(agent *agentapi.Agent) error {
 		peering := agent.Spec.VPCPeerings[peeringName]
 		if peering.Remote != "" {
 			return fmt.Errorf("vpc peering %s: remote peerings aren't supported", peeringName) //nolint:err113
-		}
-	}
-	for _, connName := range slices.Sorted(maps.Keys(agent.Spec.Connections)) {
-		if agent.Spec.Connections[connName].StaticExternal != nil {
-			return fmt.Errorf("conn %s: static externals aren't supported", connName) //nolint:err113
 		}
 	}
 	for _, attachName := range slices.Sorted(maps.Keys(agent.Spec.ExternalAttachments)) {
