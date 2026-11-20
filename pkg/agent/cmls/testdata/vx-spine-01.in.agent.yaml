@@ -1,6 +1,8 @@
 apiVersion: agent.githedgehog.com/v1beta1
 kind: Agent
 metadata:
+  annotations:
+    fabric.githedgehog.com/passwordless-sudo: "false"
   creationTimestamp: "2026-02-19T10:22:39Z"
   generation: 1
   name: spine-01
