@@ -723,21 +723,21 @@ func TestBuildConfigErrors(t *testing.T) {
 			profile: &switchprofile.CumulusVX,
 			port:    "E1/1",
 			mutate:  func(agent *agentapi.Agent) { agent.Spec.Config.CumulusSVIWorkaroundSubnet = "172.30.96.0" },
-			err:     "parsing Cumulus SVI workaround subnet",
+			err:     "config: cumulusSVIWorkaroundSubnet",
 		},
 		{
 			name:    "vx-svi-workaround-subnet-ipv6",
 			profile: &switchprofile.CumulusVX,
 			port:    "E1/1",
 			mutate:  func(agent *agentapi.Agent) { agent.Spec.Config.CumulusSVIWorkaroundSubnet = "fd00::/64" },
-			err:     "parsing Cumulus SVI workaround subnet: fd00::/64 isn't IPv4",
+			err:     "cumulusSVIWorkaroundSubnet must be IPv4 /20 or bigger",
 		},
 		{
 			name:    "vx-svi-workaround-subnet-too-small",
 			profile: &switchprofile.CumulusVX,
 			port:    "E1/1",
 			mutate:  func(agent *agentapi.Agent) { agent.Spec.Config.CumulusSVIWorkaroundSubnet = "172.30.96.0/24" },
-			err:     "vlan 1001 doesn't fit Cumulus SVI workaround subnet 172.30.96.0/24",
+			err:     "cumulusSVIWorkaroundSubnet must be IPv4 /20 or bigger",
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {

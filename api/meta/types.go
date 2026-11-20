@@ -455,14 +455,10 @@ func (cfg *FabricConfig) WithReservedSubnets() error {
 		cfg.reservedSubnets = append(cfg.reservedSubnets, ipnet.Masked())
 	}
 
-	sviSubnet, err := netip.ParsePrefix(cmp.Or(cfg.CumulusSVIWorkaroundSubnet, DefaultCumulusSVIWorkaroundSubnet))
+	sviSubnet, err := ParseCumulusSVIWorkaroundSubnet(cfg.CumulusSVIWorkaroundSubnet)
 	if err != nil {
-		return fmt.Errorf("config: cumulusSVIWorkaroundSubnet: %w", err)
+		return fmt.Errorf("config: %w", err)
 	}
-	if !sviSubnet.Addr().Is4() || sviSubnet.Bits() > 20 {
-		return fmt.Errorf("config: cumulusSVIWorkaroundSubnet must be IPv4 /20 or bigger to fit all VLANs") //nolint:err113
-	}
-	sviSubnet = sviSubnet.Masked()
 
 	// only the Cumulus agents use it, so it doesn't take the subnets other fabrics may already have in their VPCs; it's
 	// reserved even if unset, as the agents fall back to the default
@@ -503,4 +499,17 @@ func (cfg *FabricConfig) WithReservedSubnets() error {
 	cfg.reservedSubnets = append(cfg.reservedSubnets, sviSubnet)
 
 	return nil
+}
+
+// ParseCumulusSVIWorkaroundSubnet returns the masked subnet, or the default one if unset
+func ParseCumulusSVIWorkaroundSubnet(subnet string) (netip.Prefix, error) {
+	prefix, err := netip.ParsePrefix(cmp.Or(subnet, DefaultCumulusSVIWorkaroundSubnet))
+	if err != nil {
+		return netip.Prefix{}, fmt.Errorf("cumulusSVIWorkaroundSubnet: %w", err)
+	}
+	if !prefix.Addr().Is4() || prefix.Bits() > 20 {
+		return netip.Prefix{}, fmt.Errorf("cumulusSVIWorkaroundSubnet must be IPv4 /20 or bigger to fit all VLANs") //nolint:err113
+	}
+
+	return prefix.Masked(), nil
 }
