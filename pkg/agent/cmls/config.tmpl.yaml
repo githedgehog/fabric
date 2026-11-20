@@ -1,6 +1,52 @@
 - set:
-    {{- if or $.SubnetACLs $.Restricted }}
+    {{- if or $.SubnetACLs $.Restricted $.ACLs }}
     acl:
+      {{- range $acl := $.ACLs }}
+      {{ $acl.Name }}:
+        rule:
+          {{- range $rule := $acl.Rules }}
+          '{{ $rule.ID }}':
+            action:
+              {{ if $rule.Permit }}permit{{ else }}deny{{ end }}: {}
+            {{- if $rule.HasMatch }}
+            match:
+              ip:
+                {{- if $rule.DstIP }}
+                dest-ip: {{ $rule.DstIP }}
+                {{- end }}
+                {{- if $rule.ICMPType }}
+                icmp-type: {{ $rule.ICMPType }}
+                {{- end }}
+                {{- if $rule.Protocol }}
+                protocol: {{ $rule.Protocol }}
+                {{- end }}
+                {{- if $rule.SrcIP }}
+                source-ip: {{ $rule.SrcIP }}
+                {{- end }}
+                {{- if or $rule.DstPort $rule.TCPMask $rule.TCPEstablished }}
+                {{ $rule.Protocol }}:
+                  {{- if $rule.DstPort }}
+                  dest-port:
+                    '{{ $rule.DstPort }}': {}
+                  {{- end }}
+                  {{- if $rule.TCPMask }}
+                  flags:
+                    {{- range $flag := $rule.TCPFlags }}
+                    {{ $flag }}: {}
+                    {{- end }}
+                  mask:
+                    {{- range $flag := $rule.TCPMask }}
+                    {{ $flag }}: {}
+                    {{- end }}
+                  {{- end }}
+                  {{- if $rule.TCPEstablished }}
+                  state: established
+                  {{- end }}
+                {{- end }}
+            {{- end }}
+          {{- end }}
+        type: ipv4
+      {{- end }}
       {{- range $subnet := $.Restricted }}
       {{ $subnet.RestrictedACL }}:
         rule:
@@ -82,11 +128,15 @@
             down: {}
             {{- end }}
         {{- end }}
-        {{- if $port.ACLs }}
+        {{- if or $port.ACLs $port.ExtACLs }}
         acl:
           {{- range $acl := $port.ACLs }}
           {{ $acl }}:
             inbound: {}
+          {{- end }}
+          {{- range $acl := $port.ExtACLs }}
+          {{ $acl.Name }}:
+            {{ $acl.Direction }}: {}
           {{- end }}
         {{- end }}
         {{- if $port.VLANs }}
@@ -162,6 +212,13 @@
       {{- end }}
       {{- range $subif := $.Subinterfaces }}
       {{ $subif.Name }}:
+        {{- if $subif.ACLs }}
+        acl:
+          {{- range $acl := $subif.ACLs }}
+          {{ $acl.Name }}:
+            {{ $acl.Direction }}: {}
+          {{- end }}
+        {{- end }}
         base-interface: {{ $subif.Port }}
         description: {{ $subif.Description }}
         {{- if $subif.IP }}

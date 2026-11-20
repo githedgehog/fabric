@@ -1,4 +1,83 @@
 - set:
+    acl:
+      ext-inbound--swp1:
+        rule:
+          '1':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: 100.1.20.2/32
+                protocol: tcp
+                tcp:
+                  dest-port:
+                    '443': {}
+          '2':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: 100.1.20.2/32
+                protocol: tcp
+                tcp:
+                  dest-port:
+                    '8080': {}
+          '3':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: 100.1.20.2/32
+                protocol: udp
+                udp:
+                  dest-port:
+                    '67': {}
+          '4':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: 100.1.20.2/32
+                protocol: udp
+                udp:
+                  dest-port:
+                    '161': {}
+          '5':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: 100.1.20.2/32
+                protocol: udp
+                udp:
+                  dest-port:
+                    '4789': {}
+          '6':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: 100.1.20.2/32
+                protocol: tcp
+                tcp:
+                  dest-port:
+                    '22': {}
+          '65535':
+            action:
+              permit: {}
+        type: ipv4
+      ipns-egress--default:
+        rule:
+          '10':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: 10.0.0.0/16
+          '65535':
+            action:
+              permit: {}
+        type: ipv4
     interface:
       eth0:
         ipv6:
@@ -29,6 +108,11 @@
           speed: 800G
           state:
             up: {}
+        acl:
+          ext-inbound--swp1:
+            inbound: {}
+          ipns-egress--default:
+            outbound: {}
         ipv4:
           address:
             100.1.20.2/24: {}

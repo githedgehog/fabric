@@ -75,6 +75,7 @@ type ConfigIn struct {
 	Subnets          []*SubnetConfig
 	SubnetACLs       []*SubnetConfig
 	Restricted       []*SubnetConfig
+	ACLs             []*ACL
 	DHCPServer       string
 	IsSpine          bool
 	IsLeaf           bool
@@ -213,6 +214,7 @@ type PortConfig struct {
 	IPv6            bool
 	VRF             string
 	AdaptiveRouting bool
+	ExtACLs         []ACLBinding
 	BridgeMember
 }
 
@@ -224,6 +226,34 @@ type SubinterfaceConfig struct {
 	IP          string
 	VRF         string
 	Description string
+	ACLs        []ACLBinding
+}
+
+type ACL struct {
+	Name  string
+	Rules []ACLRule
+}
+
+type ACLRule struct {
+	ID             uint32
+	Permit         bool
+	Protocol       string
+	SrcIP          string
+	DstIP          string
+	DstPort        string
+	TCPFlags       []string
+	TCPMask        []string
+	TCPEstablished bool
+	ICMPType       string
+}
+
+func (r ACLRule) HasMatch() bool {
+	return r.Protocol != "" || r.SrcIP != "" || r.DstIP != ""
+}
+
+type ACLBinding struct {
+	Name      string
+	Direction string
 }
 
 type BondConfig struct {
@@ -856,11 +886,12 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 
 	// the externals attached to the switch get a VRF with the external VNI as L3VNI, the attachments get the IP in it
 	// on a VLAN subinterface or on the port itself without a VLAN
-	// TODO hardened inbound ACL of the attachments
 	externals := map[string]*External{}
 	subifs := []*SubinterfaceConfig{}
 	bfdProfiles := []BFDProfile{}
 	ipv4Namespaces := map[string]bool{}
+	egressNamespaces := map[string]string{} // IPv4 namespace -> first external in it
+	acls := []*ACL{}
 	extVLANs := map[string]map[uint16]string{} // port -> VLAN -> attachment
 	for _, attachName := range slices.Sorted(maps.Keys(agent.Spec.ExternalAttachments)) {
 		attach := agent.Spec.ExternalAttachments[attachName]
@@ -975,11 +1006,29 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 			unnumbered = neigh.Unnumbered
 		}
 
+		// the inbound ACL is applied in hardware ahead of the trap to the CPU, so it filters the traffic to the switch too,
+		// the name comes from the interface as the attachment name can have dots
+		aclBindings := []ACLBinding{}
+		inboundRules, err := extInboundACLRules(attachName, prefix, attach.InboundACL)
+		if err != nil {
+			return nil, err
+		}
+		if len(inboundRules) > 0 {
+			name := "ext-inbound--" + strings.ReplaceAll(ifaceName, ".", "-")
+			acls = append(acls, &ACL{Name: name, Rules: inboundRules})
+			aclBindings = append(aclBindings, ACLBinding{Name: name, Direction: "inbound"})
+		}
+		aclBindings = append(aclBindings, ACLBinding{Name: ipnsEgressACL(extSpec.IPv4Namespace), Direction: "outbound"})
+		if _, ok := egressNamespaces[extSpec.IPv4Namespace]; !ok {
+			egressNamespaces[extSpec.IPv4Namespace] = attach.External
+		}
+
 		if vlan == 0 {
 			port := portsByName[portName]
 			port.IP = ip
 			port.IPv6 = unnumbered
 			port.VRF = extVRF(attach.External)
+			port.ExtACLs = aclBindings
 
 			continue
 		}
@@ -990,7 +1039,26 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 			IP:          ip,
 			VRF:         extVRF(attach.External),
 			Description: "External " + attachName,
+			ACLs:        aclBindings,
 		})
+	}
+
+	// the traffic from the fabric to the IPv4 namespace subnets mustn't leave through an external
+	for _, nsName := range slices.Sorted(maps.Keys(egressNamespaces)) {
+		ns, ok := agent.Spec.IPv4Namespaces[nsName]
+		if !ok {
+			return nil, fmt.Errorf("external %s: ipv4 namespace %s not found", egressNamespaces[nsName], nsName) //nolint:err113
+		}
+		acl := &ACL{Name: ipnsEgressACL(nsName)}
+		for idx, subnet := range ns.Subnets {
+			parsed, err := netip.ParsePrefix(subnet)
+			if err != nil || !parsed.Addr().Is4() {
+				return nil, fmt.Errorf("ipv4 namespace %s: invalid subnet %q", nsName, subnet) //nolint:err113
+			}
+			acl.Rules = append(acl.Rules, ACLRule{ID: uint32(10 * (idx + 1)), DstIP: parsed.String()})
+		}
+		acl.Rules = append(acl.Rules, ACLRule{ID: 65535, Permit: true})
+		acls = append(acls, acl)
 	}
 	slices.SortFunc(subifs, func(a, b *SubinterfaceConfig) int {
 		return cmp.Or(cmp.Compare(a.Port, b.Port), cmp.Compare(a.VLAN, b.VLAN))
@@ -1314,6 +1382,7 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		Subnets:          subnets,
 		SubnetACLs:       slices.DeleteFunc(slices.Clone(subnets), func(subnet *SubnetConfig) bool { return len(subnet.Deny) == 0 }),
 		Restricted:       slices.DeleteFunc(slices.Clone(subnets), func(subnet *SubnetConfig) bool { return subnet.RestrictedACL == "" }),
+		ACLs:             acls,
 		IsSpine:          isSpine,
 		IsLeaf:           isLeaf,
 		IsSpectrum4:      isSpectrum4,
@@ -1510,6 +1579,120 @@ func externalBGPPolicy(agent *agentapi.Agent, ext *External, extSpec vpcapi.Exte
 	return nil
 }
 
+func ipnsEgressACL(ns string) string {
+	return "ipns-egress--" + ns
+}
+
+// extInboundACLRules drops the traffic from the external to the switch services on the attachment IP ahead of the user
+// rules, which end with a deny, or with a permit if there are none
+func extInboundACLRules(attachName string, ip netip.Prefix, spec *vpcapi.ACLSpec) ([]ACLRule, error) {
+	rules := []ACLRule{}
+	if ip.IsValid() {
+		dst := netip.PrefixFrom(ip.Addr(), 32).String()
+		for idx, svc := range []struct {
+			proto string
+			port  string
+		}{{"tcp", "443"}, {"tcp", "8080"}, {"udp", "67"}, {"udp", "161"}, {"udp", "4789"}, {"tcp", "22"}} {
+			rules = append(rules, ACLRule{ID: uint32(idx + 1), Protocol: svc.proto, DstIP: dst, DstPort: svc.port})
+		}
+	}
+
+	if spec == nil || len(spec.Statements) == 0 {
+		if len(rules) == 0 {
+			return nil, nil
+		}
+
+		return append(rules, ACLRule{ID: 65535, Permit: true}), nil
+	}
+
+	for _, stmt := range slices.SortedFunc(slices.Values(spec.Statements), func(a, b vpcapi.ACLStatement) int { return cmp.Compare(a.Seq, b.Seq) }) {
+		rule, err := aclRule(stmt)
+		if err != nil {
+			return nil, fmt.Errorf("external attachment %s: inbound ACL: %w", attachName, err)
+		}
+		rules = append(rules, rule)
+	}
+
+	return append(rules, ACLRule{ID: 65535}), nil
+}
+
+// aclRule maps discard to deny as both drop, and transit to permit as it only skips the further ACLs, which this one
+// is the last of
+func aclRule(stmt vpcapi.ACLStatement) (ACLRule, error) {
+	if stmt.Seq < vpcapi.ACLUserMinSeq {
+		return ACLRule{}, fmt.Errorf("statement %d: seq is reserved", stmt.Seq) //nolint:err113
+	}
+	rule := ACLRule{ID: uint32(stmt.Seq)}
+
+	switch stmt.Action {
+	case vpcapi.ACLActionPermit, vpcapi.ACLActionTransit:
+		rule.Permit = true
+	case vpcapi.ACLActionDeny, vpcapi.ACLActionDiscard:
+	default:
+		return ACLRule{}, fmt.Errorf("statement %d: invalid action %q", stmt.Seq, stmt.Action) //nolint:err113
+	}
+
+	switch stmt.Protocol {
+	case vpcapi.ACLProtocolIP:
+	case vpcapi.ACLProtocolTCP, vpcapi.ACLProtocolUDP, vpcapi.ACLProtocolICMP:
+		rule.Protocol = string(stmt.Protocol)
+	default:
+		return ACLRule{}, fmt.Errorf("statement %d: invalid protocol %q", stmt.Seq, stmt.Protocol) //nolint:err113
+	}
+
+	for _, addr := range []struct {
+		prefix string
+		dst    *string
+	}{{stmt.SrcPrefix, &rule.SrcIP}, {stmt.DstPrefix, &rule.DstIP}} {
+		if addr.prefix == vpcapi.ACLAny {
+			continue
+		}
+		prefix, err := netip.ParsePrefix(addr.prefix)
+		if err != nil || !prefix.Addr().Is4() {
+			return ACLRule{}, fmt.Errorf("statement %d: invalid prefix %q", stmt.Seq, addr.prefix) //nolint:err113
+		}
+		*addr.dst = prefix.String()
+	}
+
+	if stmt.PortRangeBegin > 0 {
+		rule.DstPort = strconv.Itoa(int(stmt.PortRangeBegin))
+		if stmt.PortRangeEnd != stmt.PortRangeBegin {
+			rule.DstPort += "-" + strconv.Itoa(int(stmt.PortRangeEnd))
+		}
+	}
+
+	if f := stmt.TCPFilters; f != nil {
+		rule.TCPEstablished = f.Established
+		for _, flag := range []struct {
+			name     string
+			set, not bool
+		}{
+			{"syn", f.Syn, f.NotSyn},
+			{"ack", f.Ack, f.NotAck},
+			{"fin", f.Fin, f.NotFin},
+			{"rst", f.Rst, f.NotRst},
+			{"urg", f.Urg, f.NotUrg},
+			{"psh", f.Psh, f.NotPsh},
+		} {
+			if flag.set {
+				rule.TCPFlags = append(rule.TCPFlags, flag.name)
+			}
+			if flag.set || flag.not {
+				rule.TCPMask = append(rule.TCPMask, flag.name)
+			}
+		}
+		if len(rule.TCPMask) > 0 && len(rule.TCPFlags) == 0 {
+			rule.TCPFlags = []string{"none"}
+		}
+	}
+
+	if stmt.ICMPType != nil {
+		rule.ICMPType = strconv.Itoa(int(*stmt.ICMPType))
+	}
+
+	return rule, nil
+}
+
 // checkSupported rejects the features the full config can't express yet, the ZTP config doesn't include them, so it's
 // only checked when enforcing
 func checkSupported(agent *agentapi.Agent) error {
@@ -1551,6 +1734,17 @@ func checkSupported(agent *agentapi.Agent) error {
 		}
 		if attach.Neighbor.PrefixLimit != nil {
 			return fmt.Errorf("external attachment %s: prefix limit isn't supported", attachName) //nolint:err113
+		}
+		if attach.InboundACL != nil {
+			for _, stmt := range attach.InboundACL.Statements {
+				if stmt.ICMPCode != nil {
+					return fmt.Errorf("external attachment %s: inbound ACL statement %d: ICMP code isn't supported", attachName, stmt.Seq) //nolint:err113
+				}
+				// the last rule closing the user ones
+				if stmt.Seq == 65535 {
+					return fmt.Errorf("external attachment %s: inbound ACL statement %d: seq isn't supported", attachName, stmt.Seq) //nolint:err113
+				}
+			}
 		}
 	}
 

@@ -222,6 +222,41 @@ spec:
             protocol: udp
             srcPrefix: any
             dstPrefix: 10.50.10.3/32
+          - seq: 35
+            action: permit
+            protocol: tcp
+            srcPrefix: 100.1.20.0/24
+            dstPrefix: any
+            portRangeBegin: 1000
+            portRangeEnd: 2000
+            tcpFilters:
+              syn: true
+              notAck: true
+          - seq: 40
+            action: permit
+            protocol: tcp
+            srcPrefix: any
+            dstPrefix: any
+            tcpFilters:
+              notSyn: true
+          - seq: 45
+            action: permit
+            protocol: tcp
+            srcPrefix: any
+            dstPrefix: any
+            tcpFilters:
+              established: true
+          - seq: 50
+            action: permit
+            protocol: icmp
+            srcPrefix: any
+            dstPrefix: any
+            icmpType: 8
+          - seq: 55
+            action: permit
+            protocol: ip
+            srcPrefix: 100.1.20.0/24
+            dstPrefix: any
     leaf-01--ext-bgp-01:
       connection: leaf-01--external
       external: ext-bgp-01
@@ -240,6 +275,15 @@ spec:
       neighbor: {}
       switch:
         vlan: 30
+      inboundACL:
+        statements:
+          - seq: 10
+            action: permit
+            protocol: tcp
+            srcPrefix: any
+            dstPrefix: any
+            portRangeBegin: 179
+            portRangeEnd: 179
   externalPeerings:
     vpc-01--ext-bgp-01:
       permit:
