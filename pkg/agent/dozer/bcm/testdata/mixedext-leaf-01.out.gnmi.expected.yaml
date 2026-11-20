@@ -787,6 +787,8 @@ network-instances:
                     - advertise-afi-safi: IPV4_UNICAST
                       config:
                         advertise-afi-safi: IPV4_UNICAST
+                        route-map:
+                        - ext-evpn-advertise--default
             config:
               as: 65101
               as-notation: ASDOT
@@ -876,7 +878,7 @@ network-instances:
                       config:
                         advertise-afi-safi: IPV4_UNICAST
                         route-map:
-                        - ext-inbound--ext-sp-01
+                        - ext-evpn-advertise--default
             config:
               as: 65101
               as-notation: ASDOT
@@ -1921,6 +1923,31 @@ routing-policy:
         name: vtep-prefix
   policy-definitions:
     policy-definition:
+    - config:
+        name: ext-evpn-advertise--default
+      name: ext-evpn-advertise--default
+      statements:
+        statement:
+        - actions:
+            config:
+              policy-result: REJECT_ROUTE
+          conditions:
+            match-prefix-set:
+              config:
+                prefix-set: ipns-subnets--default
+          config:
+            name: "10"
+          name: "10"
+        - actions:
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            bgp-conditions:
+              config:
+                community-set: all-externals
+          config:
+            name: "20"
+          name: "20"
     - config:
         name: ext-import--ext-snp-02
       name: ext-import--ext-snp-02

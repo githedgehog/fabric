@@ -524,6 +524,16 @@ prefixLists:
           le: 32
           prefix: 172.30.12.0/32
 routeMaps:
+  ext-evpn-advertise--default:
+    statements:
+      "10":
+        conditions:
+          matchPrefixLists: ipns-subnets--default
+        result: reject
+      "20":
+        conditions:
+          matchCommunityLists: all-externals
+        result: accept
   ext-import--ext-snp-02:
     statements:
       "10":
@@ -834,6 +844,8 @@ vrfs:
         maxPaths: 16
       l2vpnEvpn:
         advertiseIPv4Unicast: true
+        advertiseIPv4UnicastRouteMaps:
+        - ext-evpn-advertise--default
         enable: true
       networkImportCheck: true
       routerID: 172.30.8.2
@@ -866,7 +878,7 @@ vrfs:
       l2vpnEvpn:
         advertiseIPv4Unicast: true
         advertiseIPv4UnicastRouteMaps:
-        - ext-inbound--ext-sp-01
+        - ext-evpn-advertise--default
         enable: true
       neighbors:
         100.1.30.1:
