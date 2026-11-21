@@ -25,6 +25,7 @@ type Server struct {
 	kube           kclient.Client
 	subnets        map[string]*subnet
 	switchToIP     map[string]string   // switch name → relay IP (for cleanup)
+	switchToVLANNS map[string][]string // switch name → VLAN namespaces (for the Cumulus relays)
 	relayAllowlist map[string]struct{} // known leaf relay IPs
 	mu             sync.RWMutex        // guards the maps only, never held while taking the subnet locks
 	controlVIP     net.IP              // DHCP server identifier
@@ -44,6 +45,9 @@ func (s *Server) Run(ctx context.Context) error {
 	}
 	if s.switchToIP == nil {
 		s.switchToIP = map[string]string{}
+	}
+	if s.switchToVLANNS == nil {
+		s.switchToVLANNS = map[string][]string{}
 	}
 	if s.relayAllowlist == nil {
 		s.relayAllowlist = map[string]struct{}{}

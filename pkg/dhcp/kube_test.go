@@ -25,6 +25,7 @@ func newTestServer() *Server {
 	return &Server{
 		subnets:        map[string]*subnet{},
 		switchToIP:     map[string]string{},
+		switchToVLANNS: map[string][]string{},
 		relayAllowlist: map[string]struct{}{},
 	}
 }
@@ -254,6 +255,24 @@ func TestSwitchHandler(t *testing.T) {
 
 		assert.NotContains(t, s.relayAllowlist, "172.30.0.8")
 		assert.Contains(t, s.relayAllowlist, "172.30.0.9")
+	})
+
+	t.Run("vlan namespaces follow the switch", func(t *testing.T) {
+		s := newTestServer()
+		h := s.switchHandler()
+
+		old := testSwitch("leaf-01", wiringapi.SwitchRoleServerLeaf, "172.30.0.8/21")
+		old.Spec.VLANNamespaces = []string{"default"}
+		h.OnAdd(old, true)
+		assert.Equal(t, []string{"default"}, s.switchToVLANNS["leaf-01"])
+
+		updated := old.DeepCopy()
+		updated.Spec.VLANNamespaces = []string{"default", "other"}
+		h.OnUpdate(old, updated)
+		assert.Equal(t, []string{"default", "other"}, s.switchToVLANNS["leaf-01"])
+
+		h.OnDelete(updated)
+		assert.NotContains(t, s.switchToVLANNS, "leaf-01")
 	})
 
 	for _, tt := range []struct {

@@ -10,6 +10,7 @@ import (
 	"io"
 	"log/slog"
 	"net/netip"
+	"slices"
 	"sync/atomic"
 	"time"
 
@@ -311,6 +312,7 @@ func (s *Server) upsertSwitch(obj any) {
 		s.switchToIP[sw.Name] = newIP
 		s.relayAllowlist[newIP] = struct{}{}
 	}
+	s.switchToVLANNS[sw.Name] = slices.Clone(sw.Spec.VLANNamespaces)
 }
 
 func (s *Server) deleteSwitch(obj any) {
@@ -330,4 +332,5 @@ func (s *Server) deleteSwitch(obj any) {
 		delete(s.switchToIP, sw.Name)
 		delete(s.relayAllowlist, oldIP)
 	}
+	delete(s.switchToVLANNS, sw.Name)
 }

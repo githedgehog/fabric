@@ -359,23 +359,85 @@ func TestHandler4Log(t *testing.T) {
 		assert.Equal(t, "192.168.99.1", attrs["giaddr"])
 	})
 
-	t.Run("duplicate subnets for a Cumulus relay", func(t *testing.T) {
-		s := newServer(kube)
-		s.subnets = map[string]*subnet{
-			"a": newSubnet(testSubnet("a", "Vlan1000", "1")),
-			"b": newSubnet(testSubnet("b", "Vlan1000", "1")),
-		}
+	cumulusDiscover := func() *dhcpv4.DHCPv4 {
 		discover := req(0)
 		discover.UpdateOption(dhcpv4.OptRelayAgentInfo(
 			dhcpv4.OptGeneric(dhcpv4.AgentCircuitIDSubOption, []byte("vlan1000")),
 			dhcpv4.OptGeneric(dhcpv4.AgentRemoteIDSubOption, []byte("cumulus:leaf-01")),
 		))
 
-		record, attrs := handle(t, s, discover)
+		return discover
+	}
+
+	t.Run("duplicate subnets for a Cumulus relay", func(t *testing.T) {
+		s := newServer(kube)
+		s.switchToVLANNS = map[string][]string{"leaf-01": {"default"}}
+		a, b := testSubnet("a", "Vlan1000", "1"), testSubnet("b", "Vlan1000", "1")
+		a.Spec.VLANNamespace, b.Spec.VLANNamespace = "default", "default"
+		s.subnets = map[string]*subnet{"a": newSubnet(a), "b": newSubnet(b)}
+
+		record, attrs := handle(t, s, cumulusDiscover())
 		assert.Equal(t, "Dropped", record.Message)
 		assert.Equal(t, slog.LevelWarn, record.Level)
 		assert.Contains(t, attrs["reason"], "duplicate subnets for Cumulus dhcp-relay")
 	})
+
+	t.Run("unknown switch for a Cumulus relay", func(t *testing.T) {
+		s := newServer(kube)
+		s.switchToVLANNS = map[string][]string{}
+
+		record, attrs := handle(t, s, cumulusDiscover())
+		assert.Equal(t, "Dropped", record.Message)
+		assert.Equal(t, slog.LevelWarn, record.Level)
+		assert.Equal(t, "unknown switch for Cumulus dhcp-relay: leaf-01", attrs["reason"])
+	})
+}
+
+func TestFindSubnetCumulus(t *testing.T) {
+	subnets := map[string]*subnet{}
+	for _, sn := range []struct{ name, circuitID, vlanNS string }{
+		{"a", "Vlan1000", "default"},
+		{"b", "Vlan1000", "other"},
+		{"c", "Vlan1001", "default"},
+		{"d", "Vlan1002", ""},
+	} {
+		obj := testSubnet(sn.name, sn.circuitID, "1")
+		obj.Spec.VLANNamespace = sn.vlanNS
+		subnets[sn.name] = newSubnet(obj)
+	}
+	s := &Server{
+		subnets:        subnets,
+		switchToVLANNS: map[string][]string{"leaf-01": {"default"}, "leaf-02": {"other"}, "leaf-03": {"default", "other"}},
+	}
+
+	for _, tt := range []struct {
+		name, remoteID, circuitID, subnet, err string
+	}{
+		{name: "same vlan first namespace", remoteID: "cumulus:leaf-01", circuitID: "vlan1000", subnet: "a"},
+		{name: "same vlan second namespace", remoteID: "cumulus:leaf-02", circuitID: "vlan1000", subnet: "b"},
+		{name: "other vlan", remoteID: "cumulus:leaf-01", circuitID: "vlan1001", subnet: "c"},
+		{name: "not in the switch namespaces", remoteID: "cumulus:leaf-02", circuitID: "vlan1001"},
+		{name: "subnet without namespace", remoteID: "cumulus:leaf-01", circuitID: "vlan1002"},
+		{name: "overlapping namespaces", remoteID: "cumulus:leaf-03", circuitID: "vlan1000", err: "duplicate subnets for Cumulus dhcp-relay"},
+		{name: "unknown switch", remoteID: "cumulus:leaf-09", circuitID: "vlan1000", err: "unknown switch for Cumulus dhcp-relay: leaf-09"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			sn, err := s.findSubnet(relayInfo{remoteID: tt.remoteID, circuitID: tt.circuitID})
+			if tt.err != "" {
+				require.ErrorContains(t, err, tt.err)
+
+				return
+			}
+			require.NoError(t, err)
+			if tt.subnet == "" {
+				require.Nil(t, sn)
+
+				return
+			}
+			require.NotNil(t, sn)
+			require.Equal(t, tt.subnet, sn.obj.Load().Name)
+		})
+	}
 }
 
 func TestHandler4Drops(t *testing.T) {
