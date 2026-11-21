@@ -707,15 +707,6 @@ func (svc *Service) processAgent(ctx context.Context, agent *agentapi.Agent, rea
 	}
 	svc.mutate = mutate
 
-	// RoCE is a part of the Cumulus config, so it's applied by now
-	if !svc.DryRun && slices.Contains(fmeta.NOSTypesCumulus, agent.Spec.SwitchProfile.NOSType) {
-		roce, err := svc.processor.GetRoCE(ctx)
-		if err != nil {
-			return fmt.Errorf("getting RoCE state: %w", err)
-		}
-		agent.Status.State.RoCE = roce
-	}
-
 	slog.Info("Config applied", "name", agent.Name, "gen", agent.Generation, "res", agent.ResourceVersion, "took", time.Since(start))
 
 	svc.reg.AgentMetrics.Generation.Set(float64(agent.Generation))
