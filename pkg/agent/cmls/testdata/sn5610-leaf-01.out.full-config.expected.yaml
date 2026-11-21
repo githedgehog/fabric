@@ -1976,7 +1976,7 @@
       hostname: leaf-01
       lldp:
         state: enabled
-        tx-hold-multiplier: 24
+        tx-hold-multiplier: 4
         tx-interval: 5
       ntp:
         listen:
