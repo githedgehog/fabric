@@ -104,6 +104,11 @@
         {{- if $port.Description }}
         description: {{ $port.Description }}
         {{- end }}
+        {{- if $port.ESUplink }}
+        evpn:
+          multihoming:
+            uplink: enabled
+        {{- end }}
         ipv6:
           state: {{ if $port.IPv6 }}enabled{{ else }}disabled{{ end }}
         lldp:
@@ -178,6 +183,14 @@
             {{ $member.Name }}: {}
             {{- end }}
         description: {{ $bond.Description }}
+        {{- if $bond.ESI }}
+        evpn:
+          multihoming:
+            segment:
+              identifier: {{ $bond.ESI }}
+              mac-address: {{ $bond.ESMAC }}
+              state: enabled
+        {{- end }}
         ipv6:
           state: disabled
         link:
@@ -270,6 +283,12 @@
             {{- end }}
     {{- end }}
     evpn:
+      {{- if $.ESLAG }}
+      multihoming:
+        mac-holdtime: 60
+        startup-delay: 60
+        state: enabled
+      {{- end }}
       state: enabled
     {{- if $.IsLeaf }}
     nve:

@@ -27,8 +27,11 @@ spec:
       vpc-01: 3002
       vpc-02: 3003
       vpc-03: 3004
+    connectionIDs:
+      server-06--eslag--leaf-01--leaf-02: 6
     portChannelIDs:
       server-05--bundled--leaf-01: 1
+      server-06--eslag--leaf-01--leaf-02: 2
     subnetIDs:
       0.0.0.0/0: 103
       10.0.1.0/24: 100
@@ -389,7 +392,9 @@ spec:
     ip: 172.30.0.9/21
     profile: cumulus-vx
     protocolIP: 172.30.8.2/32
-    redundancy: {}
+    redundancy:
+      group: eslag-1
+      type: eslag
     role: server-leaf
     topology:
       domains:
