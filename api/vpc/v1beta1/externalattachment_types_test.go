@@ -65,6 +65,27 @@ func staticExtAttGen(name string, f ...func(att *v1beta1.ExternalAttachment)) *v
 	return base
 }
 
+func withICMPCode(att *v1beta1.ExternalAttachment) {
+	att.Spec.InboundACL = &v1beta1.ACLSpec{Statements: []v1beta1.ACLStatement{{
+		Seq: 10, Action: v1beta1.ACLActionDeny, Protocol: v1beta1.ACLProtocolICMP,
+		SrcPrefix: v1beta1.ACLAny, DstPrefix: v1beta1.ACLAny, ICMPType: new(uint8(3)), ICMPCode: new(uint8(1)),
+	}}}
+}
+
+// leafWithNOS is leaf-01 in the default domain with a profile of the given NOS type
+func leafWithNOS(nosType meta.NOSType) []kclient.Object {
+	return []kclient.Object{
+		defaulted(&wiringapi.Switch{
+			Name: "leaf-01", Namespace: kmetav1.NamespaceDefault,
+			Spec: wiringapi.SwitchSpec{Profile: "test-profile"},
+		}),
+		&wiringapi.SwitchProfile{
+			Name: "test-profile", Namespace: kmetav1.NamespaceDefault,
+			Spec: wiringapi.SwitchProfileSpec{NOSType: nosType},
+		},
+	}
+}
+
 func withObjs(base []kclient.Object, objs ...kclient.Object) []kclient.Object {
 	return append(slices.Clone(base), objs...)
 }
@@ -464,6 +485,17 @@ func TestExternalAttachmentValidation(t *testing.T) {
 				Spec: v1beta1.ExternalSpec{IPv4Namespace: "default", LocalASN: 64000},
 			})),
 			err: true,
+		},
+		{
+			name:    "ICMP code on a Cumulus switch",
+			extAtt:  l3ExtAttGen("ext-att-01", withICMPCode),
+			objects: withObjs(baseObjs, leafWithNOS(meta.NOSTypeCumulusMlx)...),
+			err:     true,
+		},
+		{
+			name:    "ICMP code on a SONiC switch",
+			extAtt:  l3ExtAttGen("ext-att-01", withICMPCode),
+			objects: withObjs(baseObjs, leafWithNOS(meta.NOSTypeSONiCBCMBase)...),
 		},
 	}
 
