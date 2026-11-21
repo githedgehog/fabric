@@ -127,13 +127,13 @@
         lldp:
           state: enabled
       swp13:
-        description: Unused
+        description: ESLAG server-06 server-06--eslag--leaf-01--leaf-02
         ipv6:
           state: disabled
         link:
           speed: 10G
           state:
-            down: {}
+            up: {}
         lldp:
           state: enabled
       swp14:
@@ -653,6 +653,17 @@
             swp9: {}
             swp10: {}
         description: Bundled server-05 server-05--bundled--leaf-01
+        ipv6:
+          state: disabled
+        link:
+          state:
+            up: {}
+        type: bond
+      bond2:
+        bond:
+          member:
+            swp13: {}
+        description: ESLAG server-06 server-06--eslag--leaf-01--leaf-02
         ipv6:
           state: disabled
         link:

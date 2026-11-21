@@ -12,6 +12,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
+	fmeta "go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
@@ -280,6 +281,76 @@ func TestBuildConfigErrors(t *testing.T) {
 				agent.Spec.Config.GatewayCommunities = map[string]string{"0": "50001:0", "high": "50001:1"}
 			},
 			err: `parsing gateway community priority "high"`,
+		},
+		{
+			name:    "vx-eslag-no-redundancy",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: func(agent *agentapi.Agent) {
+				withESLAG(agent)
+				agent.Spec.Switch.Redundancy = wiringapi.SwitchRedundancy{}
+			},
+			err: "conn server-02--eslag--leaf-01--leaf-02: eslag connection on a switch without eslag redundancy",
+		},
+		{
+			name:    "vx-eslag-spine",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: func(agent *agentapi.Agent) {
+				withESLAG(agent)
+				agent.Spec.Switch.Role = wiringapi.SwitchRoleSpine
+			},
+			err: "eslag redundancy is only supported on leaves",
+		},
+		{
+			name:    "vx-eslag-no-connection-id",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: func(agent *agentapi.Agent) {
+				withESLAG(agent)
+				agent.Spec.Catalog.ConnectionIDs = nil
+			},
+			err: "conn server-02--eslag--leaf-01--leaf-02: no connection ID",
+		},
+		{
+			name:    "vx-eslag-invalid-mac-base",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: func(agent *agentapi.Agent) {
+				withESLAG(agent)
+				agent.Spec.Config.ESLAGMACBase = "f2:00:00:00:00"
+			},
+			err: `invalid ESLAG MAC base "f2:00:00:00:00"`,
+		},
+		{
+			name:    "vx-eslag-mac-overflow",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: func(agent *agentapi.Agent) {
+				withESLAG(agent)
+				agent.Spec.Config.ESLAGMACBase = "ff:ff:ff:ff:ff:ff"
+			},
+			err: "ESLAG MAC base ff:ff:ff:ff:ff:ff plus connection ID 2 is past the last MAC",
+		},
+		{
+			name:    "vx-eslag-esi-prefix-not-type-0",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: func(agent *agentapi.Agent) {
+				withESLAG(agent)
+				agent.Spec.Config.ESLAGESIPrefix = "03:f2:00:00:"
+			},
+			err: `ESLAG ESI prefix "03:f2:00:00:" isn't the first 4 bytes of a type-0 ESI`,
+		},
+		{
+			name:    "vx-eslag-esi-prefix-length",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: func(agent *agentapi.Agent) {
+				withESLAG(agent)
+				agent.Spec.Config.ESLAGESIPrefix = "00:f2:00:"
+			},
+			err: `ESLAG ESI prefix "00:f2:00:" isn't the first 4 bytes of a type-0 ESI`,
 		},
 		{
 			name:    "vx-static-external-spine",
@@ -938,11 +1009,13 @@ func withExtAttachments(attaches map[string]vpcapi.ExternalAttachmentSpec) func(
 			Static:        &vpcapi.ExternalStaticSpec{Prefixes: []string{"0.0.0.0/0"}},
 		}}
 		agent.Spec.Catalog.VPCVNIs["ext@ext-01"] = 300
-		agent.Spec.Config.BaseVPCCommunity = "50000:0"
+		agent.Spec.Config.BaseVPCCommunity = testBaseVPCCommunity
 		agent.Spec.IPv4Namespaces = map[string]vpcapi.IPv4NamespaceSpec{"default": {Subnets: []string{"10.0.0.0/16"}}}
 		agent.Spec.ExternalAttachments = attaches
 	}
 }
+
+const testBaseVPCCommunity = "50000:0"
 
 func asLeaf(agent *agentapi.Agent) {
 	agent.Spec.Config.SpineLeaf = &agentapi.AgentSpecConfigSpineLeaf{}
@@ -964,11 +1037,29 @@ func withFabricLink(leafIP, spineIP string, spineASN uint32) func(agent *agentap
 	}
 }
 
+// withESLAG makes leaf-01 a leaf of an ESLAG group with server-02 attached to it and leaf-02 over E1/2
+func withESLAG(agent *agentapi.Agent) {
+	asLeaf(agent)
+	agent.Spec.Config.BaseVPCCommunity = testBaseVPCCommunity
+	agent.Spec.Config.ESLAGMACBase = "f2:00:00:00:00:00"
+	agent.Spec.Config.ESLAGESIPrefix = "00:f2:00:00:"
+	agent.Spec.Switch.Redundancy = wiringapi.SwitchRedundancy{Group: "eslag-1", Type: fmeta.RedundancyTypeESLAG}
+	connName := "server-02--eslag--leaf-01--leaf-02"
+	agent.Spec.Connections[connName] = wiringapi.ConnectionSpec{ESLAG: &wiringapi.ConnESLAG{
+		Links: []wiringapi.ServerToSwitchLink{
+			{Server: wiringapi.BasePortName{Port: "server-02/enp2s1"}, Switch: wiringapi.BasePortName{Port: "leaf-01/E1/2"}},
+			{Server: wiringapi.BasePortName{Port: "server-02/enp2s2"}, Switch: wiringapi.BasePortName{Port: "leaf-02/E1/2"}},
+		},
+	}}
+	agent.Spec.Catalog.PortChannelIDs[connName] = 2
+	agent.Spec.Catalog.ConnectionIDs = map[string]uint32{connName: 2}
+}
+
 // withStaticExternal makes leaf-01 a leaf with a static external on E1/2 routing 10.99.0.0/16 via 172.31.1.2
 func withStaticExternal(mutate func(se *wiringapi.ConnStaticExternal)) func(agent *agentapi.Agent) {
 	return func(agent *agentapi.Agent) {
 		asLeaf(agent)
-		agent.Spec.Config.BaseVPCCommunity = "50000:0"
+		agent.Spec.Config.BaseVPCCommunity = testBaseVPCCommunity
 		if agent.Spec.Catalog.SubnetIDs == nil {
 			agent.Spec.Catalog.SubnetIDs = map[string]uint32{}
 		}

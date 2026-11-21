@@ -8,11 +8,13 @@ import (
 	"cmp"
 	"context"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"maps"
+	"net"
 	"net/netip"
 	"os"
 	"os/exec"
@@ -74,6 +76,7 @@ type ConfigIn struct {
 	GatewayPrios     []GatewayPrio
 	Ports            []*PortConfig
 	Bonds            []*BondConfig
+	ESLAG            bool
 	Subinterfaces    []*SubinterfaceConfig
 	Subnets          []*SubnetConfig
 	SubnetACLs       []*SubnetConfig
@@ -222,6 +225,7 @@ type PortConfig struct {
 	IPv6            bool
 	VRF             string
 	AdaptiveRouting bool
+	ESUplink        bool
 	ExtACLs         []ACLBinding
 	BridgeMember
 }
@@ -271,6 +275,8 @@ type BondConfig struct {
 	Attached    bool
 	Up          bool
 	Description string
+	ESI         string // type-0 ESI of the EVPN multihoming segment of an ESLAG connection
+	ESMAC       string
 	BridgeMember
 
 	id uint16
@@ -618,27 +624,50 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		}
 	}
 
-	// bundled connections are LACP bonds named after their port channel IDs
+	// the switches of an ESLAG redundancy group use EVPN multihoming, the ESLAG bonds go down with all the uplinks
+	eslag := agent.Spec.Switch.Redundancy.Type == fmeta.RedundancyTypeESLAG
+	if eslag && !isLeaf {
+		return nil, fmt.Errorf("eslag redundancy is only supported on leaves") //nolint:err113
+	}
+
+	// bundled and ESLAG connections are LACP bonds named after their port channel IDs, the ESLAG ones are an EVPN
+	// multihoming segment with the same ESI and MAC on all the switches of the connection
 	bonds := []*BondConfig{}
 	bondsByConn := map[string]*BondConfig{}
 	bondsByID := map[uint16]string{}
 	for connName, conn := range agent.Spec.Connections {
-		if conn.Bundled == nil {
+		connType, links, fallback := "", []wiringapi.ServerToSwitchLink(nil), false
+		switch {
+		case conn.Bundled != nil:
+			connType, links, fallback = "Bundled", conn.Bundled.Links, conn.Bundled.Fallback
+		case conn.ESLAG != nil:
+			connType, links, fallback = "ESLAG", conn.ESLAG.Links, conn.ESLAG.Fallback
+		default:
 			continue
 		}
 
-		bond := &BondConfig{LACPBypass: conn.Bundled.Fallback}
+		bond := &BondConfig{LACPBypass: fallback}
 		memberPortNames := []string{}
-		for _, link := range conn.Bundled.Links {
+		for _, link := range links {
 			if link.Switch.DeviceName() != agent.Name {
 				continue
 			}
 
 			memberPortNames = append(memberPortNames, link.Switch.LocalPortName())
-			bond.Description = fmt.Sprintf("Bundled %s %s", link.Server.DeviceName(), connName)
+			bond.Description = fmt.Sprintf("%s %s %s", connType, link.Server.DeviceName(), connName)
 		}
 		if len(memberPortNames) == 0 {
 			continue
+		}
+		if conn.ESLAG != nil {
+			if !eslag {
+				return nil, fmt.Errorf("conn %s: eslag connection on a switch without eslag redundancy", connName) //nolint:err113
+			}
+			var err error
+			bond.ESI, bond.ESMAC, err = eslagSegment(agent, connName)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		bond.id = agent.Spec.Catalog.PortChannelIDs[connName]
@@ -736,6 +765,7 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 				port.IP = link.Leaf.IP
 				port.IPv6 = neigh.Unnumbered
 				port.AdaptiveRouting = adaptiveRouting(port)
+				port.ESUplink = eslag
 			}
 
 			spineIP, err := netip.ParsePrefix(agent.Spec.Switches[spineName].ProtocolIP)
@@ -1310,11 +1340,6 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		if !ok {
 			continue
 		}
-		// TODO configure the ESLAG connections, they're skipped until then so the fabric can already have them
-		if conn.ESLAG != nil {
-			continue
-		}
-
 		var member *BridgeMember
 		if bond := bondsByConn[attach.Connection]; bond != nil {
 			bond.Attached = true
@@ -1482,6 +1507,7 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		GatewayPrios:     gwPrios,
 		Ports:            ports,
 		Bonds:            bonds,
+		ESLAG:            eslag,
 		Subinterfaces:    subifs,
 		Subnets:          subnets,
 		SubnetACLs:       slices.DeleteFunc(slices.Clone(subnets), func(subnet *SubnetConfig) bool { return len(subnet.Deny) == 0 }),
@@ -1607,6 +1633,31 @@ func denyPeerSubnets(agent *agentapi.Agent, subnetsByName map[string]*SubnetConf
 	}
 
 	return nil
+}
+
+// eslagSegment returns the type-0 ESI and the MAC of the ESLAG connection's ethernet segment, the MAC is the ESLAG MAC
+// base plus the connection ID and the ESI is the ESI prefix followed by the MAC
+func eslagSegment(agent *agentapi.Agent, connName string) (string, string, error) {
+	base, err := net.ParseMAC(agent.Spec.Config.ESLAGMACBase)
+	if err != nil || len(base) != 6 {
+		return "", "", fmt.Errorf("invalid ESLAG MAC base %q", agent.Spec.Config.ESLAGMACBase) //nolint:err113
+	}
+	id := agent.Spec.Catalog.ConnectionIDs[connName]
+	if id == 0 {
+		return "", "", fmt.Errorf("conn %s: no connection ID", connName) //nolint:err113
+	}
+	val := binary.BigEndian.Uint64(append([]byte{0, 0}, base...)) + uint64(id)
+	if val >= 1<<48 {
+		return "", "", fmt.Errorf("conn %s: ESLAG MAC base %s plus connection ID %d is past the last MAC", connName, base, id) //nolint:err113
+	}
+	mac := net.HardwareAddr(binary.BigEndian.AppendUint64(nil, val)[2:])
+
+	prefix, err := hex.DecodeString(strings.ReplaceAll(strings.TrimSuffix(agent.Spec.Config.ESLAGESIPrefix, ":"), ":", ""))
+	if err != nil || len(prefix) != 4 || prefix[0] != 0 {
+		return "", "", fmt.Errorf("ESLAG ESI prefix %q isn't the first 4 bytes of a type-0 ESI", agent.Spec.Config.ESLAGESIPrefix) //nolint:err113
+	}
+
+	return net.HardwareAddr(append(prefix, mac...)).String(), mac.String(), nil
 }
 
 // fabricNeighbor is the underlay session over a fabric link, over the IPv6 link-local addresses if neither side has an
