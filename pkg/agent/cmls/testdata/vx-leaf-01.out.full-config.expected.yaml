@@ -1476,7 +1476,7 @@
             detect-multiplier: 3
             min-rx-interval: 300
             min-tx-interval: 300
-          ext--leaf-01--ext-bgp-01:
+          ext--swp1-10:
             detect-multiplier: 3
             min-rx-interval: 500
             min-tx-interval: 300
@@ -2356,7 +2356,7 @@
                         route-map: ext-outbound--ext-bgp-01
                     state: enabled
                 bfd:
-                  profile: ext--leaf-01--ext-bgp-01
+                  profile: ext--swp1-10
                 description: External attach leaf-01--ext-bgp-01
                 local-as:
                   asn: 65999
