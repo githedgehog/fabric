@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
+	"slices"
 	"strings"
 	"time"
 
@@ -267,26 +268,38 @@ func (s *Server) handleRequest(ctx context.Context, req, resp *dhcpv4.DHCPv4, re
 	}
 }
 
-var errDuplicateCumulusSubnet = errors.New("duplicate subnets for Cumulus dhcp-relay")
+var (
+	errDuplicateCumulusSubnet = errors.New("duplicate subnets for Cumulus dhcp-relay")
+	errUnknownCumulusSwitch   = errors.New("unknown switch for Cumulus dhcp-relay")
+)
 
 func (s *Server) findSubnet(relay relayInfo) (*subnet, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	// Cumulus doesn't support vrf-select so fallback to just checking the circuit ID (vlan interface name)
+	// Cumulus doesn't support vrf-select, so the subnet is found by the circuit ID (vlan interface name) among the ones
+	// in the VLAN namespaces of the switch from the remote ID, which can't overlap
 	if !strings.HasPrefix(relay.remoteID, cumulusRemoteIDPrefix) || relay.circuitID == "" {
 		return s.subnets[subnetKey(relay.vrf, relay.circuitID)], nil
 	}
 
+	switchName := strings.TrimPrefix(relay.remoteID, cumulusRemoteIDPrefix)
+	vlanNamespaces, ok := s.switchToVLANNS[switchName]
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", errUnknownCumulusSwitch, switchName)
+	}
+
 	var res *subnet
 	for _, some := range s.subnets {
-		if strings.EqualFold(some.obj.Load().Spec.CircuitID, relay.circuitID) {
-			if res != nil {
-				return nil, fmt.Errorf("%w: %s and %s", errDuplicateCumulusSubnet, res.obj.Load().Name, some.obj.Load().Name)
-			}
-
-			res = some
+		spec := some.obj.Load().Spec
+		if !strings.EqualFold(spec.CircuitID, relay.circuitID) || !slices.Contains(vlanNamespaces, spec.VLANNamespace) {
+			continue
 		}
+		if res != nil {
+			return nil, fmt.Errorf("%w: %s and %s", errDuplicateCumulusSubnet, res.obj.Load().Name, some.obj.Load().Name)
+		}
+
+		res = some
 	}
 
 	return res, nil
