@@ -1999,6 +1999,16 @@ func BuildZTPFor(agent *agentapi.Agent, kubeConfig []byte, agentVersion string) 
 }
 
 func Enforce(ctx context.Context, _ /* processor */ dozer.Processor, agent *agentapi.Agent, basedir string, dryRun bool) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+
+	// sudo doesn't depend on the network config, so turning it off takes effect even when the config can't be built
+	if !dryRun {
+		if err := ensurePasswordlessSudo(ctx, agent); err != nil {
+			return err
+		}
+	}
+
 	if err := checkSupported(agent); err != nil {
 		return err
 	}
@@ -2012,13 +2022,6 @@ func Enforce(ctx context.Context, _ /* processor */ dozer.Processor, agent *agen
 		slog.Warn("Dry run, exiting")
 
 		return nil
-	}
-
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
-	defer cancel()
-
-	if err := ensurePasswordlessSudo(ctx, agent); err != nil {
-		return err
 	}
 
 	cfgPath := filepath.Join(basedir, cfgFile)
