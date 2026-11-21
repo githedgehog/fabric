@@ -113,9 +113,11 @@
           state: {{ if $port.IPv6 }}enabled{{ else }}disabled{{ end }}
         lldp:
           state: enabled
+        {{- if $.RoCE }}
         qos:
           pfc-watchdog:
             state: enable
+        {{- end }}
         link:
           {{- if $port.AutoNeg }}
           auto-negotiate: {{ $port.AutoNeg }}
@@ -294,16 +296,19 @@
     nve:
       vxlan:
         arp-nd-suppress: enabled
+        {{- if $.RoCE }}
         decapsulation:
           dscp:
             action: preserve
         encapsulation:
           dscp:
             action: copy
+        {{- end }}
         source:
           address: {{ $.VXLANSource }}
         state: enabled
     {{- end }}
+    {{- if $.RoCE }}
     qos:
       {{- if $.IsSpectrum4 }}
       pfc:
@@ -322,6 +327,7 @@
           memory-percent: 10
         roce-lossless:
           memory-percent: 90
+    {{- end }}
     router:
       bfd:
         profile:
@@ -769,6 +775,7 @@
                   ip-prefix-list: static-ext-subnets
                   type: ipv4
               {{- end }}
+          {{- /* weighted ECMP comes with RoCE and adaptive routing, but it's useful without them too */}}
           w_ecmp_cumulative:
             rule:
               '10':
@@ -785,7 +792,7 @@
                 description: enable_w_ecmp_origination
                 set:
                   ext-community-bw: multipaths
-      {{- if $.IsSpectrum4 }}
+      {{- if and $.RoCE $.IsSpectrum4 }}
       adaptive-routing:
         state: enabled
         profile: profile-custom
@@ -1112,9 +1119,9 @@
       config:
         auto-save:
           state: enabled
-        {{- if or $.IsSpectrum4 $.Subnets }}
+        {{- if or (and $.RoCE $.IsSpectrum4) $.Subnets }}
         snippet:
-          {{- if $.IsSpectrum4 }}
+          {{- if and $.RoCE $.IsSpectrum4 }}
           adaptive_routing_conf-snippet:
             file: /etc/cumulus/switchd.d/ar_profile_custom.conf
             content: |

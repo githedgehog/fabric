@@ -395,6 +395,7 @@ spec:
     redundancy:
       group: eslag-1
       type: eslag
+    roce: true
     role: server-leaf
     topology:
       domains:

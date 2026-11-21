@@ -240,6 +240,7 @@ spec:
     profile: nvidia-sn5610
     protocolIP: 172.30.8.2/32
     redundancy: {}
+    roce: true
     role: server-leaf
     topology:
       domains:
