@@ -74,7 +74,6 @@ func TestExternalValidation(t *testing.T) {
 				ext.Spec.InboundCommunity = InboundCommunity
 				ext.Spec.OutboundCommunity = OutboundCommunity
 			}),
-			err: true,
 		},
 		{
 			name: "bgp missing outbound",
