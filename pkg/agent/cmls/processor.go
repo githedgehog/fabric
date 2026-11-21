@@ -5,6 +5,7 @@ package cmls
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -33,9 +34,20 @@ func (c *CumulusProcessor) EnsureControlLink(ctx context.Context, agent *v1beta1
 	return nil
 }
 
-// TODO
 func (c *CumulusProcessor) GetRoCE(ctx context.Context) (bool, error) {
-	return false, nil
+	out, err := runOutput(ctx, "nv show qos roce", "nv", "show", "qos", "roce", "-o", "json")
+	if err != nil {
+		return false, err
+	}
+	roce := struct {
+		State string `json:"state"`
+		Mode  string `json:"mode"`
+	}{}
+	if err := json.Unmarshal(out, &roce); err != nil {
+		return false, fmt.Errorf("parsing RoCE state: %w", err)
+	}
+
+	return roce.State == "enabled" && roce.Mode == "lossless", nil
 }
 
 // TODO

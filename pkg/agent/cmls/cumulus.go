@@ -85,6 +85,7 @@ type ConfigIn struct {
 	DHCPServer       string
 	IsSpine          bool
 	IsLeaf           bool
+	RoCE             bool
 	IsSpectrum4      bool
 }
 
@@ -345,12 +346,14 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		return nil, fmt.Errorf("switch profile is missing") //nolint:err113
 	}
 
-	// PFC buffers from the NVIDIA Spectrum-X deployment guide for EVPN and adaptive routing are only set on Spectrum-4,
-	// other silicons use the PFC buffers calculated by Cumulus as the fixed ones don't fit them, e.g. exceed the SN2201
-	// port headroom max, and adaptive routing is only supported on Spectrum-4 ports at 200G and 400G
+	// all the lossless and adaptive routing config only comes with RoCE, the PFC buffers from the NVIDIA Spectrum-X
+	// deployment guide for EVPN and adaptive routing are only set on Spectrum-4, other silicons use the PFC buffers
+	// calculated by Cumulus as the fixed ones don't fit them, e.g. exceed the SN2201 port headroom max, and adaptive
+	// routing is only supported on Spectrum-4 ports at 200G and 400G
+	roce := agent.Spec.Switch.RoCE
 	isSpectrum4 := agent.Spec.SwitchProfile.SwitchSilicon == switchprofile.SiliconNVIDIASpectrum4
 	adaptiveRouting := func(port *PortConfig) bool {
-		return isSpectrum4 && (port.Speed == "200G" || port.Speed == "400G")
+		return roce && isSpectrum4 && (port.Speed == "200G" || port.Speed == "400G")
 	}
 
 	api2nos, err := agent.Spec.SwitchProfile.GetAPI2NOSPortsFor(&agent.Spec.Switch)
@@ -1521,6 +1524,7 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		ACLs:             acls,
 		IsSpine:          isSpine,
 		IsLeaf:           isLeaf,
+		RoCE:             roce,
 		IsSpectrum4:      isSpectrum4,
 	}
 
