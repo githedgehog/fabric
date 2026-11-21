@@ -57,7 +57,7 @@ The following table shows which features are supported by each switch profile:
 | [Edgecore DCS501 (AS7712-32X)](#edgecore-dcs501) | :material-close: | :material-check: | :material-close: | :material-close: | :material-close: | :material-close: | :material-close: | :material-close: |
 | [Edgecore EPS202 (AS4630-54PE)](#edgecore-eps202) | :material-close: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: | :material-close: | :material-check: |
 | [Edgecore EPS203 (AS4630-54NPE)](#edgecore-eps203) | :material-close: | :material-check: | :material-check: | :material-check: | :material-close: | :material-check: | :material-close: | :material-check: |
-| [NVIDIA SN2201](#nvidia-sn2201) | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | :material-close: | N/A | :material-close: |
+| [NVIDIA SN2201](#nvidia-sn2201) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | N/A | :material-close: |
 | [NVIDIA SN2700](#nvidia-sn2700) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-close: | N/A | :material-close: |
 | [NVIDIA SN3700C](#nvidia-sn3700c) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | N/A | :material-close: |
 | [NVIDIA SN4600](#nvidia-sn4600) | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | :material-check: | N/A | :material-close: |
@@ -1357,7 +1357,7 @@ Notes: Ports 49 and 51 support up to 5W transceivers, ports 50 and 52 up to 3.5W
 - ACLs: true
 - L2VNI: true
 - L3VNI: true
-- RoCE: false
+- RoCE: true
 - ESLAG: false
 - ECMP RoCE QPN hashing: N/A
 

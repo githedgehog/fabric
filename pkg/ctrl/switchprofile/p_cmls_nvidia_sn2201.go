@@ -25,7 +25,7 @@ var CumulusNvidiaSN2201 = wiringapi.SwitchProfile{
 			ACLs:          true,
 			L2VNI:         true,
 			L3VNI:         true,
-			RoCE:          false,
+			RoCE:          true,
 			ESLAG:         false, // TODO enable if it's Spectrum A1 (Device Version >= 16 in decode-syseeprom), EVPN multihoming isn't supported on A0
 			ECMPRoCEQPN:   false, // TODO verify
 		},
