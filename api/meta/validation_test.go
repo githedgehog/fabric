@@ -49,8 +49,8 @@ func TestValidateSwitchConfigName(t *testing.T) {
 		valid bool
 	}{
 		{name: "vpc-01", valid: true},
+		{name: "vpc--01", valid: true},
 		{name: "vpc.01"},
-		{name: "vpc--01"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			err := ValidateSwitchConfigName("name", tt.name)

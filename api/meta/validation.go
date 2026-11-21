@@ -58,13 +58,10 @@ func ValidateName(what, name string) error {
 }
 
 // ValidateSwitchConfigName checks a name the switch config names are built from, the switches don't take dots in VRF,
-// ACL and route policy names, and double dashes separate the names joined in them
+// ACL, BFD profile and route policy names
 func ValidateSwitchConfigName(what, name string) error {
 	if strings.Contains(name, ".") {
 		return fmt.Errorf("%w: %s %q must not contain dots", ErrInvalidName, what, name)
-	}
-	if strings.Contains(name, "--") {
-		return fmt.Errorf("%w: %s %q must not contain double dashes", ErrInvalidName, what, name)
 	}
 
 	return nil
