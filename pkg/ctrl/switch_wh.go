@@ -88,11 +88,28 @@ func (w *SwitchWebhook) ValidateUpdate(ctx context.Context, oldSw *wiringapi.Swi
 		return warns, errors.Wrapf(err, "error validating switch")
 	}
 
-	if (oldSw.Spec.RoCE || newSw.Spec.RoCE) && !reflect.DeepEqual(oldSw.Spec.PortBreakouts, newSw.Spec.PortBreakouts) {
-		return warns, errors.New("port breakouts cannot be changed when RoCEv2 is enabled")
+	if err := w.validateRoCEBreakouts(ctx, oldSw, newSw); err != nil {
+		return warns, err
 	}
 
 	return warns, nil
+}
+
+// validateRoCEBreakouts refuses the breakout changes the Broadcom SONiC agent doesn't configure with RoCE enabled
+func (w *SwitchWebhook) validateRoCEBreakouts(ctx context.Context, oldSw, newSw *wiringapi.Switch) error {
+	if !oldSw.Spec.RoCE && !newSw.Spec.RoCE || reflect.DeepEqual(oldSw.Spec.PortBreakouts, newSw.Spec.PortBreakouts) {
+		return nil
+	}
+
+	sp := &wiringapi.SwitchProfile{}
+	if err := w.KubeClient.Get(ctx, kclient.ObjectKey{Name: newSw.Spec.Profile, Namespace: newSw.Namespace}, sp); err != nil {
+		return fmt.Errorf("getting switch profile %s: %w", newSw.Spec.Profile, err)
+	}
+	if slices.Contains(meta.NOSTypesSONiCBCM, sp.Spec.NOSType) {
+		return errors.New("port breakouts cannot be changed when RoCEv2 is enabled")
+	}
+
+	return nil
 }
 
 func (w *SwitchWebhook) ValidateDelete(ctx context.Context, sw *wiringapi.Switch) (admission.Warnings, error) {
