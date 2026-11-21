@@ -180,6 +180,17 @@ func TestExternalAttachmentValidation(t *testing.T) {
 			objects: baseObjs,
 		},
 		{
+			name:    "name with double dash",
+			extAtt:  l3ExtAttGen("leaf-01--ext-01"),
+			objects: baseObjs,
+		},
+		{
+			name:    "name with dot",
+			extAtt:  l3ExtAttGen("leaf-01.ext-01"),
+			objects: baseObjs,
+			err:     true,
+		},
+		{
 			name:    "BGP external attachment without neighbor ASN",
 			extAtt:  l3ExtAttGen("ext-att-01a", withNeighborASN(0)),
 			objects: append(slices.Clone(baseObjs), backendFabric),

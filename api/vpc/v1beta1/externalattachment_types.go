@@ -392,6 +392,9 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 	if err := meta.ValidateObjectMetadata(attach); err != nil {
 		return nil, errors.Wrapf(err, "failed to validate metadata")
 	}
+	if err := meta.ValidateSwitchConfigName("name", attach.Name); err != nil {
+		return nil, err //nolint:wrapcheck
+	}
 
 	if err := wiringapi.CheckFabricExists(ctx, kube, attach.Namespace, attach.Spec.Topology.Fabric); err != nil {
 		return nil, fmt.Errorf("failed to validate fabric: %w", err)
