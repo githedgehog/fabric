@@ -143,6 +143,9 @@ func (ns *IPv4Namespace) Validate(ctx context.Context, kube kclient.Reader, fabr
 	if len(ns.Name) > 11 {
 		return nil, errors.Errorf("name %s is too long, must be <= 11 characters", ns.Name)
 	}
+	if err := meta.ValidateSwitchConfigName("name", ns.Name); err != nil {
+		return nil, err //nolint:wrapcheck
+	}
 
 	subnets := []netip.Prefix{}
 	for _, subnet := range ns.Spec.Subnets {
