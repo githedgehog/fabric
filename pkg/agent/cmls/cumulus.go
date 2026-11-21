@@ -2173,6 +2173,11 @@ func (c *CumulusProcessor) UpdateSwitchState(ctx context.Context, agent *agentap
 		SoftwareVersion: nosVersion,
 	}
 
+	swState.RoCE, err = c.GetRoCE(ctx)
+	if err != nil {
+		return fmt.Errorf("getting RoCE state: %w", err)
+	}
+
 	reg.SaveSwitchState(swState)
 
 	return nil
