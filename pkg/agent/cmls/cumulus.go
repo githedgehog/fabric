@@ -1733,7 +1733,7 @@ func externalNeighbor(agent *agentapi.Agent, attachName string, attach vpcapi.Ex
 		return neigh, nil, nil
 	}
 	bfd := &BFDProfile{
-		Name:       "ext--" + attachName,
+		Name:       "ext--" + strings.ReplaceAll(ifaceName, ".", "-"),
 		MinRX:      cmp.Or(attach.BFD.MinRX, 300),
 		MinTX:      cmp.Or(attach.BFD.MinTX, 300),
 		Multiplier: cmp.Or(attach.BFD.Multiplier, 3),
