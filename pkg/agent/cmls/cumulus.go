@@ -2138,6 +2138,11 @@ func ensureLLDPDescription(ctx context.Context, agent *agentapi.Agent) error {
 		return fmt.Errorf("writing %s: %w", lldpdConfPath, err)
 	}
 	if err := run(ctx, "lldpcli", "lldpcli", "-c", lldpdConfPath); err != nil {
+		// so the next run applies it again instead of finding the file up to date
+		if rmErr := os.Remove(lldpdConfPath); rmErr != nil {
+			return errors.Join(err, fmt.Errorf("removing %s: %w", lldpdConfPath, rmErr))
+		}
+
 		return err
 	}
 	slog.Info("Set LLDP system description", "path", lldpdConfPath)
