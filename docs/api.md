@@ -819,6 +819,7 @@ _Appears in:_
 | `leaseTimeSeconds` _integer_ | Lease time in seconds, such as 3600 |  |  |
 | `vrf` _string_ | VRF name to identify specific VPC (will be added to DHCP packets by DHCP relay in suboption 151), such as "VrfVvpc-1" as it's named on switch |  |  |
 | `circuitID` _string_ | VLAN ID to identify specific subnet within the VPC, such as "Vlan1000" as it's named on switch |  |  |
+| `vlanNamespace` _string_ | VLANNamespace of the VPC, identifies the subnet together with the circuit ID among the ones of the relaying switch |  |  |
 | `pxeURL` _string_ | PXEURL (optional) to identify the pxe server to use to boot hosts connected to this segment such as http://10.10.10.99/bootfilename or tftp://10.10.10.99/bootfilename, http query strings are not supported |  |  |
 | `dnsServers` _string array_ | DNSservers (optional) to configure Domain Name Servers for this particular segment such as: 10.10.10.1, 10.10.10.2 |  |  |
 | `timeServers` _string array_ | TimeServers (optional) NTP server addresses to configure for time servers for this particular segment such as: 10.10.10.1, 10.10.10.2 |  |  |
