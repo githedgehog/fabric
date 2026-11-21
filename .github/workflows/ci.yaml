@@ -151,6 +151,7 @@ jobs:
       - test-build
     uses: githedgehog/fabricator/.github/workflows/run-vlab.yaml@master
     with:
+      # cumulus only runs on pull_request with ci:+cmls for now
       skip: >-
         ${{
           github.event_name == 'pull_request'
@@ -160,6 +161,7 @@ jobs:
           ) && (
             !matrix.upgradefrom || contains(github.event.pull_request.labels.*.name, 'ci:-upgrade')
           )
+          || matrix.nos == 'cmls' && !contains(github.event.pull_request.labels.*.name, 'ci:+cmls')
         }}
       fabricatorref: master
       prebuild: "just bump fabric ${{ needs.test-build.outputs.version }} ${{ needs.test-build.outputs.ref }}"
