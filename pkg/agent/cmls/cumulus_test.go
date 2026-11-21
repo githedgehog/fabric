@@ -103,18 +103,15 @@ func TestBuildConfigErrors(t *testing.T) {
 			profile: &switchprofile.CumulusVX,
 			port:    "E1/1",
 			mutate: func(agent *agentapi.Agent) {
-				agent.Spec.Connections["leaf-01--mesh--leaf-02"] = wiringapi.ConnectionSpec{Mesh: &wiringapi.ConnMesh{
-					Links: []wiringapi.MeshLink{{
-						Leaf1: wiringapi.ConnFabricLinkSwitch{BasePortName: wiringapi.BasePortName{Port: "leaf-01/E1/2"}},
-						Leaf2: wiringapi.ConnFabricLinkSwitch{BasePortName: wiringapi.BasePortName{Port: "leaf-02/E1/2"}},
-					}},
+				agent.Spec.Connections["leaf-01--external"] = wiringapi.ConnectionSpec{External: &wiringapi.ConnExternal{
+					Link: wiringapi.ConnExternalLink{Switch: wiringapi.BasePortName{Port: "leaf-01/E1/2"}},
 				}}
-				agent.Spec.VPCAttachments["leaf-01--mesh--vpc-01--default"] = agentapi.VPCAttachmentSpecAnn{
-					Connection: "leaf-01--mesh--leaf-02",
+				agent.Spec.VPCAttachments["leaf-01--external--vpc-01--default"] = agentapi.VPCAttachmentSpecAnn{
+					Connection: "leaf-01--external",
 					Subnet:     "vpc-01/default",
 				}
 			},
-			err: "conn leaf-01--mesh--leaf-02 type isn't supported",
+			err: "conn leaf-01--external type isn't supported",
 		},
 		{
 			name:    "vx-vpc-mode-unsupported",
@@ -281,6 +278,20 @@ func TestBuildConfigErrors(t *testing.T) {
 				agent.Spec.Config.GatewayCommunities = map[string]string{"0": "50001:0", "high": "50001:1"}
 			},
 			err: `parsing gateway community priority "high"`,
+		},
+		{
+			name:    "vx-mesh-unsupported",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: func(agent *agentapi.Agent) {
+				agent.Spec.Connections["leaf-01--mesh--leaf-02"] = wiringapi.ConnectionSpec{Mesh: &wiringapi.ConnMesh{
+					Links: []wiringapi.MeshLink{{
+						Leaf1: wiringapi.ConnFabricLinkSwitch{BasePortName: wiringapi.BasePortName{Port: "leaf-01/E1/2"}},
+						Leaf2: wiringapi.ConnFabricLinkSwitch{BasePortName: wiringapi.BasePortName{Port: "leaf-02/E1/2"}},
+					}},
+				}}
+			},
+			err: "conn leaf-01--mesh--leaf-02: mesh connections aren't supported",
 		},
 		{
 			name:    "vx-eslag-no-redundancy",

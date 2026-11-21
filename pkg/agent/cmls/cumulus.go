@@ -621,6 +621,12 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 				return nil, fmt.Errorf("conn %s: %w", connName, err)
 			}
 			port.Description = "External " + connName
+		case conn.Mesh != nil:
+			for _, link := range conn.Mesh.Links {
+				if link.Leaf1.DeviceName() == agent.Name || link.Leaf2.DeviceName() == agent.Name {
+					return nil, fmt.Errorf("conn %s: mesh connections aren't supported", connName) //nolint:err113
+				}
+			}
 		}
 	}
 
