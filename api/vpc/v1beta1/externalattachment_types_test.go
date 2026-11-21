@@ -72,6 +72,13 @@ func withICMPCode(att *v1beta1.ExternalAttachment) {
 	}}}
 }
 
+func withLastSeq(att *v1beta1.ExternalAttachment) {
+	att.Spec.InboundACL = &v1beta1.ACLSpec{Statements: []v1beta1.ACLStatement{{
+		Seq: 65535, Action: v1beta1.ACLActionPermit, Protocol: v1beta1.ACLProtocolIP,
+		SrcPrefix: v1beta1.ACLAny, DstPrefix: v1beta1.ACLAny,
+	}}}
+}
+
 // leafWithNOS is leaf-01 in the default domain with a profile of the given NOS type
 func leafWithNOS(nosType meta.NOSType) []kclient.Object {
 	return []kclient.Object{
@@ -495,6 +502,17 @@ func TestExternalAttachmentValidation(t *testing.T) {
 		{
 			name:    "ICMP code on a SONiC switch",
 			extAtt:  l3ExtAttGen("ext-att-01", withICMPCode),
+			objects: withObjs(baseObjs, leafWithNOS(meta.NOSTypeSONiCBCMBase)...),
+		},
+		{
+			name:    "last seq on a Cumulus switch",
+			extAtt:  l3ExtAttGen("ext-att-01", withLastSeq),
+			objects: withObjs(baseObjs, leafWithNOS(meta.NOSTypeCumulusMlx)...),
+			err:     true,
+		},
+		{
+			name:    "last seq on a SONiC switch",
+			extAtt:  l3ExtAttGen("ext-att-01", withLastSeq),
 			objects: withObjs(baseObjs, leafWithNOS(meta.NOSTypeSONiCBCMBase)...),
 		},
 	}
