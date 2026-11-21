@@ -2007,6 +2007,9 @@ func Enforce(ctx context.Context, _ /* processor */ dozer.Processor, agent *agen
 		if err := ensurePasswordlessSudo(ctx, agent); err != nil {
 			return err
 		}
+		if err := ensureLLDPDescription(ctx, agent); err != nil {
+			return err
+		}
 	}
 
 	if err := checkSupported(agent); err != nil {
@@ -2112,6 +2115,32 @@ func ensurePasswordlessSudo(ctx context.Context, agent *agentapi.Agent) error {
 		return fmt.Errorf("installing %s: %w", sudoersPath, err)
 	}
 	slog.Info("Enabled passwordless sudo", "path", sudoersPath)
+
+	return nil
+}
+
+const lldpdConfPath = "/etc/lldpd.d/hedgehog.conf"
+
+// ensureLLDPDescription sets the system description the fabric neighbors are expected to send, NVUE doesn't configure
+// it, so it's an lldpd config file of its own, which lldpd only reads on start, so it's applied with lldpcli too
+func ensureLLDPDescription(ctx context.Context, agent *agentapi.Agent) error {
+	conf := fmt.Appendf(nil, "configure system description %q\n", wiringapi.SwitchLLDPDescription(agent.Spec.Config.DeploymentID))
+
+	cur, err := os.ReadFile(lldpdConfPath)
+	if err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("reading %s: %w", lldpdConfPath, err)
+	}
+	if err == nil && bytes.Equal(cur, conf) {
+		return nil
+	}
+
+	if err := os.WriteFile(lldpdConfPath, conf, 0o644); err != nil { //nolint:gosec
+		return fmt.Errorf("writing %s: %w", lldpdConfPath, err)
+	}
+	if err := run(ctx, "lldpcli", "lldpcli", "-c", lldpdConfPath); err != nil {
+		return err
+	}
+	slog.Info("Set LLDP system description", "path", lldpdConfPath)
 
 	return nil
 }
