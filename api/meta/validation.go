@@ -57,6 +57,19 @@ func ValidateName(what, name string) error {
 	return nil
 }
 
+// ValidateSwitchConfigName checks a name the switch config names are built from, the switches don't take dots in VRF,
+// ACL and route policy names, and double dashes separate the names joined in them
+func ValidateSwitchConfigName(what, name string) error {
+	if strings.Contains(name, ".") {
+		return fmt.Errorf("%w: %s %q must not contain dots", ErrInvalidName, what, name)
+	}
+	if strings.Contains(name, "--") {
+		return fmt.Errorf("%w: %s %q must not contain double dashes", ErrInvalidName, what, name)
+	}
+
+	return nil
+}
+
 func ValidateObjectMetadata(obj kclient.Object) error {
 	if err := ValidateName("name", obj.GetName()); err != nil {
 		return err

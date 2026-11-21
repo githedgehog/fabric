@@ -197,6 +197,26 @@ func TestVPCValidation(t *testing.T) {
 			err:  true,
 		},
 		{
+			name: "name with dot",
+			vpc:  vpcGen("vpc.01"),
+			err:  true,
+		},
+		{
+			name: "name with double dash",
+			vpc:  vpcGen("vpc--01"),
+			err:  true,
+		},
+		{
+			name: "subnet name with dot",
+			vpc:  vpcGen("vpc-01", renameDefaultSubnet("subnet.1")),
+			err:  true,
+		},
+		{
+			name: "subnet name with double dash",
+			vpc:  vpcGen("vpc-01", renameDefaultSubnet("subnet--1")),
+			err:  true,
+		},
+		{
 			name: "missing subnet cidr",
 			vpc: vpcGen("vpc-01", func(vpc *v1beta1.VPC) {
 				vpc.Spec.Subnets["default"].Subnet = ""
