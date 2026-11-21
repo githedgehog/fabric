@@ -1,4 +1,82 @@
 - set:
+    {{- if or $.SubnetACLs $.Restricted $.ACLs }}
+    acl:
+      {{- range $acl := $.ACLs }}
+      {{ $acl.Name }}:
+        rule:
+          {{- range $rule := $acl.Rules }}
+          '{{ $rule.ID }}':
+            action:
+              {{ if $rule.Permit }}permit{{ else }}deny{{ end }}: {}
+            {{- if $rule.HasMatch }}
+            match:
+              ip:
+                {{- if $rule.DstIP }}
+                dest-ip: {{ $rule.DstIP }}
+                {{- end }}
+                {{- if $rule.ICMPType }}
+                icmp-type: {{ $rule.ICMPType }}
+                {{- end }}
+                {{- if $rule.Protocol }}
+                protocol: {{ $rule.Protocol }}
+                {{- end }}
+                {{- if $rule.SrcIP }}
+                source-ip: {{ $rule.SrcIP }}
+                {{- end }}
+                {{- if or $rule.DstPort $rule.TCPMask $rule.TCPEstablished }}
+                {{ $rule.Protocol }}:
+                  {{- if $rule.DstPort }}
+                  dest-port:
+                    '{{ $rule.DstPort }}': {}
+                  {{- end }}
+                  {{- if $rule.TCPMask }}
+                  flags:
+                    {{- range $flag := $rule.TCPFlags }}
+                    {{ $flag }}: {}
+                    {{- end }}
+                  mask:
+                    {{- range $flag := $rule.TCPMask }}
+                    {{ $flag }}: {}
+                    {{- end }}
+                  {{- end }}
+                  {{- if $rule.TCPEstablished }}
+                  state: established
+                  {{- end }}
+                {{- end }}
+            {{- end }}
+          {{- end }}
+        type: ipv4
+      {{- end }}
+      {{- range $subnet := $.Restricted }}
+      {{ $subnet.RestrictedACL }}:
+        rule:
+          '1':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: {{ $subnet.Subnet }}
+                source-ip: {{ $subnet.Subnet }}
+              vlan: {{ $subnet.VLAN }}
+        type: ipv4
+      {{- end }}
+      {{- range $subnet := $.SubnetACLs }}
+      {{ $subnet.ACL }}:
+        rule:
+          {{- range $id, $prefix := $subnet.Deny }}
+          '{{ $id }}':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: {{ $prefix }}
+          {{- end }}
+          '65535':
+            action:
+              permit: {}
+        type: ipv4
+      {{- end }}
+    {{- end }}
     interface:
       eth0:
         ipv6:
@@ -26,13 +104,20 @@
         {{- if $port.Description }}
         description: {{ $port.Description }}
         {{- end }}
+        {{- if $port.ESUplink }}
+        evpn:
+          multihoming:
+            uplink: enabled
+        {{- end }}
         ipv6:
-          state: disabled
+          state: {{ if $port.IPv6 }}enabled{{ else }}disabled{{ end }}
         lldp:
           state: enabled
+        {{- if $.RoCE }}
         qos:
           pfc-watchdog:
             state: enable
+        {{- end }}
         link:
           {{- if $port.AutoNeg }}
           auto-negotiate: {{ $port.AutoNeg }}
@@ -50,8 +135,30 @@
             down: {}
             {{- end }}
         {{- end }}
-        {{- if $port.VRF }}
-        vrf: {{ $port.VRF }}
+        {{- if or $port.ACLs $port.ExtACLs }}
+        acl:
+          {{- range $acl := $port.ACLs }}
+          {{ $acl }}:
+            inbound: {}
+          {{- end }}
+          {{- range $acl := $port.ExtACLs }}
+          {{ $acl.Name }}:
+            {{ $acl.Direction }}: {}
+          {{- end }}
+        {{- end }}
+        {{- if $port.VLANs }}
+        bridge:
+          domain:
+            br_default:
+              {{- if $port.Untagged }}
+              untagged: {{ $port.Untagged }}
+              {{- else }}
+              untagged: none
+              {{- end }}
+              vlan:
+                {{- range $vlan := $port.VLANs }}
+                '{{ $vlan }}': {}
+                {{- end }}
         {{- end }}
         {{- if $port.IP }}
         ipv4:
@@ -62,6 +169,9 @@
         router:
           adaptive-routing:
             state: enabled
+        {{- end }}
+        {{- if $port.VRF }}
+        vrf: {{ $port.VRF }}
         {{- end }}
       {{- end }}
       {{- range $bond := $.Bonds }}
@@ -75,6 +185,14 @@
             {{ $member.Name }}: {}
             {{- end }}
         description: {{ $bond.Description }}
+        {{- if $bond.ESI }}
+        evpn:
+          multihoming:
+            segment:
+              identifier: {{ $bond.ESI }}
+              mac-address: {{ $bond.ESMAC }}
+              state: enabled
+        {{- end }}
         ipv6:
           state: disabled
         link:
@@ -85,31 +203,112 @@
             down: {}
             {{- end }}
         type: bond
-        {{- if $bond.VRF }}
-        vrf: {{ $bond.VRF }}
+        {{- if $bond.ACLs }}
+        acl:
+          {{- range $acl := $bond.ACLs }}
+          {{ $acl }}:
+            inbound: {}
+          {{- end }}
         {{- end }}
-        {{- if $bond.IP }}
-        ipv4:
-          address:
-            {{ $bond.IP }}: {}
+        {{- if $bond.VLANs }}
+        bridge:
+          domain:
+            br_default:
+              {{- if $bond.Untagged }}
+              untagged: {{ $bond.Untagged }}
+              {{- else }}
+              untagged: none
+              {{- end }}
+              vlan:
+                {{- range $vlan := $bond.VLANs }}
+                '{{ $vlan }}': {}
+                {{- end }}
         {{- end }}
       {{- end }}
+      {{- range $subif := $.Subinterfaces }}
+      {{ $subif.Name }}:
+        {{- if $subif.ACLs }}
+        acl:
+          {{- range $acl := $subif.ACLs }}
+          {{ $acl.Name }}:
+            {{ $acl.Direction }}: {}
+          {{- end }}
+        {{- end }}
+        base-interface: {{ $subif.Port }}
+        description: {{ $subif.Description }}
+        {{- if $subif.IP }}
+        ipv4:
+          address:
+            {{ $subif.IP }}: {}
+        {{- end }}
+        ipv6:
+          state: {{ if $subif.IP }}disabled{{ else }}enabled{{ end }}
+        type: sub
+        vlan: {{ $subif.VLAN }}
+        vrf: {{ $subif.VRF }}
+      {{- end }}
+      {{- range $subnet := $.Subnets }}
+      {{ $subnet.Name }}:
+        {{- if $subnet.Deny }}
+        acl:
+          {{ $subnet.ACL }}:
+            inbound: {}
+        {{- end }}
+        description: {{ $subnet.Description }}
+        ipv4:
+          address:
+            {{ $subnet.IP }}: {}
+          vrr:
+            address:
+              {{ $subnet.Gateway }}: {}
+            mac-address: 00:00:00:11:11:11
+            state: enabled
+        ipv6:
+          state: disabled
+        type: svi
+        vlan: {{ $subnet.VLAN }}
+        vrf: {{ $subnet.VRF }}
+      {{- end }}
+    {{- if $.Subnets }}
+    bridge:
+      domain:
+        br_default:
+          stp:
+            state:
+              down: {}
+          untagged: none
+          vlan:
+            {{- range $subnet := $.Subnets }}
+            '{{ $subnet.VLAN }}':
+              vni:
+                '{{ $subnet.VNI }}': {}
+            {{- end }}
+    {{- end }}
     evpn:
+      {{- if $.ESLAG }}
+      multihoming:
+        mac-holdtime: 60
+        startup-delay: 60
+        state: enabled
+      {{- end }}
       state: enabled
     {{- if $.IsLeaf }}
     nve:
       vxlan:
         arp-nd-suppress: enabled
+        {{- if $.RoCE }}
         decapsulation:
           dscp:
             action: preserve
         encapsulation:
           dscp:
             action: copy
+        {{- end }}
         source:
           address: {{ $.VXLANSource }}
         state: enabled
     {{- end }}
+    {{- if $.RoCE }}
     qos:
       {{- if $.IsSpectrum4 }}
       pfc:
@@ -128,6 +327,7 @@
           memory-percent: 10
         roce-lossless:
           memory-percent: 90
+    {{- end }}
     router:
       bfd:
         profile:
@@ -139,36 +339,417 @@
             detect-multiplier: 3
             min-rx-interval: 300
             min-tx-interval: 300
+          {{- range $bfd := $.BFDProfiles }}
+          {{ $bfd.Name }}:
+            detect-multiplier: {{ $bfd.Multiplier }}
+            min-rx-interval: {{ $bfd.MinRX }}
+            min-tx-interval: {{ $bfd.MinTX }}
+            {{- if $bfd.Passive }}
+            passive-mode: enabled
+            {{- end }}
+          {{- end }}
         state: enabled
       bgp:
         autonomous-system: {{ $.ASN }}
         router-id: {{ $.RouterID }}
         graceful-restart:
-          mode: full
-          path-selection-deferral-time: 180
-          restart-time: 180
-          stale-routes-time: 180
+          {{- /* BGP graceful restart isn't supported with EVPN multihoming */}}
+          mode: off
         state: enabled
       policy:
+        {{- if or $.Gateway $.FabricASPaths }}
+        as-path-list:
+          {{- if $.FabricASPaths }}
+          fabric-gw-aspath:
+            rule:
+              {{- range $seq, $path := $.FabricASPaths }}
+              '{{ $seq }}':
+                action: permit
+                aspath-exp: {{ $path }}
+              {{- end }}
+          {{- end }}
+          {{- if $.Gateway }}
+          gateway-origin:
+            rule:
+              '10':
+                action: permit
+                aspath-exp: ^{{ $.Gateway.ASN }}$
+          {{- end }}
+        {{- end }}
+        {{- if or $.IsLeaf $.Externals }}
+        community-list:
+          all-externals:
+            rule:
+              '10':
+                action: permit
+                community:
+                  {{ $.BaseVPCCommunity }}: {}
+          {{- if and $.BGPExternals $.GatewayPrios }}
+          all-gw-prios:
+            rule:
+              {{- range $prio := $.GatewayPrios }}
+              '{{ $prio.RuleID }}':
+                action: permit
+                community:
+                  {{ $prio.Community }}: {}
+              {{- end }}
+          {{- end }}
+          {{- range $ext := $.Externals }}
+          {{- if and $ext.Neighbors $ext.InboundCommunity }}
+          ext-inbound--{{ $ext.Name }}:
+            rule:
+              '10':
+                action: permit
+                community:
+                  {{ $ext.InboundCommunity }}: {}
+          {{- end }}
+          {{- end }}
+          {{- range $prio := $.GatewayPrios }}
+          {{ $prio.Name }}:
+            rule:
+              '10':
+                action: permit
+                community:
+                  {{ $prio.Community }}: {}
+          {{- end }}
+        {{- end }}
+        {{- if or $.VPCs $.Gateway $.BGPExternals $.StaticExtSubnets }}
         prefix-list:
-          host_subnets:
+          {{- if $.Gateway }}
+          all-vtep-prefixes:
             rule:
               '10':
                 action: permit
                 match:
-                  {{ $.HostSubnet }}:
-                    max-prefix-len: 31
+                  {{ $.Gateway.VTEPSubnet }}:
+                    max-prefix-len: 32
             type: ipv4
+          {{- end }}
+          {{- range $ns := $.IPv4Namespaces }}
+          ipns-subnets--{{ $ns.Name }}:
+            rule:
+              {{- range $seq, $subnet := $ns.Subnets }}
+              '{{ $seq }}':
+                action: permit
+                match:
+                  {{ $subnet }}:
+                    max-prefix-len: 32
+              {{- end }}
+            type: ipv4
+          {{- end }}
+          {{- range $ext := $.Externals }}
+          {{- if $ext.ImportPrefixes }}
+          ext-import--{{ $ext.Name }}:
+            rule:
+              {{- range $seq, $subnet := $ext.ImportPrefixes }}
+              '{{ $seq }}':
+                action: permit
+                match:
+                  {{ $subnet }}:
+                    max-prefix-len: 32
+              {{- end }}
+            type: ipv4
+          {{- end }}
+          {{- if and $ext.Neighbors $ext.InboundPrefixes }}
+          ext-inbound--{{ $ext.Name }}:
+            rule:
+              {{- range $seq, $entry := $ext.InboundPrefixes }}
+              '{{ $seq }}':
+                action: permit
+                match:
+                  {{- if $entry.MaxLen }}
+                  {{ $entry.Prefix }}:
+                    max-prefix-len: {{ $entry.MaxLen }}
+                    {{- if $entry.MinLen }}
+                    min-prefix-len: {{ $entry.MinLen }}
+                    {{- end }}
+                  {{- else }}
+                  {{ $entry.Prefix }}: {}
+                  {{- end }}
+              {{- end }}
+            type: ipv4
+          {{- end }}
+          {{- end }}
+          {{- if $.StaticExtSubnets }}
+          static-ext-subnets:
+            rule:
+              {{- range $seq, $subnet := $.StaticExtSubnets }}
+              '{{ $seq }}':
+                action: permit
+                match:
+                  {{ $subnet }}: {}
+              {{- end }}
+            type: ipv4
+          {{- end }}
+          {{- range $vpc := $.VPCs }}
+          {{- range $peer := $vpc.ExtPeers }}
+          {{ $peer.PrefixList }}:
+            rule:
+              {{- range $seq, $prefix := $peer.Prefixes }}
+              '{{ $seq }}':
+                action: permit
+                match:
+                  {{ $prefix }}:
+                    max-prefix-len: 32
+              {{- end }}
+            type: ipv4
+          {{- end }}
+          vpc-not-subnets--{{ $vpc.Name }}:
+            rule:
+              {{- range $seq, $subnet := $vpc.Subnets }}
+              '{{ $seq }}':
+                action: deny
+                match:
+                  {{ $subnet }}:
+                    max-prefix-len: 32
+              {{- end }}
+              '65535':
+                action: permit
+                match:
+                  0.0.0.0/0:
+                    max-prefix-len: 32
+            type: ipv4
+          {{- if $vpc.PeerSubnets }}
+          vpc-peers--{{ $vpc.Name }}:
+            rule:
+              {{- range $seq, $subnet := $vpc.PeerSubnets }}
+              '{{ $seq }}':
+                action: permit
+                match:
+                  {{ $subnet }}:
+                    max-prefix-len: 32
+              {{- end }}
+            type: ipv4
+          {{- end }}
+          {{- if $vpc.StaticExtSubnets }}
+          vpc-static-ext-subnets--{{ $vpc.Name }}:
+            rule:
+              {{- range $seq, $subnet := $vpc.StaticExtSubnets }}
+              '{{ $seq }}':
+                action: permit
+                match:
+                  {{ $subnet }}: {}
+              {{- end }}
+            type: ipv4
+          {{- end }}
+          vpc-subnets--{{ $vpc.Name }}:
+            rule:
+              {{- range $seq, $subnet := $vpc.Subnets }}
+              '{{ $seq }}':
+                action: permit
+                match:
+                  {{ $subnet }}:
+                    max-prefix-len: 32
+              {{- end }}
+            type: ipv4
+          {{- end }}
+        {{- end }}
         route-map:
-          host_subnets:
+          {{- if $.Gateway }}
+          gateway-export:
             rule:
               '10':
                 action:
                   permit: {}
-                description: permit_host_subnets
                 match:
-                  ip-prefix-list: host_subnets
+                  ip-prefix-list: all-vtep-prefixes
                   type: ipv4
+          gateway-import:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                match:
+                  as-path-list: gateway-origin
+          {{- end }}
+          {{- if $.IsLeaf }}
+          l2vpn-neighbors:
+            rule:
+              {{- range $prio := $.GatewayPrios }}
+              '{{ $prio.RuleID }}':
+                action:
+                  permit: {}
+                match:
+                  community-list: {{ $prio.Name }}
+                set:
+                  local-preference: {{ $prio.LocalPref }}
+              {{- end }}
+              '65525':
+                action:
+                  permit: {}
+                match:
+                  community-list: all-externals
+                set:
+                  local-preference: 150
+              '65535':
+                action:
+                  permit: {}
+          {{- end }}
+          {{- if $.Externals }}
+          ext-to-evpn:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                match:
+                  community-list: all-externals
+          {{- end }}
+          {{- range $ext := $.Externals }}
+          {{- if $ext.ImportPrefixes }}
+          ext-import--{{ $ext.Name }}:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                match:
+                  ip-prefix-list: ext-import--{{ $ext.Name }}
+                  type: ipv4
+          {{- end }}
+          {{- if $ext.Neighbors }}
+          ext-inbound--{{ $ext.Name }}:
+            rule:
+              {{- if $.FabricASPaths }}
+              '5':
+                action:
+                  deny: {}
+                match:
+                  as-path-list: fabric-gw-aspath
+              {{- end }}
+              '10':
+                action:
+                  deny: {}
+                match:
+                  ip-prefix-list: ipns-subnets--{{ $ext.IPv4Namespace }}
+                  type: ipv4
+              '15':
+                action:
+                  permit: {}
+                {{- if or $ext.InboundCommunity $ext.InboundPrefixes }}
+                match:
+                  {{- if $ext.InboundCommunity }}
+                  community-list: ext-inbound--{{ $ext.Name }}
+                  {{- end }}
+                  {{- if $ext.InboundPrefixes }}
+                  ip-prefix-list: ext-inbound--{{ $ext.Name }}
+                  type: ipv4
+                  {{- end }}
+                {{- end }}
+                set:
+                  community:
+                    {{- range $comm := $ext.SetCommunities }}
+                    {{ $comm }}: {}
+                    {{- end }}
+                  local-preference: 150
+          ext-outbound--{{ $ext.Name }}:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                match:
+                  ip-prefix-list: ipns-subnets--{{ $ext.IPv4Namespace }}
+                  type: ipv4
+                {{- if $ext.OutboundCommunity }}
+                set:
+                  community:
+                    {{ $ext.OutboundCommunity }}: {}
+                {{- end }}
+              {{- if $.GatewayPrios }}
+              '20':
+                action:
+                  permit: {}
+                match:
+                  community-list: all-gw-prios
+                {{- if $ext.OutboundCommunity }}
+                set:
+                  community:
+                    {{ $ext.OutboundCommunity }}: {}
+                {{- end }}
+              {{- end }}
+          {{- end }}
+          {{- if $ext.Static }}
+          ext-static--{{ $ext.Name }}:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                set:
+                  community:
+                    {{ $.BaseVPCCommunity }}: {}
+          {{- end }}
+          {{- end }}
+          {{- range $vpc := $.VPCs }}
+          {{- if $vpc.ImportVRFs }}
+          import-vrf--{{ $vpc.Name }}:
+            rule:
+              {{- range $peer := $vpc.ExtPeers }}
+              '{{ $peer.DenyRuleID }}':
+                action:
+                  deny: {}
+                match:
+                  ip-prefix-list: ipns-subnets--{{ $peer.IPv4Namespace }}
+                  source-vrf: {{ $peer.VRF }}
+                  type: ipv4
+              {{- end }}
+              {{- range $peer := $vpc.Peers }}
+              '{{ $peer.RuleID }}':
+                action:
+                  deny: {}
+                match:
+                  ip-prefix-list: vpc-not-subnets--{{ $peer.Name }}
+                  source-vrf: {{ $peer.VRF }}
+                  type: ipv4
+              {{- end }}
+              {{- if $vpc.Peers }}
+              '50000':
+                action:
+                  permit: {}
+                match:
+                  ip-prefix-list: vpc-peers--{{ $vpc.Name }}
+                  type: ipv4
+              {{- end }}
+              {{- range $peer := $vpc.ExtPeers }}
+              '{{ $peer.PermitRuleID }}':
+                action:
+                  permit: {}
+                match:
+                  {{- if $peer.CommunityList }}
+                  community-list: {{ $peer.CommunityList }}
+                  {{- end }}
+                  ip-prefix-list: {{ $peer.PrefixList }}
+                  source-vrf: {{ $peer.VRF }}
+                  type: ipv4
+                set:
+                  local-preference: 150
+              {{- end }}
+              '65535':
+                action:
+                  deny: {}
+          {{- end }}
+          vpc-redistribute-connected--{{ $vpc.Name }}:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                match:
+                  ip-prefix-list: vpc-subnets--{{ $vpc.Name }}
+                  type: ipv4
+              {{- if $vpc.StaticExtSubnets }}
+              '20':
+                action:
+                  permit: {}
+                match:
+                  ip-prefix-list: vpc-static-ext-subnets--{{ $vpc.Name }}
+                  type: ipv4
+          vpc-redistribute-static--{{ $vpc.Name }}:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                match:
+                  ip-prefix-list: vpc-static-ext-subnets--{{ $vpc.Name }}
+                  type: ipv4
+              {{- end }}
+          {{- end }}
           lo_to_bgp:
             rule:
               '10':
@@ -178,6 +759,23 @@
                 match:
                   interface: lo
                   type: ipv4
+              {{- if $.StaticExtSubnets }}
+              '20':
+                action:
+                  permit: {}
+                match:
+                  ip-prefix-list: static-ext-subnets
+                  type: ipv4
+          static-ext:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                match:
+                  ip-prefix-list: static-ext-subnets
+                  type: ipv4
+              {{- end }}
+          {{- /* weighted ECMP comes with RoCE and adaptive routing, but it's useful without them too */}}
           w_ecmp_cumulative:
             rule:
               '10':
@@ -194,10 +792,14 @@
                 description: enable_w_ecmp_origination
                 set:
                   ext-community-bw: multipaths
-      {{- if $.IsSpectrum4 }}
+      {{- if and $.RoCE $.IsSpectrum4 }}
       adaptive-routing:
         state: enabled
         profile: profile-custom
+      {{- end }}
+      {{- if $.Subnets }}
+      vrr:
+        state: enabled
       {{- end }}
     vrf:
       default:
@@ -209,53 +811,107 @@
                   connected:
                     route-map: lo_to_bgp
                     state: enabled
+                  {{- if $.StaticExtSubnets }}
+                  static:
+                    route-map: static-ext
+                    state: enabled
+                  {{- end }}
                 state: enabled
               l2vpn-evpn:
                 state: enabled
             peer-group:
+              {{- if $.Gateway }}
+              gateway:
+                address-family:
+                  ipv4-unicast:
+                    policy:
+                      inbound:
+                        route-map: gateway-import
+                      outbound:
+                        route-map: gateway-export
+                  l2vpn-evpn:
+                    {{- if $.IsLeaf }}
+                    policy:
+                      inbound:
+                        route-map: l2vpn-neighbors
+                    {{- end }}
+                    state: enabled
+                {{- if $.BFD }}
+                bfd:
+                  profile: underlay
+                {{- end }}
+                remote-as: {{ $.Gateway.ASN }}
+              {{- end }}
               underlay_spine:
                 address-family:
                   ipv4-unicast:
                     policy:
                       outbound:
                         route-map: w_ecmp_origin
+                    state: enabled
+                {{- if $.BFD }}
                 bfd:
                   profile: underlay
-                remote-as: external
+                {{- end }}
               underlay_leaf:
                 address-family:
                   ipv4-unicast:
                     policy:
                       outbound:
                         route-map: w_ecmp_cumulative
+                    state: enabled
+                {{- if $.BFD }}
                 bfd:
                   profile: underlay
-                remote-as: external
+                {{- end }}
               overlay:
                 address-family:
                   ipv4-unicast:
                     state: disabled
                   l2vpn-evpn:
+                    {{- if $.IsLeaf }}
+                    policy:
+                      inbound:
+                        route-map: l2vpn-neighbors
+                    {{- end }}
                     state: enabled
+                {{- if $.BFD }}
                 bfd:
                   profile: overlay
+                {{- end }}
                 multihop-ttl: 2
-                remote-as: external
                 update-source: lo
             {{- if $.BGPNeighbors }}
             neighbor:
               {{- range $neigh := $.BGPNeighbors }}
-              {{ $neigh.IP }}:
+              {{ $neigh.Key }}:
+                {{- if $neigh.Unnumbered }}
+                capabilities:
+                  extended-nexthop: enabled
+                {{- end }}
                 {{- if $neigh.Description }}
                 description: {{ $neigh.Description }}
                 {{- end }}
                 peer-group: {{ $neigh.PeerGroup }}
-                type: numbered
+                {{- if $neigh.RemoteAS }}
+                remote-as: {{ $neigh.RemoteAS }}
+                {{- end }}
+                type: {{ if $neigh.Unnumbered }}unnumbered{{ else }}numbered{{ end }}
               {{- end }}
             {{- end }}
             state: enabled
+          {{- if $.StaticRoutes }}
+          static:
+            {{- range $prefix, $nextHops := $.StaticRoutes }}
+            {{ $prefix }}:
+              via:
+                {{- range $nextHop := $nextHops }}
+                {{ $nextHop }}: {}
+                {{- end }}
+            {{- end }}
+          {{- end }}
       {{- range $vpc := $.VPCs }}
-      {{ $vpc.Name }}:
+      {{ $vpc.VRF }}:
         evpn:
           state: enabled
           vni:
@@ -266,11 +922,26 @@
               ipv4-unicast:
                 redistribute:
                   connected:
-                    route-map: host_subnets
+                    route-map: vpc-redistribute-connected--{{ $vpc.Name }}
                     state: enabled
+                  {{- if $vpc.StaticExtSubnets }}
+                  static:
+                    route-map: vpc-redistribute-static--{{ $vpc.Name }}
+                    state: enabled
+                  {{- end }}
                 route-export:
                   to-evpn:
                     state: enabled
+                {{- if $vpc.ImportVRFs }}
+                route-import:
+                  from-vrf:
+                    list:
+                      {{- range $vrf := $vpc.ImportVRFs }}
+                      {{ $vrf }}: {}
+                      {{- end }}
+                    route-map: import-vrf--{{ $vpc.Name }}
+                    state: enabled
+                {{- end }}
                 {{- if $vpc.RouteSumm }}
                 aggregate-route:
                   {{- range $route := $vpc.RouteSumm }}
@@ -284,9 +955,119 @@
             path-selection:
               multipath:
                 aspath-ignore: enabled
-            rd: {{ $.RouterID }}:{{ $vpc.VNI }}
             state: enabled
+          {{- if $vpc.Routes }}
+          static:
+            {{- range $prefix, $nextHops := $vpc.Routes }}
+            {{ $prefix }}:
+              via:
+                {{- range $nextHop := $nextHops }}
+                {{ $nextHop }}: {}
+                {{- end }}
+            {{- end }}
+          {{- end }}
       {{- end }}
+      {{- range $ext := $.Externals }}
+      {{ $ext.VRF }}:
+        evpn:
+          state: enabled
+          vni:
+            '{{ $ext.VNI }}': {}
+        router:
+          bgp:
+            address-family:
+              ipv4-unicast:
+                {{- if $ext.Static }}
+                redistribute:
+                  static:
+                    route-map: ext-static--{{ $ext.Name }}
+                    state: enabled
+                {{- end }}
+                route-export:
+                  to-evpn:
+                    route-map: ext-to-evpn
+                    state: enabled
+                {{- if $ext.ImportPrefixes }}
+                route-import:
+                  from-vrf:
+                    list:
+                      {{- range $vrf := $ext.ImportVRFs }}
+                      {{ $vrf }}: {}
+                      {{- end }}
+                    route-map: ext-import--{{ $ext.Name }}
+                    state: enabled
+                {{- end }}
+                state: enabled
+              l2vpn-evpn:
+                state: enabled
+            {{- if $ext.Neighbors }}
+            neighbor:
+              {{- range $neigh := $ext.Neighbors }}
+              {{ $neigh.Key }}:
+                address-family:
+                  ipv4-unicast:
+                    policy:
+                      inbound:
+                        route-map: ext-inbound--{{ $ext.Name }}
+                      outbound:
+                        route-map: ext-outbound--{{ $ext.Name }}
+                    state: enabled
+                {{- if $neigh.BFDProfile }}
+                bfd:
+                  profile: {{ $neigh.BFDProfile }}
+                {{- end }}
+                {{- if $neigh.Unnumbered }}
+                capabilities:
+                  extended-nexthop: enabled
+                {{- end }}
+                description: {{ $neigh.Description }}
+                {{- if $neigh.LocalASN }}
+                local-as:
+                  asn: {{ $neigh.LocalASN }}
+                  prepend: disabled
+                  replace: enabled
+                  state: enabled
+                {{- end }}
+                remote-as: {{ $neigh.RemoteAS }}
+                type: {{ if $neigh.Unnumbered }}unnumbered{{ else }}numbered{{ end }}
+              {{- end }}
+            {{- end }}
+            state: enabled
+          {{- if $ext.Routes }}
+          static:
+            {{- range $prefix, $nextHops := $ext.Routes }}
+            {{ $prefix }}:
+              via:
+                {{- range $nextHop := $nextHops }}
+                {{ $nextHop }}: {}
+                {{- end }}
+            {{- end }}
+          {{- end }}
+      {{- end }}
+    {{- if $.DHCPServer }}
+    service:
+      dhcp-relay:
+        mgmt:
+          agent:
+            remote-id: cumulus:{{ $.Hostname }}
+            state: enabled
+          downstream-interface:
+            {{- range $subnet := $.Subnets }}
+            {{- if $subnet.DHCP }}
+            {{ $subnet.Name }}:
+              server-group-name: hh
+            {{- end }}
+            {{- end }}
+          gateway-interface:
+            eth0:
+              address: auto
+          server-group:
+            hh:
+              server:
+                {{ $.DHCPServer }}: {}
+              upstream-interface:
+                eth0: {}
+    {{- end }}
     system:
       aaa:
         class:
@@ -332,12 +1113,15 @@
               {{- end }}
           {{- end }}
       api:
+        listening-address:
+          127.0.0.1: {}
         state: enabled
       config:
         auto-save:
           state: enabled
-        {{- if $.IsSpectrum4 }}
+        {{- if or (and $.RoCE $.IsSpectrum4) $.Subnets }}
         snippet:
+          {{- if and $.RoCE $.IsSpectrum4 }}
           adaptive_routing_conf-snippet:
             file: /etc/cumulus/switchd.d/ar_profile_custom.conf
             content: |
@@ -355,6 +1139,14 @@
               ar.p.ef = FALSE
               ar.ecs = 512
               ar.ibm = ingress
+          {{- end }}
+          {{- if $.Subnets }}
+          ifupdown2_eni:
+            {{- range $subnet := $.Subnets }}
+            {{ $subnet.Name }}: |
+              address-virtual-ipv6-addrgen off
+            {{- end }}
+          {{- end }}
         {{- end }}
       control-plane:
         acl:
@@ -367,7 +1159,7 @@
       hostname: {{ $.Hostname }}
       lldp:
         state: enabled
-        tx-hold-multiplier: 24
+        tx-hold-multiplier: 4
         tx-interval: 5
       ntp:
         listen:
@@ -384,6 +1176,8 @@
           {{- end }}
         permit-root-login: disabled
         state: enabled
+        vrf:
+          mgmt: {}
       wjh:
         channel:
           forwarding:

@@ -61,6 +61,21 @@ func TestExternalValidation(t *testing.T) {
 			err: true,
 		},
 		{
+			name: "name with dot",
+			external: extGen("ext.01", func(ext *v1beta1.External) {
+				ext.Spec.InboundCommunity = InboundCommunity
+				ext.Spec.OutboundCommunity = OutboundCommunity
+			}),
+			err: true,
+		},
+		{
+			name: "name with double dash",
+			external: extGen("ext--01", func(ext *v1beta1.External) {
+				ext.Spec.InboundCommunity = InboundCommunity
+				ext.Spec.OutboundCommunity = OutboundCommunity
+			}),
+		},
+		{
 			name: "bgp missing outbound",
 			external: extGen("no-out", func(ext *v1beta1.External) {
 				ext.Spec.InboundCommunity = InboundCommunity

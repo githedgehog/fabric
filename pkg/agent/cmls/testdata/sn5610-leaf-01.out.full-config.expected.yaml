@@ -1,4 +1,83 @@
 - set:
+    acl:
+      ext-inbound--swp1:
+        rule:
+          '1':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: 100.1.20.2/32
+                protocol: tcp
+                tcp:
+                  dest-port:
+                    '443': {}
+          '2':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: 100.1.20.2/32
+                protocol: tcp
+                tcp:
+                  dest-port:
+                    '8080': {}
+          '3':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: 100.1.20.2/32
+                protocol: udp
+                udp:
+                  dest-port:
+                    '67': {}
+          '4':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: 100.1.20.2/32
+                protocol: udp
+                udp:
+                  dest-port:
+                    '161': {}
+          '5':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: 100.1.20.2/32
+                protocol: udp
+                udp:
+                  dest-port:
+                    '4789': {}
+          '6':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: 100.1.20.2/32
+                protocol: tcp
+                tcp:
+                  dest-port:
+                    '22': {}
+          '65535':
+            action:
+              permit: {}
+        type: ipv4
+      ipns-egress--default:
+        rule:
+          '10':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: 10.0.0.0/16
+          '65535':
+            action:
+              permit: {}
+        type: ipv4
     interface:
       eth0:
         ipv6:
@@ -29,6 +108,15 @@
           speed: 800G
           state:
             up: {}
+        acl:
+          ext-inbound--swp1:
+            inbound: {}
+          ipns-egress--default:
+            outbound: {}
+        ipv4:
+          address:
+            100.1.20.2/24: {}
+        vrf: ext-ext-snp-02
       swp2:
         link:
           breakout:
@@ -48,7 +136,12 @@
           speed: 100G
           state:
             up: {}
-        vrf: vpc-03
+        bridge:
+          domain:
+            br_default:
+              untagged: none
+              vlan:
+                '1003': {}
       swp2s1:
         description: Bundled server-05 server-05--bundled--leaf-01
         ipv6:
@@ -123,10 +216,12 @@
           speed: 400G
           state:
             up: {}
-        vrf: vpc-01
-        ipv4:
-          address:
-            10.99.0.1/31: {}
+        bridge:
+          domain:
+            br_default:
+              untagged: none
+              vlan:
+                '1001': {}
       swp4:
         description: Unused
         ipv6:
@@ -1103,7 +1198,12 @@
           speed: 25G
           state:
             up: {}
-        vrf: vpc-02
+        bridge:
+          domain:
+            br_default:
+              untagged: none
+              vlan:
+                '1002': {}
       swp66:
         description: Unused
         ipv6:
@@ -1131,6 +1231,68 @@
           state:
             down: {}
         type: bond
+      vlan1001:
+        description: VPC vpc-01/default
+        ipv4:
+          address:
+            172.30.99.233/32: {}
+          vrr:
+            address:
+              10.0.1.1/24: {}
+            mac-address: 00:00:00:11:11:11
+            state: enabled
+        ipv6:
+          state: disabled
+        type: svi
+        vlan: 1001
+        vrf: vpc-vpc-01
+      vlan1002:
+        description: VPC vpc-02/default
+        ipv4:
+          address:
+            172.30.99.234/32: {}
+          vrr:
+            address:
+              10.0.2.1/24: {}
+            mac-address: 00:00:00:11:11:11
+            state: enabled
+        ipv6:
+          state: disabled
+        type: svi
+        vlan: 1002
+        vrf: vpc-vpc-02
+      vlan1003:
+        description: VPC vpc-03/default
+        ipv4:
+          address:
+            172.30.99.235/32: {}
+          vrr:
+            address:
+              10.0.3.1/24: {}
+            mac-address: 00:00:00:11:11:11
+            state: enabled
+        ipv6:
+          state: disabled
+        type: svi
+        vlan: 1003
+        vrf: vpc-vpc-03
+    bridge:
+      domain:
+        br_default:
+          stp:
+            state:
+              down: {}
+          untagged: none
+          vlan:
+            '1001':
+              vni:
+                '301': {}
+            '1002':
+              vni:
+                '401': {}
+            '1003':
+              vni:
+                '501': {}
     evpn:
       state: enabled
     nve:
@@ -1177,30 +1339,313 @@
         autonomous-system: 65101
         router-id: 172.30.8.2
         graceful-restart:
-          mode: full
-          path-selection-deferral-time: 180
-          restart-time: 180
-          stale-routes-time: 180
+          mode: off
         state: enabled
       policy:
-        prefix-list:
-          host_subnets:
+        community-list:
+          all-externals:
             rule:
               '10':
                 action: permit
+                community:
+                  50000:0: {}
+          gw-prio-0:
+            rule:
+              '10':
+                action: permit
+                community:
+                  50001:0: {}
+          gw-prio-1:
+            rule:
+              '10':
+                action: permit
+                community:
+                  50001:1: {}
+          gw-prio-2:
+            rule:
+              '10':
+                action: permit
+                community:
+                  50001:2: {}
+          gw-prio-3:
+            rule:
+              '10':
+                action: permit
+                community:
+                  50001:3: {}
+          gw-prio-4:
+            rule:
+              '10':
+                action: permit
+                community:
+                  50001:4: {}
+          gw-prio-5:
+            rule:
+              '10':
+                action: permit
+                community:
+                  50001:5: {}
+          gw-prio-6:
+            rule:
+              '10':
+                action: permit
+                community:
+                  50001:6: {}
+          gw-prio-7:
+            rule:
+              '10':
+                action: permit
+                community:
+                  50001:7: {}
+          gw-prio-8:
+            rule:
+              '10':
+                action: permit
+                community:
+                  50001:8: {}
+          gw-prio-9:
+            rule:
+              '10':
+                action: permit
+                community:
+                  50001:9: {}
+        prefix-list:
+          vpc-not-subnets--vpc-01:
+            rule:
+              '1':
+                action: deny
                 match:
-                  10.0.0.0/8:
-                    max-prefix-len: 31
+                  10.0.1.0/24:
+                    max-prefix-len: 32
+              '65535':
+                action: permit
+                match:
+                  0.0.0.0/0:
+                    max-prefix-len: 32
+            type: ipv4
+          vpc-peers--vpc-01:
+            rule:
+              '501':
+                action: permit
+                match:
+                  10.0.3.0/24:
+                    max-prefix-len: 32
+            type: ipv4
+          vpc-subnets--vpc-01:
+            rule:
+              '1':
+                action: permit
+                match:
+                  10.0.1.0/24:
+                    max-prefix-len: 32
+            type: ipv4
+          vpc-not-subnets--vpc-02:
+            rule:
+              '1':
+                action: deny
+                match:
+                  10.0.2.0/24:
+                    max-prefix-len: 32
+              '65535':
+                action: permit
+                match:
+                  0.0.0.0/0:
+                    max-prefix-len: 32
+            type: ipv4
+          vpc-subnets--vpc-02:
+            rule:
+              '1':
+                action: permit
+                match:
+                  10.0.2.0/24:
+                    max-prefix-len: 32
+            type: ipv4
+          vpc-not-subnets--vpc-03:
+            rule:
+              '1':
+                action: deny
+                match:
+                  10.0.3.0/24:
+                    max-prefix-len: 32
+              '65535':
+                action: permit
+                match:
+                  0.0.0.0/0:
+                    max-prefix-len: 32
+            type: ipv4
+          vpc-peers--vpc-03:
+            rule:
+              '301':
+                action: permit
+                match:
+                  10.0.1.0/24:
+                    max-prefix-len: 32
+            type: ipv4
+          vpc-subnets--vpc-03:
+            rule:
+              '1':
+                action: permit
+                match:
+                  10.0.3.0/24:
+                    max-prefix-len: 32
             type: ipv4
         route-map:
-          host_subnets:
+          l2vpn-neighbors:
+            rule:
+              '1':
+                action:
+                  permit: {}
+                match:
+                  community-list: gw-prio-0
+                set:
+                  local-preference: 210
+              '2':
+                action:
+                  permit: {}
+                match:
+                  community-list: gw-prio-1
+                set:
+                  local-preference: 209
+              '3':
+                action:
+                  permit: {}
+                match:
+                  community-list: gw-prio-2
+                set:
+                  local-preference: 208
+              '4':
+                action:
+                  permit: {}
+                match:
+                  community-list: gw-prio-3
+                set:
+                  local-preference: 207
+              '5':
+                action:
+                  permit: {}
+                match:
+                  community-list: gw-prio-4
+                set:
+                  local-preference: 206
+              '6':
+                action:
+                  permit: {}
+                match:
+                  community-list: gw-prio-5
+                set:
+                  local-preference: 205
+              '7':
+                action:
+                  permit: {}
+                match:
+                  community-list: gw-prio-6
+                set:
+                  local-preference: 204
+              '8':
+                action:
+                  permit: {}
+                match:
+                  community-list: gw-prio-7
+                set:
+                  local-preference: 203
+              '9':
+                action:
+                  permit: {}
+                match:
+                  community-list: gw-prio-8
+                set:
+                  local-preference: 202
+              '10':
+                action:
+                  permit: {}
+                match:
+                  community-list: gw-prio-9
+                set:
+                  local-preference: 201
+              '65525':
+                action:
+                  permit: {}
+                match:
+                  community-list: all-externals
+                set:
+                  local-preference: 150
+              '65535':
+                action:
+                  permit: {}
+          ext-to-evpn:
             rule:
               '10':
                 action:
                   permit: {}
-                description: permit_host_subnets
                 match:
-                  ip-prefix-list: host_subnets
+                  community-list: all-externals
+          ext-static--ext-snp-02:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                set:
+                  community:
+                    50000:0: {}
+          import-vrf--vpc-01:
+            rule:
+              '10005':
+                action:
+                  deny: {}
+                match:
+                  ip-prefix-list: vpc-not-subnets--vpc-03
+                  source-vrf: vpc-vpc-03
+                  type: ipv4
+              '50000':
+                action:
+                  permit: {}
+                match:
+                  ip-prefix-list: vpc-peers--vpc-01
+                  type: ipv4
+              '65535':
+                action:
+                  deny: {}
+          vpc-redistribute-connected--vpc-01:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                match:
+                  ip-prefix-list: vpc-subnets--vpc-01
+                  type: ipv4
+          vpc-redistribute-connected--vpc-02:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                match:
+                  ip-prefix-list: vpc-subnets--vpc-02
+                  type: ipv4
+          import-vrf--vpc-03:
+            rule:
+              '10003':
+                action:
+                  deny: {}
+                match:
+                  ip-prefix-list: vpc-not-subnets--vpc-01
+                  source-vrf: vpc-vpc-01
+                  type: ipv4
+              '50000':
+                action:
+                  permit: {}
+                match:
+                  ip-prefix-list: vpc-peers--vpc-03
+                  type: ipv4
+              '65535':
+                action:
+                  deny: {}
+          vpc-redistribute-connected--vpc-03:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                match:
+                  ip-prefix-list: vpc-subnets--vpc-03
                   type: ipv4
           lo_to_bgp:
             rule:
@@ -1230,6 +1675,8 @@
       adaptive-routing:
         state: enabled
         profile: profile-custom
+      vrr:
+        state: enabled
     vrf:
       default:
         router:
@@ -1250,70 +1697,84 @@
                     policy:
                       outbound:
                         route-map: w_ecmp_origin
+                    state: enabled
                 bfd:
                   profile: underlay
-                remote-as: external
               underlay_leaf:
                 address-family:
                   ipv4-unicast:
                     policy:
                       outbound:
                         route-map: w_ecmp_cumulative
+                    state: enabled
                 bfd:
                   profile: underlay
-                remote-as: external
               overlay:
                 address-family:
                   ipv4-unicast:
                     state: disabled
                   l2vpn-evpn:
+                    policy:
+                      inbound:
+                        route-map: l2vpn-neighbors
                     state: enabled
                 bfd:
                   profile: overlay
                 multihop-ttl: 2
-                remote-as: external
                 update-source: lo
             neighbor:
               172.30.128.0:
                 description: fabric underlay to spine spine-01/E1/1
                 peer-group: underlay_spine
+                remote-as: 65100
                 type: numbered
               172.30.128.10:
                 description: fabric underlay to spine spine-02/E1/1
                 peer-group: underlay_spine
+                remote-as: 65100
                 type: numbered
               172.30.128.12:
                 description: fabric underlay to spine spine-02/E1/2
                 peer-group: underlay_spine
+                remote-as: 65100
                 type: numbered
               172.30.128.2:
                 description: fabric underlay to spine spine-01/E1/2/1
                 peer-group: underlay_spine
+                remote-as: 65100
                 type: numbered
               172.30.8.0:
                 description: fabric overlay to spine spine-01
                 peer-group: overlay
+                remote-as: 65100
                 type: numbered
               172.30.8.1:
                 description: fabric overlay to spine spine-02
                 peer-group: overlay
+                remote-as: 65100
                 type: numbered
             state: enabled
-      vpc-01:
+      vpc-vpc-01:
         evpn:
           state: enabled
           vni:
-            '301': {}
+            '300': {}
         router:
           bgp:
             address-family:
               ipv4-unicast:
                 redistribute:
                   connected:
-                    route-map: host_subnets
+                    route-map: vpc-redistribute-connected--vpc-01
                     state: enabled
                 route-export:
                   to-evpn:
+                    state: enabled
+                route-import:
+                  from-vrf:
+                    list:
+                      vpc-vpc-03: {}
+                    route-map: import-vrf--vpc-01
                     state: enabled
                 aggregate-route:
                   10.0.1.0/25:
@@ -1326,20 +1787,19 @@
             path-selection:
               multipath:
                 aspath-ignore: enabled
-            rd: 172.30.8.2:301
             state: enabled
-      vpc-02:
+      vpc-vpc-02:
         evpn:
           state: enabled
           vni:
-            '401': {}
+            '400': {}
         router:
           bgp:
             address-family:
               ipv4-unicast:
                 redistribute:
                   connected:
-                    route-map: host_subnets
+                    route-map: vpc-redistribute-connected--vpc-02
                     state: enabled
                 route-export:
                   to-evpn:
@@ -1350,23 +1810,28 @@
             path-selection:
               multipath:
                 aspath-ignore: enabled
-            rd: 172.30.8.2:401
             state: enabled
-      vpc-03:
+      vpc-vpc-03:
         evpn:
           state: enabled
           vni:
-            '501': {}
+            '500': {}
         router:
           bgp:
             address-family:
               ipv4-unicast:
                 redistribute:
                   connected:
-                    route-map: host_subnets
+                    route-map: vpc-redistribute-connected--vpc-03
                     state: enabled
                 route-export:
                   to-evpn:
+                    state: enabled
+                route-import:
+                  from-vrf:
+                    list:
+                      vpc-vpc-01: {}
+                    route-map: import-vrf--vpc-03
                     state: enabled
                 aggregate-route:
                   10.0.3.0/24:
@@ -1377,8 +1842,53 @@
             path-selection:
               multipath:
                 aspath-ignore: enabled
-            rd: 172.30.8.2:501
             state: enabled
+      ext-ext-snp-02:
+        evpn:
+          state: enabled
+          vni:
+            '100': {}
+        router:
+          bgp:
+            address-family:
+              ipv4-unicast:
+                redistribute:
+                  static:
+                    route-map: ext-static--ext-snp-02
+                    state: enabled
+                route-export:
+                  to-evpn:
+                    route-map: ext-to-evpn
+                    state: enabled
+                state: enabled
+              l2vpn-evpn:
+                state: enabled
+            state: enabled
+          static:
+            0.0.0.0/0:
+              via:
+                100.1.30.1: {}
+            100.1.30.1/32:
+              via:
+                swp1: {}
+    service:
+      dhcp-relay:
+        mgmt:
+          agent:
+            remote-id: cumulus:leaf-01
+            state: enabled
+          downstream-interface:
+            vlan1003:
+              server-group-name: hh
+          gateway-interface:
+            eth0:
+              address: auto
+          server-group:
+            hh:
+              server:
+                172.30.0.1: {}
+              upstream-interface:
+                eth0: {}
     system:
       aaa:
         class:
@@ -1424,6 +1934,8 @@
               hashed-password: $5$8nAYPGcl4l6G7Av1$Qi4/gnM0yPtGv9kjpMh78NuNSfQWy7vR1rulHpurL36
               role: nvue-monitor
       api:
+        listening-address:
+          127.0.0.1: {}
         state: enabled
       config:
         auto-save:
@@ -1446,6 +1958,13 @@
               ar.p.ef = FALSE
               ar.ecs = 512
               ar.ibm = ingress
+          ifupdown2_eni:
+            vlan1001: |
+              address-virtual-ipv6-addrgen off
+            vlan1002: |
+              address-virtual-ipv6-addrgen off
+            vlan1003: |
+              address-virtual-ipv6-addrgen off
       control-plane:
         acl:
           acl-default-dos:
@@ -1457,7 +1976,7 @@
       hostname: leaf-01
       lldp:
         state: enabled
-        tx-hold-multiplier: 24
+        tx-hold-multiplier: 4
         tx-interval: 5
       ntp:
         listen:
@@ -1473,6 +1992,8 @@
             op: {}
         permit-root-login: disabled
         state: enabled
+        vrf:
+          mgmt: {}
       wjh:
         channel:
           forwarding:

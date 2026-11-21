@@ -23,9 +23,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 400G
@@ -34,18 +31,12 @@
         ipv4:
           address:
             172.30.128.0/31: {}
-        router:
-          adaptive-routing:
-            state: enabled
       swp1s1:
         description: Unused
         ipv6:
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 400G
@@ -57,9 +48,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -74,9 +62,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -91,9 +76,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -108,23 +90,20 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
           state:
             up: {}
+        ipv4:
+          address:
+            172.30.128.8/31: {}
       swp6:
         description: Unused
         ipv6:
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -136,9 +115,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -150,9 +126,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -168,9 +141,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 100G
@@ -182,9 +152,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 100G
@@ -196,9 +163,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 100G
@@ -210,9 +174,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 100G
@@ -224,9 +185,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 100G
@@ -238,9 +196,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 100G
@@ -252,9 +207,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 100G
@@ -266,9 +218,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 100G
@@ -284,9 +233,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -298,9 +244,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -312,9 +255,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -326,9 +266,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -340,9 +277,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -354,9 +288,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -368,9 +299,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -382,9 +310,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -396,9 +321,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -410,9 +332,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -424,9 +343,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -438,9 +354,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -452,9 +365,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -466,9 +376,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -480,9 +387,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -494,9 +398,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -508,9 +409,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -522,9 +420,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -536,9 +431,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -550,9 +442,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -564,9 +453,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -578,9 +464,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -592,9 +475,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -606,9 +486,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -620,9 +497,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -634,9 +508,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -648,9 +519,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -662,9 +530,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -676,9 +541,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -690,9 +552,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -704,9 +563,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -718,9 +574,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -732,9 +585,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -746,9 +596,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -760,9 +607,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -774,9 +618,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -788,9 +629,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -802,9 +640,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -816,9 +651,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -830,9 +662,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -844,9 +673,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -858,9 +684,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -872,9 +695,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -886,9 +706,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -900,9 +717,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -914,9 +728,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -928,9 +739,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -942,9 +750,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -956,9 +761,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -970,9 +772,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -984,9 +783,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -998,9 +794,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -1012,9 +805,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -1026,9 +816,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 800G
@@ -1040,9 +827,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 25G
@@ -1054,9 +838,6 @@
           state: disabled
         lldp:
           state: enabled
-        qos:
-          pfc-watchdog:
-            state: enable
         link:
           auto-negotiate: enabled
           speed: 25G
@@ -1064,22 +845,6 @@
             up: {}
     evpn:
       state: enabled
-    qos:
-      pfc:
-        default-global:
-          port-buffer: 363000
-          switch-priority:
-            '3': {}
-          xoff-threshold: 75000
-          xon-threshold: 75000
-      roce:
-        mode: lossless
-        state: enabled
-      traffic-pool:
-        default-lossy:
-          memory-percent: 10
-        roce-lossless:
-          memory-percent: 90
     router:
       bfd:
         profile:
@@ -1096,31 +861,40 @@
         autonomous-system: 65100
         router-id: 172.30.8.0
         graceful-restart:
-          mode: full
-          path-selection-deferral-time: 180
-          restart-time: 180
-          stale-routes-time: 180
+          mode: off
         state: enabled
       policy:
+        as-path-list:
+          gateway-origin:
+            rule:
+              '10':
+                action: permit
+                aspath-exp: ^65534$
         prefix-list:
-          host_subnets:
+          all-vtep-prefixes:
             rule:
               '10':
                 action: permit
                 match:
-                  10.0.0.0/8:
-                    max-prefix-len: 31
+                  172.30.12.0/22:
+                    max-prefix-len: 32
             type: ipv4
         route-map:
-          host_subnets:
+          gateway-export:
             rule:
               '10':
                 action:
                   permit: {}
-                description: permit_host_subnets
                 match:
-                  ip-prefix-list: host_subnets
+                  ip-prefix-list: all-vtep-prefixes
                   type: ipv4
+          gateway-import:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                match:
+                  as-path-list: gateway-origin
           lo_to_bgp:
             rule:
               '10':
@@ -1146,9 +920,6 @@
                 description: enable_w_ecmp_origination
                 set:
                   ext-community-bw: multipaths
-      adaptive-routing:
-        state: enabled
-        profile: profile-custom
     vrf:
       default:
         router:
@@ -1163,59 +934,73 @@
               l2vpn-evpn:
                 state: enabled
             peer-group:
+              gateway:
+                address-family:
+                  ipv4-unicast:
+                    policy:
+                      inbound:
+                        route-map: gateway-import
+                      outbound:
+                        route-map: gateway-export
+                  l2vpn-evpn:
+                    state: enabled
+                remote-as: 65534
               underlay_spine:
                 address-family:
                   ipv4-unicast:
                     policy:
                       outbound:
                         route-map: w_ecmp_origin
-                bfd:
-                  profile: underlay
-                remote-as: external
+                    state: enabled
               underlay_leaf:
                 address-family:
                   ipv4-unicast:
                     policy:
                       outbound:
                         route-map: w_ecmp_cumulative
-                bfd:
-                  profile: underlay
-                remote-as: external
+                    state: enabled
               overlay:
                 address-family:
                   ipv4-unicast:
                     state: disabled
                   l2vpn-evpn:
                     state: enabled
-                bfd:
-                  profile: overlay
                 multihop-ttl: 2
-                remote-as: external
                 update-source: lo
             neighbor:
               172.30.128.1:
                 description: fabric underlay to leaf leaf-01/E1/5
                 peer-group: underlay_leaf
+                remote-as: 65101
                 type: numbered
               172.30.128.3:
                 description: fabric underlay to leaf leaf-01/E1/6
                 peer-group: underlay_leaf
+                remote-as: 65101
                 type: numbered
               172.30.128.5:
                 description: fabric underlay to leaf leaf-02/E1/4
                 peer-group: underlay_leaf
+                remote-as: 65102
                 type: numbered
               172.30.128.7:
                 description: fabric underlay to leaf leaf-02/E1/5
                 peer-group: underlay_leaf
+                remote-as: 65102
+                type: numbered
+              172.30.128.9:
+                description: Gateway gateway-1/enp2s1 spine-01--gateway--gateway-1
+                peer-group: gateway
                 type: numbered
               172.30.8.2:
                 description: fabric overlay to leaf leaf-01
                 peer-group: overlay
+                remote-as: 65101
                 type: numbered
               172.30.8.3:
                 description: fabric overlay to leaf leaf-02
                 peer-group: overlay
+                remote-as: 65102
                 type: numbered
             state: enabled
     system:
@@ -1271,28 +1056,12 @@
                       key: AAAAC3NzaC1lZDI1NTE5AAAAIILr33oUspqfHiKC9BaenkKG3nIznbi/Ep3mmsMZjS4U
                       type: ssh-ed25519
       api:
+        listening-address:
+          127.0.0.1: {}
         state: enabled
       config:
         auto-save:
           state: enabled
-        snippet:
-          adaptive_routing_conf-snippet:
-            file: /etc/cumulus/switchd.d/ar_profile_custom.conf
-            content: |
-              ar.p.m = 0
-              ar.ctl = 400
-              ar.ctm = 800
-              ar.cth = 2000
-              ar.srt = 10
-              ar.srf = 10
-              ar.p.bit = 0
-              ar.p.frt = 4
-              ar.p.but = 0
-              ar.p.sfe = FALSE
-              ar.p.ste = FALSE
-              ar.p.ef = FALSE
-              ar.ecs = 512
-              ar.ibm = ingress
       control-plane:
         acl:
           acl-default-dos:
@@ -1304,7 +1073,7 @@
       hostname: spine-01
       lldp:
         state: enabled
-        tx-hold-multiplier: 24
+        tx-hold-multiplier: 4
         tx-interval: 5
       ntp:
         listen:
@@ -1320,6 +1089,8 @@
             op: {}
         permit-root-login: disabled
         state: enabled
+        vrf:
+          mgmt: {}
       wjh:
         channel:
           forwarding:

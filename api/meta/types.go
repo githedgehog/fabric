@@ -15,6 +15,7 @@
 package meta
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"net"
@@ -109,6 +110,9 @@ type FabricConfig struct {
 	VTEPSubnet               string        `json:"vtepSubnet,omitempty"`
 	FabricSubnet             string        `json:"fabricSubnet,omitempty"`
 
+	// base + VLAN as /32 on the Cumulus VPC SVIs, as the DHCP relay needs an IP on them and VRR keeps it on vlanN-v0
+	CumulusSVIWorkaroundSubnet string `json:"cumulusSVIWorkaroundSubnet,omitempty"`
+
 	ManagementSubnet      string            `json:"managementSubnet,omitempty"`
 	ManagementDHCPStart   string            `json:"managementDHCPStart,omitempty"`
 	ManagementDHCPEnd     string            `json:"managementDHCPEnd,omitempty"`
@@ -132,6 +136,8 @@ type FabricConfig struct {
 
 	reservedSubnets []netip.Prefix
 }
+
+const DefaultCumulusSVIWorkaroundSubnet = "172.30.96.0/19"
 
 // up to 1 TiB each, anything above is likely a typo or a size in bytes
 const (
@@ -449,5 +455,61 @@ func (cfg *FabricConfig) WithReservedSubnets() error {
 		cfg.reservedSubnets = append(cfg.reservedSubnets, ipnet.Masked())
 	}
 
+	sviSubnet, err := ParseCumulusSVIWorkaroundSubnet(cfg.CumulusSVIWorkaroundSubnet)
+	if err != nil {
+		return fmt.Errorf("config: %w", err)
+	}
+
+	// only the Cumulus agents use it, so it doesn't take the subnets other fabrics may already have in their VPCs; it's
+	// reserved even if unset, as the agents fall back to the default
+	if !cfg.IncludeCumulus {
+		return nil
+	}
+
+	for _, infra := range []struct{ name, subnet string }{
+		{"managementSubnet", cfg.ManagementSubnet},
+		{"protocolSubnet", cfg.ProtocolSubnet},
+		{"vtepSubnet", cfg.VTEPSubnet},
+		{"fabricSubnet", cfg.FabricSubnet},
+		{"l2ProxyExternalSubnet", cfg.L2ProxyExternalSubnet},
+	} {
+		if infra.subnet == "" {
+			continue
+		}
+		prefix, err := netip.ParsePrefix(infra.subnet)
+		if err != nil {
+			return fmt.Errorf("config: %s: %w", infra.name, err)
+		}
+		if prefix.Overlaps(sviSubnet) {
+			return fmt.Errorf("config: cumulusSVIWorkaroundSubnet %s overlaps %s %s", sviSubnet, infra.name, prefix) //nolint:err113
+		}
+	}
+
+	// the validators also check the reserved subnets against each other, so it's only added if none covers it yet
+	for _, reserved := range cfg.reservedSubnets {
+		if !reserved.Overlaps(sviSubnet) {
+			continue
+		}
+		if reserved.Bits() <= sviSubnet.Bits() {
+			return nil
+		}
+
+		return fmt.Errorf("config: cumulusSVIWorkaroundSubnet %s partially overlaps reserved subnet %s", sviSubnet, reserved) //nolint:err113
+	}
+	cfg.reservedSubnets = append(cfg.reservedSubnets, sviSubnet)
+
 	return nil
+}
+
+// ParseCumulusSVIWorkaroundSubnet returns the masked subnet, or the default one if unset
+func ParseCumulusSVIWorkaroundSubnet(subnet string) (netip.Prefix, error) {
+	prefix, err := netip.ParsePrefix(cmp.Or(subnet, DefaultCumulusSVIWorkaroundSubnet))
+	if err != nil {
+		return netip.Prefix{}, fmt.Errorf("cumulusSVIWorkaroundSubnet: %w", err)
+	}
+	if !prefix.Addr().Is4() || prefix.Bits() > 20 {
+		return netip.Prefix{}, fmt.Errorf("cumulusSVIWorkaroundSubnet must be IPv4 /20 or bigger to fit all VLANs") //nolint:err113
+	}
+
+	return prefix.Masked(), nil
 }

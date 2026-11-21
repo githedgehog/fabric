@@ -179,11 +179,11 @@ func TestVPCValidation(t *testing.T) {
 		},
 		{
 			name: "subnet name max length",
-			vpc:  vpcGen("vpc-01", renameDefaultSubnet(strings.Repeat("s", meta.MaxNameLength))),
+			vpc:  vpcGen("vpc-01", renameDefaultSubnet(strings.Repeat("s", 32))),
 		},
 		{
 			name: "subnet name too long",
-			vpc:  vpcGen("vpc-01", renameDefaultSubnet(strings.Repeat("s", meta.MaxNameLength+1))),
+			vpc:  vpcGen("vpc-01", renameDefaultSubnet(strings.Repeat("s", 33))),
 			err:  true,
 		},
 		{
@@ -195,6 +195,24 @@ func TestVPCValidation(t *testing.T) {
 			name: "subnet name with underscore",
 			vpc:  vpcGen("vpc-01", renameDefaultSubnet("subnet_1")),
 			err:  true,
+		},
+		{
+			name: "name with dot",
+			vpc:  vpcGen("vpc.01"),
+			err:  true,
+		},
+		{
+			name: "name with double dash",
+			vpc:  vpcGen("vpc--01"),
+		},
+		{
+			name: "subnet name with dot",
+			vpc:  vpcGen("vpc-01", renameDefaultSubnet("subnet.1")),
+			err:  true,
+		},
+		{
+			name: "subnet name with double dash",
+			vpc:  vpcGen("vpc-01", renameDefaultSubnet("subnet--1")),
 		},
 		{
 			name: "missing subnet cidr",

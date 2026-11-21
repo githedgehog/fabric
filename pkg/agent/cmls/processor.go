@@ -5,11 +5,12 @@ package cmls
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"time"
 
 	"go.githedgehog.com/fabric/api/agent/v1beta1"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
-	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm"
 )
 
 type CumulusProcessor struct{}
@@ -20,19 +21,12 @@ func Processor() *CumulusProcessor {
 	return &CumulusProcessor{}
 }
 
-// TODO
-func (c *CumulusProcessor) Reboot(ctx context.Context, force bool) error {
-	return bcm.Processor().Reboot(ctx, force) //nolint:wrapcheck
-}
+// SelectONIEInstall makes the next boot only go to ONIE in install mode, on both legacy BIOS and UEFI switches
+func SelectONIEInstall(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(ctx, time.Minute)
+	defer cancel()
 
-// TODO: use onie-select -i (it asks for y/N user input...)
-func (c *CumulusProcessor) Reinstall(ctx context.Context) error {
-	return fmt.Errorf("not implemented") //nolint:err113
-}
-
-// TODO
-func (c *CumulusProcessor) FactoryReset(ctx context.Context) error {
-	return fmt.Errorf("not implemented") //nolint:err113
+	return run(ctx, "onie-select", "/usr/cumulus/bin/onie-select", "-i", "-f")
 }
 
 // TODO
@@ -40,9 +34,20 @@ func (c *CumulusProcessor) EnsureControlLink(ctx context.Context, agent *v1beta1
 	return nil
 }
 
-// TODO
 func (c *CumulusProcessor) GetRoCE(ctx context.Context) (bool, error) {
-	return false, nil
+	out, err := runOutput(ctx, "nv show qos roce", "nv", "show", "qos", "roce", "-o", "json")
+	if err != nil {
+		return false, err
+	}
+	roce := struct {
+		State string `json:"state"`
+		Mode  string `json:"mode"`
+	}{}
+	if err := json.Unmarshal(out, &roce); err != nil {
+		return false, fmt.Errorf("parsing RoCE state: %w", err)
+	}
+
+	return roce.State == "enabled" && roce.Mode == "lossless", nil
 }
 
 // TODO

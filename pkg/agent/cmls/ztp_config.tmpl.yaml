@@ -105,6 +105,8 @@
               {{- end }}
           {{- end }}
       api:
+        listening-address:
+          127.0.0.1: {}
         state: enabled
       config:
         auto-save:
@@ -120,7 +122,7 @@
       hostname: {{ $.Hostname }}
       lldp:
         state: enabled
-        tx-hold-multiplier: 24
+        tx-hold-multiplier: 4
         tx-interval: 5
       ntp:
         listen:
@@ -137,6 +139,8 @@
           {{- end }}
         permit-root-login: disabled
         state: enabled
+        vrf:
+          mgmt: {}
       wjh:
         channel:
           forwarding:

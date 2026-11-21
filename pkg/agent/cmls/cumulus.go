@@ -7,16 +7,20 @@ import (
 	"bytes"
 	"cmp"
 	"context"
+	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"maps"
+	"net"
 	"net/netip"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"text/template"
 	"time"
@@ -24,11 +28,13 @@ import (
 	_ "embed"
 
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
+	fmeta "go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/switchstate"
 	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
+	"go.githedgehog.com/fabric/pkg/manager/librarian"
 	"go.githedgehog.com/fabric/pkg/util/logutil"
 	"go.githedgehog.com/fabric/pkg/version"
 )
@@ -46,23 +52,41 @@ var ztpCfgTmpl string
 var fullCfgTmpl string
 
 type ConfigIn struct {
-	Hostname     string
-	Users        []User
-	NTPServer    string
-	ManagementIP string
-	ProtocolIP   string
-	VTEPIP       string
-	ASN          uint32
-	HostSubnet   string
-	RouterID     string
-	VXLANSource  string
-	VPCs         []VPC
-	BGPNeighbors []BGPNeighbor
-	Ports        []*PortConfig
-	Bonds        []*BondConfig
-	IsSpine      bool
-	IsLeaf       bool
-	IsSpectrum4  bool
+	Hostname         string
+	Users            []User
+	NTPServer        string
+	ManagementIP     string
+	ProtocolIP       string
+	VTEPIP           string
+	ASN              uint32
+	RouterID         string
+	VXLANSource      string
+	VPCs             []VPC
+	Externals        []*External
+	BGPExternals     bool
+	FabricASPaths    map[int]string // rule ID -> AS path regex
+	IPv4Namespaces   []IPv4Namespace
+	BFDProfiles      []BFDProfile
+	BFD              bool
+	BaseVPCCommunity string
+	BGPNeighbors     []BGPNeighbor
+	StaticExtSubnets map[uint32]string // subnet ID -> static external link subnet or routed subnet in the default VRF
+	StaticRoutes     map[string][]string
+	Gateway          *GatewayConfig
+	GatewayPrios     []GatewayPrio
+	Ports            []*PortConfig
+	Bonds            []*BondConfig
+	ESLAG            bool
+	Subinterfaces    []*SubinterfaceConfig
+	Subnets          []*SubnetConfig
+	SubnetACLs       []*SubnetConfig
+	Restricted       []*SubnetConfig
+	ACLs             []*ACL
+	DHCPServer       string
+	IsSpine          bool
+	IsLeaf           bool
+	RoCE             bool
+	IsSpectrum4      bool
 }
 
 type User struct {
@@ -77,17 +101,116 @@ type SSHKey struct {
 	Type string
 }
 
+// BGPNeighbor is keyed by the peer IP, or by the port when unnumbered
 type BGPNeighbor struct {
-	IP          string
+	Key         string
+	Unnumbered  bool
+	RemoteAS    uint32
 	PeerGroup   string
 	Description string
 }
 
-type VPC struct {
+type GatewayConfig struct {
+	ASN        uint32
+	VTEPSubnet string
+}
+
+// GatewayPrio is a gateway priority community, the routes with a higher priority (a lower number) get a higher local
+// preference on the leaves
+type GatewayPrio struct {
 	Name      string
-	VNI       uint32
-	Subnet    string
-	RouteSumm []string
+	Community string
+	RuleID    int
+	LocalPref int
+}
+
+type VPC struct {
+	Name        string
+	VRF         string
+	VNI         uint32
+	Subnets     map[uint32]string // subnet VNI % 100 -> subnet, as NVUE only allows a single prefix per rule
+	RouteSumm   []string
+	Peers       []VPCPeer
+	PeerSubnets map[uint32]string // subnet VNI -> subnet of all peered VPCs
+	ExtPeers    []VPCExtPeer
+	ImportVRFs  []string
+	Routes      map[string][]string
+
+	StaticExtSubnets map[uint32]string // subnet ID -> static external link subnet or routed subnet in the VPC
+}
+
+// VPCExtPeer is an external peered with the VPC, only the permitted prefixes outside of the VPC's IPv4 namespace are
+// imported from its VRF
+type VPCExtPeer struct {
+	Name          string
+	VRF           string
+	DenyRuleID    uint32
+	PermitRuleID  uint32
+	IPv4Namespace string
+	PrefixList    string
+	Prefixes      map[uint32]string // prefix ID -> prefix
+	CommunityList string
+}
+
+// VPCPeer is a peered VPC, only its own subnets are imported from its VRF
+type VPCPeer struct {
+	Name   string
+	VRF    string
+	RuleID uint32
+}
+
+func vpcVRF(vpcName string) string {
+	return "vpc-" + vpcName
+}
+
+// External is an external attached to the switch, with the external VNI as L3VNI of its VRF
+type External struct {
+	Name              string
+	VRF               string
+	VNI               uint32
+	Static            bool
+	Routes            map[string][]string
+	Neighbors         []*ExternalNeighbor
+	IPv4Namespace     string
+	InboundCommunity  string
+	InboundPrefixes   map[int]PrefixListEntry // rule ID -> entry
+	SetCommunities    []string                // replace the ones on the routes from the external
+	OutboundCommunity string
+	ImportVRFs        []string
+	ImportPrefixes    map[uint32]string // subnet ID -> permitted VPC subnet
+}
+
+func extVRF(extName string) string {
+	return "ext-" + extName
+}
+
+// ExternalNeighbor is the BGP session of an external attachment, keyed by the interface when unnumbered
+type ExternalNeighbor struct {
+	Key         string
+	Unnumbered  bool
+	RemoteAS    string
+	Description string
+	BFDProfile  string
+	LocalASN    uint32
+}
+
+type BFDProfile struct {
+	Name       string
+	MinRX      uint32
+	MinTX      uint32
+	Multiplier uint8
+	Passive    bool
+}
+
+type PrefixListEntry struct {
+	Prefix string
+	MinLen uint8
+	MaxLen uint8
+}
+
+type IPv4Namespace struct {
+	Name    string
+	Subnets map[int]string // rule ID -> subnet
 }
 
 type PortConfig struct {
@@ -99,9 +222,51 @@ type PortConfig struct {
 	Used            bool
 	Up              bool
 	Description     string
-	VRF             string
 	IP              string
+	IPv6            bool
+	VRF             string
 	AdaptiveRouting bool
+	ESUplink        bool
+	ExtACLs         []ACLBinding
+	BridgeMember
+}
+
+// SubinterfaceConfig is a VLAN subinterface of a port with an external attachment
+type SubinterfaceConfig struct {
+	Name        string
+	Port        string
+	VLAN        uint16
+	IP          string
+	VRF         string
+	Description string
+	ACLs        []ACLBinding
+}
+
+type ACL struct {
+	Name  string
+	Rules []ACLRule
+}
+
+type ACLRule struct {
+	ID             uint32
+	Permit         bool
+	Protocol       string
+	SrcIP          string
+	DstIP          string
+	DstPort        string
+	TCPFlags       []string
+	TCPMask        []string
+	TCPEstablished bool
+	ICMPType       string
+}
+
+func (r ACLRule) HasMatch() bool {
+	return r.Protocol != "" || r.SrcIP != "" || r.DstIP != ""
+}
+
+type ACLBinding struct {
+	Name      string
+	Direction string
 }
 
 type BondConfig struct {
@@ -111,10 +276,51 @@ type BondConfig struct {
 	Attached    bool
 	Up          bool
 	Description string
-	VRF         string
-	IP          string
+	ESI         string // type-0 ESI of the EVPN multihoming segment of an ESLAG connection
+	ESMAC       string
+	BridgeMember
 
 	id uint16
+}
+
+// BridgeMember is a port or bond carrying the VLANs of the VPC subnets attached to it
+type BridgeMember struct {
+	VLANs    []uint16
+	Untagged uint16
+	ACLs     []string
+}
+
+func (m *BridgeMember) attach(vlan uint16, native bool) error {
+	if slices.Contains(m.VLANs, vlan) {
+		return fmt.Errorf("vlan %d is attached more than once", vlan) //nolint:err113
+	}
+	m.VLANs = append(m.VLANs, vlan)
+	slices.Sort(m.VLANs)
+
+	if native {
+		if m.Untagged != 0 {
+			return fmt.Errorf("native vlan is already %d", m.Untagged) //nolint:err113
+		}
+		m.Untagged = vlan
+	}
+
+	return nil
+}
+
+// SubnetConfig is an attached VPC subnet: a VLAN mapped to the subnet VNI and an SVI with the anycast gateway
+type SubnetConfig struct {
+	Name          string
+	VLAN          uint16
+	VNI           uint32
+	VRF           string
+	Subnet        string
+	Gateway       string
+	IP            string
+	Description   string
+	DHCP          bool
+	ACL           string
+	Deny          map[uint32]string // subnet ID -> isolated or peered VPC subnet this one isn't permitted to reach
+	RestrictedACL string
 }
 
 func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
@@ -140,12 +346,14 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		return nil, fmt.Errorf("switch profile is missing") //nolint:err113
 	}
 
-	// PFC buffers from the NVIDIA Spectrum-X deployment guide for EVPN and adaptive routing are only set on Spectrum-4,
-	// other silicons use the PFC buffers calculated by Cumulus as the fixed ones don't fit them, e.g. exceed the SN2201
-	// port headroom max, and adaptive routing is only supported on Spectrum-4 ports at 200G and 400G
+	// all the lossless and adaptive routing config only comes with RoCE, the PFC buffers from the NVIDIA Spectrum-X
+	// deployment guide for EVPN and adaptive routing are only set on Spectrum-4, other silicons use the PFC buffers
+	// calculated by Cumulus as the fixed ones don't fit them, e.g. exceed the SN2201 port headroom max, and adaptive
+	// routing is only supported on Spectrum-4 ports at 200G and 400G
+	roce := agent.Spec.Switch.RoCE
 	isSpectrum4 := agent.Spec.SwitchProfile.SwitchSilicon == switchprofile.SiliconNVIDIASpectrum4
 	adaptiveRouting := func(port *PortConfig) bool {
-		return isSpectrum4 && (port.Speed == "200G" || port.Speed == "400G")
+		return roce && isSpectrum4 && (port.Speed == "200G" || port.Speed == "400G")
 	}
 
 	api2nos, err := agent.Spec.SwitchProfile.GetAPI2NOSPortsFor(&agent.Spec.Switch)
@@ -358,7 +566,8 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		})
 	}
 
-	// TODO configure the gateway and external connections, only their ports are brought up for now
+	neighs := []BGPNeighbor{}
+	var gateway *GatewayConfig
 	for connName, conn := range agent.Spec.Connections {
 		switch {
 		case conn.Gateway != nil:
@@ -367,11 +576,43 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 					continue
 				}
 
+				// the gateway only gets the VTEPs and only what it originates is taken from it, so it's never a transit
+				if gateway == nil {
+					domains := agent.Spec.Switch.Topology.Domains
+					if len(domains) != 1 {
+						return nil, fmt.Errorf("conn %s: switch with a gateway connection has to be in a single domain", connName) //nolint:err113
+					}
+					asn := agent.Spec.Config.Domains[domains[0]].GatewayASN
+					if asn == 0 {
+						return nil, fmt.Errorf("conn %s: no gateway ASN for domain %s", connName, domains[0]) //nolint:err113
+					}
+					vtepSubnet, err := netip.ParsePrefix(agent.Spec.Config.VTEPSubnet)
+					if err != nil {
+						return nil, fmt.Errorf("conn %s: parsing VTEP subnet: %w", connName, err)
+					}
+					gateway = &GatewayConfig{ASN: asn, VTEPSubnet: vtepSubnet.Masked().String()}
+				}
+
+				ip, err := netip.ParsePrefix(link.Switch.IP)
+				if err != nil {
+					return nil, fmt.Errorf("conn %s: parsing switch IP %q: %w", connName, link.Switch.IP, err)
+				}
+				gatewayIP, err := netip.ParsePrefix(link.Gateway.IP)
+				if err != nil {
+					return nil, fmt.Errorf("conn %s: parsing gateway IP %q: %w", connName, link.Gateway.IP, err)
+				}
+
 				port, err := usePort(link.Switch.LocalPortName())
 				if err != nil {
 					return nil, fmt.Errorf("conn %s: %w", connName, err)
 				}
 				port.Description = fmt.Sprintf("Gateway %s %s", link.Gateway.Port, connName)
+				port.IP = ip.String()
+				neighs = append(neighs, BGPNeighbor{
+					Key:         gatewayIP.Addr().String(),
+					PeerGroup:   "gateway",
+					Description: fmt.Sprintf("Gateway %s %s", link.Gateway.Port, connName),
+				})
 			}
 		case conn.External != nil:
 			if conn.External.Link.Switch.DeviceName() != agent.Name {
@@ -383,30 +624,59 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 				return nil, fmt.Errorf("conn %s: %w", connName, err)
 			}
 			port.Description = "External " + connName
+		case conn.Mesh != nil:
+			for _, link := range conn.Mesh.Links {
+				if link.Leaf1.DeviceName() == agent.Name || link.Leaf2.DeviceName() == agent.Name {
+					return nil, fmt.Errorf("conn %s: mesh connections aren't supported", connName) //nolint:err113
+				}
+			}
 		}
 	}
 
-	// bundled connections are LACP bonds named after their port channel IDs, the same as the SONiC port channels
+	// the switches of an ESLAG redundancy group use EVPN multihoming, the ESLAG bonds go down with all the uplinks
+	eslag := agent.Spec.Switch.Redundancy.Type == fmeta.RedundancyTypeESLAG
+	if eslag && !isLeaf {
+		return nil, fmt.Errorf("eslag redundancy is only supported on leaves") //nolint:err113
+	}
+
+	// bundled and ESLAG connections are LACP bonds named after their port channel IDs, the ESLAG ones are an EVPN
+	// multihoming segment with the same ESI and MAC on all the switches of the connection
 	bonds := []*BondConfig{}
 	bondsByConn := map[string]*BondConfig{}
 	bondsByID := map[uint16]string{}
 	for connName, conn := range agent.Spec.Connections {
-		if conn.Bundled == nil {
+		connType, links, fallback := "", []wiringapi.ServerToSwitchLink(nil), false
+		switch {
+		case conn.Bundled != nil:
+			connType, links, fallback = "Bundled", conn.Bundled.Links, conn.Bundled.Fallback
+		case conn.ESLAG != nil:
+			connType, links, fallback = "ESLAG", conn.ESLAG.Links, conn.ESLAG.Fallback
+		default:
 			continue
 		}
 
-		bond := &BondConfig{LACPBypass: conn.Bundled.Fallback}
+		bond := &BondConfig{LACPBypass: fallback}
 		memberPortNames := []string{}
-		for _, link := range conn.Bundled.Links {
+		for _, link := range links {
 			if link.Switch.DeviceName() != agent.Name {
 				continue
 			}
 
 			memberPortNames = append(memberPortNames, link.Switch.LocalPortName())
-			bond.Description = fmt.Sprintf("Bundled %s %s", link.Server.DeviceName(), connName)
+			bond.Description = fmt.Sprintf("%s %s %s", connType, link.Server.DeviceName(), connName)
 		}
 		if len(memberPortNames) == 0 {
 			continue
+		}
+		if conn.ESLAG != nil {
+			if !eslag {
+				return nil, fmt.Errorf("conn %s: eslag connection on a switch without eslag redundancy", connName) //nolint:err113
+			}
+			var err error
+			bond.ESI, bond.ESMAC, err = eslagSegment(agent, connName)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		bond.id = agent.Spec.Catalog.PortChannelIDs[connName]
@@ -436,7 +706,6 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		return cmp.Compare(a.id, b.id)
 	})
 
-	neighs := []BGPNeighbor{}
 	for connName, conn := range agent.Spec.Connections {
 		if conn.Fabric == nil {
 			continue
@@ -451,24 +720,20 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 				}
 
 				leafName = link.Leaf.DeviceName()
-				if link.Leaf.IP == "" || link.Spine.IP == "" {
-					return nil, fmt.Errorf("conn %s: unnumbered fabric links are not supported on Cumulus yet", connName) //nolint:err113
-				}
-				leafIP, err := netip.ParsePrefix(link.Leaf.IP)
-				if err != nil {
-					return nil, fmt.Errorf("parsing conn %s leaf IP %s: %w", connName, link.Leaf.IP, err)
-				}
 				port, err := usePort(link.Spine.LocalPortName())
 				if err != nil {
 					return nil, fmt.Errorf("conn %s: %w", connName, err)
 				}
-				neighs = append(neighs, BGPNeighbor{
-					IP:          leafIP.Addr().String(),
-					PeerGroup:   "underlay_leaf",
-					Description: "fabric underlay to leaf " + link.Leaf.Port,
-				})
+				neigh, err := fabricNeighbor(agent, connName, port.Name, link.Spine.IP, link.Leaf.IP, leafName)
+				if err != nil {
+					return nil, err
+				}
+				neigh.PeerGroup = "underlay_leaf"
+				neigh.Description = "fabric underlay to leaf " + link.Leaf.Port
+				neighs = append(neighs, neigh)
 				port.Description = fmt.Sprintf("Fabric %s %s", link.Leaf.Port, connName)
 				port.IP = link.Spine.IP
+				port.IPv6 = neigh.Unnumbered
 				port.AdaptiveRouting = adaptiveRouting(port)
 			}
 
@@ -476,8 +741,13 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 			if err != nil {
 				return nil, fmt.Errorf("parsing sw %s proto IP %s: %w", leafName, agent.Spec.Switches[leafName].ProtocolIP, err)
 			}
+			leafASN, err := peerASN(agent, leafName)
+			if err != nil {
+				return nil, fmt.Errorf("conn %s: %w", connName, err)
+			}
 			neighs = append(neighs, BGPNeighbor{
-				IP:          leafIP.Addr().String(),
+				Key:         leafIP.Addr().String(),
+				RemoteAS:    leafASN,
 				PeerGroup:   "overlay",
 				Description: "fabric overlay to leaf " + leafName,
 			})
@@ -489,36 +759,68 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 				}
 
 				spineName = link.Spine.DeviceName()
-				if link.Spine.IP == "" || link.Leaf.IP == "" {
-					return nil, fmt.Errorf("conn %s: unnumbered fabric links are not supported on Cumulus yet", connName) //nolint:err113
-				}
-				spineIP, err := netip.ParsePrefix(link.Spine.IP)
-				if err != nil {
-					return nil, fmt.Errorf("parsing conn %s spine IP %s: %w", connName, link.Spine.IP, err)
-				}
 				port, err := usePort(link.Leaf.LocalPortName())
 				if err != nil {
 					return nil, fmt.Errorf("conn %s: %w", connName, err)
 				}
-				neighs = append(neighs, BGPNeighbor{
-					IP:          spineIP.Addr().String(),
-					PeerGroup:   "underlay_spine",
-					Description: "fabric underlay to spine " + link.Spine.Port,
-				})
+				neigh, err := fabricNeighbor(agent, connName, port.Name, link.Leaf.IP, link.Spine.IP, spineName)
+				if err != nil {
+					return nil, err
+				}
+				neigh.PeerGroup = "underlay_spine"
+				neigh.Description = "fabric underlay to spine " + link.Spine.Port
+				neighs = append(neighs, neigh)
 				port.Description = fmt.Sprintf("Fabric %s %s", link.Spine.Port, connName)
 				port.IP = link.Leaf.IP
+				port.IPv6 = neigh.Unnumbered
 				port.AdaptiveRouting = adaptiveRouting(port)
+				port.ESUplink = eslag
 			}
 
 			spineIP, err := netip.ParsePrefix(agent.Spec.Switches[spineName].ProtocolIP)
 			if err != nil {
 				return nil, fmt.Errorf("parsing sw %s proto IP %s: %w", spineName, agent.Spec.Switches[spineName].ProtocolIP, err)
 			}
+			spineASN, err := peerASN(agent, spineName)
+			if err != nil {
+				return nil, fmt.Errorf("conn %s: %w", connName, err)
+			}
 			neighs = append(neighs, BGPNeighbor{
-				IP:          spineIP.Addr().String(),
+				Key:         spineIP.Addr().String(),
+				RemoteAS:    spineASN,
 				PeerGroup:   "overlay",
 				Description: "fabric overlay to spine " + spineName,
 			})
+		}
+	}
+
+	// the leaves prefer the gateway routes by their priority communities, the local preference isn't passed on by the
+	// spines, so it's set on the routes from them
+	gwPrios := []GatewayPrio{}
+	if isLeaf {
+		prios := map[uint64]string{}
+		for prioStr, comm := range agent.Spec.Config.GatewayCommunities {
+			prio, err := strconv.ParseUint(prioStr, 10, 32)
+			if err != nil {
+				return nil, fmt.Errorf("parsing gateway community priority %q: %w", prioStr, err)
+			}
+			prios[prio] = comm
+		}
+		if len(prios) > 100 {
+			return nil, fmt.Errorf("too many gateway communities: %d, max is 100", len(prios)) //nolint:err113
+		}
+		for idx, prio := range slices.Sorted(maps.Keys(prios)) {
+			gwPrios = append(gwPrios, GatewayPrio{
+				Name:      fmt.Sprintf("gw-prio-%d", prio),
+				Community: prios[prio],
+				RuleID:    idx + 1,
+				LocalPref: 200 + len(prios) - idx,
+			})
+		}
+
+		// the external routes are marked with it and get a lower local preference than the gateway ones
+		if agent.Spec.Config.BaseVPCCommunity == "" {
+			return nil, fmt.Errorf("no base VPC community") //nolint:err113
 		}
 	}
 
@@ -537,72 +839,630 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		}
 	}
 
-	vpcs := []VPC{}
+	vpcVNIs := map[string]uint32{}
+	vpcSubnets := map[string]map[uint32]string{} // vpc -> subnet VNI -> subnet
 	for vpcName, vpc := range agent.Spec.VPCs {
-		if len(vpc.Subnets) != 1 {
-			continue
+		vni := agent.Spec.Catalog.VPCVNIs[vpcName]
+		if vni == 0 {
+			return nil, fmt.Errorf("vpc %s: no VNI", vpcName) //nolint:err113
 		}
+		// VNI / 100 is the import route-map rule ID of the VPC, 50000 and up are reserved
+		if vni%100 != 0 || vni/100 >= 40000 {
+			return nil, fmt.Errorf("vpc %s: VNI %d isn't a multiple of 100 below 4000000", vpcName, vni) //nolint:err113
+		}
+		vpcVNIs[vpcName] = vni
 
+		vpcSubnets[vpcName] = map[uint32]string{}
 		for subnetName, subnet := range vpc.Subnets {
-			vni, ok := agent.Spec.Catalog.GetVPCSubnetVNI(vpcName, subnetName)
-			if !ok {
-				continue
+			if subnet == nil {
+				return nil, fmt.Errorf("subnet %s/%s: empty", vpcName, subnetName) //nolint:err113
 			}
-
-			vpcs = append(vpcs, VPC{
-				Name:      vpcName,
-				VNI:       vni,
-				RouteSumm: routeSumm[vpcName],
-				// TODO make sure to only readvertise those subnets?
-				Subnet: subnet.Subnet,
-			})
+			subnetVNI, ok := agent.Spec.Catalog.GetVPCSubnetVNI(vpcName, subnetName)
+			if !ok || subnetVNI == 0 {
+				return nil, fmt.Errorf("subnet %s/%s: no VNI", vpcName, subnetName) //nolint:err113
+			}
+			vpcSubnets[vpcName][subnetVNI] = subnet.Subnet
 		}
 	}
 
-	for attachName, attach := range agent.Spec.VPCAttachments {
+	// peered VPCs import only each other's own subnets from each other's VRFs, so peering isn't transitive
+	peers := map[string][]VPCPeer{}
+	peerSubnets := map[string]map[uint32]string{}
+	addPeer := func(vpcName, peerName string) {
+		peers[vpcName] = append(peers[vpcName], VPCPeer{Name: peerName, VRF: vpcVRF(peerName), RuleID: 10000 + vpcVNIs[peerName]/100})
+		if peerSubnets[vpcName] == nil {
+			peerSubnets[vpcName] = map[uint32]string{}
+		}
+		maps.Copy(peerSubnets[vpcName], vpcSubnets[peerName])
+	}
+	for _, peeringName := range slices.Sorted(maps.Keys(agent.Spec.VPCPeerings)) {
+		peering := agent.Spec.VPCPeerings[peeringName]
+		vpc1, vpc2, err := peering.VPCs()
+		if err != nil {
+			return nil, fmt.Errorf("vpc peering %s: %w", peeringName, err)
+		}
+		for _, vpcName := range []string{vpc1, vpc2} {
+			if _, ok := agent.Spec.VPCs[vpcName]; !ok {
+				return nil, fmt.Errorf("vpc peering %s: vpc %s not found", peeringName, vpcName) //nolint:err113
+			}
+		}
+		addPeer(vpc1, vpc2)
+		addPeer(vpc2, vpc1)
+	}
+
+	// a VRF per VPC attached to the switch or peered with one, with the VPC VNI as L3VNI
+	vpcs := []VPC{}
+	for vpcName, vpc := range agent.Spec.VPCs {
+		subnets := map[uint32]string{}
+		for subnetVNI, subnet := range vpcSubnets[vpcName] {
+			subnets[subnetVNI%100] = subnet
+		}
+
+		// static routes are only local to the switches the VPC is attached to, they aren't redistributed
+		routes := map[string][]string{}
+		staticRoutes := vpc.StaticRoutes
+		if !agent.Spec.AttachedVPCs[vpcName] {
+			staticRoutes = nil
+		}
+		for idx, route := range staticRoutes {
+			prefix, err := netip.ParsePrefix(route.Prefix)
+			if err != nil || !prefix.Addr().Is4() {
+				return nil, fmt.Errorf("vpc %s: static route #%d: invalid prefix %q", vpcName, idx, route.Prefix) //nolint:err113
+			}
+			if _, ok := routes[prefix.String()]; ok {
+				return nil, fmt.Errorf("vpc %s: static route #%d: prefix %s is used more than once", vpcName, idx, prefix) //nolint:err113
+			}
+			if len(route.NextHops) == 0 {
+				return nil, fmt.Errorf("vpc %s: static route #%d: no next hops", vpcName, idx) //nolint:err113
+			}
+			for _, nextHop := range route.NextHops {
+				addr, err := netip.ParseAddr(nextHop)
+				if err != nil || !addr.Is4() {
+					return nil, fmt.Errorf("vpc %s: static route #%d: invalid next hop %q", vpcName, idx, nextHop) //nolint:err113
+				}
+				routes[prefix.String()] = append(routes[prefix.String()], addr.String())
+			}
+			slices.Sort(routes[prefix.String()])
+		}
+
+		vpcs = append(vpcs, VPC{
+			Name:        vpcName,
+			VRF:         vpcVRF(vpcName),
+			VNI:         vpcVNIs[vpcName],
+			Subnets:     subnets,
+			RouteSumm:   routeSumm[vpcName],
+			Peers:       slices.SortedFunc(slices.Values(peers[vpcName]), func(a, b VPCPeer) int { return cmp.Compare(a.Name, b.Name) }),
+			PeerSubnets: peerSubnets[vpcName],
+			Routes:      routes,
+		})
+	}
+
+	// the externals attached to the switch get a VRF with the external VNI as L3VNI, the attachments get the IP in it
+	// on a VLAN subinterface or on the port itself without a VLAN
+	externals := map[string]*External{}
+	subifs := []*SubinterfaceConfig{}
+	bfdProfiles := []BFDProfile{}
+	ipv4Namespaces := map[string]bool{}
+	egressNamespaces := map[string]string{} // IPv4 namespace -> first external in it
+	acls := []*ACL{}
+	extVLANs := map[string]map[uint16]string{} // port -> VLAN -> attachment
+	extNeighbors := map[string]string{}        // external VRF/neighbor -> attachment
+	for _, attachName := range slices.Sorted(maps.Keys(agent.Spec.ExternalAttachments)) {
+		attach := agent.Spec.ExternalAttachments[attachName]
+		conn, ok := agent.Spec.Connections[attach.Connection]
+		if !ok {
+			return nil, fmt.Errorf("external attachment %s: conn %s not found", attachName, attach.Connection) //nolint:err113
+		}
+		if conn.External == nil || conn.External.Link.Switch.DeviceName() != agent.Name {
+			return nil, fmt.Errorf("external attachment %s: conn %s isn't an external conn of the switch", attachName, attach.Connection) //nolint:err113
+		}
+		extSpec, ok := agent.Spec.Externals[attach.External]
+		if !ok {
+			return nil, fmt.Errorf("external attachment %s: external %s not found", attachName, attach.External) //nolint:err113
+		}
+		ext, ok := externals[attach.External]
+		if !ok {
+			vni := agent.Spec.Catalog.VPCVNIs[librarian.ReqForExt(attach.External)]
+			if vni == 0 {
+				return nil, fmt.Errorf("external %s: no VNI", attach.External) //nolint:err113
+			}
+			ext = &External{Name: attach.External, VRF: extVRF(attach.External), VNI: vni, Routes: map[string][]string{}}
+			externals[attach.External] = ext
+		}
+
+		vlan, ip := attach.Switch.VLAN, attach.Switch.IP
+		if attach.Static != nil {
+			vlan, ip = attach.Static.VLAN, attach.Static.IP
+		}
+		// no IP is BGP unnumbered
+		var prefix netip.Prefix
+		if ip != "" {
+			var err error
+			prefix, err = netip.ParsePrefix(ip)
+			if err != nil || !prefix.Addr().Is4() {
+				return nil, fmt.Errorf("external attachment %s: invalid IP %q", attachName, ip) //nolint:err113
+			}
+			ip = prefix.String()
+		}
+
+		portName, err := nosPortName(api2nos, conn.External.Link.Switch.LocalPortName())
+		if err != nil {
+			return nil, fmt.Errorf("external attachment %s: %w", attachName, err)
+		}
+		if other, ok := extVLANs[portName][vlan]; ok {
+			return nil, fmt.Errorf("external attachment %s: vlan %d on port %s is already used by %s", attachName, vlan, portName, other) //nolint:err113
+		}
+		if extVLANs[portName] == nil {
+			extVLANs[portName] = map[uint16]string{}
+		}
+		extVLANs[portName][vlan] = attachName
+
+		ifaceName := portName
+		if vlan != 0 {
+			ifaceName = fmt.Sprintf("%s.%d", portName, vlan)
+		}
+
+		// the static external prefixes are routed via its remote IP and redistributed into the fabric with the base VPC
+		// community, which marks them as external routes
+		if attach.Static != nil {
+			if !prefix.IsValid() {
+				return nil, fmt.Errorf("external attachment %s: no IP", attachName) //nolint:err113
+			}
+			if agent.Spec.Config.BaseVPCCommunity == "" {
+				return nil, fmt.Errorf("external attachment %s: no base VPC community", attachName) //nolint:err113
+			}
+			remoteIP, err := netip.ParseAddr(attach.Static.RemoteIP)
+			if err != nil || !remoteIP.Is4() {
+				return nil, fmt.Errorf("external attachment %s: invalid remote IP %q", attachName, attach.Static.RemoteIP) //nolint:err113
+			}
+
+			addRoute := func(prefix, nextHop string) {
+				if !slices.Contains(ext.Routes[prefix], nextHop) {
+					ext.Routes[prefix] = append(ext.Routes[prefix], nextHop)
+					slices.Sort(ext.Routes[prefix])
+				}
+			}
+			ext.Static = true
+			if !prefix.Contains(remoteIP) {
+				addRoute(netip.PrefixFrom(remoteIP, 32).String(), ifaceName)
+			}
+			if extSpec.Static == nil {
+				// the external can lose its prefixes concurrently with the attachment being created, so the link stays
+				// up without routes instead of failing the whole config
+				slog.Warn("Static external attachment whose external has no static prefixes, skipping its routes", "attach", attachName, "external", attach.External)
+			} else {
+				for _, staticPrefix := range extSpec.Static.Prefixes {
+					parsed, err := netip.ParsePrefix(staticPrefix)
+					if err != nil || !parsed.Addr().Is4() {
+						return nil, fmt.Errorf("external %s: invalid static prefix %q", attach.External, staticPrefix) //nolint:err113
+					}
+					addRoute(parsed.String(), remoteIP.String())
+				}
+			}
+		}
+
+		unnumbered := false
+		if attach.Static == nil {
+			neigh, bfd, err := externalNeighbor(agent, attachName, attach, extSpec, ifaceName)
+			if err != nil {
+				return nil, err
+			}
+			neighID := ext.VRF + "/" + neigh.Key
+			if other, ok := extNeighbors[neighID]; ok {
+				return nil, fmt.Errorf("external attachment %s: neighbor %s is already used by %s", attachName, neigh.Key, other) //nolint:err113
+			}
+			extNeighbors[neighID] = attachName
+			if len(ext.Neighbors) == 0 {
+				if err := externalBGPPolicy(agent, ext, extSpec); err != nil {
+					return nil, err
+				}
+				ipv4Namespaces[ext.IPv4Namespace] = true
+			}
+			ext.Neighbors = append(ext.Neighbors, neigh)
+			if bfd != nil {
+				bfdProfiles = append(bfdProfiles, *bfd)
+			}
+			unnumbered = neigh.Unnumbered
+		}
+
+		// the inbound ACL is applied in hardware ahead of the trap to the CPU, so it filters the traffic to the switch too,
+		// the name comes from the interface as the attachment name can have dots
+		aclBindings := []ACLBinding{}
+		inboundRules, err := extInboundACLRules(attachName, prefix, attach.InboundACL)
+		if err != nil {
+			return nil, err
+		}
+		if len(inboundRules) > 0 {
+			name := "ext-inbound--" + strings.ReplaceAll(ifaceName, ".", "-")
+			acls = append(acls, &ACL{Name: name, Rules: inboundRules})
+			aclBindings = append(aclBindings, ACLBinding{Name: name, Direction: "inbound"})
+		}
+		aclBindings = append(aclBindings, ACLBinding{Name: ipnsEgressACL(extSpec.IPv4Namespace), Direction: "outbound"})
+		if _, ok := egressNamespaces[extSpec.IPv4Namespace]; !ok {
+			egressNamespaces[extSpec.IPv4Namespace] = attach.External
+		}
+
+		if vlan == 0 {
+			port := portsByName[portName]
+			port.IP = ip
+			port.IPv6 = unnumbered
+			port.VRF = extVRF(attach.External)
+			port.ExtACLs = aclBindings
+
+			continue
+		}
+		subifs = append(subifs, &SubinterfaceConfig{
+			Name:        ifaceName,
+			Port:        portName,
+			VLAN:        vlan,
+			IP:          ip,
+			VRF:         extVRF(attach.External),
+			Description: "External " + attachName,
+			ACLs:        aclBindings,
+		})
+	}
+
+	// static external connections get the IP on the port or a VLAN subinterface in the default or the VPC VRF and the
+	// routes to their subnets via the next hop, the link subnet and the routed subnets are redistributed into the
+	// underlay or the VPC, the VPC peerings only import the VPC subnets, so they aren't leaked to the peers
+	staticExtSubnets := map[uint32]string{}
+	staticRoutes := map[string][]string{}
+	for _, connName := range slices.Sorted(maps.Keys(agent.Spec.Connections)) {
+		conn := agent.Spec.Connections[connName]
+		if conn.StaticExternal == nil || conn.StaticExternal.Link.Switch.DeviceName() != agent.Name {
+			continue
+		}
+		if !isLeaf {
+			return nil, fmt.Errorf("conn %s: static externals are only supported on leaves", connName) //nolint:err113
+		}
+
+		cfg := conn.StaticExternal.Link.Switch
+		ip, err := netip.ParsePrefix(cfg.IP)
+		if err != nil || !ip.Addr().Is4() {
+			return nil, fmt.Errorf("conn %s: invalid IP %q", connName, cfg.IP) //nolint:err113
+		}
+		nextHop, err := netip.ParseAddr(cfg.NextHop)
+		if err != nil || !nextHop.Is4() {
+			return nil, fmt.Errorf("conn %s: invalid next hop %q", connName, cfg.NextHop) //nolint:err113
+		}
+
+		vrf, prefixes, routes := "default", staticExtSubnets, staticRoutes
+		if vpcName := conn.StaticExternal.WithinVPC; vpcName != "" {
+			idx := slices.IndexFunc(vpcs, func(vpc VPC) bool { return vpc.Name == vpcName })
+			if idx < 0 {
+				return nil, fmt.Errorf("conn %s: vpc %s not found", connName, vpcName) //nolint:err113
+			}
+			vpc := &vpcs[idx]
+			if vpc.StaticExtSubnets == nil {
+				vpc.StaticExtSubnets = map[uint32]string{}
+			}
+			vrf, prefixes, routes = vpc.VRF, vpc.StaticExtSubnets, vpc.Routes
+		}
+
+		port, err := usePort(cfg.LocalPortName())
+		if err != nil {
+			return nil, fmt.Errorf("conn %s: %w", connName, err)
+		}
+		port.Description = "StaticExternal " + connName
+		if cfg.VLAN == 0 {
+			port.IP = ip.String()
+			if vrf != "default" {
+				port.VRF = vrf
+			}
+		} else {
+			subifs = append(subifs, &SubinterfaceConfig{
+				Name:        fmt.Sprintf("%s.%d", port.Name, cfg.VLAN),
+				Port:        port.Name,
+				VLAN:        cfg.VLAN,
+				IP:          ip.String(),
+				VRF:         vrf,
+				Description: "StaticExternal " + connName,
+			})
+		}
+
+		for idx, subnet := range append([]string{ip.Masked().String()}, cfg.Subnets...) {
+			prefix, err := netip.ParsePrefix(subnet)
+			if err != nil || !prefix.Addr().Is4() {
+				return nil, fmt.Errorf("conn %s: invalid subnet %q", connName, subnet) //nolint:err113
+			}
+			id := agent.Spec.Catalog.SubnetIDs[subnet]
+			if id < 100 || id >= 65000 {
+				return nil, fmt.Errorf("conn %s: subnet %s: ID %d isn't between 100 and 65000", connName, subnet, id) //nolint:err113
+			}
+			prefixes[id] = prefix.String()
+
+			// the first one is the link subnet
+			if idx == 0 {
+				continue
+			}
+			if _, ok := routes[prefix.String()]; ok {
+				return nil, fmt.Errorf("conn %s: route to %s is already configured in vrf %s", connName, prefix, vrf) //nolint:err113
+			}
+			routes[prefix.String()] = []string{nextHop.String()}
+		}
+	}
+
+	// the traffic from the fabric to the IPv4 namespace subnets mustn't leave through an external
+	for _, nsName := range slices.Sorted(maps.Keys(egressNamespaces)) {
+		ns, ok := agent.Spec.IPv4Namespaces[nsName]
+		if !ok {
+			return nil, fmt.Errorf("external %s: ipv4 namespace %s not found", egressNamespaces[nsName], nsName) //nolint:err113
+		}
+		acl := &ACL{Name: ipnsEgressACL(nsName)}
+		for idx, subnet := range ns.Subnets {
+			parsed, err := netip.ParsePrefix(subnet)
+			if err != nil || !parsed.Addr().Is4() {
+				return nil, fmt.Errorf("ipv4 namespace %s: invalid subnet %q", nsName, subnet) //nolint:err113
+			}
+			acl.Rules = append(acl.Rules, ACLRule{ID: uint32(10 * (idx + 1)), DstIP: parsed.String()})
+		}
+		acl.Rules = append(acl.Rules, ACLRule{ID: 65535, Permit: true})
+		acls = append(acls, acl)
+	}
+	slices.SortFunc(subifs, func(a, b *SubinterfaceConfig) int {
+		return cmp.Or(cmp.Compare(a.Port, b.Port), cmp.Compare(a.VLAN, b.VLAN))
+	})
+
+	bgpExternals := len(ipv4Namespaces) > 0
+
+	// the VPCs peered with an external import its permitted prefixes, except for the ones in the VPC's IPv4 namespace, and
+	// the external imports the permitted VPC subnets
+	extPeers := map[string][]VPCExtPeer{}
+	for _, peeringName := range slices.Sorted(maps.Keys(agent.Spec.ExternalPeerings)) {
+		peering := agent.Spec.ExternalPeerings[peeringName]
+		extName, vpcName := peering.Permit.External.Name, peering.Permit.VPC.Name
+		ext, ok := externals[extName]
+		if !ok {
+			return nil, fmt.Errorf("external peering %s: external %s isn't attached to the switch", peeringName, extName) //nolint:err113
+		}
+		vpc, ok := agent.Spec.VPCs[vpcName]
+		if !ok {
+			return nil, fmt.Errorf("external peering %s: vpc %s not found", peeringName, vpcName) //nolint:err113
+		}
+		if _, ok := agent.Spec.IPv4Namespaces[vpc.IPv4Namespace]; !ok {
+			return nil, fmt.Errorf("external peering %s: ipv4 namespace %s not found", peeringName, vpc.IPv4Namespace) //nolint:err113
+		}
+		if slices.ContainsFunc(extPeers[vpcName], func(peer VPCExtPeer) bool { return peer.Name == extName }) {
+			return nil, fmt.Errorf("external peering %s: vpc %s is already peered with external %s", peeringName, vpcName, extName) //nolint:err113
+		}
+		// the import route-map rules of the externals are 5000+ID and 50000+ID, so they don't overlap with the VPC ones
+		extID := agent.Spec.Catalog.ExternalIDs[extName]
+		if extID < 10 || extID >= 5000 {
+			return nil, fmt.Errorf("external %s: external ID %d isn't between 10 and 5000", extName, extID) //nolint:err113
+		}
+		prefixID := func(prefix string) (uint32, error) {
+			id := agent.Spec.Catalog.SubnetIDs[prefix]
+			if id == 0 || id >= 65000 {
+				return 0, fmt.Errorf("external peering %s: prefix %s: ID %d isn't between 1 and 65000", peeringName, prefix, id) //nolint:err113
+			}
+
+			return id, nil
+		}
+
+		for _, subnetName := range peering.Permit.VPC.Subnets {
+			subnet, ok := vpc.Subnets[subnetName]
+			if !ok || subnet == nil {
+				return nil, fmt.Errorf("external peering %s: subnet %s/%s not found", peeringName, vpcName, subnetName) //nolint:err113
+			}
+			id, err := prefixID(subnet.Subnet)
+			if err != nil {
+				return nil, err
+			}
+			if ext.ImportPrefixes == nil {
+				ext.ImportPrefixes = map[uint32]string{}
+			}
+			ext.ImportPrefixes[id] = subnet.Subnet
+			if !slices.Contains(ext.ImportVRFs, vpcVRF(vpcName)) {
+				ext.ImportVRFs = append(ext.ImportVRFs, vpcVRF(vpcName))
+				slices.Sort(ext.ImportVRFs)
+			}
+		}
+
+		prefixes := map[uint32]string{}
+		for _, prefix := range peering.Permit.External.Prefixes {
+			id, err := prefixID(prefix.Prefix)
+			if err != nil {
+				return nil, err
+			}
+			prefixes[id] = prefix.Prefix
+		}
+		if len(prefixes) == 0 {
+			continue
+		}
+		// the routes from a BGP external also have to carry its inbound community
+		commList := ""
+		if ext.InboundCommunity != "" {
+			commList = "ext-inbound--" + extName
+		}
+		// the permit rule matches the source VRF, as another external peered with the VPC could otherwise get its routes
+		// in for the prefixes this one permits
+		extPeers[vpcName] = append(extPeers[vpcName], VPCExtPeer{
+			Name:          extName,
+			VRF:           ext.VRF,
+			DenyRuleID:    5000 + uint32(extID),
+			PermitRuleID:  50000 + uint32(extID),
+			IPv4Namespace: vpc.IPv4Namespace,
+			PrefixList:    fmt.Sprintf("import-vrf--%s--%s", vpcName, extName),
+			Prefixes:      prefixes,
+			CommunityList: commList,
+		})
+		ipv4Namespaces[vpc.IPv4Namespace] = true
+	}
+	for idx := range vpcs {
+		vpc := &vpcs[idx]
+		vpc.ExtPeers = extPeers[vpc.Name]
+		for _, peer := range vpc.Peers {
+			vpc.ImportVRFs = append(vpc.ImportVRFs, peer.VRF)
+		}
+		for _, peer := range vpc.ExtPeers {
+			vpc.ImportVRFs = append(vpc.ImportVRFs, peer.VRF)
+		}
+		slices.Sort(vpc.ImportVRFs)
+	}
+
+	// an external can send back the routes it got from the fabric over another attachment or border leaf, which the BGP
+	// loop prevention doesn't catch as they don't have the leaf's own ASN in the path, so the routes from the BGP
+	// externals with the spine or gateway ASN of the switch's domain in the path are dropped
+	fabricASPaths := map[int]string{}
+	if bgpExternals {
+		domains := agent.Spec.Switch.Topology.Domains
+		if len(domains) != 1 {
+			return nil, fmt.Errorf("switch with a BGP external has to be in a single domain") //nolint:err113
+		}
+		domain, ok := agent.Spec.Config.Domains[domains[0]]
+		if !ok {
+			return nil, fmt.Errorf("domain %s not found", domains[0]) //nolint:err113
+		}
+		if domain.SpineASN != 0 {
+			fabricASPaths[10] = fmt.Sprintf("_%d_", domain.SpineASN)
+		}
+		if domain.GatewayASN != 0 {
+			fabricASPaths[20] = fmt.Sprintf("_%d_", domain.GatewayASN)
+		}
+	}
+
+	nsList := []IPv4Namespace{}
+	for _, nsName := range slices.Sorted(maps.Keys(ipv4Namespaces)) {
+		subnets := map[int]string{}
+		for idx, subnet := range agent.Spec.IPv4Namespaces[nsName].Subnets {
+			subnets[idx+1] = subnet
+		}
+		nsList = append(nsList, IPv4Namespace{Name: nsName, Subnets: subnets})
+	}
+
+	// the DHCP relay sends a reply out of the first interface with the IP from the link selection it got, so the SVIs
+	// need unique IPs of their own, taken as base + VLAN
+	sviSubnet, err := fmeta.ParseCumulusSVIWorkaroundSubnet(agent.Spec.Config.CumulusSVIWorkaroundSubnet)
+	if err != nil {
+		return nil, fmt.Errorf("config: %w", err)
+	}
+	sviBase := sviSubnet.Addr().As4()
+
+	// attached VPC subnets are VLANs mapped to the subnet VNIs with an SVI in the VPC VRF, carried by the ports and
+	// bonds of the attached connections
+	subnetsByName := map[string]*SubnetConfig{}
+	subnetsByVLAN := map[uint16]string{}
+	unbundledPorts := map[string]*PortConfig{}
+	for _, attachName := range slices.Sorted(maps.Keys(agent.Spec.VPCAttachments)) {
+		attach := agent.Spec.VPCAttachments[attachName]
 		conn, ok := agent.Spec.Connections[attach.Connection]
 		if !ok {
 			continue
 		}
-
-		bond := bondsByConn[attach.Connection]
-		if bond == nil && (conn.Unbundled == nil || conn.Unbundled.Link.Switch.DeviceName() != agent.Name) {
-			continue
-		}
-
-		vpcName := attach.VPCName()
-
-		ip := ""
-		if p2pSubnet, ok := attach.Annotations[vpcapi.AnnotationVPCAttachmentP2PLink]; ok && p2pSubnet != "" {
-			p2p, err := netip.ParsePrefix(p2pSubnet)
-			if err != nil {
-				return nil, fmt.Errorf("parsing p2p subnet %q for vpc attachment %q: %w", p2pSubnet, attachName, err)
-			}
-			if !p2p.IsValid() || !p2p.Addr().Is4() || p2p.Bits() != 31 {
-				return nil, fmt.Errorf("p2p subnet %q for vpc attachment %q is not /31", p2pSubnet, attachName) //nolint:err113
-			}
-			ip = netip.PrefixFrom(p2p.Masked().Addr().Next(), p2p.Bits()).String() // even goes to the host, odd to the switch
-		}
-
-		if bond != nil {
-			if bond.Attached {
-				return nil, fmt.Errorf("vpc attachment %q: bond %s is used more than once", attachName, bond.Name) //nolint:err113
-			}
+		var member *BridgeMember
+		if bond := bondsByConn[attach.Connection]; bond != nil {
 			bond.Attached = true
-			bond.VRF = vpcName
-			bond.IP = ip
+			member = &bond.BridgeMember
+		} else if conn.Unbundled != nil && conn.Unbundled.Link.Switch.DeviceName() == agent.Name {
+			port, ok := unbundledPorts[attach.Connection]
+			if !ok {
+				var err error
+				port, err = usePort(conn.Unbundled.Link.Switch.LocalPortName())
+				if err != nil {
+					return nil, fmt.Errorf("vpc attachment %q: %w", attachName, err)
+				}
+				port.Description = fmt.Sprintf("Unbundled %s %s", conn.Unbundled.Link.Server.DeviceName(), attach.Connection)
+				unbundledPorts[attach.Connection] = port
+			}
+			member = &port.BridgeMember
+		} else {
+			_, _, connPorts, _, err := conn.Endpoints()
+			if err != nil {
+				return nil, fmt.Errorf("vpc attachment %q: getting conn %s endpoints: %w", attachName, attach.Connection, err)
+			}
+			if slices.ContainsFunc(connPorts, func(port string) bool { return strings.HasPrefix(port, agent.Name+"/") }) {
+				return nil, fmt.Errorf("vpc attachment %q: conn %s type isn't supported", attachName, attach.Connection) //nolint:err113
+			}
 
 			continue
 		}
 
-		port, err := usePort(conn.Unbundled.Link.Switch.LocalPortName())
-		if err != nil {
+		subnetCfg, ok := subnetsByName[attach.Subnet]
+		if !ok {
+			vpcName, subnetName := attach.VPCName(), attach.SubnetName()
+			vpc, ok := agent.Spec.VPCs[vpcName]
+			if !ok {
+				return nil, fmt.Errorf("vpc attachment %q: vpc %s not found", attachName, vpcName) //nolint:err113
+			}
+			subnet, ok := vpc.Subnets[subnetName]
+			if !ok || subnet == nil {
+				return nil, fmt.Errorf("vpc attachment %q: subnet %s not found", attachName, attach.Subnet) //nolint:err113
+			}
+			vni, ok := agent.Spec.Catalog.GetVPCSubnetVNI(vpcName, subnetName)
+			if !ok || vni == 0 {
+				return nil, fmt.Errorf("vpc attachment %q: subnet %s: no VNI", attachName, attach.Subnet) //nolint:err113
+			}
+			if subnet.VLAN == 0 {
+				return nil, fmt.Errorf("vpc attachment %q: subnet %s: no VLAN", attachName, attach.Subnet) //nolint:err113
+			}
+			if other, ok := subnetsByVLAN[subnet.VLAN]; ok {
+				return nil, fmt.Errorf("vpc attachment %q: vlan %d is used by both subnet %s and %s", attachName, subnet.VLAN, attach.Subnet, other) //nolint:err113
+			}
+			prefix, err := netip.ParsePrefix(subnet.Subnet)
+			if err != nil {
+				return nil, fmt.Errorf("vpc attachment %q: parsing subnet %s: %w", attachName, subnet.Subnet, err)
+			}
+			gateway, err := netip.ParseAddr(subnet.Gateway)
+			if err != nil {
+				return nil, fmt.Errorf("vpc attachment %q: parsing gateway %s: %w", attachName, subnet.Gateway, err)
+			}
+			sviIP := netip.AddrFrom4([4]byte(binary.BigEndian.AppendUint32(nil, binary.BigEndian.Uint32(sviBase[:])+uint32(subnet.VLAN))))
+			if !sviSubnet.Contains(sviIP) {
+				return nil, fmt.Errorf("vpc attachment %q: vlan %d doesn't fit Cumulus SVI workaround subnet %s", attachName, subnet.VLAN, sviSubnet) //nolint:err113
+			}
+
+			subnetCfg = &SubnetConfig{
+				Name:        fmt.Sprintf("vlan%d", subnet.VLAN),
+				VLAN:        subnet.VLAN,
+				VNI:         vni,
+				VRF:         vpcVRF(vpcName),
+				Subnet:      subnet.Subnet,
+				Gateway:     netip.PrefixFrom(gateway, prefix.Bits()).String(),
+				IP:          netip.PrefixFrom(sviIP, 32).String(),
+				Description: "VPC " + attach.Subnet,
+				DHCP:        subnet.DHCP.Enable,
+				ACL:         fmt.Sprintf("vpc-filtering--%s--%s", vpcName, subnetName),
+				Deny:        map[uint32]string{},
+			}
+			if err := denyIsolatedSubnets(agent, subnetCfg, vpcName, subnetName); err != nil {
+				return nil, fmt.Errorf("vpc attachment %q: %w", attachName, err)
+			}
+			// an ACL on the SVI only gets the routed traffic, so the traffic within a restricted subnet is dropped on the
+			// ingress of the ports and bonds it's attached to
+			if vpc.IsSubnetRestricted(subnetName) {
+				subnetCfg.RestrictedACL = fmt.Sprintf("vpc-restricted--%s--%s", vpcName, subnetName)
+			}
+			subnetsByName[attach.Subnet] = subnetCfg
+			subnetsByVLAN[subnet.VLAN] = attach.Subnet
+		}
+
+		if err := member.attach(subnetCfg.VLAN, attach.NativeVLAN); err != nil {
 			return nil, fmt.Errorf("vpc attachment %q: %w", attachName, err)
 		}
-		port.Description = fmt.Sprintf("Unbundled %s %s", conn.Unbundled.Link.Server.DeviceName(), attach.Connection)
-		port.VRF = vpcName
-		port.IP = ip
+		if subnetCfg.RestrictedACL != "" {
+			member.ACLs = append(member.ACLs, subnetCfg.RestrictedACL)
+		}
 	}
+
+	// the routes are imported for the whole peered VPCs, so the traffic to the peered subnets that aren't permitted is
+	// dropped on the ingress of the attached subnets
+	for _, peeringName := range slices.Sorted(maps.Keys(agent.Spec.VPCPeerings)) {
+		peering := agent.Spec.VPCPeerings[peeringName]
+		vpc1, vpc2, err := peering.VPCs()
+		if err != nil {
+			return nil, fmt.Errorf("vpc peering %s: %w", peeringName, err)
+		}
+		if err := denyPeerSubnets(agent, subnetsByName, peering, vpc1, vpc2); err != nil {
+			return nil, fmt.Errorf("vpc peering %s: %w", peeringName, err)
+		}
+		if err := denyPeerSubnets(agent, subnetsByName, peering, vpc2, vpc1); err != nil {
+			return nil, fmt.Errorf("vpc peering %s: %w", peeringName, err)
+		}
+	}
+
+	subnets := slices.SortedFunc(maps.Values(subnetsByName), func(a, b *SubnetConfig) int {
+		return cmp.Compare(a.VLAN, b.VLAN)
+	})
 
 	for _, port := range ports {
 		if port.Breakout != "" {
@@ -625,32 +1485,52 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 
 	slices.SortFunc(neighs, func(a, b BGPNeighbor) int {
 		// not ideal, but gives stable ordering
-		return strings.Compare(a.IP, b.IP)
+		return strings.Compare(a.Key, b.Key)
 	})
 	slices.SortFunc(vpcs, func(a, b VPC) int {
 		return strings.Compare(a.Name, b.Name)
 	})
 
 	cfgIn := ConfigIn{
-		Hostname:     agent.Name,
-		Users:        users,
-		NTPServer:    controlVIP.Addr().String(),
-		ManagementIP: agent.Spec.Switch.IP,
-		ProtocolIP:   agent.Spec.Switch.ProtocolIP,
-		VTEPIP:       agent.Spec.Switch.VTEPIP,
-		ASN:          agent.Spec.Switch.ASN,
-		RouterID:     protocolIP.Addr().String(),
-		VXLANSource:  vtepIP.Addr().String(),
-		VPCs:         vpcs,
-		BGPNeighbors: neighs,
-		Ports:        ports,
-		Bonds:        bonds,
-		IsSpine:      isSpine,
-		IsLeaf:       isLeaf,
-		IsSpectrum4:  isSpectrum4,
+		Hostname:         agent.Name,
+		Users:            users,
+		NTPServer:        controlVIP.Addr().String(),
+		ManagementIP:     agent.Spec.Switch.IP,
+		ProtocolIP:       agent.Spec.Switch.ProtocolIP,
+		VTEPIP:           agent.Spec.Switch.VTEPIP,
+		ASN:              agent.Spec.Switch.ASN,
+		RouterID:         protocolIP.Addr().String(),
+		VXLANSource:      vtepIP.Addr().String(),
+		VPCs:             vpcs,
+		Externals:        slices.SortedFunc(maps.Values(externals), func(a, b *External) int { return cmp.Compare(a.Name, b.Name) }),
+		BGPExternals:     bgpExternals,
+		FabricASPaths:    fabricASPaths,
+		IPv4Namespaces:   nsList,
+		BFDProfiles:      bfdProfiles,
+		BFD:              !agent.Spec.Config.DisableBFD,
+		BaseVPCCommunity: agent.Spec.Config.BaseVPCCommunity,
+		BGPNeighbors:     neighs,
+		StaticExtSubnets: staticExtSubnets,
+		StaticRoutes:     staticRoutes,
+		Gateway:          gateway,
+		GatewayPrios:     gwPrios,
+		Ports:            ports,
+		Bonds:            bonds,
+		ESLAG:            eslag,
+		Subinterfaces:    subifs,
+		Subnets:          subnets,
+		SubnetACLs:       slices.DeleteFunc(slices.Clone(subnets), func(subnet *SubnetConfig) bool { return len(subnet.Deny) == 0 }),
+		Restricted:       slices.DeleteFunc(slices.Clone(subnets), func(subnet *SubnetConfig) bool { return subnet.RestrictedACL == "" }),
+		ACLs:             acls,
+		IsSpine:          isSpine,
+		IsLeaf:           isLeaf,
+		RoCE:             roce,
+		IsSpectrum4:      isSpectrum4,
+	}
 
-		// TODO remove hard-coded value and properly handle
-		HostSubnet: "10.0.0.0/8",
+	// the DHCP requests from the subnets with DHCP enabled are relayed to the control node over the management network
+	if slices.ContainsFunc(subnets, func(subnet *SubnetConfig) bool { return subnet.DHCP }) {
+		cfgIn.DHCPServer = controlVIP.Addr().String()
 	}
 
 	// TODO cache template
@@ -685,6 +1565,395 @@ type ZTPIn struct {
 	KubeConfig    string
 	AgentConfig   string
 	AgentVersion  string
+}
+
+// denyIsolatedSubnets adds the other isolated subnets of the VPC to the attached subnet, unless a VPC permit list
+// includes both of them
+func denyIsolatedSubnets(agent *agentapi.Agent, subnetCfg *SubnetConfig, vpcName, subnetName string) error {
+	vpc := agent.Spec.VPCs[vpcName]
+	permitted := map[string]bool{}
+	for idx, permit := range vpc.Permit {
+		if !slices.Contains(permit, subnetName) {
+			continue
+		}
+		for _, otherName := range permit {
+			if _, ok := vpc.Subnets[otherName]; !ok {
+				return fmt.Errorf("vpc %s: permit #%d: subnet %s not found", vpcName, idx, otherName) //nolint:err113
+			}
+			permitted[otherName] = true
+		}
+	}
+
+	for otherName, other := range vpc.Subnets {
+		if otherName == subnetName || other == nil || permitted[otherName] || !vpc.IsSubnetIsolated(otherName) {
+			continue
+		}
+		subnetID := agent.Spec.Catalog.SubnetIDs[other.Subnet]
+		if subnetID < 100 || subnetID >= 65000 {
+			return fmt.Errorf("subnet %s/%s: subnet ID %d isn't between 100 and 65000", vpcName, otherName, subnetID) //nolint:err113
+		}
+		subnetCfg.Deny[subnetID] = other.Subnet
+	}
+
+	return nil
+}
+
+// denyPeerSubnets adds the subnets of the peer VPC that aren't permitted to the attached subnets of the VPC, the subnet
+// lists of a permit entry default to all subnets
+func denyPeerSubnets(agent *agentapi.Agent, subnetsByName map[string]*SubnetConfig, peering vpcapi.VPCPeeringSpec, vpcName, peerName string) error {
+	peer := agent.Spec.VPCs[peerName]
+	for idx, permit := range peering.Permit {
+		for _, peerSubnetName := range permit[peerName].Subnets {
+			if _, ok := peer.Subnets[peerSubnetName]; !ok {
+				return fmt.Errorf("permit #%d: subnet %s/%s not found", idx, peerName, peerSubnetName) //nolint:err113
+			}
+		}
+	}
+
+	for subnetName := range agent.Spec.VPCs[vpcName].Subnets {
+		subnetCfg, ok := subnetsByName[vpcName+"/"+subnetName]
+		if !ok {
+			continue
+		}
+
+		permitted := map[string]bool{}
+		for _, permit := range peering.Permit {
+			if own := permit[vpcName].Subnets; len(own) > 0 && !slices.Contains(own, subnetName) {
+				continue
+			}
+			peerSubnets := permit[peerName].Subnets
+			if len(peerSubnets) == 0 {
+				peerSubnets = slices.Collect(maps.Keys(peer.Subnets))
+			}
+			for _, peerSubnetName := range peerSubnets {
+				permitted[peerSubnetName] = true
+			}
+		}
+
+		for peerSubnetName, peerSubnet := range peer.Subnets {
+			if permitted[peerSubnetName] {
+				continue
+			}
+			subnetID := agent.Spec.Catalog.SubnetIDs[peerSubnet.Subnet]
+			if subnetID < 100 || subnetID >= 65000 {
+				return fmt.Errorf("subnet %s/%s: subnet ID %d isn't between 100 and 65000", peerName, peerSubnetName, subnetID) //nolint:err113
+			}
+			subnetCfg.Deny[subnetID] = peerSubnet.Subnet
+		}
+	}
+
+	return nil
+}
+
+// eslagSegment returns the type-0 ESI and the MAC of the ESLAG connection's ethernet segment, the MAC is the ESLAG MAC
+// base plus the connection ID and the ESI is the ESI prefix followed by the MAC
+func eslagSegment(agent *agentapi.Agent, connName string) (string, string, error) {
+	base, err := net.ParseMAC(agent.Spec.Config.ESLAGMACBase)
+	if err != nil || len(base) != 6 {
+		return "", "", fmt.Errorf("invalid ESLAG MAC base %q", agent.Spec.Config.ESLAGMACBase) //nolint:err113
+	}
+	id := agent.Spec.Catalog.ConnectionIDs[connName]
+	if id == 0 {
+		return "", "", fmt.Errorf("conn %s: no connection ID", connName) //nolint:err113
+	}
+	val := binary.BigEndian.Uint64(append([]byte{0, 0}, base...)) + uint64(id)
+	if val >= 1<<48 {
+		return "", "", fmt.Errorf("conn %s: ESLAG MAC base %s plus connection ID %d is past the last MAC", connName, base, id) //nolint:err113
+	}
+	mac := net.HardwareAddr(binary.BigEndian.AppendUint64(nil, val)[2:])
+
+	prefix, err := hex.DecodeString(strings.ReplaceAll(strings.TrimSuffix(agent.Spec.Config.ESLAGESIPrefix, ":"), ":", ""))
+	if err != nil || len(prefix) != 4 || prefix[0] != 0 {
+		return "", "", fmt.Errorf("ESLAG ESI prefix %q isn't the first 4 bytes of a type-0 ESI", agent.Spec.Config.ESLAGESIPrefix) //nolint:err113
+	}
+
+	return net.HardwareAddr(append(prefix, mac...)).String(), mac.String(), nil
+}
+
+// fabricNeighbor is the underlay session over a fabric link, over the IPv6 link-local addresses if neither side has an
+// IP
+func fabricNeighbor(agent *agentapi.Agent, connName, port, ip, peerIP, peer string) (BGPNeighbor, error) {
+	if (ip == "") != (peerIP == "") {
+		return BGPNeighbor{}, fmt.Errorf("conn %s: port %s: IPs have to be set on both sides or on neither", connName, port) //nolint:err113
+	}
+	peerASN, err := peerASN(agent, peer)
+	if err != nil {
+		return BGPNeighbor{}, fmt.Errorf("conn %s: %w", connName, err)
+	}
+
+	if ip == "" {
+		return BGPNeighbor{Key: port, Unnumbered: true, RemoteAS: peerASN}, nil
+	}
+
+	peerPrefix, err := netip.ParsePrefix(peerIP)
+	if err != nil {
+		return BGPNeighbor{}, fmt.Errorf("conn %s: parsing peer IP %s: %w", connName, peerIP, err)
+	}
+
+	return BGPNeighbor{Key: peerPrefix.Addr().String(), RemoteAS: peerASN}, nil
+}
+
+// the fabric sessions expect the peer's own ASN, so a miscabled link or a wrong IP doesn't bring one up
+func peerASN(agent *agentapi.Agent, peer string) (uint32, error) {
+	peerSw, ok := agent.Spec.Switches[peer]
+	if !ok || peerSw.ASN == 0 {
+		return 0, fmt.Errorf("no ASN for peer %s", peer) //nolint:err113
+	}
+
+	return peerSw.ASN, nil
+}
+
+// externalNeighbor is the BGP session of an external attachment, unnumbered over the IPv6 link-local addresses when
+// the attachment has no IPs
+func externalNeighbor(agent *agentapi.Agent, attachName string, attach vpcapi.ExternalAttachmentSpec, extSpec vpcapi.ExternalSpec, ifaceName string) (*ExternalNeighbor, *BFDProfile, error) {
+	neigh := &ExternalNeighbor{
+		Key:         ifaceName,
+		Unnumbered:  true,
+		RemoteAS:    "external",
+		Description: "External attach " + attachName,
+		LocalASN:    extSpec.LocalASN,
+	}
+	switch {
+	case attach.Switch.IP != "" && attach.Neighbor.IP != "":
+		ip, err := netip.ParseAddr(attach.Neighbor.IP)
+		if err != nil || !ip.Is4() {
+			return nil, nil, fmt.Errorf("external attachment %s: invalid neighbor IP %q", attachName, attach.Neighbor.IP) //nolint:err113
+		}
+		neigh.Key, neigh.Unnumbered = ip.String(), false
+	case attach.Switch.IP != "" || attach.Neighbor.IP != "":
+		return nil, nil, fmt.Errorf("external attachment %s: switch and neighbor IPs have to be both set or both empty", attachName) //nolint:err113
+	}
+	if attach.Neighbor.ASN != 0 {
+		neigh.RemoteAS = strconv.FormatUint(uint64(attach.Neighbor.ASN), 10)
+	}
+
+	// external sessions run on the default timers, 60/180s, so without BFD a peer that dies with the link up takes up to
+	// three minutes to detect
+	if attach.BFD == nil || agent.Spec.Config.DisableBFD {
+		return neigh, nil, nil
+	}
+	bfd := &BFDProfile{
+		Name:       "ext--" + strings.ReplaceAll(ifaceName, ".", "-"),
+		MinRX:      cmp.Or(attach.BFD.MinRX, 300),
+		MinTX:      cmp.Or(attach.BFD.MinTX, 300),
+		Multiplier: cmp.Or(attach.BFD.Multiplier, 3),
+		Passive:    attach.BFD.Passive,
+	}
+	neigh.BFDProfile = bfd.Name
+
+	return neigh, bfd, nil
+}
+
+// externalBGPPolicy sets up the route maps of a BGP external: the routes from it get the base VPC community instead of
+// the ones it sent, so that no community from outside means anything in the fabric, and a lower local preference than
+// the gateway routes, and it only gets the subnets of its IPv4 namespace and the gateway routes
+func externalBGPPolicy(agent *agentapi.Agent, ext *External, extSpec vpcapi.ExternalSpec) error {
+	base := agent.Spec.Config.BaseVPCCommunity
+	if base == "" {
+		return fmt.Errorf("external %s: no base VPC community", ext.Name) //nolint:err113
+	}
+	if _, ok := agent.Spec.IPv4Namespaces[extSpec.IPv4Namespace]; !ok {
+		return fmt.Errorf("external %s: ipv4 namespace %s not found", ext.Name, extSpec.IPv4Namespace) //nolint:err113
+	}
+
+	ext.IPv4Namespace = extSpec.IPv4Namespace
+	ext.InboundCommunity = extSpec.InboundCommunity
+	ext.OutboundCommunity = extSpec.OutboundCommunity
+	// the inbound community stays on the routes, as the import of the external routes into the VPCs matches it
+	ext.SetCommunities = []string{base}
+	if extSpec.InboundCommunity != "" && extSpec.InboundCommunity != base {
+		ext.SetCommunities = append(ext.SetCommunities, extSpec.InboundCommunity)
+	}
+
+	ext.InboundPrefixes = map[int]PrefixListEntry{}
+	for idx, prefixStr := range slices.Sorted(maps.Keys(extSpec.InboundPrefixes)) {
+		prefix, err := netip.ParsePrefix(prefixStr)
+		if err != nil || !prefix.Addr().Is4() {
+			return fmt.Errorf("external %s: invalid inbound prefix %q", ext.Name, prefixStr) //nolint:err113
+		}
+		entry := PrefixListEntry{Prefix: prefix.String()}
+		minLen, maxLen := extSpec.InboundPrefixes[prefixStr].PrefixLens(prefix)
+		if minLen != maxLen || int(maxLen) != prefix.Bits() {
+			if int(minLen) != prefix.Bits() {
+				entry.MinLen = minLen
+			}
+			entry.MaxLen = maxLen
+		}
+		ext.InboundPrefixes[10*(idx+1)] = entry
+	}
+
+	return nil
+}
+
+func ipnsEgressACL(ns string) string {
+	return "ipns-egress--" + ns
+}
+
+// extInboundACLRules drops the traffic from the external to the switch services on the attachment IP ahead of the user
+// rules, which end with a deny, or with a permit if there are none
+func extInboundACLRules(attachName string, ip netip.Prefix, spec *vpcapi.ACLSpec) ([]ACLRule, error) {
+	rules := []ACLRule{}
+	if ip.IsValid() {
+		dst := netip.PrefixFrom(ip.Addr(), 32).String()
+		for idx, svc := range []struct {
+			proto string
+			port  string
+		}{{"tcp", "443"}, {"tcp", "8080"}, {"udp", "67"}, {"udp", "161"}, {"udp", "4789"}, {"tcp", "22"}} {
+			rules = append(rules, ACLRule{ID: uint32(idx + 1), Protocol: svc.proto, DstIP: dst, DstPort: svc.port})
+		}
+	}
+
+	if spec == nil || len(spec.Statements) == 0 {
+		if len(rules) == 0 {
+			return nil, nil
+		}
+
+		return append(rules, ACLRule{ID: 65535, Permit: true}), nil
+	}
+
+	for _, stmt := range slices.SortedFunc(slices.Values(spec.Statements), func(a, b vpcapi.ACLStatement) int { return cmp.Compare(a.Seq, b.Seq) }) {
+		rule, err := aclRule(stmt)
+		if err != nil {
+			return nil, fmt.Errorf("external attachment %s: inbound ACL: %w", attachName, err)
+		}
+		rules = append(rules, rule)
+	}
+
+	return append(rules, ACLRule{ID: 65535}), nil
+}
+
+// aclRule maps discard to deny as both drop, and transit to permit as it only skips the further ACLs, which this one
+// is the last of
+func aclRule(stmt vpcapi.ACLStatement) (ACLRule, error) {
+	if stmt.Seq < vpcapi.ACLUserMinSeq {
+		return ACLRule{}, fmt.Errorf("statement %d: seq is reserved", stmt.Seq) //nolint:err113
+	}
+	rule := ACLRule{ID: uint32(stmt.Seq)}
+
+	switch stmt.Action {
+	case vpcapi.ACLActionPermit, vpcapi.ACLActionTransit:
+		rule.Permit = true
+	case vpcapi.ACLActionDeny, vpcapi.ACLActionDiscard:
+	default:
+		return ACLRule{}, fmt.Errorf("statement %d: invalid action %q", stmt.Seq, stmt.Action) //nolint:err113
+	}
+
+	switch stmt.Protocol {
+	case vpcapi.ACLProtocolIP:
+	case vpcapi.ACLProtocolTCP, vpcapi.ACLProtocolUDP, vpcapi.ACLProtocolICMP:
+		rule.Protocol = string(stmt.Protocol)
+	default:
+		return ACLRule{}, fmt.Errorf("statement %d: invalid protocol %q", stmt.Seq, stmt.Protocol) //nolint:err113
+	}
+
+	for _, addr := range []struct {
+		prefix string
+		dst    *string
+	}{{stmt.SrcPrefix, &rule.SrcIP}, {stmt.DstPrefix, &rule.DstIP}} {
+		if addr.prefix == vpcapi.ACLAny {
+			continue
+		}
+		prefix, err := netip.ParsePrefix(addr.prefix)
+		if err != nil || !prefix.Addr().Is4() {
+			return ACLRule{}, fmt.Errorf("statement %d: invalid prefix %q", stmt.Seq, addr.prefix) //nolint:err113
+		}
+		*addr.dst = prefix.String()
+	}
+
+	if stmt.PortRangeBegin > 0 {
+		rule.DstPort = strconv.Itoa(int(stmt.PortRangeBegin))
+		if stmt.PortRangeEnd != stmt.PortRangeBegin {
+			rule.DstPort += "-" + strconv.Itoa(int(stmt.PortRangeEnd))
+		}
+	}
+
+	if f := stmt.TCPFilters; f != nil {
+		rule.TCPEstablished = f.Established
+		for _, flag := range []struct {
+			name     string
+			set, not bool
+		}{
+			{"syn", f.Syn, f.NotSyn},
+			{"ack", f.Ack, f.NotAck},
+			{"fin", f.Fin, f.NotFin},
+			{"rst", f.Rst, f.NotRst},
+			{"urg", f.Urg, f.NotUrg},
+			{"psh", f.Psh, f.NotPsh},
+		} {
+			if flag.set {
+				rule.TCPFlags = append(rule.TCPFlags, flag.name)
+			}
+			if flag.set || flag.not {
+				rule.TCPMask = append(rule.TCPMask, flag.name)
+			}
+		}
+		if len(rule.TCPMask) > 0 && len(rule.TCPFlags) == 0 {
+			rule.TCPFlags = []string{"none"}
+		}
+	}
+
+	if stmt.ICMPType != nil {
+		rule.ICMPType = strconv.Itoa(int(*stmt.ICMPType))
+	}
+
+	return rule, nil
+}
+
+// checkSupported rejects the features the full config can't express yet, the ZTP config doesn't include them, so it's
+// only checked when enforcing
+func checkSupported(agent *agentapi.Agent) error {
+	for _, vpcName := range slices.Sorted(maps.Keys(agent.Spec.VPCs)) {
+		vpc := agent.Spec.VPCs[vpcName]
+		if vpc.Mode != vpcapi.VPCModeL2VNI {
+			return fmt.Errorf("vpc %s: mode %s isn't supported", vpcName, vpc.Mode) //nolint:err113
+		}
+		// the peered VPCs only get a VRF here, their subnets are configured on the switches they're attached to
+		if !agent.Spec.AttachedVPCs[vpcName] {
+			continue
+		}
+
+		for _, subnetName := range slices.Sorted(maps.Keys(vpc.Subnets)) {
+			subnet := vpc.Subnets[subnetName]
+			if subnet == nil {
+				continue
+			}
+			if subnet.HostBGP {
+				return fmt.Errorf("vpc %s: subnet %s: host BGP isn't supported", vpcName, subnetName) //nolint:err113
+			}
+			if subnet.DHCP.Relay != "" || subnet.DHCP.RelayVPC != "" {
+				return fmt.Errorf("vpc %s: subnet %s: DHCP relay to other servers isn't supported", vpcName, subnetName) //nolint:err113
+			}
+		}
+	}
+
+	for _, peeringName := range slices.Sorted(maps.Keys(agent.Spec.VPCPeerings)) {
+		peering := agent.Spec.VPCPeerings[peeringName]
+		if peering.Remote != "" {
+			return fmt.Errorf("vpc peering %s: remote peerings aren't supported", peeringName) //nolint:err113
+		}
+	}
+	for _, attachName := range slices.Sorted(maps.Keys(agent.Spec.ExternalAttachments)) {
+		attach := agent.Spec.ExternalAttachments[attachName]
+		if attach.Static != nil && attach.Static.Proxy {
+			return fmt.Errorf("external attachment %s: proxy-ARP isn't supported", attachName) //nolint:err113
+		}
+		if attach.Neighbor.PrefixLimit != nil {
+			return fmt.Errorf("external attachment %s: prefix limit isn't supported", attachName) //nolint:err113
+		}
+		if attach.InboundACL != nil {
+			for _, stmt := range attach.InboundACL.Statements {
+				if stmt.ICMPCode != nil {
+					return fmt.Errorf("external attachment %s: inbound ACL statement %d: ICMP code isn't supported", attachName, stmt.Seq) //nolint:err113
+				}
+				// the last rule closing the user ones
+				if stmt.Seq == 65535 {
+					return fmt.Errorf("external attachment %s: inbound ACL statement %d: seq isn't supported", attachName, stmt.Seq) //nolint:err113
+				}
+			}
+		}
+	}
+
+	return nil
 }
 
 func BuildZTPFor(agent *agentapi.Agent, kubeConfig []byte, agentVersion string) (*bytes.Buffer, error) {
@@ -730,6 +1999,23 @@ func BuildZTPFor(agent *agentapi.Agent, kubeConfig []byte, agentVersion string) 
 }
 
 func Enforce(ctx context.Context, _ /* processor */ dozer.Processor, agent *agentapi.Agent, basedir string, dryRun bool) error {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+	defer cancel()
+
+	// sudo doesn't depend on the network config, so turning it off takes effect even when the config can't be built
+	if !dryRun {
+		if err := ensurePasswordlessSudo(ctx, agent); err != nil {
+			return err
+		}
+		if err := ensureLLDPDescription(ctx, agent); err != nil {
+			return err
+		}
+	}
+
+	if err := checkSupported(agent); err != nil {
+		return err
+	}
+
 	cfgBuf, err := buildConfigFor(fullCfgTmpl, agent)
 	if err != nil {
 		return fmt.Errorf("building full config: %w", err)
@@ -740,9 +2026,6 @@ func Enforce(ctx context.Context, _ /* processor */ dozer.Processor, agent *agen
 
 		return nil
 	}
-
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Minute)
-	defer cancel()
 
 	cfgPath := filepath.Join(basedir, cfgFile)
 	if err := os.WriteFile(cfgPath, cfgBuf.Bytes(), 0o644); err != nil { //nolint:gosec
@@ -779,6 +2062,90 @@ func Enforce(ctx context.Context, _ /* processor */ dozer.Processor, agent *agen
 	if err := os.WriteFile(filepath.Join(basedir, appliedDiffFile), diff, 0o644); err != nil { //nolint:gosec
 		return fmt.Errorf("writing applied diff file: %w", err)
 	}
+
+	return nil
+}
+
+const sudoersPath = "/etc/sudoers.d/hedgehog"
+
+var passwordlessSudoers = []byte("%sudo ALL=(ALL:ALL) NOPASSWD: ALL\n")
+
+// ensurePasswordlessSudo manages the sudoers drop-in directly, as NVUE refuses to install files into /etc/sudoers.d, and
+// checks it with visudo before putting it in place, as a broken one would break sudo; sudo skips the files with a dot in
+// the name, so the temporary one is never read
+func ensurePasswordlessSudo(ctx context.Context, agent *agentapi.Agent) error {
+	enabled, err := wiringapi.SwitchPasswordlessSudo(agent.Annotations)
+	if err != nil {
+		return fmt.Errorf("checking passwordless sudo: %w", err)
+	}
+
+	cur, err := os.ReadFile(sudoersPath)
+	if err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("reading %s: %w", sudoersPath, err)
+	}
+	exists := err == nil
+
+	if !enabled {
+		if !exists {
+			return nil
+		}
+		if err := os.Remove(sudoersPath); err != nil {
+			return fmt.Errorf("removing %s: %w", sudoersPath, err)
+		}
+		slog.Info("Disabled passwordless sudo", "path", sudoersPath)
+
+		return nil
+	}
+
+	if exists && bytes.Equal(cur, passwordlessSudoers) {
+		return nil
+	}
+
+	tmp := sudoersPath + ".tmp"
+	if err := os.Remove(tmp); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("removing %s: %w", tmp, err)
+	}
+	if err := os.WriteFile(tmp, passwordlessSudoers, 0o440); err != nil { //nolint:gosec
+		return fmt.Errorf("writing %s: %w", tmp, err)
+	}
+	if err := run(ctx, "visudo", "visudo", "-c", "-q", "-f", tmp); err != nil {
+		return errors.Join(fmt.Errorf("checking %s: %w", tmp, err), os.Remove(tmp))
+	}
+	if err := os.Rename(tmp, sudoersPath); err != nil {
+		return fmt.Errorf("installing %s: %w", sudoersPath, err)
+	}
+	slog.Info("Enabled passwordless sudo", "path", sudoersPath)
+
+	return nil
+}
+
+const lldpdConfPath = "/etc/lldpd.d/hedgehog.conf"
+
+// ensureLLDPDescription sets the system description the fabric neighbors are expected to send, NVUE doesn't configure
+// it, so it's an lldpd config file of its own, which lldpd only reads on start, so it's applied with lldpcli too
+func ensureLLDPDescription(ctx context.Context, agent *agentapi.Agent) error {
+	conf := fmt.Appendf(nil, "configure system description %q\n", wiringapi.SwitchLLDPDescription(agent.Spec.Config.DeploymentID))
+
+	cur, err := os.ReadFile(lldpdConfPath)
+	if err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("reading %s: %w", lldpdConfPath, err)
+	}
+	if err == nil && bytes.Equal(cur, conf) {
+		return nil
+	}
+
+	if err := os.WriteFile(lldpdConfPath, conf, 0o644); err != nil { //nolint:gosec
+		return fmt.Errorf("writing %s: %w", lldpdConfPath, err)
+	}
+	if err := run(ctx, "lldpcli", "lldpcli", "-c", lldpdConfPath); err != nil {
+		// so the next run applies it again instead of finding the file up to date
+		if rmErr := os.Remove(lldpdConfPath); rmErr != nil {
+			return errors.Join(err, fmt.Errorf("removing %s: %w", lldpdConfPath, rmErr))
+		}
+
+		return err
+	}
+	slog.Info("Set LLDP system description", "path", lldpdConfPath)
 
 	return nil
 }
@@ -841,6 +2208,11 @@ func (c *CumulusProcessor) UpdateSwitchState(ctx context.Context, agent *agentap
 
 	swState.NOS = agentapi.SwitchStateNOS{
 		SoftwareVersion: nosVersion,
+	}
+
+	swState.RoCE, err = c.GetRoCE(ctx)
+	if err != nil {
+		return fmt.Errorf("getting RoCE state: %w", err)
 	}
 
 	reg.SaveSwitchState(swState)

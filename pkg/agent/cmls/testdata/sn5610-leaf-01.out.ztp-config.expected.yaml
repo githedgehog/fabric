@@ -919,6 +919,8 @@
               hashed-password: $5$8nAYPGcl4l6G7Av1$Qi4/gnM0yPtGv9kjpMh78NuNSfQWy7vR1rulHpurL36
               role: nvue-monitor
       api:
+        listening-address:
+          127.0.0.1: {}
         state: enabled
       config:
         auto-save:
@@ -934,7 +936,7 @@
       hostname: leaf-01
       lldp:
         state: enabled
-        tx-hold-multiplier: 24
+        tx-hold-multiplier: 4
         tx-interval: 5
       ntp:
         listen:
@@ -950,6 +952,8 @@
             op: {}
         permit-root-login: disabled
         state: enabled
+        vrf:
+          mgmt: {}
       wjh:
         channel:
           forwarding:

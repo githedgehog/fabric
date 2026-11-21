@@ -1,6 +1,8 @@
 apiVersion: agent.githedgehog.com/v1beta1
 kind: Agent
 metadata:
+  annotations:
+    fabric.githedgehog.com/passwordless-sudo: "false"
   creationTimestamp: "2026-02-19T10:22:39Z"
   generation: 1
   name: spine-01
@@ -71,6 +73,16 @@ spec:
     spineLeaf: {}
     vtepSubnet: 172.30.12.0/22
   connections:
+    leaf-01--static-external:
+      staticExternal:
+        link:
+          switch:
+            ip: 172.31.1.1/24
+            nextHop: 172.31.1.2
+            port: leaf-01/E1/11
+            subnets:
+              - 10.199.0.0/16
+              - 10.198.0.0/24
     spine-01--fabric--leaf-01:
       fabric:
         links:
@@ -81,10 +93,8 @@ spec:
               ip: 172.30.128.0/31
               port: spine-01/E1/1
           - leaf:
-              ip: 172.30.128.3/31
               port: leaf-01/E1/6
             spine:
-              ip: 172.30.128.2/31
               port: spine-01/E1/2
     spine-01--fabric--leaf-02:
       fabric:

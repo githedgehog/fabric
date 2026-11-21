@@ -42,3 +42,25 @@ func TestValidateName(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateSwitchConfigName(t *testing.T) {
+	for _, tt := range []struct {
+		name  string
+		valid bool
+	}{
+		{name: "vpc-01", valid: true},
+		{name: "vpc--01", valid: true},
+		{name: "vpc.01"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateSwitchConfigName("name", tt.name)
+			if !tt.valid {
+				require.ErrorIs(t, err, ErrInvalidName)
+
+				return
+			}
+
+			require.NoError(t, err)
+		})
+	}
+}

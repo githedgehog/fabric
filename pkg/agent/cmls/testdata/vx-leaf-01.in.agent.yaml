@@ -17,31 +17,44 @@ spec:
     vpc-03: true
   catalog:
     externalIDs:
+      ext-bgp-01: 12
       ext-snp-02: 10
       ext-sp-01: 11
     irbVLANs:
+      ext@ext-bgp-01: 3005
       ext@ext-snp-02: 3000
       ext@ext-sp-01: 3001
       vpc-01: 3002
       vpc-02: 3003
       vpc-03: 3004
+    connectionIDs:
+      server-06--eslag--leaf-01--leaf-02: 6
     portChannelIDs:
       server-05--bundled--leaf-01: 1
-    staticExternalSubnetOffsets:
-      leaf-01--ext-sp-01: 0
+      server-06--eslag--leaf-01--leaf-02: 2
     subnetIDs:
       0.0.0.0/0: 103
       10.0.1.0/24: 100
       10.0.2.0/24: 101
       10.0.3.0/24: 102
+      10.0.11.0/24: 105
+      10.0.12.0/24: 104
+      10.197.0.0/16: 110
+      10.198.0.0/24: 108
+      10.199.0.0/16: 107
+      172.31.1.0/24: 106
+      172.31.2.0/24: 109
     vpcSubnetVNIs:
       vpc-01:
         default: 301
+        subnet-02: 302
+        subnet-03: 303
       vpc-02:
         default: 401
       vpc-03:
         default: 501
     vpcVNIs:
+      ext@ext-bgp-01: 600
       ext@ext-snp-02: 100
       ext@ext-sp-01: 200
       vpc-01: 300
@@ -117,6 +130,27 @@ spec:
         link:
           switch:
             port: leaf-01/E1/1
+    leaf-01--static-external:
+      staticExternal:
+        link:
+          switch:
+            ip: 172.31.1.1/24
+            nextHop: 172.31.1.2
+            port: leaf-01/E1/11
+            subnets:
+              - 10.199.0.0/16
+              - 10.198.0.0/24
+    leaf-01--static-external--vpc-03:
+      staticExternal:
+        link:
+          switch:
+            ip: 172.31.2.1/24
+            nextHop: 172.31.2.2
+            port: leaf-01/E1/12
+            subnets:
+              - 10.197.0.0/16
+            vlan: 20
+        withinVPC: vpc-03
     server-01--unbundled--leaf-01:
       unbundled:
         link:
@@ -150,6 +184,17 @@ spec:
               port: server-05/enp2s2
             switch:
               port: leaf-01/E1/10
+    server-06--eslag--leaf-01--leaf-02:
+      eslag:
+        links:
+          - server:
+              port: server-06/enp2s1
+            switch:
+              port: leaf-01/E1/13
+          - server:
+              port: server-06/enp2s2
+            switch:
+              port: leaf-02/E1/13
     spine-01--fabric--leaf-01:
       fabric:
         links:
@@ -160,10 +205,8 @@ spec:
               ip: 172.30.128.0/31
               port: spine-01/E1/1
           - leaf:
-              ip: 172.30.128.3/31
               port: leaf-01/E1/6
             spine:
-              ip: 172.30.128.2/31
               port: spine-01/E1/2
     spine-02--fabric--leaf-01:
       fabric:
@@ -217,16 +260,81 @@ spec:
             protocol: udp
             srcPrefix: any
             dstPrefix: 10.50.10.3/32
-    leaf-01--ext-sp-01:
+          - seq: 35
+            action: permit
+            protocol: tcp
+            srcPrefix: 100.1.20.0/24
+            dstPrefix: any
+            portRangeBegin: 1000
+            portRangeEnd: 2000
+            tcpFilters:
+              syn: true
+              notAck: true
+          - seq: 40
+            action: permit
+            protocol: tcp
+            srcPrefix: any
+            dstPrefix: any
+            tcpFilters:
+              notSyn: true
+          - seq: 45
+            action: permit
+            protocol: tcp
+            srcPrefix: any
+            dstPrefix: any
+            tcpFilters:
+              established: true
+          - seq: 50
+            action: permit
+            protocol: icmp
+            srcPrefix: any
+            dstPrefix: any
+            icmpType: 8
+          - seq: 55
+            action: permit
+            protocol: ip
+            srcPrefix: 100.1.20.0/24
+            dstPrefix: any
+    leaf-01--ext-bgp-01:
       connection: leaf-01--external
-      external: ext-sp-01
-      neighbor: {}
-      static:
-        proxy: true
-        remoteIP: 100.1.10.1
+      external: ext-bgp-01
+      neighbor:
+        asn: 64102
+        ip: 100.1.10.6
+      switch:
+        ip: 100.1.10.1/24
         vlan: 10
-      switch: {}
+      bfd:
+        minRX: 500
+        passive: true
+    leaf-01--ext-bgp-01-unnumbered:
+      connection: leaf-01--external
+      external: ext-bgp-01
+      neighbor:
+        asn: 64102
+      switch:
+        vlan: 30
+      inboundACL:
+        statements:
+          - seq: 10
+            action: permit
+            protocol: tcp
+            srcPrefix: any
+            dstPrefix: any
+            portRangeBegin: 179
+            portRangeEnd: 179
   externalPeerings:
+    vpc-01--ext-bgp-01:
+      permit:
+        external:
+          name: ext-bgp-01
+          prefixes:
+            - prefix: 0.0.0.0/0
+        vpc:
+          name: vpc-01
+          subnets:
+            - default
+            - subnet-02
     vpc-02--ext-snp-02:
       permit:
         external:
@@ -238,6 +346,18 @@ spec:
           subnets:
             - default
   externals:
+    ext-bgp-01:
+      inboundCommunity: 65102:1000
+      inboundPrefixes:
+        0.0.0.0/0: {}
+        192.168.0.0/16:
+          maxPrefixLen: 24
+        203.0.113.0/24:
+          minPrefixLen: 26
+          maxPrefixLen: 28
+      ipv4Namespace: default
+      localASN: 65999
+      outboundCommunity: 64102:1000
     ext-snp-02:
       ipv4Namespace: default
       static:
@@ -272,7 +392,10 @@ spec:
     ip: 172.30.0.9/21
     profile: cumulus-vx
     protocolIP: 172.30.8.2/32
-    redundancy: {}
+    redundancy:
+      group: eslag-1
+      type: eslag
+    roce: true
     role: server-leaf
     topology:
       domains:
@@ -359,38 +482,74 @@ spec:
         - from: 1000
           to: 2999
   vpcAttachments:
+    s06-v1:
+      connection: server-06--eslag--leaf-01--leaf-02
+      subnet: vpc-01/default
     s1-v3:
       connection: server-01--unbundled--leaf-01
       subnet: vpc-03/default
     s3-v1-l1:
-      annotations:
-        fabric.githedgehog.com/p2p-link: 10.99.0.0/31
       connection: server-03--unbundled--leaf-01
       subnet: vpc-01/default
+    s3-v1s2-l1:
+      connection: server-03--unbundled--leaf-01
+      subnet: vpc-01/subnet-02
+    s3-v1s3-l1:
+      connection: server-03--unbundled--leaf-01
+      subnet: vpc-01/subnet-03
     s4-v2-l1:
       connection: server-04--unbundled--leaf-01
+      nativeVLAN: true
       subnet: vpc-02/default
     s5-v1-l1:
-      annotations:
-        fabric.githedgehog.com/p2p-link: 10.99.0.2/31
       connection: server-05--bundled--leaf-01
       subnet: vpc-01/default
+    s5-v1s3-l1:
+      connection: server-05--bundled--leaf-01
+      subnet: vpc-01/subnet-03
   vpcPeers:
     vpc-01--vpc-03:
       permit:
-        - vpc-01: {}
+        - vpc-01:
+            subnets:
+              - subnet-02
           vpc-03: {}
   vpcs:
     vpc-01:
       ipv4Namespace: default
+      permit:
+        - - default
+          - subnet-03
+      staticRoutes:
+        - nextHops:
+            - 10.0.1.20
+            - 10.0.1.10
+          prefix: 10.99.0.0/16
+        - nextHops:
+            - 10.0.11.10
+          prefix: 0.0.0.0/0
       subnets:
         default:
           dhcp: {}
           gateway: 10.0.1.1
           subnet: 10.0.1.0/24
           vlan: 1001
+        subnet-02:
+          dhcp: {}
+          gateway: 10.0.11.1
+          restricted: true
+          subnet: 10.0.11.0/24
+          vlan: 1011
+        subnet-03:
+          dhcp: {}
+          gateway: 10.0.12.1
+          isolated: true
+          restricted: true
+          subnet: 10.0.12.0/24
+          vlan: 1012
       vlanNamespace: default
     vpc-02:
+      defaultRestricted: true
       ipv4Namespace: default
       subnets:
         default:

@@ -16,6 +16,7 @@ package meta_test
 
 import (
 	"context"
+	"net/netip"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -93,6 +94,70 @@ func TestFabricConfigHugePages(t *testing.T) {
 				return
 			}
 			require.NoError(t, err)
+		})
+	}
+}
+
+func TestFabricConfigCumulusSVIWorkaroundSubnet(t *testing.T) {
+	for _, tt := range []struct {
+		name      string
+		subnet    string
+		noCumulus bool
+		reserved  []string // replaces the default 172.30.0.0/16
+		mutate    func(cfg *meta.FabricConfig)
+		expected  []string // reserved subnets after init
+		err       string
+	}{
+		{name: "default-covered", expected: []string{"172.30.0.0/16"}},
+		{name: "default", reserved: []string{"10.0.0.0/8"}, expected: []string{"10.0.0.0/8", meta.DefaultCumulusSVIWorkaroundSubnet}},
+		{name: "no-cumulus", noCumulus: true, reserved: []string{"10.0.0.0/8"}, expected: []string{"10.0.0.0/8"}},
+		{name: "no-cumulus-still-validated", noCumulus: true, subnet: "10.99.0.0/21", err: "cumulusSVIWorkaroundSubnet must be IPv4 /20 or bigger"},
+		{name: "custom", subnet: "10.99.0.0/16", expected: []string{"172.30.0.0/16", "10.99.0.0/16"}},
+		{name: "min", subnet: "10.99.0.0/20", expected: []string{"172.30.0.0/16", "10.99.0.0/20"}},
+		{name: "unmasked", subnet: "10.99.1.2/20", expected: []string{"172.30.0.0/16", "10.99.0.0/20"}},
+		{
+			name: "partial-overlap", subnet: "10.99.0.0/16", reserved: []string{"10.99.1.0/24"},
+			err: "cumulusSVIWorkaroundSubnet 10.99.0.0/16 partially overlaps reserved subnet 10.99.1.0/24",
+		},
+		{name: "management", subnet: "172.30.0.0/20", err: "cumulusSVIWorkaroundSubnet 172.30.0.0/20 overlaps managementSubnet 172.30.0.0/21"},
+		{
+			name: "fabric", subnet: "172.30.128.0/20",
+			mutate: func(cfg *meta.FabricConfig) { cfg.FabricSubnet = "172.30.128.0/17" },
+			err:    "cumulusSVIWorkaroundSubnet 172.30.128.0/20 overlaps fabricSubnet 172.30.128.0/17",
+		},
+		{
+			name: "l2-proxy-external", subnet: "10.99.0.0/16",
+			mutate: func(cfg *meta.FabricConfig) { cfg.L2ProxyExternalSubnet = "10.99.16.0/24" },
+			err:    "cumulusSVIWorkaroundSubnet 10.99.0.0/16 overlaps l2ProxyExternalSubnet 10.99.16.0/24",
+		},
+		{name: "too-small", subnet: "10.99.0.0/21", err: "cumulusSVIWorkaroundSubnet must be IPv4 /20 or bigger"},
+		{name: "ipv6", subnet: "fd00::/64", err: "cumulusSVIWorkaroundSubnet must be IPv4 /20 or bigger"},
+		{name: "invalid", subnet: "10.99.0.0", err: "config: cumulusSVIWorkaroundSubnet"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := testFabricConfig("50000:50000")
+			cfg.IncludeCumulus = !tt.noCumulus
+			cfg.CumulusSVIWorkaroundSubnet = tt.subnet
+			if tt.reserved != nil {
+				cfg.ReservedSubnets = tt.reserved
+			}
+			if tt.mutate != nil {
+				tt.mutate(cfg)
+			}
+
+			cfg, err := cfg.Init(testValidators)
+			if tt.err != "" {
+				require.ErrorContains(t, err, tt.err)
+
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tt.subnet, cfg.CumulusSVIWorkaroundSubnet)
+			expected := []netip.Prefix{}
+			for _, subnet := range tt.expected {
+				expected = append(expected, netip.MustParsePrefix(subnet))
+			}
+			require.Equal(t, expected, cfg.ParsedReservedSubnets())
 		})
 	}
 }

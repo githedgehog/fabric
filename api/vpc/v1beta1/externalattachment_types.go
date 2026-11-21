@@ -17,6 +17,7 @@ package v1beta1
 import (
 	"context"
 	"fmt"
+	"math"
 	"net"
 	"net/netip"
 	"slices"
@@ -391,6 +392,9 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 	if err := meta.ValidateObjectMetadata(attach); err != nil {
 		return nil, errors.Wrapf(err, "failed to validate metadata")
 	}
+	if err := meta.ValidateSwitchConfigName("name", attach.Name); err != nil {
+		return nil, err //nolint:wrapcheck
+	}
 
 	if err := wiringapi.CheckFabricExists(ctx, kube, attach.Namespace, attach.Spec.Topology.Fabric); err != nil {
 		return nil, fmt.Errorf("failed to validate fabric: %w", err)
@@ -566,6 +570,28 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 		for name, sw := range extSwitches {
 			if swDomains := sw.Spec.Topology.Domains; !slices.Contains(swDomains, extDomain) {
 				return nil, fmt.Errorf("external %s is in domain %s but switch %s is in domains %v", attach.Spec.External, extDomain, name, swDomains) //nolint:err113
+			}
+		}
+
+		// the Cumulus switches can't match the ICMP code and use the last seq for the rule closing the user ones
+		unsupported := func(stmt ACLStatement) bool { return stmt.ICMPCode != nil || stmt.Seq == math.MaxUint16 }
+		if attach.Spec.InboundACL != nil && slices.ContainsFunc(attach.Spec.InboundACL.Statements, unsupported) {
+			for name, sw := range extSwitches {
+				sp := &wiringapi.SwitchProfile{}
+				if err := kube.Get(ctx, ktypes.NamespacedName{Name: sw.Spec.Profile, Namespace: attach.Namespace}, sp); err != nil {
+					return nil, fmt.Errorf("failed to read switch profile %s of switch %s: %w", sw.Spec.Profile, name, err)
+				}
+				if !slices.Contains(meta.NOSTypesCumulus, sp.Spec.NOSType) {
+					continue
+				}
+				for _, stmt := range attach.Spec.InboundACL.Statements {
+					if stmt.ICMPCode != nil {
+						return nil, fmt.Errorf("inbound ACL statement %d: ICMP code isn't supported on Cumulus switch %s", stmt.Seq, name) //nolint:err113
+					}
+					if stmt.Seq == math.MaxUint16 {
+						return nil, fmt.Errorf("inbound ACL statement %d: seq is reserved on Cumulus switch %s", stmt.Seq, name) //nolint:err113
+					}
+				}
 			}
 		}
 

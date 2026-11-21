@@ -75,6 +75,7 @@ func (vpc *VPC) DHCPSubnetSpec(subnetName string, subnet *VPCSubnet) dhcpapi.DHC
 		LeaseTimeSeconds:    leaseTime,
 		VRF:                 vrf,
 		CircuitID:           fmt.Sprintf("vlan%d", subnet.VLAN), // TODO move to utils
+		VLANNamespace:       vpc.Spec.VLANNamespace,
 		PXEURL:              pxeURL,
 		DNSServers:          dnsServers,
 		TimeServers:         timeServers,

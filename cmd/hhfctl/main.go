@@ -872,7 +872,7 @@ func main() {
 					},
 					{
 						Name:  "roce",
-						Usage: "Set RoCE mode on the switch (automatically reboots switch)",
+						Usage: "Set RoCE mode on the switch (automatically reboots Broadcom SONiC switches)",
 						Flags: []cli.Flag{
 							verboseFlag,
 							nameFlag,

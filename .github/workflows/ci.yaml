@@ -145,12 +145,13 @@ jobs:
           limit-access-to-actor: true
 
   vlab:
-    name: "${{ matrix.hybrid && 'h' || 'v' }}-${{ matrix.upgradefrom && 'up' || '' }}${{ matrix.upgradefrom }}${{ matrix.upgradefrom && '-' || '' }}${{ matrix.mesh && 'mesh-' || '' }}${{ matrix.numbered && 'num-' || '' }}${{ matrix.gateway == 'dpdk' && 'gwd-' || matrix.gateway == 'kernel' && 'gwk-' || '' }}iso-${{ matrix.vpcmode }}${{ contains(github.event.pull_request.labels.*.name, 'ci:+release') && '-rt' || '' }}"
+    name: "${{ matrix.nos && format('{0}-', matrix.nos) || '' }}${{ matrix.hybrid && 'h' || 'v' }}-${{ matrix.upgradefrom && 'up' || '' }}${{ matrix.upgradefrom }}${{ matrix.upgradefrom && '-' || '' }}${{ matrix.mesh && 'mesh-' || '' }}${{ matrix.numbered && 'num-' || '' }}${{ matrix.gateway == 'dpdk' && 'gwd-' || matrix.gateway == 'kernel' && 'gwk-' || '' }}iso-${{ matrix.vpcmode }}${{ contains(github.event.pull_request.labels.*.name, 'ci:+release') && '-rt' || '' }}"
 
     needs:
       - test-build
     uses: githedgehog/fabricator/.github/workflows/run-vlab.yaml@master
     with:
+      # cumulus only runs on pull_request with ci:+cmls for now
       skip: >-
         ${{
           github.event_name == 'pull_request'
@@ -160,6 +161,7 @@ jobs:
           ) && (
             !matrix.upgradefrom || contains(github.event.pull_request.labels.*.name, 'ci:-upgrade')
           )
+          || matrix.nos == 'cmls' && !contains(github.event.pull_request.labels.*.name, 'ci:+cmls')
         }}
       fabricatorref: master
       prebuild: "just bump fabric ${{ needs.test-build.outputs.version }} ${{ needs.test-build.outputs.ref }}"
@@ -169,6 +171,7 @@ jobs:
       gateway: ${{ !!matrix.gateway }}
       gatewaydriver: ${{ matrix.gateway }}
       includeonie: false
+      nos: ${{ matrix.nos || '' }}
       buildmode: iso
       vpcmode: ${{ matrix.vpcmode }}
       releasetest: ${{ contains(github.event.pull_request.labels.*.name, 'ci:+release') }}
@@ -190,6 +193,9 @@ jobs:
           # fabric and mesh links are BGP unnumbered by default, keep the numbered ones covered
           - { vpcmode: l2vni, numbered: true,             gateway: kernel }
           - { vpcmode: l2vni, numbered: true, mesh: true, gateway: dpdk }
+
+          - { nos: cmls, vpcmode: l2vni,                 gateway: kernel }
+          - { nos: cmls, vpcmode: l2vni, numbered: true, gateway: kernel }
 
           # hlab
           - { hybrid: true, vpcmode: l2vni, gateway: kernel }

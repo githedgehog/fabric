@@ -57,6 +57,16 @@ func ValidateName(what, name string) error {
 	return nil
 }
 
+// ValidateSwitchConfigName checks a name the switch config names are built from, the switches don't take dots in VRF,
+// ACL, BFD profile and route policy names
+func ValidateSwitchConfigName(what, name string) error {
+	if strings.Contains(name, ".") {
+		return fmt.Errorf("%w: %s %q must not contain dots", ErrInvalidName, what, name)
+	}
+
+	return nil
+}
+
 func ValidateObjectMetadata(obj kclient.Object) error {
 	if err := ValidateName("name", obj.GetName()); err != nil {
 		return err

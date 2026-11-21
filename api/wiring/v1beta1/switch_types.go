@@ -39,9 +39,10 @@ import (
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 const (
-	AnnotationSwitchRouteSumm   = "fabric.githedgehog.com/route-summ"
-	AnnotationSwitchSyslogDebug = "fabric.githedgehog.com/syslog-debug"
-	AnnotationSwitchBCMMutate   = "fabric.alpha.githedgehog.com/bcm-mutate"
+	AnnotationSwitchRouteSumm        = "fabric.githedgehog.com/route-summ"
+	AnnotationSwitchSyslogDebug      = "fabric.githedgehog.com/syslog-debug"
+	AnnotationSwitchBCMMutate        = "fabric.alpha.githedgehog.com/bcm-mutate"
+	AnnotationSwitchPasswordlessSudo = "fabric.githedgehog.com/passwordless-sudo"
 
 	DefaultLinkFlapThreshold        = 3
 	DefaultLinkFlapSamplingInterval = 30
@@ -618,6 +619,21 @@ func SwitchSyslogDebug(annotations map[string]string) (bool, error) {
 	return debug, nil
 }
 
+// SwitchPasswordlessSudo is on unless disabled by the annotation
+func SwitchPasswordlessSudo(annotations map[string]string) (bool, error) {
+	v, ok := annotations[AnnotationSwitchPasswordlessSudo]
+	if !ok {
+		return true, nil
+	}
+
+	sudo, err := strconv.ParseBool(v)
+	if err != nil {
+		return false, fmt.Errorf("annotation %s must be a boolean: %w", AnnotationSwitchPasswordlessSudo, err)
+	}
+
+	return sudo, nil
+}
+
 func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *meta.FabricConfig) (admission.Warnings, error) {
 	var warnings admission.Warnings
 
@@ -626,6 +642,10 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 	}
 
 	if _, err := SwitchSyslogDebug(sw.Annotations); err != nil {
+		return nil, err
+	}
+
+	if _, err := SwitchPasswordlessSudo(sw.Annotations); err != nil {
 		return nil, err
 	}
 
@@ -808,6 +828,11 @@ func (sw *Switch) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *
 		if len(mutateRules) > 0 && !slices.Contains(meta.NOSTypesSONiCBCM, sp.Spec.NOSType) {
 			return nil, fmt.Errorf("annotation %s is only supported for Broadcom SONiC switches, profile %s has NOS type %s", //nolint:err113
 				AnnotationSwitchBCMMutate, sw.Spec.Profile, sp.Spec.NOSType)
+		}
+
+		if _, ok := sw.Annotations[AnnotationSwitchPasswordlessSudo]; ok && !slices.Contains(meta.NOSTypesCumulus, sp.Spec.NOSType) {
+			return nil, fmt.Errorf("annotation %s is only supported for Cumulus switches, profile %s has NOS type %s", //nolint:err113
+				AnnotationSwitchPasswordlessSudo, sw.Spec.Profile, sp.Spec.NOSType)
 		}
 
 		for name, speed := range sw.Spec.PortGroupSpeeds {

@@ -468,6 +468,9 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 	if len(vpc.Name) > 11 {
 		return nil, errors.Errorf("name %s is too long, must be <= 11 characters", vpc.Name)
 	}
+	if err := meta.ValidateSwitchConfigName("name", vpc.Name); err != nil {
+		return nil, err //nolint:wrapcheck
+	}
 	if strings.HasPrefix(vpc.Name, VPCInfoExtPrefix) {
 		return nil, errors.Errorf("vpc name cannot start with '%s': %s", VPCInfoExtPrefix, vpc.Name)
 	}
@@ -498,6 +501,13 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 		// the name is used in labels and in the name of the subnet's DHCPSubnet, as <vpc>--<subnet>
 		if err := meta.ValidateName("subnet name", subnetName); err != nil {
 			return nil, err //nolint:wrapcheck
+		}
+		if err := meta.ValidateSwitchConfigName("subnet name", subnetName); err != nil {
+			return nil, err //nolint:wrapcheck
+		}
+		// leaves room for the switch config names built from it, such as vpc-filtering--<vpc>--<subnet>
+		if len(subnetName) > 32 {
+			return nil, fmt.Errorf("subnet name %s is too long, must be <= 32 characters", subnetName) //nolint:err113
 		}
 		if subnetCfg.Subnet == "" {
 			return nil, errors.Errorf("subnet %s: missing subnet", subnetName)

@@ -901,7 +901,17 @@ func (svc *Service) processActions(ctx context.Context, agent *agentapi.Agent) e
 	reboot := false
 	if agent.Spec.Reinstall != "" && agent.Spec.Reinstall == svc.installID {
 		slog.Info("Reinstall requested", "installID", agent.Spec.Reinstall)
-		if !svc.SkipActions {
+		switch {
+		case svc.SkipActions:
+		case slices.Contains(fmeta.NOSTypesCumulus, agent.Spec.SwitchProfile.NOSType):
+			slog.Info("Selecting ONIE install mode for the next boot")
+
+			if err := cmls.SelectONIEInstall(ctx); err != nil {
+				return fmt.Errorf("selecting ONIE install mode: %w", err)
+			}
+
+			reboot = true
+		default:
 			slog.Info("Making ONIE next boot entry")
 
 			if err := uefiutil.MakeONIEDefaultBootEntryAndCleanup(); err != nil {
@@ -1015,7 +1025,10 @@ func (svc *Service) loadConfigFromFile() (*agentapi.Agent, error) {
 
 func knownAnnotations(agent *agentapi.Agent) map[string]string {
 	known := map[string]string{}
-	for _, key := range []string{wiringapi.AnnotationSwitchSyslogDebug, wiringapi.AnnotationSwitchRouteSumm, wiringapi.AnnotationSwitchBCMMutate} {
+	for _, key := range []string{
+		wiringapi.AnnotationSwitchSyslogDebug, wiringapi.AnnotationSwitchRouteSumm,
+		wiringapi.AnnotationSwitchBCMMutate, wiringapi.AnnotationSwitchPasswordlessSudo,
+	} {
 		if value, ok := agent.Annotations[key]; ok {
 			known[key] = value
 		}

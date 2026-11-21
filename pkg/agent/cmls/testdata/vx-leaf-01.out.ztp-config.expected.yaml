@@ -107,33 +107,33 @@
         lldp:
           state: enabled
       swp11:
-        description: Unused
+        description: StaticExternal leaf-01--static-external
         ipv6:
           state: disabled
         link:
           speed: 10G
           state:
-            down: {}
+            up: {}
         lldp:
           state: enabled
       swp12:
-        description: Unused
+        description: StaticExternal leaf-01--static-external--vpc-03
         ipv6:
           state: disabled
         link:
           speed: 10G
           state:
-            down: {}
+            up: {}
         lldp:
           state: enabled
       swp13:
-        description: Unused
+        description: ESLAG server-06 server-06--eslag--leaf-01--leaf-02
         ipv6:
           state: disabled
         link:
           speed: 10G
           state:
-            down: {}
+            up: {}
         lldp:
           state: enabled
       swp14:
@@ -659,6 +659,17 @@
           state:
             up: {}
         type: bond
+      bond2:
+        bond:
+          member:
+            swp13: {}
+        description: ESLAG server-06 server-06--eslag--leaf-01--leaf-02
+        ipv6:
+          state: disabled
+        link:
+          state:
+            up: {}
+        type: bond
     system:
       aaa:
         class:
@@ -712,6 +723,8 @@
                       key: AAAAC3NzaC1lZDI1NTE5AAAAIILr33oUspqfHiKC9BaenkKG3nIznbi/Ep3mmsMZjS4U
                       type: ssh-ed25519
       api:
+        listening-address:
+          127.0.0.1: {}
         state: enabled
       config:
         auto-save:
@@ -727,7 +740,7 @@
       hostname: leaf-01
       lldp:
         state: enabled
-        tx-hold-multiplier: 24
+        tx-hold-multiplier: 4
         tx-interval: 5
       ntp:
         listen:
@@ -743,6 +756,8 @@
             op: {}
         permit-root-login: disabled
         state: enabled
+        vrf:
+          mgmt: {}
       wjh:
         channel:
           forwarding:
