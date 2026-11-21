@@ -569,6 +569,19 @@ func (attach *ExternalAttachment) Validate(ctx context.Context, kube kclient.Rea
 			}
 		}
 
+		// the Cumulus switches can't match the ICMP code
+		if attach.Spec.InboundACL != nil && slices.ContainsFunc(attach.Spec.InboundACL.Statements, func(stmt ACLStatement) bool { return stmt.ICMPCode != nil }) {
+			for name, sw := range extSwitches {
+				sp := &wiringapi.SwitchProfile{}
+				if err := kube.Get(ctx, ktypes.NamespacedName{Name: sw.Spec.Profile, Namespace: attach.Namespace}, sp); err != nil {
+					return nil, fmt.Errorf("failed to read switch profile %s of switch %s: %w", sw.Spec.Profile, name, err)
+				}
+				if slices.Contains(meta.NOSTypesCumulus, sp.Spec.NOSType) {
+					return nil, fmt.Errorf("inbound ACL ICMP code isn't supported on Cumulus switch %s", name) //nolint:err113
+				}
+			}
+		}
+
 		// validate VLAN collision
 		attaches := &ExternalAttachmentList{}
 		if err := kube.List(ctx, attaches, kclient.MatchingLabels{wiringapi.LabelName("connection"): attach.Spec.Connection}); err != nil {
