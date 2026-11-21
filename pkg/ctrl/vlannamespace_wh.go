@@ -16,6 +16,7 @@ package ctrl
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/pkg/errors"
 	"go.githedgehog.com/fabric/api/meta"
@@ -88,7 +89,47 @@ func (w *VLANNamespaceWebhook) ValidateUpdate(ctx context.Context, _ *wiringapi.
 		}
 	}
 
+	if err := w.validateSwitchOverlaps(ctx, ns); err != nil {
+		return nil, err
+	}
+
 	return nil, nil
+}
+
+// validateSwitchOverlaps keeps the VLAN namespaces of each switch from overlapping, the switch validation only checks it
+// when the switch changes, and a VLAN has to identify a single subnet on a switch, e.g. for the DHCP relay
+func (w *VLANNamespaceWebhook) validateSwitchOverlaps(ctx context.Context, ns *wiringapi.VLANNamespace) error {
+	switches := &wiringapi.SwitchList{}
+	if err := w.Client.List(ctx, switches, kclient.InNamespace(ns.Namespace), kclient.MatchingLabels{
+		wiringapi.ListLabelVLANNamespace(ns.Name): wiringapi.ListLabelValue,
+	}); err != nil {
+		return fmt.Errorf("listing switches: %w", err)
+	}
+	if len(switches.Items) == 0 {
+		return nil
+	}
+
+	namespaces := &wiringapi.VLANNamespaceList{}
+	if err := w.Client.List(ctx, namespaces, kclient.InNamespace(ns.Namespace)); err != nil {
+		return fmt.Errorf("listing VLAN namespaces: %w", err)
+	}
+	ranges := map[string][]meta.VLANRange{}
+	for _, other := range namespaces.Items {
+		ranges[other.Name] = other.Spec.Ranges
+	}
+	ranges[ns.Name] = ns.Spec.Ranges
+
+	for _, sw := range switches.Items {
+		swRanges := []meta.VLANRange{}
+		for _, name := range sw.Spec.VLANNamespaces {
+			swRanges = append(swRanges, ranges[name]...)
+		}
+		if err := meta.CheckVLANRangesOverlap(swRanges); err != nil {
+			return fmt.Errorf("ranges overlap another VLAN namespace of switch %s: %w", sw.Name, err)
+		}
+	}
+
+	return nil
 }
 
 func (w *VLANNamespaceWebhook) ValidateDelete(ctx context.Context, ns *wiringapi.VLANNamespace) (admission.Warnings, error) {
