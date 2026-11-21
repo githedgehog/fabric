@@ -1339,10 +1339,7 @@
         autonomous-system: 65101
         router-id: 172.30.8.2
         graceful-restart:
-          mode: full
-          path-selection-deferral-time: 180
-          restart-time: 180
-          stale-routes-time: 180
+          mode: off
         state: enabled
       policy:
         community-list:

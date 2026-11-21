@@ -347,10 +347,8 @@
         autonomous-system: {{ $.ASN }}
         router-id: {{ $.RouterID }}
         graceful-restart:
-          mode: full
-          path-selection-deferral-time: 180
-          restart-time: 180
-          stale-routes-time: 180
+          {{- /* BGP graceful restart isn't supported with EVPN multihoming */}}
+          mode: off
         state: enabled
       policy:
         {{- if or $.Gateway $.FabricASPaths }}
