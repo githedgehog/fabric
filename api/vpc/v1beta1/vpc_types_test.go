@@ -179,11 +179,11 @@ func TestVPCValidation(t *testing.T) {
 		},
 		{
 			name: "subnet name max length",
-			vpc:  vpcGen("vpc-01", renameDefaultSubnet(strings.Repeat("s", meta.MaxNameLength))),
+			vpc:  vpcGen("vpc-01", renameDefaultSubnet(strings.Repeat("s", 32))),
 		},
 		{
 			name: "subnet name too long",
-			vpc:  vpcGen("vpc-01", renameDefaultSubnet(strings.Repeat("s", meta.MaxNameLength+1))),
+			vpc:  vpcGen("vpc-01", renameDefaultSubnet(strings.Repeat("s", 33))),
 			err:  true,
 		},
 		{

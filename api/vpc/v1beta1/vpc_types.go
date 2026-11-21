@@ -505,6 +505,10 @@ func (vpc *VPC) Validate(ctx context.Context, kube kclient.Reader, fabricCfg *me
 		if err := meta.ValidateSwitchConfigName("subnet name", subnetName); err != nil {
 			return nil, err //nolint:wrapcheck
 		}
+		// leaves room for the switch config names built from it, such as vpc-filtering--<vpc>--<subnet>
+		if len(subnetName) > 32 {
+			return nil, fmt.Errorf("subnet name %s is too long, must be <= 32 characters", subnetName) //nolint:err113
+		}
 		if subnetCfg.Subnet == "" {
 			return nil, errors.Errorf("subnet %s: missing subnet", subnetName)
 		}
