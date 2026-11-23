@@ -1,0 +1,130 @@
+{
+  "swp1": {
+    "Mode": "",
+    "Speed": "100G"
+  },
+  "swp10": {
+    "Mode": "",
+    "Speed": "100G"
+  },
+  "swp11": {
+    "Mode": "",
+    "Speed": "100G"
+  },
+  "swp12": {
+    "Mode": "",
+    "Speed": "100G"
+  },
+  "swp13": {
+    "Mode": "",
+    "Speed": "100G"
+  },
+  "swp14": {
+    "Mode": "",
+    "Speed": "100G"
+  },
+  "swp15": {
+    "Mode": "4x",
+    "Speed": "25G"
+  },
+  "swp16": {
+    "Mode": "disabled",
+    "Speed": ""
+  },
+  "swp17": {
+    "Mode": "",
+    "Speed": "100G"
+  },
+  "swp18": {
+    "Mode": "",
+    "Speed": "100G"
+  },
+  "swp19": {
+    "Mode": "",
+    "Speed": "100G"
+  },
+  "swp2": {
+    "Mode": "",
+    "Speed": "100G"
+  },
+  "swp20": {
+    "Mode": "",
+    "Speed": "100G"
+  },
+  "swp21": {
+    "Mode": "",
+    "Speed": "100G"
+  },
+  "swp22": {
+    "Mode": "",
+    "Speed": "100G"
+  },
+  "swp23": {
+    "Mode": "",
+    "Speed": "100G"
+  },
+  "swp24": {
+    "Mode": "",
+    "Speed": "100G"
+  },
+  "swp25": {
+    "Mode": "",
+    "Speed": "100G"
+  },
+  "swp26": {
+    "Mode": "",
+    "Speed": "100G"
+  },
+  "swp27": {
+    "Mode": "",
+    "Speed": "100G"
+  },
+  "swp28": {
+    "Mode": "",
+    "Speed": "100G"
+  },
+  "swp29": {
+    "Mode": "",
+    "Speed": "100G"
+  },
+  "swp3": {
+    "Mode": "",
+    "Speed": "100G"
+  },
+  "swp30": {
+    "Mode": "",
+    "Speed": "100G"
+  },
+  "swp31": {
+    "Mode": "",
+    "Speed": "100G"
+  },
+  "swp32": {
+    "Mode": "",
+    "Speed": "100G"
+  },
+  "swp4": {
+    "Mode": "",
+    "Speed": "100G"
+  },
+  "swp5": {
+    "Mode": "",
+    "Speed": "100G"
+  },
+  "swp6": {
+    "Mode": "",
+    "Speed": "100G"
+  },
+  "swp7": {
+    "Mode": "",
+    "Speed": "100G"
+  },
+  "swp8": {
+    "Mode": "",
+    "Speed": "100G"
+  },
+  "swp9": {
+    "Mode": "",
+    "Speed": "100G"
+  }
+}
