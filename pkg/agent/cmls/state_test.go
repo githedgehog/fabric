@@ -108,6 +108,176 @@ func TestUpdateSwitchState(t *testing.T) {
 	for name := range st.Interfaces {
 		require.False(t, strings.HasPrefix(name, "swp"), name)
 	}
+
+	// every cage of the switch, empty or not
+	require.Len(t, st.Transceivers, 64)
+	require.Len(t, st.Breakouts, 64)
+	for _, name := range []string{"E1/1", "E1/2", "E1/3", "E1/17"} {
+		require.Equal(t, "PRESENT", st.Transceivers[name].Present, name)
+		require.Equal(t, "active", st.Transceivers[name].OperStatus, name)
+		require.Equal(t, "QSFP28", st.Transceivers[name].FormFactor, name)
+		require.Equal(t, "DAC", st.Transceivers[name].CableClass, name)
+		require.InDelta(t, 1, st.Transceivers[name].CableLength, 0, name)
+	}
+	require.Equal(t, agentapi.SwitchStateTransceiver{}, st.Transceivers["E1/20"])
+	require.Equal(t, "1x100G", st.Breakouts["E1/1"].Mode)
+	require.Equal(t, "4x10G", st.Breakouts["E1/17"].Mode)
+	require.Equal(t, "disabled", st.Breakouts["E1/18"].Mode)
+	require.Equal(t, "1x200G", st.Breakouts["E1/20"].Mode)
+}
+
+// metricSeries returns the reported values of a metric keyed by its labels
+func metricSeries(t *testing.T, reg *switchstate.Registry, name string) map[string]float64 {
+	t.Helper()
+
+	families, err := reg.Gather()
+	require.NoError(t, err)
+
+	res := map[string]float64{}
+	for _, family := range families {
+		if family.GetName() != "fabric_agent_"+name {
+			continue
+		}
+
+		for _, metric := range family.GetMetric() {
+			key := []string{} //nolint:prealloc
+			for _, label := range metric.GetLabel() {
+				key = append(key, label.GetName()+"="+label.GetValue())
+			}
+			res[strings.Join(key, ",")] = metric.GetGauge().GetValue()
+		}
+	}
+
+	return res
+}
+
+// the transceivers and breakouts of the switches with optics and other breakouts than the SN4600 has
+func TestUpdateTransceiversAndBreakouts(t *testing.T) {
+	for _, tc := range []struct {
+		model   string
+		profile *wiringapi.SwitchProfileSpec
+		check   func(t *testing.T, st *agentapi.SwitchState, reg *switchstate.Registry)
+	}{
+		{
+			model:   "sn5610",
+			profile: &switchprofile.CumulusNvidiaSN5610.Spec,
+			check: func(t *testing.T, st *agentapi.SwitchState, reg *switchstate.Registry) {
+				t.Helper()
+
+				require.Len(t, st.Transceivers, 66)
+				require.Equal(t, map[string]agentapi.SwitchStateBreakout{
+					"E1/1": {Mode: "8x100G"}, "E1/2": {Mode: "disabled"}, "E1/3": {Mode: "4x200G"},
+					"E1/63": {Mode: "2x100G"}, "E1/64": {Mode: "2x100G"},
+				}, filterBreakouts(st.Breakouts, func(mode string) bool { return !strings.HasPrefix(mode, "1x") }))
+				// the SFP28 ports can't be broken out
+				require.NotContains(t, st.Breakouts, "E1/65")
+				require.Equal(t, "1x800G", st.Breakouts["E1/4"].Mode)
+
+				dac := st.Transceivers["E1/1"]
+				require.Equal(t, "OSFP", dac.FormFactor)
+				require.Equal(t, "DAC", dac.CableClass)
+				require.InDelta(t, 2, dac.CableLength, 0)
+				require.Equal(t, "5.0", dac.CMISRev)
+				require.Empty(t, dac.Channels)
+				require.Zero(t, dac.Temperature)
+
+				for _, name := range []string{"E1/13", "E1/21", "E1/29"} {
+					optic := st.Transceivers[name]
+					require.Equal(t, "OSFP", optic.FormFactor, name)
+					require.Equal(t, "FIBER", optic.CableClass, name)
+					require.Positive(t, optic.Temperature, name)
+					require.Positive(t, optic.Voltage, name)
+					require.Len(t, optic.Channels, 8, name)
+				}
+				// the lanes in use have light, the ones with none at all have no reading
+				for _, ch := range []string{"1", "2", "3", "4"} {
+					require.Greater(t, *st.Transceivers["E1/29"].Channels[ch].In, -3.0, ch)
+					require.Greater(t, *st.Transceivers["E1/29"].Channels[ch].Out, -3.0, ch)
+					require.Positive(t, st.Transceivers["E1/29"].Channels[ch].Bias, ch)
+				}
+				for _, ch := range []string{"5", "6", "7", "8"} {
+					require.Nil(t, st.Transceivers["E1/21"].Channels[ch].In, ch)
+					require.Nil(t, st.Transceivers["E1/21"].Channels[ch].Out, ch)
+				}
+
+				sfp := st.Transceivers["E1/65"]
+				require.Equal(t, "SFP", sfp.FormFactor)
+				require.Equal(t, "FIBER", sfp.CableClass)
+				require.Len(t, sfp.Channels, 1)
+				require.Positive(t, sfp.Channels["1"].Bias)
+				require.NotNil(t, sfp.Channels["1"].In)
+
+				present := metricSeries(t, reg, "transceiver_present")
+				require.Len(t, present, 66)
+				require.InDelta(t, 1, present["transceiver=E1/13"], 0)
+				require.InDelta(t, 0, present["transceiver=E1/2"], 0)
+				require.Len(t, metricSeries(t, reg, "transceiver_info"), 11)
+				// E1/21 has no light on half of its lanes
+				require.Len(t, metricSeries(t, reg, "transceiver_in_power"), 3*8-4+2)
+			},
+		},
+		{
+			model:   "sn2700",
+			profile: &switchprofile.CumulusNvidiaSN2700.Spec,
+			check: func(t *testing.T, st *agentapi.SwitchState, _ *switchstate.Registry) {
+				t.Helper()
+
+				require.Len(t, st.Transceivers, 32)
+				require.Equal(t, "4x25G", st.Breakouts["E1/15"].Mode)
+				require.Equal(t, "disabled", st.Breakouts["E1/16"].Mode)
+				require.Equal(t, "1x100G", st.Breakouts["E1/1"].Mode)
+
+				// the DACs with diagnostics only have them for the module, the lanes have no light to report
+				dac := st.Transceivers["E1/1"]
+				require.Equal(t, "QSFP28", dac.Description)
+				require.Positive(t, dac.Temperature)
+				require.Positive(t, dac.Voltage)
+				require.Len(t, dac.Channels, 4)
+				for ch, chSt := range dac.Channels {
+					require.Equal(t, agentapi.SwitchStateTransceiverChannel{}, chSt, ch)
+				}
+			},
+		},
+	} {
+		t.Run(tc.model, func(t *testing.T) {
+			proc := fixtureProcessor(t, tc.model)
+			reg := switchstate.NewRegistry()
+			st := &agentapi.SwitchState{
+				Transceivers: map[string]agentapi.SwitchStateTransceiver{},
+				Breakouts:    map[string]agentapi.SwitchStateBreakout{},
+			}
+
+			cages := cagesOf(tc.profile)
+			require.NoError(t, proc.updateTransceivers(t.Context(), reg, st, cages))
+			require.NoError(t, proc.updateBreakouts(t.Context(), st, cages))
+			nvuetest.RequireGolden(t, filepath.Join("testdata", "state"), tc.model+"-ports", st)
+
+			tc.check(t, st, reg)
+		})
+	}
+}
+
+func filterBreakouts(breakouts map[string]agentapi.SwitchStateBreakout, keep func(string) bool) map[string]agentapi.SwitchStateBreakout {
+	res := map[string]agentapi.SwitchStateBreakout{}
+	for name, breakout := range breakouts {
+		if keep(breakout.Mode) {
+			res[name] = breakout
+		}
+	}
+
+	return res
+}
+
+func TestFormFactor(t *testing.T) {
+	for identifier, expected := range map[string]string{
+		"0x03 (SFP)":    "SFP",
+		"0x11 (QSFP28)": "QSFP28",
+		"0x18 (QSFP-DD Double Density 8X Pluggable Transceiver (INF-8628))": "QSFP-DD",
+		"0x19 (OSFP 8X Pluggable Transceiver)":                              "OSFP",
+		"unknown":                                                           "unknown",
+	} {
+		require.Equal(t, expected, formFactor(identifier), identifier)
+	}
 }
 
 // the platform and the firmware are read once, they take seconds

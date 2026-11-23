@@ -1,0 +1,295 @@
+{
+  "nos": {},
+  "breakouts": {
+    "E1/1": {
+      "mode": "1x100G"
+    },
+    "E1/10": {
+      "mode": "1x100G"
+    },
+    "E1/11": {
+      "mode": "1x100G"
+    },
+    "E1/12": {
+      "mode": "1x100G"
+    },
+    "E1/13": {
+      "mode": "1x100G"
+    },
+    "E1/14": {
+      "mode": "1x100G"
+    },
+    "E1/15": {
+      "mode": "4x25G"
+    },
+    "E1/16": {
+      "mode": "disabled"
+    },
+    "E1/17": {
+      "mode": "1x100G"
+    },
+    "E1/18": {
+      "mode": "1x100G"
+    },
+    "E1/19": {
+      "mode": "1x100G"
+    },
+    "E1/2": {
+      "mode": "1x100G"
+    },
+    "E1/20": {
+      "mode": "1x100G"
+    },
+    "E1/21": {
+      "mode": "1x100G"
+    },
+    "E1/22": {
+      "mode": "1x100G"
+    },
+    "E1/23": {
+      "mode": "1x100G"
+    },
+    "E1/24": {
+      "mode": "1x100G"
+    },
+    "E1/25": {
+      "mode": "1x100G"
+    },
+    "E1/26": {
+      "mode": "1x100G"
+    },
+    "E1/27": {
+      "mode": "1x100G"
+    },
+    "E1/28": {
+      "mode": "1x100G"
+    },
+    "E1/29": {
+      "mode": "1x100G"
+    },
+    "E1/3": {
+      "mode": "1x100G"
+    },
+    "E1/30": {
+      "mode": "1x100G"
+    },
+    "E1/31": {
+      "mode": "1x100G"
+    },
+    "E1/32": {
+      "mode": "1x100G"
+    },
+    "E1/4": {
+      "mode": "1x100G"
+    },
+    "E1/5": {
+      "mode": "1x100G"
+    },
+    "E1/6": {
+      "mode": "1x100G"
+    },
+    "E1/7": {
+      "mode": "1x100G"
+    },
+    "E1/8": {
+      "mode": "1x100G"
+    },
+    "E1/9": {
+      "mode": "1x100G"
+    }
+  },
+  "transceivers": {
+    "E1/1": {
+      "descr": "QSFP28",
+      "cable": "DAC",
+      "formFactor": "QSFP28",
+      "present": "PRESENT",
+      "length": 1,
+      "oper": "active",
+      "temp": 31.3,
+      "voltage": 3.3198,
+      "serial": "SN00000002",
+      "vendor": "Mellanox",
+      "vendorPart": "MCP1600-C001",
+      "vendorOUI": "00:02:c9",
+      "vendorRev": "A3",
+      "channels": {
+        "1": {},
+        "2": {},
+        "3": {},
+        "4": {}
+      }
+    },
+    "E1/10": {},
+    "E1/11": {},
+    "E1/12": {},
+    "E1/13": {},
+    "E1/14": {},
+    "E1/15": {
+      "descr": "QSFP28",
+      "cable": "DAC",
+      "formFactor": "QSFP28",
+      "present": "PRESENT",
+      "length": 1,
+      "oper": "active",
+      "serial": "SN00000003",
+      "vendor": "FS",
+      "vendorPart": "QSFP-100G-4SPC01",
+      "vendorOUI": "64:9d:99",
+      "vendorRev": "A"
+    },
+    "E1/16": {},
+    "E1/17": {},
+    "E1/18": {},
+    "E1/19": {},
+    "E1/2": {
+      "descr": "QSFP28",
+      "cable": "DAC",
+      "formFactor": "QSFP28",
+      "present": "PRESENT",
+      "length": 1,
+      "oper": "active",
+      "temp": 30.49,
+      "voltage": 3.3234,
+      "serial": "SN00000004",
+      "vendor": "Mellanox",
+      "vendorPart": "MCP1600-C001",
+      "vendorOUI": "00:02:c9",
+      "vendorRev": "A3",
+      "channels": {
+        "1": {},
+        "2": {},
+        "3": {},
+        "4": {}
+      }
+    },
+    "E1/20": {},
+    "E1/21": {},
+    "E1/22": {},
+    "E1/23": {},
+    "E1/24": {},
+    "E1/25": {},
+    "E1/26": {},
+    "E1/27": {},
+    "E1/28": {},
+    "E1/29": {
+      "descr": "QSFP28",
+      "cable": "DAC",
+      "formFactor": "QSFP28",
+      "present": "PRESENT",
+      "length": 1,
+      "oper": "active",
+      "serial": "SN00000005",
+      "vendor": "Amphenol",
+      "vendorPart": "NDAAFF-0001",
+      "vendorOUI": "78:a7:14",
+      "vendorRev": "U"
+    },
+    "E1/3": {
+      "descr": "QSFP28",
+      "cable": "DAC",
+      "formFactor": "QSFP28",
+      "present": "PRESENT",
+      "length": 2,
+      "oper": "active",
+      "temp": 32.38,
+      "voltage": 3.3093,
+      "serial": "SN00000006",
+      "vendor": "Mellanox",
+      "vendorPart": "MCP1600-C002",
+      "vendorOUI": "00:02:c9",
+      "vendorRev": "A3",
+      "channels": {
+        "1": {},
+        "2": {},
+        "3": {},
+        "4": {}
+      }
+    },
+    "E1/30": {
+      "descr": "QSFP28",
+      "cable": "DAC",
+      "formFactor": "QSFP28",
+      "present": "PRESENT",
+      "length": 2,
+      "oper": "active",
+      "temp": 32.55,
+      "voltage": 3.314,
+      "serial": "SN00000007",
+      "vendor": "OEM",
+      "vendorPart": "CAB-ZQP/ZQP-P2M",
+      "vendorOUI": "00:00:00",
+      "vendorRev": "5",
+      "channels": {
+        "1": {},
+        "2": {},
+        "3": {},
+        "4": {}
+      }
+    },
+    "E1/31": {
+      "descr": "QSFP28",
+      "cable": "DAC",
+      "formFactor": "QSFP28",
+      "present": "PRESENT",
+      "length": 1,
+      "oper": "active",
+      "serial": "SN00000008",
+      "vendor": "FS",
+      "vendorPart": "OSFP-400G-2QPC01",
+      "vendorOUI": "00:02:c9",
+      "vendorRev": "A7"
+    },
+    "E1/32": {
+      "descr": "QSFP28",
+      "cable": "DAC",
+      "formFactor": "QSFP28",
+      "present": "PRESENT",
+      "length": 1,
+      "oper": "active",
+      "serial": "SN00000009",
+      "vendor": "FS",
+      "vendorPart": "OSFP-400G-2QPC01",
+      "vendorOUI": "64:9d:99",
+      "vendorRev": "A7"
+    },
+    "E1/4": {
+      "descr": "QSFP28",
+      "cable": "DAC",
+      "formFactor": "QSFP28",
+      "present": "PRESENT",
+      "length": 1,
+      "oper": "active",
+      "serial": "SN00000010",
+      "vendor": "FS",
+      "vendorPart": "Q28-PC01",
+      "vendorOUI": "64:9d:99",
+      "vendorRev": "A"
+    },
+    "E1/5": {},
+    "E1/6": {},
+    "E1/7": {},
+    "E1/8": {},
+    "E1/9": {}
+  },
+  "platform": {},
+  "criticalResources": {
+    "aclStats": {
+      "egress": {
+        "lag": {},
+        "port": {},
+        "rif": {},
+        "switch": {},
+        "vlan": {}
+      },
+      "ingress": {
+        "lag": {},
+        "port": {},
+        "rif": {},
+        "switch": {},
+        "vlan": {}
+      }
+    },
+    "stats": {}
+  }
+}
