@@ -1280,6 +1280,15 @@
           {{- end }}
           {{- if $.Subnets }}
           ifupdown2_eni:
+            {{- if $.ESLAGBridgePorts }}
+            {{- /* the kernel only uses the backup nexthop zebra sets on a down ES bond with a backup port, which NVUE
+            can't set; on the bridge as vxlan48 doesn't exist yet when the bonds come up at boot. NVUE names the VXLAN
+            device by hashing the bridge name, so br_default's is always vxlan48 */}}
+            br_default: |
+              {{- range $bond := $.ESLAGBridgePorts }}
+              post-up bridge link set dev {{ $bond }} backup_port vxlan48
+              {{- end }}
+            {{- end }}
             {{- range $subnet := $.Subnets }}
             {{ $subnet.Name }}: |
               address-virtual-ipv6-addrgen off

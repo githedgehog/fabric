@@ -77,6 +77,7 @@ type ConfigIn struct {
 	Ports            []*PortConfig
 	Bonds            []*BondConfig
 	ESLAG            bool
+	ESLAGBridgePorts []string // the ESLAG bonds in the bridge, which need the VXLAN device as backup port
 	Subinterfaces    []*SubinterfaceConfig
 	Subnets          []*SubnetConfig
 	SubnetACLs       []*SubnetConfig
@@ -342,6 +343,15 @@ type SubnetConfig struct {
 }
 
 func buildConfig(agent *agentapi.Agent) (*bytes.Buffer, error) {
+	cfgIn, err := buildConfigIn(agent)
+	if err != nil {
+		return nil, err
+	}
+
+	return renderConfig(fullCfgTmpl, cfgIn)
+}
+
+func buildConfigIn(agent *agentapi.Agent) (*ConfigIn, error) {
 	isSpine := agent.IsSpineLeaf() && agent.Spec.Switch.Role.IsSpine()
 	isLeaf := agent.IsSpineLeaf() && agent.Spec.Switch.Role.IsLeaf()
 
@@ -1625,10 +1635,14 @@ func buildConfig(agent *agentapi.Agent) (*bytes.Buffer, error) {
 	}
 
 	// bonds and their members are only up when attached, the same as the unbundled ports
+	eslagBridgePorts := []string{}
 	for _, bond := range bonds {
 		bond.Up = bond.Attached || agent.Spec.Switch.EnableAllPorts
 		for _, port := range bond.Members {
 			port.Up = bond.Up
+		}
+		if bond.ESI != "" && len(bond.VLANs) > 0 {
+			eslagBridgePorts = append(eslagBridgePorts, bond.Name)
 		}
 	}
 
@@ -1677,6 +1691,7 @@ func buildConfig(agent *agentapi.Agent) (*bytes.Buffer, error) {
 		Ports:            ports,
 		Bonds:            bonds,
 		ESLAG:            eslag,
+		ESLAGBridgePorts: eslagBridgePorts,
 		Subinterfaces:    subifs,
 		Subnets:          subnets,
 		SubnetACLs:       slices.DeleteFunc(slices.Clone(aclSubnets), func(subnet *SubnetConfig) bool { return len(subnet.Deny) == 0 && !subnet.DenySelf }),
@@ -1693,7 +1708,7 @@ func buildConfig(agent *agentapi.Agent) (*bytes.Buffer, error) {
 		cfgIn.DHCPServer = controlVIP.Addr().String()
 	}
 
-	return renderConfig(fullCfgTmpl, cfgIn)
+	return &cfgIn, nil
 }
 
 // ZTPConfigIn only has what's needed to reach the switch and to install the agent, which replaces the whole config on
@@ -2306,9 +2321,13 @@ func Enforce(ctx context.Context, _ /* processor */ dozer.Processor, agent *agen
 		return err
 	}
 
-	cfgBuf, err := buildConfig(agent)
+	cfgIn, err := buildConfigIn(agent)
 	if err != nil {
 		return fmt.Errorf("building full config: %w", err)
+	}
+	cfgBuf, err := renderConfig(fullCfgTmpl, cfgIn)
+	if err != nil {
+		return fmt.Errorf("rendering full config: %w", err)
 	}
 
 	if dryRun {
@@ -2340,6 +2359,7 @@ func Enforce(ctx context.Context, _ /* processor */ dozer.Processor, agent *agen
 		}
 	} else if len(bytes.TrimSpace(diff)) == 0 {
 		slog.Debug("Config is already applied")
+		redoPostUps(ctx, cfgIn)
 
 		return nil
 	}
@@ -2353,7 +2373,21 @@ func Enforce(ctx context.Context, _ /* processor */ dozer.Processor, agent *agen
 		return fmt.Errorf("writing applied diff file: %w", err)
 	}
 
+	redoPostUps(ctx, cfgIn)
+
 	return nil
+}
+
+// redoPostUps runs the ifupdown2 snippets' post-up commands again on every enforce, as ifupdown2 only warns when one
+// fails and a later run with no config diff would never repair it; the post-ups stay to have the state before the
+// agent starts. Failures are only logged, as an error would crash-loop the agent on its saved config and block any new
+// one
+func redoPostUps(ctx context.Context, cfg *ConfigIn) {
+	for _, bond := range cfg.ESLAGBridgePorts {
+		if err := run(ctx, "bridge-link", "bridge", "link", "set", "dev", bond, "backup_port", "vxlan48"); err != nil {
+			slog.Error("Failed to set the bridge backup port", "bond", bond, "err", err)
+		}
+	}
 }
 
 const sudoersPath = "/etc/sudoers.d/hedgehog"

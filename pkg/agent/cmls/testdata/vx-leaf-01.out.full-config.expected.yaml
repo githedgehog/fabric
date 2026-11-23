@@ -2704,6 +2704,8 @@
           state: enabled
         snippet:
           ifupdown2_eni:
+            br_default: |
+              post-up bridge link set dev bond2 backup_port vxlan48
             vlan1001: |
               address-virtual-ipv6-addrgen off
             vlan1002: |

@@ -1285,6 +1285,27 @@ func TestBuildConfigLeafPassesGatewayVTEPs(t *testing.T) {
 	)
 }
 
+func TestBuildConfigESLAGBackupPort(t *testing.T) {
+	agData, err := os.ReadFile(filepath.Join(testdataDir, "vx-leaf-01.in.agent.yaml"))
+	require.NoError(t, err, "reading agent file")
+	ag := &agentapi.Agent{}
+	require.NoError(t, kyaml.Unmarshal(agData, ag), "unmarshalling agent data")
+	ag.Spec.SwitchProfile = switchprofile.CumulusVX.Spec.DeepCopy()
+
+	cfg, err := buildConfigIn(ag)
+	require.NoError(t, err, "building full config")
+	require.Equal(t, []string{"bond2"}, cfg.ESLAGBridgePorts)
+
+	// an ESLAG bond without attachments isn't a bridge port, so it gets no backup port
+	delete(ag.Spec.VPCAttachments, "s06-v1")
+	cfg, err = buildConfigIn(ag)
+	require.NoError(t, err, "building full config")
+	require.Empty(t, cfg.ESLAGBridgePorts)
+	rendered, err := renderConfig(fullCfgTmpl, cfg)
+	require.NoError(t, err, "rendering full config")
+	require.NotContains(t, rendered.String(), "backup_port")
+}
+
 func TestBuildConfigNoIPNSPeeringPairs(t *testing.T) {
 	agData, err := os.ReadFile(filepath.Join(testdataDir, "vx-leaf-01.in.agent.yaml"))
 	require.NoError(t, err, "reading agent file")
