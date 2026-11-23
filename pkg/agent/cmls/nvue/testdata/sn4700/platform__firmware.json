@@ -1,0 +1,32 @@
+{
+  "BIOS": {
+    "actual-firmware": "0ACLH004_02.02.010",
+    "fw-source": "default",
+    "part-number": "American Megatrends Inc."
+  },
+  "CPLD1": {
+    "actual-firmware": "9.0",
+    "fw-source": "default",
+    "part-number": "120"
+  },
+  "CPLD2": {
+    "actual-firmware": "6.0",
+    "fw-source": "default",
+    "part-number": "254"
+  },
+  "CPLD3": {
+    "actual-firmware": "1.2",
+    "fw-source": "default",
+    "part-number": "191"
+  },
+  "SSD": {
+    "actual-firmware": "0726-000",
+    "fw-source": "default",
+    "part-number": "VSFEM4XI060G-B201"
+  },
+  "Spectrum-3": {
+    "actual-firmware": "30.2020.1148",
+    "fw-source": "default",
+    "part-number": "MSN4700-WxxxC_Ax"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "BIOS": {
+    "actual-firmware": "Not Specified",
+    "fw-source": "default",
+    "part-number": "American Megatrends Inc."
+  },
+  "CPLD1": {
+    "actual-firmware": "7.0",
+    "fw-source": "default",
+    "part-number": "299"
+  },
+  "CPLD2": {
+    "actual-firmware": "3.0",
+    "fw-source": "default",
+    "part-number": "300"
+  },
+  "SSD": {
+    "actual-firmware": "COT6OQ",
+    "fw-source": "default",
+    "part-number": "SFPC020GM1EC2TO-I-5E-51P-STD"
+  },
+  "Spectrum": {
+    "actual-firmware": "13.2020.1148",
+    "fw-source": "default",
+    "part-number": "MSN2201-CB2XC_DNI_Ax"
+  }
+}

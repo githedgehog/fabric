@@ -1,0 +1,32 @@
+{
+  "BIOS": {
+    "actual-firmware": "0ACLH004_02.02.007",
+    "fw-source": "default",
+    "part-number": "American Megatrends Inc."
+  },
+  "CPLD1": {
+    "actual-firmware": "9.0",
+    "fw-source": "default",
+    "part-number": "120"
+  },
+  "CPLD2": {
+    "actual-firmware": "4.0",
+    "fw-source": "default",
+    "part-number": "208"
+  },
+  "CPLD3": {
+    "actual-firmware": "1.0",
+    "fw-source": "default",
+    "part-number": "209"
+  },
+  "SSD": {
+    "actual-firmware": "0202-000",
+    "fw-source": "default",
+    "part-number": "StorFly VSFBM4XI060G-MLX"
+  },
+  "Spectrum-3": {
+    "actual-firmware": "30.2020.1148",
+    "fw-source": "default",
+    "part-number": "MSN4600-VxxxO_Ax"
+  }
+}
