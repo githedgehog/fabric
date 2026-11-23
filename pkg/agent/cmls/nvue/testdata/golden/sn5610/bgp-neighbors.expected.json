@@ -1,0 +1,661 @@
+{
+  "default": {
+    "172.30.8.0": {
+      "type": "numbered",
+      "description": "fabric overlay to spine sn2700-01",
+      "peer-group": "overlay",
+      "remote-as": {
+        "Value": 65100,
+        "OK": true,
+        "Raw": "65100"
+      },
+      "local-as": {
+        "asn": {
+          "Value": 65104,
+          "OK": true,
+          "Raw": "65104"
+        }
+      },
+      "remote-router-id": "172.30.8.0",
+      "remote-hostname": "sn2700-01",
+      "remote-port": {
+        "Value": 179,
+        "OK": true,
+        "Raw": "179"
+      },
+      "session-state": "established",
+      "uptime": {
+        "Value": 28920000,
+        "OK": true,
+        "Raw": "28920000"
+      },
+      "last-reset-time": {
+        "Value": 28921000,
+        "OK": true,
+        "Raw": "28921000"
+      },
+      "last-reset-reason": "Waiting for peer OPEN",
+      "connections-established": {
+        "Value": 3,
+        "OK": true
+      },
+      "connections-dropped": {
+        "Value": 2,
+        "OK": true
+      },
+      "message-stats": {
+        "rx-opens": {
+          "Value": 3,
+          "OK": true
+        },
+        "rx-keepalives": {
+          "Value": 23256,
+          "OK": true
+        },
+        "rx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "rx-total": {
+          "Value": 25566,
+          "OK": true
+        },
+        "tx-opens": {
+          "Value": 3,
+          "OK": true
+        },
+        "tx-keepalives": {
+          "Value": 23258,
+          "OK": true
+        },
+        "tx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "tx-total": {
+          "Value": 25680,
+          "OK": true
+        }
+      },
+      "address-family": {
+        "l2vpn-evpn": {
+          "rx-prefix": {
+            "Value": 52,
+            "OK": true
+          },
+          "tx-prefix": {
+            "Value": 61,
+            "OK": true
+          }
+        }
+      },
+      "bfd": {
+        "profile": "overlay",
+        "status": "up"
+      }
+    },
+    "172.30.8.1": {
+      "type": "numbered",
+      "description": "fabric overlay to spine sn3700c-01",
+      "peer-group": "overlay",
+      "remote-as": {
+        "Value": 65100,
+        "OK": true,
+        "Raw": "65100"
+      },
+      "local-as": {
+        "asn": {
+          "Value": 65104,
+          "OK": true,
+          "Raw": "65104"
+        }
+      },
+      "remote-router-id": "172.30.8.1",
+      "remote-hostname": "sn3700c-01",
+      "remote-port": {
+        "Value": 179,
+        "OK": true,
+        "Raw": "179"
+      },
+      "session-state": "established",
+      "uptime": {
+        "Value": 26684000,
+        "OK": true,
+        "Raw": "26684000"
+      },
+      "last-reset-time": {
+        "Value": 26870000,
+        "OK": true,
+        "Raw": "26870000"
+      },
+      "last-reset-reason": "No AFI/SAFI activated for peer",
+      "connections-established": {
+        "Value": 3,
+        "OK": true
+      },
+      "connections-dropped": {
+        "Value": 2,
+        "OK": true
+      },
+      "message-stats": {
+        "rx-opens": {
+          "Value": 3,
+          "OK": true
+        },
+        "rx-keepalives": {
+          "Value": 23196,
+          "OK": true
+        },
+        "rx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "rx-total": {
+          "Value": 25486,
+          "OK": true
+        },
+        "tx-opens": {
+          "Value": 3,
+          "OK": true
+        },
+        "tx-keepalives": {
+          "Value": 23198,
+          "OK": true
+        },
+        "tx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "tx-total": {
+          "Value": 25605,
+          "OK": true
+        }
+      },
+      "address-family": {
+        "l2vpn-evpn": {
+          "rx-prefix": {
+            "Value": 52,
+            "OK": true
+          },
+          "tx-prefix": {
+            "Value": 61,
+            "OK": true
+          }
+        }
+      },
+      "bfd": {
+        "profile": "overlay",
+        "status": "up"
+      }
+    },
+    "swp63s0": {
+      "type": "unnumbered",
+      "description": "fabric underlay to spine sn3700c-01/E1/31",
+      "peer-group": "underlay_spine",
+      "remote-as": {
+        "Value": 65100,
+        "OK": true,
+        "Raw": "65100"
+      },
+      "local-as": {
+        "asn": {
+          "Value": 65104,
+          "OK": true,
+          "Raw": "65104"
+        }
+      },
+      "remote-router-id": "172.30.8.1",
+      "remote-hostname": "sn3700c-01",
+      "remote-port": {
+        "Value": 179,
+        "OK": true,
+        "Raw": "179"
+      },
+      "session-state": "established",
+      "uptime": {
+        "Value": 26686000,
+        "OK": true,
+        "Raw": "26686000"
+      },
+      "last-reset-time": {
+        "Value": 26878000,
+        "OK": true,
+        "Raw": "26878000"
+      },
+      "last-reset-reason": "Waiting for peer OPEN",
+      "connections-established": {
+        "Value": 3,
+        "OK": true
+      },
+      "connections-dropped": {
+        "Value": 2,
+        "OK": true
+      },
+      "message-stats": {
+        "rx-opens": {
+          "Value": 3,
+          "OK": true
+        },
+        "rx-keepalives": {
+          "Value": 23195,
+          "OK": true
+        },
+        "rx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "rx-total": {
+          "Value": 23246,
+          "OK": true
+        },
+        "tx-opens": {
+          "Value": 3,
+          "OK": true
+        },
+        "tx-keepalives": {
+          "Value": 23196,
+          "OK": true
+        },
+        "tx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "tx-total": {
+          "Value": 23272,
+          "OK": true
+        }
+      },
+      "address-family": {
+        "ipv4-unicast": {
+          "rx-prefix": {
+            "Value": 9,
+            "OK": true
+          },
+          "tx-prefix": {
+            "Value": 12,
+            "OK": true
+          }
+        }
+      },
+      "bfd": {
+        "profile": "underlay",
+        "status": "up"
+      }
+    },
+    "swp63s1": {
+      "type": "unnumbered",
+      "description": "fabric underlay to spine sn2700-01/E1/31",
+      "peer-group": "underlay_spine",
+      "remote-as": {
+        "Value": 65100,
+        "OK": true,
+        "Raw": "65100"
+      },
+      "local-as": {
+        "asn": {
+          "Value": 65104,
+          "OK": true,
+          "Raw": "65104"
+        }
+      },
+      "remote-router-id": "172.30.8.0",
+      "remote-hostname": "sn2700-01",
+      "remote-port": {
+        "Value": 179,
+        "OK": true,
+        "Raw": "179"
+      },
+      "session-state": "established",
+      "uptime": {
+        "Value": 28921000,
+        "OK": true,
+        "Raw": "28921000"
+      },
+      "last-reset-time": {
+        "Value": 28923000,
+        "OK": true,
+        "Raw": "28923000"
+      },
+      "last-reset-reason": "Waiting for peer OPEN",
+      "connections-established": {
+        "Value": 3,
+        "OK": true
+      },
+      "connections-dropped": {
+        "Value": 2,
+        "OK": true
+      },
+      "message-stats": {
+        "rx-opens": {
+          "Value": 3,
+          "OK": true
+        },
+        "rx-keepalives": {
+          "Value": 23258,
+          "OK": true
+        },
+        "rx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "rx-total": {
+          "Value": 23302,
+          "OK": true
+        },
+        "tx-opens": {
+          "Value": 3,
+          "OK": true
+        },
+        "tx-keepalives": {
+          "Value": 23258,
+          "OK": true
+        },
+        "tx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "tx-total": {
+          "Value": 23346,
+          "OK": true
+        }
+      },
+      "address-family": {
+        "ipv4-unicast": {
+          "rx-prefix": {
+            "Value": 9,
+            "OK": true
+          },
+          "tx-prefix": {
+            "Value": 12,
+            "OK": true
+          }
+        }
+      },
+      "bfd": {
+        "profile": "underlay",
+        "status": "up"
+      }
+    },
+    "swp64s0": {
+      "type": "unnumbered",
+      "description": "fabric underlay to spine sn3700c-01/E1/32",
+      "peer-group": "underlay_spine",
+      "remote-as": {
+        "Value": 65100,
+        "OK": true,
+        "Raw": "65100"
+      },
+      "local-as": {
+        "asn": {
+          "Value": 65104,
+          "OK": true,
+          "Raw": "65104"
+        }
+      },
+      "remote-router-id": "172.30.8.1",
+      "remote-hostname": "sn3700c-01",
+      "remote-port": {
+        "Value": 179,
+        "OK": true,
+        "Raw": "179"
+      },
+      "session-state": "established",
+      "uptime": {
+        "Value": 26685000,
+        "OK": true,
+        "Raw": "26685000"
+      },
+      "last-reset-time": {
+        "Value": 26872000,
+        "OK": true,
+        "Raw": "26872000"
+      },
+      "last-reset-reason": "Waiting for peer OPEN",
+      "connections-established": {
+        "Value": 3,
+        "OK": true
+      },
+      "connections-dropped": {
+        "Value": 2,
+        "OK": true
+      },
+      "message-stats": {
+        "rx-opens": {
+          "Value": 3,
+          "OK": true
+        },
+        "rx-keepalives": {
+          "Value": 23197,
+          "OK": true
+        },
+        "rx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "rx-total": {
+          "Value": 23249,
+          "OK": true
+        },
+        "tx-opens": {
+          "Value": 3,
+          "OK": true
+        },
+        "tx-keepalives": {
+          "Value": 23198,
+          "OK": true
+        },
+        "tx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "tx-total": {
+          "Value": 23277,
+          "OK": true
+        }
+      },
+      "address-family": {
+        "ipv4-unicast": {
+          "rx-prefix": {
+            "Value": 9,
+            "OK": true
+          },
+          "tx-prefix": {
+            "Value": 12,
+            "OK": true
+          }
+        }
+      },
+      "bfd": {
+        "profile": "underlay",
+        "status": "up"
+      }
+    },
+    "swp64s1": {
+      "type": "unnumbered",
+      "description": "fabric underlay to spine sn2700-01/E1/32",
+      "peer-group": "underlay_spine",
+      "remote-as": {
+        "Value": 65100,
+        "OK": true,
+        "Raw": "65100"
+      },
+      "local-as": {
+        "asn": {
+          "Value": 65104,
+          "OK": true,
+          "Raw": "65104"
+        }
+      },
+      "remote-router-id": "172.30.8.0",
+      "remote-hostname": "sn2700-01",
+      "remote-port": {
+        "Value": 179,
+        "OK": true,
+        "Raw": "179"
+      },
+      "session-state": "established",
+      "uptime": {
+        "Value": 28922000,
+        "OK": true,
+        "Raw": "28922000"
+      },
+      "last-reset-time": {
+        "Value": 28923000,
+        "OK": true,
+        "Raw": "28923000"
+      },
+      "last-reset-reason": "Waiting for peer OPEN",
+      "connections-established": {
+        "Value": 3,
+        "OK": true
+      },
+      "connections-dropped": {
+        "Value": 2,
+        "OK": true
+      },
+      "message-stats": {
+        "rx-opens": {
+          "Value": 3,
+          "OK": true
+        },
+        "rx-keepalives": {
+          "Value": 23258,
+          "OK": true
+        },
+        "rx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "rx-total": {
+          "Value": 23302,
+          "OK": true
+        },
+        "tx-opens": {
+          "Value": 3,
+          "OK": true
+        },
+        "tx-keepalives": {
+          "Value": 23259,
+          "OK": true
+        },
+        "tx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "tx-total": {
+          "Value": 23343,
+          "OK": true
+        }
+      },
+      "address-family": {
+        "ipv4-unicast": {
+          "rx-prefix": {
+            "Value": 9,
+            "OK": true
+          },
+          "tx-prefix": {
+            "Value": 12,
+            "OK": true
+          }
+        }
+      },
+      "bfd": {
+        "profile": "underlay",
+        "status": "up"
+      }
+    }
+  },
+  "vpc-hbgp-nvue": {
+    "swp66": {
+      "type": "unnumbered",
+      "description": "Host BGP hbgp-nvue/subnet-01 server-03--unbundled--sn5610-01",
+      "peer-group": "none",
+      "remote-as": {
+        "Value": 64999,
+        "OK": true,
+        "Raw": "64999"
+      },
+      "local-as": {
+        "asn": {
+          "Value": 65104,
+          "OK": true,
+          "Raw": "65104"
+        }
+      },
+      "remote-router-id": "10.70.120.10",
+      "remote-hostname": "server-03",
+      "remote-port": {
+        "Value": 179,
+        "OK": true,
+        "Raw": "179"
+      },
+      "session-state": "established",
+      "uptime": {
+        "Value": 808000,
+        "OK": true,
+        "Raw": "808000"
+      },
+      "last-reset-time": {
+        "Value": 828000,
+        "OK": true,
+        "Raw": "828000"
+      },
+      "last-reset-reason": "Waiting for peer OPEN",
+      "connections-established": {
+        "Value": 1,
+        "OK": true
+      },
+      "connections-dropped": {
+        "Value": 0,
+        "OK": true
+      },
+      "message-stats": {
+        "rx-opens": {
+          "Value": 1,
+          "OK": true
+        },
+        "rx-keepalives": {
+          "Value": 270,
+          "OK": true
+        },
+        "rx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "rx-total": {
+          "Value": 273,
+          "OK": true
+        },
+        "tx-opens": {
+          "Value": 1,
+          "OK": true
+        },
+        "tx-keepalives": {
+          "Value": 270,
+          "OK": true
+        },
+        "tx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "tx-total": {
+          "Value": 273,
+          "OK": true
+        }
+      },
+      "address-family": {
+        "ipv4-unicast": {
+          "rx-prefix": {
+            "Value": 1,
+            "OK": true
+          },
+          "tx-prefix": {
+            "Value": 1,
+            "OK": true
+          }
+        }
+      },
+      "bfd": null
+    }
+  }
+}
