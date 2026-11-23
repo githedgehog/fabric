@@ -1,0 +1,45 @@
+{
+  "hostname": "sn2700-01",
+  "product-name": "Cumulus Linux",
+  "platform": "x86_64-mlnx_x86-r0",
+  "uptime": {
+    "Value": 212210,
+    "OK": true,
+    "Raw": "212210"
+  },
+  "version": {
+    "product-release": "5.18.3",
+    "base-os": "Debian GNU/Linux 12.15",
+    "kernel": "6.1.0-cl-1-amd64",
+    "onie": "2019.11-5.2.0020-115200",
+    "image": {
+      "build-id": "5.18.3.0001",
+      "build-date": "Sun Oct 04 17:27:31 UTC 2026"
+    }
+  },
+  "date-time": {
+    "timezone": "Etc/UTC",
+    "local-time": "2026-11-23 19:26:19"
+  },
+  "health": {
+    "status": "Not OK",
+    "status-led": "amber",
+    "issues": {
+      "PSU2": {
+        "issue": "bad"
+      },
+      "PSU2-Temp-Sensor": {
+        "issue": "absent"
+      },
+      "PSU2/FAN": {
+        "issue": "absent"
+      },
+      "hw-management-tc": {
+        "issue": "inactive"
+      },
+      "process": {
+        "issue": "Not OK"
+      }
+    }
+  }
+}

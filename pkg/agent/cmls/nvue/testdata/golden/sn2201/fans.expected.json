@@ -1,0 +1,116 @@
+{
+  "FAN1/1": {
+    "current-speed": {
+      "Value": 4990,
+      "OK": true,
+      "Raw": "4990"
+    },
+    "min-speed": {
+      "Value": 2200,
+      "OK": true,
+      "Raw": "2200"
+    },
+    "max-speed": {
+      "Value": 22000,
+      "OK": true,
+      "Raw": "22000"
+    },
+    "direction": "F2B",
+    "state": "ok"
+  },
+  "FAN2/1": {
+    "current-speed": {
+      "Value": 5292,
+      "OK": true,
+      "Raw": "5292"
+    },
+    "min-speed": {
+      "Value": 2200,
+      "OK": true,
+      "Raw": "2200"
+    },
+    "max-speed": {
+      "Value": 22000,
+      "OK": true,
+      "Raw": "22000"
+    },
+    "direction": "F2B",
+    "state": "ok"
+  },
+  "FAN3/1": {
+    "current-speed": {
+      "Value": 5284,
+      "OK": true,
+      "Raw": "5284"
+    },
+    "min-speed": {
+      "Value": 2200,
+      "OK": true,
+      "Raw": "2200"
+    },
+    "max-speed": {
+      "Value": 22000,
+      "OK": true,
+      "Raw": "22000"
+    },
+    "direction": "F2B",
+    "state": "ok"
+  },
+  "FAN4/1": {
+    "current-speed": {
+      "Value": 4686,
+      "OK": true,
+      "Raw": "4686"
+    },
+    "min-speed": {
+      "Value": 2200,
+      "OK": true,
+      "Raw": "2200"
+    },
+    "max-speed": {
+      "Value": 22000,
+      "OK": true,
+      "Raw": "22000"
+    },
+    "direction": "F2B",
+    "state": "ok"
+  },
+  "PSU1/FAN": {
+    "current-speed": {
+      "Value": 5584,
+      "OK": true,
+      "Raw": "5584"
+    },
+    "min-speed": {
+      "Value": 2500,
+      "OK": true,
+      "Raw": "2500"
+    },
+    "max-speed": {
+      "Value": 16000,
+      "OK": true,
+      "Raw": "16000"
+    },
+    "direction": "F2B",
+    "state": "ok"
+  },
+  "PSU2/FAN": {
+    "current-speed": {
+      "Value": 5696,
+      "OK": true,
+      "Raw": "5696"
+    },
+    "min-speed": {
+      "Value": 2500,
+      "OK": true,
+      "Raw": "2500"
+    },
+    "max-speed": {
+      "Value": 16000,
+      "OK": true,
+      "Raw": "16000"
+    },
+    "direction": "F2B",
+    "state": "ok"
+  }
+}

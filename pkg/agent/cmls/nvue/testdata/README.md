@@ -40,9 +40,11 @@ ones of a new endpoint:
 NVUE_IMPORT=/path/to/sn5610 just test ./pkg/agent/cmls/nvue/...
 ```
 
-Refreshing the existing ones, such as for a new Cumulus Linux release, is an import with `NVUE_IMPORT_REFRESH=true`,
-it changes the values the tests expect. The import fails if the status of a request changed, which usually means that
-the switch isn't set up like the fixtures expect.
+Refreshing the existing ones, such as for a new Cumulus Linux release, is an import with `NVUE_IMPORT_REFRESH=true`
+followed by `just test-update ./pkg/agent/cmls/nvue/...`, which regenerates what the client is expected to decode from
+them in `golden/`, and a review of its diff. The import fails if the status of a request changed, which usually means
+that the switch isn't set up like the fixtures expect. The tests check the rest, such as the breakouts or the modules,
+against the setup below.
 
 The fakes of the scrubbed values are consistent within a capture only. The fixtures are from env-7 (Cumulus Linux
 5.18.3) with the fabric configured by the agent and the VPCs of `hhfab vlab setup-vpcs`, the tests expect the switches

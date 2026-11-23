@@ -1,0 +1,9 @@
+{
+  "system-type": "SN2201",
+  "manufacturer": "Nvidia",
+  "part-number": "MSN2201-CB2RC",
+  "serial-number": "SN00000006",
+  "asic-model": "Spectrum",
+  "system-mac": "0a:1b:2c:00:00:02",
+  "port-layout": "48 x RJ45 \u0026 4 x 100G-QSFP28"
+}

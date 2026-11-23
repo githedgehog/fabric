@@ -1,0 +1,9 @@
+{
+  "system-type": "SN5610",
+  "manufacturer": "Nvidia",
+  "part-number": "920-9N42F-00RI-3C1",
+  "serial-number": "SN00000013",
+  "asic-model": "Spectrum-4",
+  "system-mac": "0a:1b:2c:00:00:01",
+  "port-layout": "64 x 800G-OSFP \u0026 2 x 25G-SFP28"
+}

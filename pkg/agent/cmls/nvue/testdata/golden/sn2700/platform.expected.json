@@ -1,0 +1,9 @@
+{
+  "system-type": "MSN2700",
+  "manufacturer": "Mellanox",
+  "part-number": "MSN2700-CS2F",
+  "serial-number": "SN00000011",
+  "asic-model": "Spectrum",
+  "system-mac": "0a:1b:2c:00:00:2f",
+  "port-layout": "32 x 100G-QSFP28"
+}

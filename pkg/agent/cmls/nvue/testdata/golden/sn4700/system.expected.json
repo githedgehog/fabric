@@ -1,0 +1,39 @@
+{
+  "hostname": "sn4700-01",
+  "product-name": "Cumulus Linux",
+  "platform": "x86_64-mlnx_msn4700-r0",
+  "uptime": {
+    "Value": 66175,
+    "OK": true,
+    "Raw": "66175"
+  },
+  "version": {
+    "product-release": "5.18.3",
+    "base-os": "Debian GNU/Linux 12.15",
+    "kernel": "6.1.0-cl-1-amd64",
+    "onie": "2023.11-5.3.0011-115200",
+    "image": {
+      "build-id": "5.18.3.0001",
+      "build-date": "Sun Oct 04 17:27:31 UTC 2026"
+    }
+  },
+  "date-time": {
+    "timezone": "Etc/UTC",
+    "local-time": "2026-11-23 19:26:02"
+  },
+  "health": {
+    "status": "Not OK",
+    "status-led": "amber",
+    "issues": {
+      "PSU2": {
+        "issue": "bad"
+      },
+      "PSU2-Temp-Sensor": {
+        "issue": "absent"
+      },
+      "PSU2/FAN": {
+        "issue": "absent"
+      }
+    }
+  }
+}

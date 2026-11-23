@@ -1,0 +1,48 @@
+{
+  "PSU1": {
+    "capacity": {
+      "Value": 1600,
+      "OK": true,
+      "Raw": "1600.0"
+    },
+    "power": {
+      "Value": 260,
+      "OK": true,
+      "Raw": "260.0"
+    },
+    "current": {
+      "Value": 21.5,
+      "OK": true,
+      "Raw": "21.5"
+    },
+    "voltage": {
+      "Value": 11.937,
+      "OK": true,
+      "Raw": "11.937"
+    },
+    "state": "ok"
+  },
+  "PSU2": {
+    "capacity": {
+      "Value": 0,
+      "OK": false,
+      "Raw": "N/A"
+    },
+    "power": {
+      "Value": 0,
+      "OK": false,
+      "Raw": "N/A"
+    },
+    "current": {
+      "Value": 0,
+      "OK": false,
+      "Raw": "N/A"
+    },
+    "voltage": {
+      "Value": 0,
+      "OK": false,
+      "Raw": "N/A"
+    },
+    "state": "bad"
+  }
+}
