@@ -197,23 +197,23 @@
         lldp:
           state: enabled
       swp20:
-        description: Unused
+        description: Unbundled server-07 server-07--unbundled--leaf-01
         ipv6:
           state: disabled
         link:
           speed: 10G
           state:
-            down: {}
+            up: {}
         lldp:
           state: enabled
       swp21:
-        description: Unused
+        description: Unbundled server-08 server-08--unbundled--leaf-01
         ipv6:
           state: disabled
         link:
           speed: 10G
           state:
-            down: {}
+            up: {}
         lldp:
           state: enabled
       swp22:

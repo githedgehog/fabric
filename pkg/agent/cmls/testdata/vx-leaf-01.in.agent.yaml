@@ -39,6 +39,8 @@ spec:
       10.0.3.0/24: 102
       10.0.11.0/24: 105
       10.0.12.0/24: 104
+      10.0.13.0/24: 111
+      10.0.14.0/24: 112
       10.197.0.0/16: 110
       10.198.0.0/24: 108
       10.199.0.0/16: 107
@@ -49,6 +51,8 @@ spec:
         default: 301
         subnet-02: 302
         subnet-03: 303
+        subnet-04: 304
+        subnet-05: 305
       vpc-02:
         default: 401
       vpc-03:
@@ -172,6 +176,20 @@ spec:
             port: server-04/enp2s1
           switch:
             port: leaf-01/E1/4
+    server-07--unbundled--leaf-01:
+      unbundled:
+        link:
+          server:
+            port: server-07/enp2s1
+          switch:
+            port: leaf-01/E1/20
+    server-08--unbundled--leaf-01:
+      unbundled:
+        link:
+          server:
+            port: server-08/enp2s1
+          switch:
+            port: leaf-01/E1/21
     server-05--bundled--leaf-01:
       bundled:
         fallback: true
@@ -507,6 +525,12 @@ spec:
     s5-v1s3-l1:
       connection: server-05--bundled--leaf-01
       subnet: vpc-01/subnet-03
+    s7-v1s4-l1:
+      connection: server-07--unbundled--leaf-01
+      subnet: vpc-01/subnet-04
+    s8-v1s5-l1:
+      connection: server-08--unbundled--leaf-01
+      subnet: vpc-01/subnet-05
   vpcPeers:
     vpc-01--vpc-03:
       permit:
@@ -547,6 +571,25 @@ spec:
           restricted: true
           subnet: 10.0.12.0/24
           vlan: 1012
+        subnet-04:
+          dhcp: {}
+          hostBGP: true
+          hostBGPExtraPrefixes:
+            10.200.0.0/16:
+              maxPrefixLen: 24
+              minPrefixLen: 20
+            10.201.0.1/32:
+              maxPrefixLen: 32
+              minPrefixLen: 32
+          hostBGPMinPrefixLen: 30
+          hostBGPMaxPrefixLen: 32
+          restricted: true
+          subnet: 10.0.13.0/24
+        subnet-05:
+          dhcp: {}
+          hostBGP: true
+          subnet: 10.0.14.0/24
+          vlan: 1050
       vlanNamespace: default
     vpc-02:
       defaultRestricted: true

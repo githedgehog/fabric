@@ -63,6 +63,15 @@
       {{- range $subnet := $.SubnetACLs }}
       {{ $subnet.ACL }}:
         rule:
+          {{- if $subnet.DenySelf }}
+          '1':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: {{ $subnet.Subnet }}
+                source-ip: {{ $subnet.Subnet }}
+          {{- end }}
           {{- range $id, $prefix := $subnet.Deny }}
           '{{ $id }}':
             action:
@@ -482,6 +491,25 @@
             type: ipv4
           {{- end }}
           {{- range $vpc := $.VPCs }}
+          {{- range $policy := $vpc.HostBGPPolicies }}
+          {{ $policy.Name }}:
+            rule:
+              {{- range $seq, $entry := $policy.Prefixes }}
+              '{{ $seq }}':
+                action: permit
+                match:
+                  {{- if $entry.MaxLen }}
+                  {{ $entry.Prefix }}:
+                    max-prefix-len: {{ $entry.MaxLen }}
+                    {{- if $entry.MinLen }}
+                    min-prefix-len: {{ $entry.MinLen }}
+                    {{- end }}
+                  {{- else }}
+                  {{ $entry.Prefix }}: {}
+                  {{- end }}
+              {{- end }}
+            type: ipv4
+          {{- end }}
           {{- range $peer := $vpc.ExtPeers }}
           {{ $peer.PrefixList }}:
             rule:
@@ -678,6 +706,16 @@
           {{- end }}
           {{- end }}
           {{- range $vpc := $.VPCs }}
+          {{- range $policy := $vpc.HostBGPPolicies }}
+          {{ $policy.Name }}:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                match:
+                  ip-prefix-list: {{ $policy.Name }}
+                  type: ipv4
+          {{- end }}
           {{- if $vpc.ImportVRFs }}
           import-vrf--{{ $vpc.Name }}:
             rule:
@@ -952,6 +990,26 @@
                 state: enabled
               l2vpn-evpn:
                 state: enabled
+            {{- if $vpc.HostBGPNeighbors }}
+            neighbor:
+              {{- range $neigh := $vpc.HostBGPNeighbors }}
+              {{ $neigh.Key }}:
+                address-family:
+                  ipv4-unicast:
+                    {{- /* all the hosts use the same ASN, so they need theirs replaced to get each other's routes */}}
+                    aspath:
+                      replace-peer-as: enabled
+                    policy:
+                      inbound:
+                        route-map: {{ $neigh.Policy }}
+                    state: enabled
+                capabilities:
+                  extended-nexthop: enabled
+                description: {{ $neigh.Description }}
+                remote-as: external
+                type: unnumbered
+              {{- end }}
+            {{- end }}
             path-selection:
               multipath:
                 aspath-ignore: enabled

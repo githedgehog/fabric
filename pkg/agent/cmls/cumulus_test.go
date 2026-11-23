@@ -162,14 +162,58 @@ func TestBuildConfigErrors(t *testing.T) {
 			err: "vpc vpc-01: static route #1: prefix 10.99.0.0/16 is used more than once",
 		},
 		{
-			name:    "vx-subnet-host-bgp-unsupported",
+			name:      "vx-host-bgp-bundled",
+			profile:   &switchprofile.CumulusVX,
+			port:      "E1/1",
+			bundled:   []string{"E1/2", "E1/3"},
+			bundledID: 1,
+			bundledTo: []string{"vpc-01/default"},
+			mutate:    func(agent *agentapi.Agent) { agent.Spec.VPCs["vpc-01"].Subnets["default"].HostBGP = true },
+			err:       "host BGP subnet vpc-01/default is only supported on unbundled connections",
+		},
+		{
+			name:    "vx-host-bgp-and-vlan-on-port",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			subnets: []string{"vpc-01/default", "vpc-02/default"},
+			mutate:  func(agent *agentapi.Agent) { agent.Spec.VPCs["vpc-01"].Subnets["default"].HostBGP = true },
+			err:     "conn server-01--unbundled--leaf-01: host BGP and VLAN attachments can't share a port",
+		},
+		{
+			name:    "vx-host-bgp-interface-twice",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			subnets: []string{"vpc-01/default", "vpc-02/default"},
+			mutate: func(agent *agentapi.Agent) {
+				for _, vpcName := range []string{"vpc-01", "vpc-02"} {
+					agent.Spec.VPCs[vpcName].Subnets["default"].HostBGP = true
+					agent.Spec.VPCs[vpcName].Subnets["default"].VLAN = 0
+				}
+			},
+			err: "interface swp1 is already used by server-01--vpc-01--default",
+		},
+		{
+			name:    "vx-host-bgp-native-vlan",
 			profile: &switchprofile.CumulusVX,
 			port:    "E1/1",
 			mutate: func(agent *agentapi.Agent) {
-				agent.Spec.AttachedVPCs = map[string]bool{"vpc-01": true}
 				agent.Spec.VPCs["vpc-01"].Subnets["default"].HostBGP = true
+				for name, attach := range agent.Spec.VPCAttachments {
+					attach.NativeVLAN = true
+					agent.Spec.VPCAttachments[name] = attach
+				}
 			},
-			err: "vpc vpc-01: subnet default: host BGP isn't supported",
+			err: "host BGP subnet vpc-01/default doesn't support native VLAN",
+		},
+		{
+			name:    "vx-host-bgp-invalid-subnet",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: func(agent *agentapi.Agent) {
+				agent.Spec.VPCs["vpc-01"].Subnets["default"].HostBGP = true
+				agent.Spec.VPCs["vpc-01"].Subnets["default"].Subnet = "10.0.1.0"
+			},
+			err: `subnet vpc-01/default: invalid prefix "10.0.1.0"`,
 		},
 		{
 			name:    "vx-subnet-dhcp-relay-unsupported",
@@ -971,12 +1015,12 @@ func TestBuildConfigErrors(t *testing.T) {
 func TestCheckSupportedPeeredVPC(t *testing.T) {
 	agent := &agentapi.Agent{Spec: agentapi.AgentSpec{VPCs: map[string]vpcapi.VPCSpec{"vpc-01": {
 		Mode:    vpcapi.VPCModeL2VNI,
-		Subnets: map[string]*vpcapi.VPCSubnet{"default": {HostBGP: true, DHCP: vpcapi.VPCDHCP{Relay: "10.99.0.1"}}},
+		Subnets: map[string]*vpcapi.VPCSubnet{"default": {DHCP: vpcapi.VPCDHCP{Relay: "10.99.0.1"}}},
 	}}}}
 	require.NoError(t, checkSupported(agent))
 
 	agent.Spec.AttachedVPCs = map[string]bool{"vpc-01": true}
-	require.ErrorContains(t, checkSupported(agent), "vpc vpc-01: subnet default: host BGP isn't supported")
+	require.ErrorContains(t, checkSupported(agent), "vpc vpc-01: subnet default: DHCP relay to other servers isn't supported")
 }
 
 func withVPC01(mutate func(vpc *vpcapi.VPCSpec)) func(agent *agentapi.Agent) {
