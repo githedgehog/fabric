@@ -64,10 +64,54 @@ func TestCounter(t *testing.T) {
 	}
 }
 
+func TestPower(t *testing.T) {
+	for _, tt := range []struct {
+		in   string
+		want Power
+	}{
+		{in: `"1.0479 mW / 0.20 dBm"`, want: Power{DBm: 0.2, OK: true, Raw: "1.0479 mW / 0.20 dBm"}},
+		{in: `"0.6004 mW / -2.22 dBm"`, want: Power{DBm: -2.22, OK: true, Raw: "0.6004 mW / -2.22 dBm"}},
+		{in: `"0.0000 mW / -inf dBm"`, want: Power{Raw: "0.0000 mW / -inf dBm"}},
+		{in: `"6.00 dBm"`, want: Power{DBm: 6, OK: true, Raw: "6.00 dBm"}},
+		{in: `"-10.40 dBm"`, want: Power{DBm: -10.4, OK: true, Raw: "-10.40 dBm"}},
+		{in: `"1.0479 mW"`, want: Power{Raw: "1.0479 mW"}},
+		{in: `"N/A"`, want: Power{Raw: "N/A"}},
+		{in: `null`, want: Power{}},
+	} {
+		t.Run(tt.in, func(t *testing.T) {
+			got := Power{DBm: 42, OK: true, Raw: "stale"}
+			require.NoError(t, json.Unmarshal([]byte(tt.in), &got))
+			require.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestFlag(t *testing.T) {
+	for _, tt := range []struct {
+		in   string
+		want Flag
+	}{
+		{in: `"True"`, want: Flag{Value: true, OK: true, Raw: "True"}},
+		{in: `"False"`, want: Flag{OK: true, Raw: "False"}},
+		{in: `"N/A"`, want: Flag{Raw: "N/A"}},
+		{in: `null`, want: Flag{}},
+	} {
+		t.Run(tt.in, func(t *testing.T) {
+			got := Flag{Value: true, OK: true, Raw: "stale"}
+			require.NoError(t, json.Unmarshal([]byte(tt.in), &got))
+			require.Equal(t, tt.want, got)
+		})
+	}
+}
+
 func TestValuesNotScalar(t *testing.T) {
 	for _, in := range []string{`{"value": 1}`, `[1]`, `true`} {
 		require.ErrorIs(t, json.Unmarshal([]byte(in), &Number{}), errNotScalar, in)
 		require.ErrorIs(t, json.Unmarshal([]byte(in), &Counter{}), errNotScalar, in)
+		require.ErrorIs(t, json.Unmarshal([]byte(in), &Flag{}), errNotScalar, in)
+	}
+	for _, in := range []string{`{"value": 1}`, `[1]`, `true`, `1.5`} {
+		require.ErrorIs(t, json.Unmarshal([]byte(in), &Power{}), errNotScalar, in)
 	}
 }
 

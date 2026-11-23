@@ -89,6 +89,77 @@ func (c *Counter) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// Power is an optical power level, which NVUE reports as "1.0479 mW / 0.20 dBm" for a reading, with a dBm of "-inf"
+// for no light, and as "6.00 dBm" for a threshold. DBm is what the rest of the fabric reports, OK is false when there's
+// no usable reading.
+type Power struct {
+	DBm float64
+	OK  bool
+	Raw string
+}
+
+func (p *Power) UnmarshalJSON(data []byte) error {
+	*p = Power{}
+
+	raw, err := decodeScalar(data)
+	if err != nil {
+		return err
+	}
+
+	switch v := raw.(type) {
+	case nil:
+	case string:
+		p.Raw = v
+		p.DBm, p.OK = parsePower(v)
+	default:
+		return fmt.Errorf("power: %w: %s", errNotScalar, data)
+	}
+
+	return nil
+}
+
+func parsePower(s string) (float64, bool) {
+	for part := range strings.SplitSeq(s, "/") {
+		if strings.HasSuffix(strings.TrimSpace(part), "dBm") {
+			return parseLeadingNumber(part)
+		}
+	}
+
+	return 0, false
+}
+
+// Flag is a boolean NVUE reports as "True" or "False", OK is false for anything else, such as "N/A"
+type Flag struct {
+	Value bool
+	OK    bool
+	Raw   string
+}
+
+func (f *Flag) UnmarshalJSON(data []byte) error {
+	*f = Flag{}
+
+	raw, err := decodeScalar(data)
+	if err != nil {
+		return err
+	}
+
+	switch v := raw.(type) {
+	case nil:
+	case string:
+		f.Raw = v
+		switch strings.ToLower(v) {
+		case "true":
+			f.Value, f.OK = true, true
+		case "false":
+			f.OK = true
+		}
+	default:
+		return fmt.Errorf("flag: %w: %s", errNotScalar, data)
+	}
+
+	return nil
+}
+
 func parseLeadingNumber(s string) (float64, bool) {
 	match := leadingNumber.FindString(s)
 	if match == "" {
