@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
@@ -79,6 +80,61 @@ func TestPortConnection(t *testing.T) {
 				require.NotNil(t, out.ConnectionName)
 				require.Equal(t, conn, *out.ConnectionName)
 			}
+		})
+	}
+}
+
+func TestPortCollected(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, wiringapi.AddToScheme(scheme))
+	require.NoError(t, agentapi.AddToScheme(scheme))
+	require.NoError(t, vpcapi.AddToScheme(scheme))
+
+	now := time.Now().Truncate(time.Second)
+	sw := func(name string) kclient.Object {
+		return &wiringapi.Switch{Name: name, Namespace: kmetav1.NamespaceDefault}
+	}
+	agent := func(name string, heartbeat time.Time) kclient.Object {
+		return &agentapi.Agent{
+			Name: name, Namespace: kmetav1.NamespaceDefault,
+			Status: agentapi.AgentStatus{LastHeartbeat: kmetav1.Time{Time: heartbeat}},
+		}
+	}
+
+	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+		sw("leaf-1"), agent("leaf-1", now.Add(-10*time.Second)),
+		sw("leaf-2"), agent("leaf-2", now.Add(-5*time.Minute)),
+		// leaf-3 has no agent yet
+		sw("leaf-3"),
+	).Build()
+
+	for _, tt := range []struct {
+		port   string
+		stale  bool
+		header string
+	}{
+		{port: "leaf-1/E1/1", header: "Switch: leaf-1 (collected 10 seconds ago)"},
+		{port: "leaf-2/E1/1", stale: true, header: "Switch: leaf-2 (collected 5 minutes ago, STALE: the agent missed heartbeats)"},
+		{port: "leaf-3/E1/1"},
+	} {
+		t.Run(tt.port, func(t *testing.T) {
+			in := PortIn{Port: tt.port}
+			out, err := Port(t.Context(), kube, in)
+			require.NoError(t, err)
+
+			text, err := out.MarshalText(in, now)
+			require.NoError(t, err)
+
+			if tt.header == "" {
+				require.Nil(t, out.Collected, "without an agent there is no state")
+				require.NotContains(t, text, "Switch:")
+
+				return
+			}
+
+			require.NotNil(t, out.Collected)
+			require.Equal(t, tt.stale, out.Collected.Stale)
+			require.Contains(t, text, tt.header+"\n")
 		})
 	}
 }

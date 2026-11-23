@@ -28,6 +28,7 @@ import (
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	"go.githedgehog.com/fabric/pkg/util/apiutil"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -49,9 +50,10 @@ type PortOut struct {
 	VPCAttachments      map[string]*vpcapi.VPCAttachmentSpec      `json:"vpcAttachments,omitempty"`
 	AttachedVPCs        map[string]*vpcapi.VPCSpec                `json:"attachedVPCs,omitempty"`
 	ExternalAttachments map[string]*vpcapi.ExternalAttachmentSpec `json:"externalAttachments,omitempty"` // if External conn
+	Collected           *apiutil.Collected                        `json:"collected,omitempty"`
 }
 
-func (out *PortOut) MarshalText(_ PortIn, now time.Time) (string, error) {
+func (out *PortOut) MarshalText(in PortIn, now time.Time) (string, error) {
 	str := strings.Builder{}
 
 	if out.ConnectionName != nil && out.Connection != nil {
@@ -62,6 +64,12 @@ func (out *PortOut) MarshalText(_ PortIn, now time.Time) (string, error) {
 			return "", errors.Wrap(err, "failed to marshal Connection")
 		}
 		str.Write(data)
+	}
+
+	if out.Collected != nil {
+		swName, _, _ := strings.Cut(in.Port, "/")
+		str.WriteString("\n")
+		str.WriteString(switchHeader(swName, *out.Collected, now))
 	}
 
 	if out.InterfaceState != nil && out.InterfaceState.Counters != nil {
@@ -300,6 +308,10 @@ func Port(ctx context.Context, kube kclient.Reader, in PortIn) (*PortOut, error)
 
 		return out, nil
 	}
+
+	out.Collected = &apiutil.Collected{Time: agent.Status.LastHeartbeat, Stale: agent.IsHeartbeatStale(time.Now())}
+	// there is no strict mode for a single port
+	_ = checkStale(swName, *out.Collected, false)
 
 	if agent.Status.State.Breakouts != nil {
 		state, exists := agent.Status.State.Breakouts[portName]

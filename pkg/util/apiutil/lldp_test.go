@@ -64,6 +64,7 @@ func TestGetLLDPNeighbors(t *testing.T) {
 	agent := &agentapi.Agent{
 		Name: "leaf-1", Namespace: kmetav1.NamespaceDefault,
 		Status: agentapi.AgentStatus{
+			LastHeartbeat: updated,
 			State: agentapi.SwitchState{
 				Interfaces: map[string]agentapi.SwitchStateInterface{
 					// server with a MAC port ID: the port name is only in the description
@@ -140,7 +141,11 @@ func TestGetLLDPNeighbors(t *testing.T) {
 	all, err := apiutil.GetLLDPNeighbors(t.Context(), kube, apiutil.SwitchFilter{Names: []string{"leaf-1"}}, apiutil.LLDPNeighborsOpts{})
 	require.NoError(t, err)
 	require.Len(t, all, 1)
-	neighbors := all["leaf-1"]
+	neighbors := all["leaf-1"].Neighbors
+
+	// the state was collected with the heartbeat, which is long gone by now
+	require.True(t, updated.Equal(&all["leaf-1"].Collected.Time))
+	require.True(t, all["leaf-1"].Collected.Stale)
 
 	// server: derived port is compared to the wiring, so it matches instead of showing a MAC
 	server := neighbors["E1/1"]
@@ -266,7 +271,7 @@ func TestGetLLDPNeighborsServerExpectedSystemName(t *testing.T) {
 	all, err := apiutil.GetLLDPNeighbors(t.Context(), kube, apiutil.SwitchFilter{Names: []string{"leaf-1"}},
 		apiutil.LLDPNeighborsOpts{IgnoreSuffixes: apiutil.DefaultLLDPIgnoreSuffixes})
 	require.NoError(t, err)
-	neighbors := all["leaf-1"]
+	neighbors := all["leaf-1"].Neighbors
 
 	for _, tt := range []struct {
 		port     string
@@ -342,7 +347,7 @@ func TestGetLLDPNeighborsFabricMACPortID(t *testing.T) {
 
 	all, err := apiutil.GetLLDPNeighbors(t.Context(), kube, apiutil.SwitchFilter{Names: []string{"leaf-1"}}, apiutil.LLDPNeighborsOpts{})
 	require.NoError(t, err)
-	neighbors := all["leaf-1"]
+	neighbors := all["leaf-1"].Neighbors
 
 	// the description is reported as is, it's never mapped, and it doesn't accidentally match the expected port
 	actual := neighbors["E1/2"].Actual

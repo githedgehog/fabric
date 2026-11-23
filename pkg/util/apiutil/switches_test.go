@@ -138,15 +138,15 @@ func TestSwitchFilterSelection(t *testing.T) {
 			require.Equal(t, tt.switches, slices.Sorted(maps.Keys(neighbors)))
 
 			if slices.Contains(tt.switches, "leaf-1") {
-				require.Equal(t, "spine-1", neighbors["leaf-1"]["E1/2"].Expected.Name)
-				require.Equal(t, "E1/3", neighbors["leaf-1"]["E1/2"].Expected.Port)
+				require.Equal(t, "spine-1", neighbors["leaf-1"].Neighbors["E1/2"].Expected.Name)
+				require.Equal(t, "E1/3", neighbors["leaf-1"].Neighbors["E1/2"].Expected.Port)
 			}
 			if slices.Contains(tt.switches, "spine-1") {
-				require.Equal(t, "leaf-1", neighbors["spine-1"]["E1/3"].Expected.Name)
-				require.Equal(t, "E1/2", neighbors["spine-1"]["E1/3"].Expected.Port)
+				require.Equal(t, "leaf-1", neighbors["spine-1"].Neighbors["E1/3"].Expected.Name)
+				require.Equal(t, "E1/2", neighbors["spine-1"].Neighbors["E1/3"].Expected.Port)
 			}
 			if slices.Contains(tt.switches, "leaf-2") {
-				require.Empty(t, neighbors["leaf-2"])
+				require.Empty(t, neighbors["leaf-2"].Neighbors)
 			}
 		})
 	}
