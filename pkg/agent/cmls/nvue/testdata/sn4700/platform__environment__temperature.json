@@ -1,0 +1,72 @@
+{
+  "Asic-Temp-Sensor": {
+    "crit": "120.0",
+    "current": "77.0",
+    "max": "105.0",
+    "min": "5",
+    "state": "ok"
+  },
+  "CPU-Core-Sensor-0": {
+    "crit": "104.0",
+    "current": "46.0",
+    "max": "82.0",
+    "min": "5",
+    "state": "ok"
+  },
+  "CPU-Core-Sensor-1": {
+    "crit": "104.0",
+    "current": "46.0",
+    "max": "82.0",
+    "min": "5",
+    "state": "ok"
+  },
+  "CPU-Core-Sensor-2": {
+    "crit": "104.0",
+    "current": "45.0",
+    "max": "82.0",
+    "min": "5",
+    "state": "ok"
+  },
+  "CPU-Core-Sensor-3": {
+    "crit": "104.0",
+    "current": "45.0",
+    "max": "82.0",
+    "min": "5",
+    "state": "ok"
+  },
+  "CPU-Package-Sensor": {
+    "crit": "104.0",
+    "current": "45.0",
+    "max": "82.0",
+    "min": "5",
+    "state": "ok"
+  },
+  "Main-Board-Ambient-Sensor": {
+    "crit": "85",
+    "current": "25.3",
+    "max": "80",
+    "min": "5",
+    "state": "ok"
+  },
+  "PSU1-Temp-Sensor": {
+    "crit": "85",
+    "current": "32.0",
+    "max": "70.0",
+    "min": "5",
+    "state": "ok"
+  },
+  "PSU2-Temp-Sensor": {
+    "crit": "N/A",
+    "current": "N/A",
+    "max": "N/A",
+    "min": "N/A",
+    "state": "absent"
+  },
+  "Port-Ambient-Sensor": {
+    "crit": "85",
+    "current": "33.6",
+    "max": "80",
+    "min": "5",
+    "state": "ok"
+  }
+}
