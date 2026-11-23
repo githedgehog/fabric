@@ -78,6 +78,16 @@ func (c *CumulusProcessor) UpdateSwitchState(ctx context.Context, agent *agentap
 		return fmt.Errorf("updating interfaces: %w", err)
 	}
 
+	cages := cagesOf(agent.Spec.SwitchProfile)
+
+	if err := c.updateTransceivers(ctx, reg, swState, cages); err != nil {
+		return fmt.Errorf("updating transceivers: %w", err)
+	}
+
+	if err := c.updateBreakouts(ctx, swState, cages); err != nil {
+		return fmt.Errorf("updating breakouts: %w", err)
+	}
+
 	if err := c.updatePlatform(ctx, reg, swState); err != nil {
 		return fmt.Errorf("updating platform: %w", err)
 	}

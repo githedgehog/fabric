@@ -1,0 +1,539 @@
+{
+  "nos": {},
+  "breakouts": {
+    "E1/1": {
+      "mode": "8x100G"
+    },
+    "E1/10": {
+      "mode": "1x800G"
+    },
+    "E1/11": {
+      "mode": "1x800G"
+    },
+    "E1/12": {
+      "mode": "1x800G"
+    },
+    "E1/13": {
+      "mode": "1x800G"
+    },
+    "E1/14": {
+      "mode": "1x800G"
+    },
+    "E1/15": {
+      "mode": "1x800G"
+    },
+    "E1/16": {
+      "mode": "1x800G"
+    },
+    "E1/17": {
+      "mode": "1x800G"
+    },
+    "E1/18": {
+      "mode": "1x800G"
+    },
+    "E1/19": {
+      "mode": "1x800G"
+    },
+    "E1/2": {
+      "mode": "disabled"
+    },
+    "E1/20": {
+      "mode": "1x800G"
+    },
+    "E1/21": {
+      "mode": "1x800G"
+    },
+    "E1/22": {
+      "mode": "1x800G"
+    },
+    "E1/23": {
+      "mode": "1x800G"
+    },
+    "E1/24": {
+      "mode": "1x800G"
+    },
+    "E1/25": {
+      "mode": "1x800G"
+    },
+    "E1/26": {
+      "mode": "1x800G"
+    },
+    "E1/27": {
+      "mode": "1x800G"
+    },
+    "E1/28": {
+      "mode": "1x800G"
+    },
+    "E1/29": {
+      "mode": "1x400G"
+    },
+    "E1/3": {
+      "mode": "4x200G"
+    },
+    "E1/30": {
+      "mode": "1x800G"
+    },
+    "E1/31": {
+      "mode": "1x800G"
+    },
+    "E1/32": {
+      "mode": "1x800G"
+    },
+    "E1/33": {
+      "mode": "1x800G"
+    },
+    "E1/34": {
+      "mode": "1x800G"
+    },
+    "E1/35": {
+      "mode": "1x800G"
+    },
+    "E1/36": {
+      "mode": "1x800G"
+    },
+    "E1/37": {
+      "mode": "1x800G"
+    },
+    "E1/38": {
+      "mode": "1x800G"
+    },
+    "E1/39": {
+      "mode": "1x800G"
+    },
+    "E1/4": {
+      "mode": "1x800G"
+    },
+    "E1/40": {
+      "mode": "1x800G"
+    },
+    "E1/41": {
+      "mode": "1x800G"
+    },
+    "E1/42": {
+      "mode": "1x800G"
+    },
+    "E1/43": {
+      "mode": "1x800G"
+    },
+    "E1/44": {
+      "mode": "1x800G"
+    },
+    "E1/45": {
+      "mode": "1x800G"
+    },
+    "E1/46": {
+      "mode": "1x800G"
+    },
+    "E1/47": {
+      "mode": "1x800G"
+    },
+    "E1/48": {
+      "mode": "1x800G"
+    },
+    "E1/49": {
+      "mode": "1x800G"
+    },
+    "E1/5": {
+      "mode": "1x800G"
+    },
+    "E1/50": {
+      "mode": "1x800G"
+    },
+    "E1/51": {
+      "mode": "1x800G"
+    },
+    "E1/52": {
+      "mode": "1x800G"
+    },
+    "E1/53": {
+      "mode": "1x800G"
+    },
+    "E1/54": {
+      "mode": "1x800G"
+    },
+    "E1/55": {
+      "mode": "1x800G"
+    },
+    "E1/56": {
+      "mode": "1x800G"
+    },
+    "E1/57": {
+      "mode": "1x800G"
+    },
+    "E1/58": {
+      "mode": "1x800G"
+    },
+    "E1/59": {
+      "mode": "1x800G"
+    },
+    "E1/6": {
+      "mode": "1x800G"
+    },
+    "E1/60": {
+      "mode": "1x800G"
+    },
+    "E1/61": {
+      "mode": "1x800G"
+    },
+    "E1/62": {
+      "mode": "1x800G"
+    },
+    "E1/63": {
+      "mode": "2x100G"
+    },
+    "E1/64": {
+      "mode": "2x100G"
+    },
+    "E1/7": {
+      "mode": "1x800G"
+    },
+    "E1/8": {
+      "mode": "1x800G"
+    },
+    "E1/9": {
+      "mode": "1x800G"
+    }
+  },
+  "transceivers": {
+    "E1/1": {
+      "descr": "OSFP",
+      "cable": "DAC",
+      "formFactor": "OSFP",
+      "present": "PRESENT",
+      "length": 2,
+      "oper": "active",
+      "serial": "SN00000002",
+      "vendor": "FS",
+      "vendorPart": "OSFP-800G2OPC015",
+      "vendorOUI": "64:9d:99",
+      "vendorRev": "00",
+      "cmisRev": "5.0"
+    },
+    "E1/10": {},
+    "E1/11": {},
+    "E1/12": {},
+    "E1/13": {
+      "descr": "OSFP",
+      "cable": "FIBER",
+      "formFactor": "OSFP",
+      "present": "PRESENT",
+      "oper": "active",
+      "temp": 41.78,
+      "voltage": 3.254,
+      "serial": "SN00000003",
+      "vendor": "Windiwill",
+      "vendorPart": "W8HOSP31DPS8C-01",
+      "vendorOUI": "00:00:00",
+      "vendorRev": "01",
+      "cmisRev": "5.2",
+      "channels": {
+        "1": {
+          "in": -40,
+          "out": -40
+        },
+        "2": {
+          "in": -40,
+          "out": -40
+        },
+        "3": {
+          "in": -40,
+          "out": -40
+        },
+        "4": {
+          "in": -40,
+          "out": -40
+        },
+        "5": {
+          "in": -40,
+          "out": -40
+        },
+        "6": {
+          "in": -40,
+          "out": -40
+        },
+        "7": {
+          "in": -40,
+          "out": -40
+        },
+        "8": {
+          "in": -40,
+          "out": -40
+        }
+      }
+    },
+    "E1/14": {},
+    "E1/15": {},
+    "E1/16": {},
+    "E1/17": {},
+    "E1/18": {},
+    "E1/19": {},
+    "E1/2": {},
+    "E1/20": {},
+    "E1/21": {
+      "descr": "OSFP",
+      "cable": "FIBER",
+      "formFactor": "OSFP",
+      "present": "PRESENT",
+      "oper": "active",
+      "temp": 33.84,
+      "voltage": 3.3131,
+      "serial": "SN00000004",
+      "vendor": "INNOLIGHT",
+      "vendorPart": "T-OP4CNT-HG3",
+      "vendorOUI": "44:7c:7f",
+      "vendorRev": "1E",
+      "cmisRev": "4.0",
+      "channels": {
+        "1": {
+          "in": -40,
+          "out": -40
+        },
+        "2": {
+          "in": -40,
+          "out": -40
+        },
+        "3": {
+          "in": -40,
+          "out": -40
+        },
+        "4": {
+          "in": -40,
+          "out": -40
+        },
+        "5": {},
+        "6": {},
+        "7": {},
+        "8": {}
+      }
+    },
+    "E1/22": {},
+    "E1/23": {},
+    "E1/24": {},
+    "E1/25": {},
+    "E1/26": {},
+    "E1/27": {},
+    "E1/28": {},
+    "E1/29": {
+      "descr": "OSFP 400GBASE-CR4",
+      "cable": "FIBER",
+      "formFactor": "OSFP",
+      "present": "PRESENT",
+      "oper": "active",
+      "temp": 52.04,
+      "voltage": 3.2443,
+      "serial": "SN00000005",
+      "vendor": "Eoptolink",
+      "vendorPart": "EOLO-138HG-5H-B",
+      "vendorOUI": "70:ee:a3",
+      "vendorRev": "01",
+      "cmisRev": "4.0",
+      "channels": {
+        "1": {
+          "in": 0.14,
+          "out": 1.85,
+          "bias": 75.4
+        },
+        "2": {
+          "in": 0.77,
+          "out": 0.91,
+          "bias": 80.2
+        },
+        "3": {
+          "in": 0.36,
+          "out": 1.24,
+          "bias": 70
+        },
+        "4": {
+          "in": 0.45,
+          "out": 1.43,
+          "bias": 75.4
+        },
+        "5": {
+          "in": -40,
+          "out": -40
+        },
+        "6": {
+          "in": -40,
+          "out": -40
+        },
+        "7": {
+          "in": -40,
+          "out": -40
+        },
+        "8": {
+          "in": -40,
+          "out": -40
+        }
+      }
+    },
+    "E1/3": {
+      "descr": "OSFP",
+      "cable": "DAC",
+      "formFactor": "OSFP",
+      "present": "PRESENT",
+      "length": 1,
+      "oper": "active",
+      "serial": "SN00000006",
+      "vendor": "OEM",
+      "vendorPart": "O2Q-8XND-P1M",
+      "vendorOUI": "48:b0:2d",
+      "vendorRev": "01",
+      "cmisRev": "5.1"
+    },
+    "E1/30": {},
+    "E1/31": {},
+    "E1/32": {},
+    "E1/33": {},
+    "E1/34": {},
+    "E1/35": {},
+    "E1/36": {},
+    "E1/37": {},
+    "E1/38": {},
+    "E1/39": {},
+    "E1/4": {},
+    "E1/40": {},
+    "E1/41": {},
+    "E1/42": {},
+    "E1/43": {},
+    "E1/44": {},
+    "E1/45": {},
+    "E1/46": {},
+    "E1/47": {},
+    "E1/48": {},
+    "E1/49": {},
+    "E1/5": {},
+    "E1/50": {},
+    "E1/51": {},
+    "E1/52": {},
+    "E1/53": {},
+    "E1/54": {},
+    "E1/55": {},
+    "E1/56": {},
+    "E1/57": {},
+    "E1/58": {},
+    "E1/59": {},
+    "E1/6": {},
+    "E1/60": {},
+    "E1/61": {
+      "descr": "OSFP",
+      "cable": "DAC",
+      "formFactor": "OSFP",
+      "present": "PRESENT",
+      "length": 2,
+      "oper": "active",
+      "serial": "SN00000007",
+      "vendor": "FS",
+      "vendorPart": "OSFP-800G2OPC015",
+      "vendorOUI": "64:9d:99",
+      "vendorRev": "00",
+      "cmisRev": "5.0"
+    },
+    "E1/62": {
+      "descr": "OSFP",
+      "cable": "DAC",
+      "formFactor": "OSFP",
+      "present": "PRESENT",
+      "length": 2,
+      "oper": "active",
+      "serial": "SN00000008",
+      "vendor": "FS",
+      "vendorPart": "OSFP-800G2OPC015",
+      "vendorOUI": "64:9d:99",
+      "vendorRev": "00",
+      "cmisRev": "5.0"
+    },
+    "E1/63": {
+      "descr": "OSFP 100GBASE-CR4",
+      "cable": "DAC",
+      "formFactor": "OSFP",
+      "present": "PRESENT",
+      "length": 1,
+      "oper": "active",
+      "serial": "SN00000009",
+      "vendor": "FS",
+      "vendorPart": "OSFP-400G-2QPC01",
+      "vendorOUI": "64:9d:99",
+      "vendorRev": "00",
+      "cmisRev": "4.0"
+    },
+    "E1/64": {
+      "descr": "OSFP 100GBASE-CR4",
+      "cable": "DAC",
+      "formFactor": "OSFP",
+      "present": "PRESENT",
+      "length": 1,
+      "oper": "active",
+      "serial": "SN00000010",
+      "vendor": "FS",
+      "vendorPart": "OSFP-400G-2QPC01",
+      "vendorOUI": "64:9d:99",
+      "vendorRev": "00",
+      "cmisRev": "4.0"
+    },
+    "E1/65": {
+      "descr": "SFP XAUI-1-10G",
+      "cable": "FIBER",
+      "formFactor": "SFP",
+      "present": "PRESENT",
+      "oper": "active",
+      "temp": 28.54,
+      "voltage": 3.2766,
+      "serial": "SN00000011",
+      "vendor": "Edgecore",
+      "vendorPart": "ET5402-SR",
+      "vendorOUI": "3c:2c:99",
+      "vendorRev": "A0",
+      "channels": {
+        "1": {
+          "in": -2.22,
+          "out": -2.57,
+          "bias": 5.48
+        }
+      }
+    },
+    "E1/66": {
+      "descr": "SFP XAUI-1-10G",
+      "cable": "FIBER",
+      "formFactor": "SFP",
+      "present": "PRESENT",
+      "oper": "active",
+      "temp": 28.62,
+      "voltage": 3.2512,
+      "serial": "SN00000012",
+      "vendor": "Edgecore",
+      "vendorPart": "ET5402-SR",
+      "vendorOUI": "3c:2c:99",
+      "vendorRev": "A0",
+      "channels": {
+        "1": {
+          "in": -0.71,
+          "out": -3.64,
+          "bias": 4.876
+        }
+      }
+    },
+    "E1/7": {},
+    "E1/8": {},
+    "E1/9": {}
+  },
+  "platform": {},
+  "criticalResources": {
+    "aclStats": {
+      "egress": {
+        "lag": {},
+        "port": {},
+        "rif": {},
+        "switch": {},
+        "vlan": {}
+      },
+      "ingress": {
+        "lag": {},
+        "port": {},
+        "rif": {},
+        "switch": {},
+        "vlan": {}
+      }
+    },
+    "stats": {}
+  }
+}
