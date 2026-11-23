@@ -1,0 +1,6 @@
+{
+  "detail": "The requested item does not exist.",
+  "status": 404,
+  "title": "The requested item does not exist.",
+  "type": "/errors/ItemDoesNotExist"
+}

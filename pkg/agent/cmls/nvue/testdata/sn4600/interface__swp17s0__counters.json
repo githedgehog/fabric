@@ -1,0 +1,282 @@
+{
+  "eth": {
+    "drops": {
+      "ACL Drops": {
+        "receive": 53,
+        "transmit": "n/a"
+      },
+      "Buffer Drops": {
+        "receive": 1,
+        "transmit": "n/a"
+      },
+      "Non-Queue Drops": {
+        "receive": "n/a",
+        "transmit": 0
+      },
+      "Queue Drops": {
+        "receive": "n/a",
+        "transmit": 0
+      },
+      "Total Drops": {
+        "receive": 54,
+        "transmit": 0
+      }
+    },
+    "errors": {
+      "Alignment Errors": {
+        "receive": 0,
+        "transmit": "n/a"
+      },
+      "FCS Errors": {
+        "receive": 0,
+        "transmit": "n/a"
+      },
+      "Jabber Errors": {
+        "receive": 0,
+        "transmit": "n/a"
+      },
+      "Length Errors": {
+        "receive": 0,
+        "transmit": "n/a"
+      },
+      "Oversize Errors": {
+        "receive": 0,
+        "transmit": "n/a"
+      },
+      "Symbol Errors": {
+        "receive": 0,
+        "transmit": "n/a"
+      },
+      "Total Errors": {
+        "receive": 0,
+        "transmit": 0
+      },
+      "Undersize Errors": {
+        "receive": 0,
+        "transmit": "n/a"
+      }
+    },
+    "pktdist": {
+      "1024-1518": {
+        "receive": 566,
+        "transmit": 1118
+      },
+      "128-255": {
+        "receive": 353,
+        "transmit": 5297
+      },
+      "1519-2047": {
+        "receive": 167,
+        "transmit": 1657
+      },
+      "2048-4095": {
+        "receive": 986,
+        "transmit": 3433
+      },
+      "256-511": {
+        "receive": 2864,
+        "transmit": 29857
+      },
+      "4096-16383": {
+        "receive": 20237916,
+        "transmit": 20417629
+      },
+      "512-1023": {
+        "receive": 203,
+        "transmit": 866
+      },
+      "64": {
+        "receive": 5153,
+        "transmit": 6105
+      },
+      "65-127": {
+        "receive": 3795946,
+        "transmit": 4201398
+      }
+    }
+  },
+  "in-broadcast-pkts": 2800,
+  "in-bytes": 183598564681,
+  "in-drops": 4007,
+  "in-errors": 0,
+  "in-multicast-pkts": 19465,
+  "in-pkts": 24044141,
+  "in-unicast-pkts": 24021876,
+  "out-broadcast-pkts": 512,
+  "out-bytes": 185265775507,
+  "out-drops": 0,
+  "out-errors": 0,
+  "out-multicast-pkts": 47368,
+  "out-pkts": 24667360,
+  "out-unicast-pkts": 24619480,
+  "qos": {
+    "egress-queue-stats": {
+      "0": {
+        "ecn-marked-frames": 0,
+        "tx-bytes": 185246746828,
+        "tx-frames": 24531456,
+        "tx-uc-buffer-discards": 0,
+        "wred-discards": 0
+      },
+      "1": {
+        "ecn-marked-frames": 0,
+        "tx-bytes": 0,
+        "tx-frames": 0,
+        "tx-uc-buffer-discards": 0,
+        "wred-discards": 0
+      },
+      "2": {
+        "ecn-marked-frames": 0,
+        "tx-bytes": 0,
+        "tx-frames": 0,
+        "tx-uc-buffer-discards": 0,
+        "wred-discards": 0
+      },
+      "3": {
+        "ecn-marked-frames": 0,
+        "tx-bytes": 0,
+        "tx-frames": 0,
+        "tx-uc-buffer-discards": 0,
+        "wred-discards": 0
+      },
+      "4": {
+        "ecn-marked-frames": 0,
+        "tx-bytes": 0,
+        "tx-frames": 0,
+        "tx-uc-buffer-discards": 0,
+        "wred-discards": 0
+      },
+      "5": {
+        "ecn-marked-frames": 0,
+        "tx-bytes": 0,
+        "tx-frames": 0,
+        "tx-uc-buffer-discards": 0,
+        "wred-discards": 0
+      },
+      "6": {
+        "ecn-marked-frames": 0,
+        "tx-bytes": 0,
+        "tx-frames": 0,
+        "tx-uc-buffer-discards": 0,
+        "wred-discards": 0
+      },
+      "7": {
+        "ecn-marked-frames": 0,
+        "tx-bytes": 19028679,
+        "tx-frames": 135904,
+        "tx-uc-buffer-discards": 0,
+        "wred-discards": 0
+      }
+    },
+    "ingress-buffer-stats": {
+      "0": {
+        "rx-buffer-discards": 1,
+        "rx-frames": 24044141,
+        "rx-shared-buffer-discards": 0
+      },
+      "1": {
+        "rx-buffer-discards": 0,
+        "rx-frames": 0,
+        "rx-shared-buffer-discards": 0
+      },
+      "2": {
+        "rx-buffer-discards": 0,
+        "rx-frames": 0,
+        "rx-shared-buffer-discards": 0
+      },
+      "3": {
+        "rx-buffer-discards": 0,
+        "rx-frames": 0,
+        "rx-shared-buffer-discards": 0
+      },
+      "4": {
+        "rx-buffer-discards": 0,
+        "rx-frames": 0,
+        "rx-shared-buffer-discards": 0
+      },
+      "5": {
+        "rx-buffer-discards": 0,
+        "rx-frames": 0,
+        "rx-shared-buffer-discards": 0
+      },
+      "6": {
+        "rx-buffer-discards": 0,
+        "rx-frames": 0,
+        "rx-shared-buffer-discards": 0
+      },
+      "7": {
+        "rx-buffer-discards": 0,
+        "rx-frames": 0,
+        "rx-shared-buffer-discards": 0
+      }
+    },
+    "pfc-stats": {
+      "0": {
+        "rx-pause-duration": 0,
+        "rx-pause-frames": 0,
+        "tx-pause-duration": 0,
+        "tx-pause-frames": 0
+      },
+      "1": {
+        "rx-pause-duration": 0,
+        "rx-pause-frames": 0,
+        "tx-pause-duration": 0,
+        "tx-pause-frames": 0
+      },
+      "2": {
+        "rx-pause-duration": 0,
+        "rx-pause-frames": 0,
+        "tx-pause-duration": 0,
+        "tx-pause-frames": 0
+      },
+      "3": {
+        "rx-pause-duration": 0,
+        "rx-pause-frames": 0,
+        "tx-pause-duration": 0,
+        "tx-pause-frames": 0
+      },
+      "4": {
+        "rx-pause-duration": 0,
+        "rx-pause-frames": 0,
+        "tx-pause-duration": 0,
+        "tx-pause-frames": 0
+      },
+      "5": {
+        "rx-pause-duration": 0,
+        "rx-pause-frames": 0,
+        "tx-pause-duration": 0,
+        "tx-pause-frames": 0
+      },
+      "6": {
+        "rx-pause-duration": 0,
+        "rx-pause-frames": 0,
+        "tx-pause-duration": 0,
+        "tx-pause-frames": 0
+      },
+      "7": {
+        "rx-pause-duration": 0,
+        "rx-pause-frames": 0,
+        "tx-pause-duration": 0,
+        "tx-pause-frames": 0
+      }
+    },
+    "port-stats": {
+      "ECN Marked Packets": {
+        "receive": "n/a",
+        "transmit": 0
+      },
+      "MC Buffer Discards": {
+        "receive": "n/a",
+        "transmit": 0
+      },
+      "Pause Frames": {
+        "receive": 0,
+        "transmit": 0
+      },
+      "Tx Wait": {
+        "receive": "n/a",
+        "transmit": 0
+      }
+    }
+  }
+}

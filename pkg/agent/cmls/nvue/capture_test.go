@@ -31,6 +31,7 @@ const envCapture = "NVUE_CAPTURE"
 var captures = []map[string][]string{
 	clientCaptures,
 	interfaceCaptures,
+	interfaceCountersCaptures,
 }
 
 // captureForbiddenRequests are captured into the "nobody" subdirectory by a user without an NVUE role, for any model
