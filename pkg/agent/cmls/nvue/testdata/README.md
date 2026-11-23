@@ -33,8 +33,20 @@ sudo chmod 777 /tmp/nvue/sn5610
 sudo -u nobody NVUE_CAPTURE=/tmp/nvue/sn5610 ./nvue.test -test.run TestCapture
 ```
 
-then copy the directory over the one in `testdata`. The fixtures are from env-7 (Cumulus Linux 5.18.3) with the fabric
-configured by the agent and the VPCs of `hhfab vlab setup-vpcs`, the tests expect the switches to have:
+then copy the directory back and import it into `testdata`, which only adds the fixtures that are missing, such as the
+ones of a new endpoint:
+
+```sh
+NVUE_IMPORT=/path/to/sn5610 just test ./pkg/agent/cmls/nvue/...
+```
+
+Refreshing the existing ones, such as for a new Cumulus Linux release, is an import with `NVUE_IMPORT_REFRESH=true`,
+it changes the values the tests expect. The import fails if the status of a request changed, which usually means that
+the switch isn't set up like the fixtures expect.
+
+The fakes of the scrubbed values are consistent within a capture only. The fixtures are from env-7 (Cumulus Linux
+5.18.3) with the fabric configured by the agent and the VPCs of `hhfab vlab setup-vpcs`, the tests expect the switches
+to have:
 
 - sn5610: unused E1/1 and E1/3 with 800G DACs broken out 8x (disabling E1/2) and 4x, the 2x E1/63-64 spine links on
   100G DACs, a 400G optic on E1/29 and a 10G SFP optic on E1/65 to servers, nothing in E1/4

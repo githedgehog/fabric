@@ -23,8 +23,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// envCapture is the directory to capture the fixtures into from the local nvued, see testdata/README.md
-const envCapture = "NVUE_CAPTURE"
+const (
+	// envCapture is the directory to capture the fixtures into from the local nvued, see testdata/README.md
+	envCapture = "NVUE_CAPTURE"
+	// envImport is a directory captured into to import into testdata
+	envImport = "NVUE_IMPORT"
+	// envImportRefresh replaces the fixtures that are there already when importing
+	envImportRefresh = "NVUE_IMPORT_REFRESH"
+)
 
 // captures are the requests the fixtures are captured for, from each test file, per model, the name of the directory
 // to capture into. The requests are relative to the API prefix and escaped like the client sends them.
@@ -99,6 +105,52 @@ func TestFixturesCaptured(t *testing.T) {
 			require.ElementsMatch(t, want, got, dir)
 		}
 	}
+}
+
+// TestImportCapture brings the fixtures captured into the directory named by envImport into testdata, only the
+// missing ones unless envImportRefresh is set, as refreshing the others changes the values the tests expect
+func TestImportCapture(t *testing.T) {
+	src := os.Getenv(envImport)
+	if src == "" {
+		t.Skip(envImport + " isn't set")
+	}
+	refresh := os.Getenv(envImportRefresh) == "true"
+
+	model := filepath.Base(src)
+	requests := captureRequests(model)
+	require.NotEmpty(t, requests, "no requests to capture for %s", model)
+
+	changed := []string{}
+	for sub, uris := range map[string][]string{"": requests, "nobody": captureForbiddenRequests} {
+		srcDir, dstDir := filepath.Join(src, sub), filepath.Join("testdata", model, sub)
+		require.NoError(t, os.MkdirAll(dstDir, 0o755))
+
+		for _, uri := range uris {
+			srcPath, srcStatus, err := fixtureFile(srcDir, uri)
+			require.NoError(t, err, "%s wasn't captured into %s", uri, srcDir)
+
+			dstPath, dstStatus, err := fixtureFile(dstDir, uri)
+			if err == nil {
+				if !refresh {
+					continue
+				}
+				if dstStatus != srcStatus {
+					changed = append(changed, fmt.Sprintf("%s: %d -> %d", uri, dstStatus, srcStatus))
+
+					continue
+				}
+				require.NoError(t, os.Remove(dstPath))
+			}
+
+			data, err := os.ReadFile(srcPath)
+			require.NoError(t, err)
+			require.NoError(t, os.WriteFile(filepath.Join(dstDir, filepath.Base(srcPath)), data, 0o644)) //nolint:gosec
+			t.Logf("imported %s", filepath.Join(dstDir, filepath.Base(srcPath)))
+		}
+	}
+
+	// usually the switch isn't set up like the fixtures expect, see testdata/README.md
+	require.Empty(t, changed, "the status of some requests changed, remove their fixtures to take the new ones")
 }
 
 func TestCapture(t *testing.T) {
