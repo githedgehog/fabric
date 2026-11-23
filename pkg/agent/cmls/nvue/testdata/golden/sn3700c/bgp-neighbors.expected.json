@@ -1,0 +1,1340 @@
+{
+  "default": {
+    "172.30.128.5": {
+      "type": "numbered",
+      "description": "Gateway gateway-1/port2 sn3700c-01--gateway--gateway-1",
+      "peer-group": "gateway",
+      "remote-as": {
+        "Value": 65534,
+        "OK": true,
+        "Raw": "65534"
+      },
+      "local-as": {
+        "asn": {
+          "Value": 65100,
+          "OK": true,
+          "Raw": "65100"
+        }
+      },
+      "remote-router-id": "172.30.8.6",
+      "remote-hostname": "gateway-1",
+      "remote-port": {
+        "Value": 179,
+        "OK": true,
+        "Raw": "179"
+      },
+      "session-state": "established",
+      "uptime": {
+        "Value": 22414000,
+        "OK": true,
+        "Raw": "22414000"
+      },
+      "last-reset-time": {
+        "Value": 22460000,
+        "OK": true,
+        "Raw": "22460000"
+      },
+      "last-reset-reason": "No AFI/SAFI activated for peer",
+      "connections-established": {
+        "Value": 7,
+        "OK": true
+      },
+      "connections-dropped": {
+        "Value": 6,
+        "OK": true
+      },
+      "message-stats": {
+        "rx-opens": {
+          "Value": 7,
+          "OK": true
+        },
+        "rx-keepalives": {
+          "Value": 71943,
+          "OK": true
+        },
+        "rx-route-refreshes": {
+          "Value": 3,
+          "OK": true
+        },
+        "rx-total": {
+          "Value": 72289,
+          "OK": true
+        },
+        "tx-opens": {
+          "Value": 13,
+          "OK": true
+        },
+        "tx-keepalives": {
+          "Value": 71944,
+          "OK": true
+        },
+        "tx-route-refreshes": {
+          "Value": 3,
+          "OK": true
+        },
+        "tx-total": {
+          "Value": 74873,
+          "OK": true
+        }
+      },
+      "address-family": {
+        "ipv4-unicast": {
+          "rx-prefix": {
+            "Value": 1,
+            "OK": true
+          },
+          "tx-prefix": {
+            "Value": 6,
+            "OK": true
+          }
+        },
+        "l2vpn-evpn": {
+          "rx-prefix": {
+            "Value": 0,
+            "OK": true
+          },
+          "tx-prefix": {
+            "Value": 61,
+            "OK": true
+          }
+        }
+      },
+      "bfd": {
+        "profile": "underlay",
+        "status": "up"
+      }
+    },
+    "172.30.128.7": {
+      "type": "numbered",
+      "description": "Gateway gateway-2/port2 sn3700c-01--gateway--gateway-2",
+      "peer-group": "gateway",
+      "remote-as": {
+        "Value": 65534,
+        "OK": true,
+        "Raw": "65534"
+      },
+      "local-as": {
+        "asn": {
+          "Value": 65100,
+          "OK": true,
+          "Raw": "65100"
+        }
+      },
+      "remote-router-id": "172.30.8.7",
+      "remote-hostname": "gateway-2",
+      "remote-port": {
+        "Value": 179,
+        "OK": true,
+        "Raw": "179"
+      },
+      "session-state": "established",
+      "uptime": {
+        "Value": 23911000,
+        "OK": true,
+        "Raw": "23911000"
+      },
+      "last-reset-time": {
+        "Value": 23927000,
+        "OK": true,
+        "Raw": "23927000"
+      },
+      "last-reset-reason": "No AFI/SAFI activated for peer",
+      "connections-established": {
+        "Value": 5,
+        "OK": true
+      },
+      "connections-dropped": {
+        "Value": 4,
+        "OK": true
+      },
+      "message-stats": {
+        "rx-opens": {
+          "Value": 5,
+          "OK": true
+        },
+        "rx-keepalives": {
+          "Value": 71957,
+          "OK": true
+        },
+        "rx-route-refreshes": {
+          "Value": 3,
+          "OK": true
+        },
+        "rx-total": {
+          "Value": 72302,
+          "OK": true
+        },
+        "tx-opens": {
+          "Value": 11,
+          "OK": true
+        },
+        "tx-keepalives": {
+          "Value": 71958,
+          "OK": true
+        },
+        "tx-route-refreshes": {
+          "Value": 3,
+          "OK": true
+        },
+        "tx-total": {
+          "Value": 74822,
+          "OK": true
+        }
+      },
+      "address-family": {
+        "ipv4-unicast": {
+          "rx-prefix": {
+            "Value": 1,
+            "OK": true
+          },
+          "tx-prefix": {
+            "Value": 6,
+            "OK": true
+          }
+        },
+        "l2vpn-evpn": {
+          "rx-prefix": {
+            "Value": 0,
+            "OK": true
+          },
+          "tx-prefix": {
+            "Value": 61,
+            "OK": true
+          }
+        }
+      },
+      "bfd": {
+        "profile": "underlay",
+        "status": "up"
+      }
+    },
+    "172.30.8.2": {
+      "type": "numbered",
+      "description": "fabric overlay to leaf sn2201-01",
+      "peer-group": "overlay",
+      "remote-as": {
+        "Value": 65101,
+        "OK": true,
+        "Raw": "65101"
+      },
+      "local-as": {
+        "asn": {
+          "Value": 65100,
+          "OK": true,
+          "Raw": "65100"
+        }
+      },
+      "remote-router-id": "172.30.8.2",
+      "remote-hostname": "sn2201-01",
+      "remote-port": {
+        "Value": 179,
+        "OK": true,
+        "Raw": "179"
+      },
+      "session-state": "established",
+      "uptime": {
+        "Value": 26655000,
+        "OK": true,
+        "Raw": "26655000"
+      },
+      "last-reset-time": {
+        "Value": 26657000,
+        "OK": true,
+        "Raw": "26657000"
+      },
+      "last-reset-reason": "No AFI/SAFI activated for peer",
+      "connections-established": {
+        "Value": 5,
+        "OK": true
+      },
+      "connections-dropped": {
+        "Value": 4,
+        "OK": true
+      },
+      "message-stats": {
+        "rx-opens": {
+          "Value": 5,
+          "OK": true
+        },
+        "rx-keepalives": {
+          "Value": 71841,
+          "OK": true
+        },
+        "rx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "rx-total": {
+          "Value": 74408,
+          "OK": true
+        },
+        "tx-opens": {
+          "Value": 5,
+          "OK": true
+        },
+        "tx-keepalives": {
+          "Value": 71842,
+          "OK": true
+        },
+        "tx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "tx-total": {
+          "Value": 74366,
+          "OK": true
+        }
+      },
+      "address-family": {
+        "l2vpn-evpn": {
+          "rx-prefix": {
+            "Value": 9,
+            "OK": true
+          },
+          "tx-prefix": {
+            "Value": 61,
+            "OK": true
+          }
+        }
+      },
+      "bfd": {
+        "profile": "overlay",
+        "status": "up"
+      }
+    },
+    "172.30.8.3": {
+      "type": "numbered",
+      "description": "fabric overlay to leaf sn4600-01",
+      "peer-group": "overlay",
+      "remote-as": {
+        "Value": 65102,
+        "OK": true,
+        "Raw": "65102"
+      },
+      "local-as": {
+        "asn": {
+          "Value": 65100,
+          "OK": true,
+          "Raw": "65100"
+        }
+      },
+      "remote-router-id": "172.30.8.3",
+      "remote-hostname": "sn4600-01",
+      "remote-port": {
+        "Value": 179,
+        "OK": true,
+        "Raw": "179"
+      },
+      "session-state": "established",
+      "uptime": {
+        "Value": 26696000,
+        "OK": true,
+        "Raw": "26696000"
+      },
+      "last-reset-time": {
+        "Value": 26905000,
+        "OK": true,
+        "Raw": "26905000"
+      },
+      "last-reset-reason": "No AFI/SAFI activated for peer",
+      "connections-established": {
+        "Value": 3,
+        "OK": true
+      },
+      "connections-dropped": {
+        "Value": 2,
+        "OK": true
+      },
+      "message-stats": {
+        "rx-opens": {
+          "Value": 3,
+          "OK": true
+        },
+        "rx-keepalives": {
+          "Value": 71870,
+          "OK": true
+        },
+        "rx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "rx-total": {
+          "Value": 74425,
+          "OK": true
+        },
+        "tx-opens": {
+          "Value": 3,
+          "OK": true
+        },
+        "tx-keepalives": {
+          "Value": 71872,
+          "OK": true
+        },
+        "tx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "tx-total": {
+          "Value": 74304,
+          "OK": true
+        }
+      },
+      "address-family": {
+        "l2vpn-evpn": {
+          "rx-prefix": {
+            "Value": 22,
+            "OK": true
+          },
+          "tx-prefix": {
+            "Value": 61,
+            "OK": true
+          }
+        }
+      },
+      "bfd": {
+        "profile": "overlay",
+        "status": "up"
+      }
+    },
+    "172.30.8.4": {
+      "type": "numbered",
+      "description": "fabric overlay to leaf sn4700-01",
+      "peer-group": "overlay",
+      "remote-as": {
+        "Value": 65103,
+        "OK": true,
+        "Raw": "65103"
+      },
+      "local-as": {
+        "asn": {
+          "Value": 65100,
+          "OK": true,
+          "Raw": "65100"
+        }
+      },
+      "remote-router-id": "172.30.8.4",
+      "remote-hostname": "sn4700-01",
+      "remote-port": {
+        "Value": 179,
+        "OK": true,
+        "Raw": "179"
+      },
+      "session-state": "established",
+      "uptime": {
+        "Value": 26696000,
+        "OK": true,
+        "Raw": "26696000"
+      },
+      "last-reset-time": {
+        "Value": 26894000,
+        "OK": true,
+        "Raw": "26894000"
+      },
+      "last-reset-reason": "Waiting for peer OPEN",
+      "connections-established": {
+        "Value": 5,
+        "OK": true
+      },
+      "connections-dropped": {
+        "Value": 4,
+        "OK": true
+      },
+      "message-stats": {
+        "rx-opens": {
+          "Value": 6,
+          "OK": true
+        },
+        "rx-keepalives": {
+          "Value": 71800,
+          "OK": true
+        },
+        "rx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "rx-total": {
+          "Value": 74403,
+          "OK": true
+        },
+        "tx-opens": {
+          "Value": 6,
+          "OK": true
+        },
+        "tx-keepalives": {
+          "Value": 71802,
+          "OK": true
+        },
+        "tx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "tx-total": {
+          "Value": 74252,
+          "OK": true
+        }
+      },
+      "address-family": {
+        "l2vpn-evpn": {
+          "rx-prefix": {
+            "Value": 21,
+            "OK": true
+          },
+          "tx-prefix": {
+            "Value": 61,
+            "OK": true
+          }
+        }
+      },
+      "bfd": {
+        "profile": "overlay",
+        "status": "up"
+      }
+    },
+    "172.30.8.5": {
+      "type": "numbered",
+      "description": "fabric overlay to leaf sn5610-01",
+      "peer-group": "overlay",
+      "remote-as": {
+        "Value": 65104,
+        "OK": true,
+        "Raw": "65104"
+      },
+      "local-as": {
+        "asn": {
+          "Value": 65100,
+          "OK": true,
+          "Raw": "65100"
+        }
+      },
+      "remote-router-id": "172.30.8.5",
+      "remote-hostname": "sn5610-01",
+      "remote-port": {
+        "Value": 179,
+        "OK": true,
+        "Raw": "179"
+      },
+      "session-state": "established",
+      "uptime": {
+        "Value": 26696000,
+        "OK": true,
+        "Raw": "26696000"
+      },
+      "last-reset-time": {
+        "Value": 26882000,
+        "OK": true,
+        "Raw": "26882000"
+      },
+      "last-reset-reason": "Waiting for peer OPEN",
+      "connections-established": {
+        "Value": 4,
+        "OK": true
+      },
+      "connections-dropped": {
+        "Value": 3,
+        "OK": true
+      },
+      "message-stats": {
+        "rx-opens": {
+          "Value": 4,
+          "OK": true
+        },
+        "rx-keepalives": {
+          "Value": 71858,
+          "OK": true
+        },
+        "rx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "rx-total": {
+          "Value": 74433,
+          "OK": true
+        },
+        "tx-opens": {
+          "Value": 4,
+          "OK": true
+        },
+        "tx-keepalives": {
+          "Value": 71859,
+          "OK": true
+        },
+        "tx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "tx-total": {
+          "Value": 74308,
+          "OK": true
+        }
+      },
+      "address-family": {
+        "l2vpn-evpn": {
+          "rx-prefix": {
+            "Value": 9,
+            "OK": true
+          },
+          "tx-prefix": {
+            "Value": 61,
+            "OK": true
+          }
+        }
+      },
+      "bfd": {
+        "profile": "overlay",
+        "status": "up"
+      }
+    },
+    "swp1": {
+      "type": "unnumbered",
+      "description": "fabric underlay to leaf sn4600-01/E1/1",
+      "peer-group": "underlay_leaf",
+      "remote-as": {
+        "Value": 65102,
+        "OK": true,
+        "Raw": "65102"
+      },
+      "local-as": {
+        "asn": {
+          "Value": 65100,
+          "OK": true,
+          "Raw": "65100"
+        }
+      },
+      "remote-router-id": "172.30.8.3",
+      "remote-hostname": "sn4600-01",
+      "remote-port": {
+        "Value": 179,
+        "OK": true,
+        "Raw": "179"
+      },
+      "session-state": "established",
+      "uptime": {
+        "Value": 26697000,
+        "OK": true,
+        "Raw": "26697000"
+      },
+      "last-reset-time": {
+        "Value": 26914000,
+        "OK": true,
+        "Raw": "26914000"
+      },
+      "last-reset-reason": "No AFI/SAFI activated for peer",
+      "connections-established": {
+        "Value": 3,
+        "OK": true
+      },
+      "connections-dropped": {
+        "Value": 2,
+        "OK": true
+      },
+      "message-stats": {
+        "rx-opens": {
+          "Value": 5,
+          "OK": true
+        },
+        "rx-keepalives": {
+          "Value": 71868,
+          "OK": true
+        },
+        "rx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "rx-total": {
+          "Value": 71953,
+          "OK": true
+        },
+        "tx-opens": {
+          "Value": 5,
+          "OK": true
+        },
+        "tx-keepalives": {
+          "Value": 71870,
+          "OK": true
+        },
+        "tx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "tx-total": {
+          "Value": 71931,
+          "OK": true
+        }
+      },
+      "address-family": {
+        "ipv4-unicast": {
+          "rx-prefix": {
+            "Value": 2,
+            "OK": true
+          },
+          "tx-prefix": {
+            "Value": 11,
+            "OK": true
+          }
+        }
+      },
+      "bfd": {
+        "profile": "underlay",
+        "status": "up"
+      }
+    },
+    "swp2": {
+      "type": "unnumbered",
+      "description": "fabric underlay to leaf sn4600-01/E1/2",
+      "peer-group": "underlay_leaf",
+      "remote-as": {
+        "Value": 65102,
+        "OK": true,
+        "Raw": "65102"
+      },
+      "local-as": {
+        "asn": {
+          "Value": 65100,
+          "OK": true,
+          "Raw": "65100"
+        }
+      },
+      "remote-router-id": "172.30.8.3",
+      "remote-hostname": "sn4600-01",
+      "remote-port": {
+        "Value": 179,
+        "OK": true,
+        "Raw": "179"
+      },
+      "session-state": "established",
+      "uptime": {
+        "Value": 26698000,
+        "OK": true,
+        "Raw": "26698000"
+      },
+      "last-reset-time": {
+        "Value": 26908000,
+        "OK": true,
+        "Raw": "26908000"
+      },
+      "last-reset-reason": "No AFI/SAFI activated for peer",
+      "connections-established": {
+        "Value": 3,
+        "OK": true
+      },
+      "connections-dropped": {
+        "Value": 2,
+        "OK": true
+      },
+      "message-stats": {
+        "rx-opens": {
+          "Value": 5,
+          "OK": true
+        },
+        "rx-keepalives": {
+          "Value": 71871,
+          "OK": true
+        },
+        "rx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "rx-total": {
+          "Value": 71961,
+          "OK": true
+        },
+        "tx-opens": {
+          "Value": 5,
+          "OK": true
+        },
+        "tx-keepalives": {
+          "Value": 71872,
+          "OK": true
+        },
+        "tx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "tx-total": {
+          "Value": 71933,
+          "OK": true
+        }
+      },
+      "address-family": {
+        "ipv4-unicast": {
+          "rx-prefix": {
+            "Value": 2,
+            "OK": true
+          },
+          "tx-prefix": {
+            "Value": 11,
+            "OK": true
+          }
+        }
+      },
+      "bfd": {
+        "profile": "underlay",
+        "status": "up"
+      }
+    },
+    "swp29": {
+      "type": "unnumbered",
+      "description": "fabric underlay to leaf sn4700-01/E1/29",
+      "peer-group": "underlay_leaf",
+      "remote-as": {
+        "Value": 65103,
+        "OK": true,
+        "Raw": "65103"
+      },
+      "local-as": {
+        "asn": {
+          "Value": 65100,
+          "OK": true,
+          "Raw": "65100"
+        }
+      },
+      "remote-router-id": "172.30.8.4",
+      "remote-hostname": "sn4700-01",
+      "remote-port": {
+        "Value": 179,
+        "OK": true,
+        "Raw": "179"
+      },
+      "session-state": "established",
+      "uptime": {
+        "Value": 26696000,
+        "OK": true,
+        "Raw": "26696000"
+      },
+      "last-reset-time": {
+        "Value": 26902000,
+        "OK": true,
+        "Raw": "26902000"
+      },
+      "last-reset-reason": "No AFI/SAFI activated for peer",
+      "connections-established": {
+        "Value": 5,
+        "OK": true
+      },
+      "connections-dropped": {
+        "Value": 4,
+        "OK": true
+      },
+      "message-stats": {
+        "rx-opens": {
+          "Value": 9,
+          "OK": true
+        },
+        "rx-keepalives": {
+          "Value": 71801,
+          "OK": true
+        },
+        "rx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "rx-total": {
+          "Value": 71903,
+          "OK": true
+        },
+        "tx-opens": {
+          "Value": 9,
+          "OK": true
+        },
+        "tx-keepalives": {
+          "Value": 71803,
+          "OK": true
+        },
+        "tx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "tx-total": {
+          "Value": 71872,
+          "OK": true
+        }
+      },
+      "address-family": {
+        "ipv4-unicast": {
+          "rx-prefix": {
+            "Value": 2,
+            "OK": true
+          },
+          "tx-prefix": {
+            "Value": 11,
+            "OK": true
+          }
+        }
+      },
+      "bfd": {
+        "profile": "underlay",
+        "status": "up"
+      }
+    },
+    "swp3": {
+      "type": "unnumbered",
+      "description": "fabric underlay to leaf sn2201-01/E1/49",
+      "peer-group": "underlay_leaf",
+      "remote-as": {
+        "Value": 65101,
+        "OK": true,
+        "Raw": "65101"
+      },
+      "local-as": {
+        "asn": {
+          "Value": 65100,
+          "OK": true,
+          "Raw": "65100"
+        }
+      },
+      "remote-router-id": "172.30.8.2",
+      "remote-hostname": "sn2201-01",
+      "remote-port": {
+        "Value": 179,
+        "OK": true,
+        "Raw": "179"
+      },
+      "session-state": "established",
+      "uptime": {
+        "Value": 26657000,
+        "OK": true,
+        "Raw": "26657000"
+      },
+      "last-reset-time": {
+        "Value": 26659000,
+        "OK": true,
+        "Raw": "26659000"
+      },
+      "last-reset-reason": "No AFI/SAFI activated for peer",
+      "connections-established": {
+        "Value": 7,
+        "OK": true
+      },
+      "connections-dropped": {
+        "Value": 6,
+        "OK": true
+      },
+      "message-stats": {
+        "rx-opens": {
+          "Value": 10,
+          "OK": true
+        },
+        "rx-keepalives": {
+          "Value": 71842,
+          "OK": true
+        },
+        "rx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "rx-total": {
+          "Value": 71965,
+          "OK": true
+        },
+        "tx-opens": {
+          "Value": 11,
+          "OK": true
+        },
+        "tx-keepalives": {
+          "Value": 71843,
+          "OK": true
+        },
+        "tx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "tx-total": {
+          "Value": 71936,
+          "OK": true
+        }
+      },
+      "address-family": {
+        "ipv4-unicast": {
+          "rx-prefix": {
+            "Value": 2,
+            "OK": true
+          },
+          "tx-prefix": {
+            "Value": 11,
+            "OK": true
+          }
+        }
+      },
+      "bfd": {
+        "profile": "underlay",
+        "status": "up"
+      }
+    },
+    "swp30": {
+      "type": "unnumbered",
+      "description": "fabric underlay to leaf sn4700-01/E1/30",
+      "peer-group": "underlay_leaf",
+      "remote-as": {
+        "Value": 65103,
+        "OK": true,
+        "Raw": "65103"
+      },
+      "local-as": {
+        "asn": {
+          "Value": 65100,
+          "OK": true,
+          "Raw": "65100"
+        }
+      },
+      "remote-router-id": "172.30.8.4",
+      "remote-hostname": "sn4700-01",
+      "remote-port": {
+        "Value": 179,
+        "OK": true,
+        "Raw": "179"
+      },
+      "session-state": "established",
+      "uptime": {
+        "Value": 26697000,
+        "OK": true,
+        "Raw": "26697000"
+      },
+      "last-reset-time": {
+        "Value": 26897000,
+        "OK": true,
+        "Raw": "26897000"
+      },
+      "last-reset-reason": "No AFI/SAFI activated for peer",
+      "connections-established": {
+        "Value": 5,
+        "OK": true
+      },
+      "connections-dropped": {
+        "Value": 4,
+        "OK": true
+      },
+      "message-stats": {
+        "rx-opens": {
+          "Value": 8,
+          "OK": true
+        },
+        "rx-keepalives": {
+          "Value": 71803,
+          "OK": true
+        },
+        "rx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "rx-total": {
+          "Value": 71908,
+          "OK": true
+        },
+        "tx-opens": {
+          "Value": 8,
+          "OK": true
+        },
+        "tx-keepalives": {
+          "Value": 71804,
+          "OK": true
+        },
+        "tx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "tx-total": {
+          "Value": 71872,
+          "OK": true
+        }
+      },
+      "address-family": {
+        "ipv4-unicast": {
+          "rx-prefix": {
+            "Value": 2,
+            "OK": true
+          },
+          "tx-prefix": {
+            "Value": 11,
+            "OK": true
+          }
+        }
+      },
+      "bfd": {
+        "profile": "underlay",
+        "status": "up"
+      }
+    },
+    "swp31": {
+      "type": "unnumbered",
+      "description": "fabric underlay to leaf sn5610-01/E1/63/1",
+      "peer-group": "underlay_leaf",
+      "remote-as": {
+        "Value": 65104,
+        "OK": true,
+        "Raw": "65104"
+      },
+      "local-as": {
+        "asn": {
+          "Value": 65100,
+          "OK": true,
+          "Raw": "65100"
+        }
+      },
+      "remote-router-id": "172.30.8.5",
+      "remote-hostname": "sn5610-01",
+      "remote-port": {
+        "Value": 179,
+        "OK": true,
+        "Raw": "179"
+      },
+      "session-state": "established",
+      "uptime": {
+        "Value": 26697000,
+        "OK": true,
+        "Raw": "26697000"
+      },
+      "last-reset-time": {
+        "Value": 26890000,
+        "OK": true,
+        "Raw": "26890000"
+      },
+      "last-reset-reason": "No AFI/SAFI activated for peer",
+      "connections-established": {
+        "Value": 5,
+        "OK": true
+      },
+      "connections-dropped": {
+        "Value": 4,
+        "OK": true
+      },
+      "message-stats": {
+        "rx-opens": {
+          "Value": 8,
+          "OK": true
+        },
+        "rx-keepalives": {
+          "Value": 71860,
+          "OK": true
+        },
+        "rx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "rx-total": {
+          "Value": 71967,
+          "OK": true
+        },
+        "tx-opens": {
+          "Value": 8,
+          "OK": true
+        },
+        "tx-keepalives": {
+          "Value": 71862,
+          "OK": true
+        },
+        "tx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "tx-total": {
+          "Value": 71932,
+          "OK": true
+        }
+      },
+      "address-family": {
+        "ipv4-unicast": {
+          "rx-prefix": {
+            "Value": 2,
+            "OK": true
+          },
+          "tx-prefix": {
+            "Value": 11,
+            "OK": true
+          }
+        }
+      },
+      "bfd": {
+        "profile": "underlay",
+        "status": "up"
+      }
+    },
+    "swp32": {
+      "type": "unnumbered",
+      "description": "fabric underlay to leaf sn5610-01/E1/64/1",
+      "peer-group": "underlay_leaf",
+      "remote-as": {
+        "Value": 65104,
+        "OK": true,
+        "Raw": "65104"
+      },
+      "local-as": {
+        "asn": {
+          "Value": 65100,
+          "OK": true,
+          "Raw": "65100"
+        }
+      },
+      "remote-router-id": "172.30.8.5",
+      "remote-hostname": "sn5610-01",
+      "remote-port": {
+        "Value": 179,
+        "OK": true,
+        "Raw": "179"
+      },
+      "session-state": "established",
+      "uptime": {
+        "Value": 26697000,
+        "OK": true,
+        "Raw": "26697000"
+      },
+      "last-reset-time": {
+        "Value": 26884000,
+        "OK": true,
+        "Raw": "26884000"
+      },
+      "last-reset-reason": "No AFI/SAFI activated for peer",
+      "connections-established": {
+        "Value": 5,
+        "OK": true
+      },
+      "connections-dropped": {
+        "Value": 4,
+        "OK": true
+      },
+      "message-stats": {
+        "rx-opens": {
+          "Value": 5,
+          "OK": true
+        },
+        "rx-keepalives": {
+          "Value": 71861,
+          "OK": true
+        },
+        "rx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "rx-total": {
+          "Value": 71960,
+          "OK": true
+        },
+        "tx-opens": {
+          "Value": 5,
+          "OK": true
+        },
+        "tx-keepalives": {
+          "Value": 71861,
+          "OK": true
+        },
+        "tx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "tx-total": {
+          "Value": 71931,
+          "OK": true
+        }
+      },
+      "address-family": {
+        "ipv4-unicast": {
+          "rx-prefix": {
+            "Value": 2,
+            "OK": true
+          },
+          "tx-prefix": {
+            "Value": 11,
+            "OK": true
+          }
+        }
+      },
+      "bfd": {
+        "profile": "underlay",
+        "status": "up"
+      }
+    },
+    "swp4": {
+      "type": "unnumbered",
+      "description": "fabric underlay to leaf sn2201-01/E1/50",
+      "peer-group": "underlay_leaf",
+      "remote-as": {
+        "Value": 65101,
+        "OK": true,
+        "Raw": "65101"
+      },
+      "local-as": {
+        "asn": {
+          "Value": 65100,
+          "OK": true,
+          "Raw": "65100"
+        }
+      },
+      "remote-router-id": "172.30.8.2",
+      "remote-hostname": "sn2201-01",
+      "remote-port": {
+        "Value": 179,
+        "OK": true,
+        "Raw": "179"
+      },
+      "session-state": "established",
+      "uptime": {
+        "Value": 26657000,
+        "OK": true,
+        "Raw": "26657000"
+      },
+      "last-reset-time": {
+        "Value": 26659000,
+        "OK": true,
+        "Raw": "26659000"
+      },
+      "last-reset-reason": "Waiting for peer OPEN",
+      "connections-established": {
+        "Value": 6,
+        "OK": true
+      },
+      "connections-dropped": {
+        "Value": 5,
+        "OK": true
+      },
+      "message-stats": {
+        "rx-opens": {
+          "Value": 7,
+          "OK": true
+        },
+        "rx-keepalives": {
+          "Value": 71843,
+          "OK": true
+        },
+        "rx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "rx-total": {
+          "Value": 71964,
+          "OK": true
+        },
+        "tx-opens": {
+          "Value": 7,
+          "OK": true
+        },
+        "tx-keepalives": {
+          "Value": 71843,
+          "OK": true
+        },
+        "tx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "tx-total": {
+          "Value": 71929,
+          "OK": true
+        }
+      },
+      "address-family": {
+        "ipv4-unicast": {
+          "rx-prefix": {
+            "Value": 2,
+            "OK": true
+          },
+          "tx-prefix": {
+            "Value": 11,
+            "OK": true
+          }
+        }
+      },
+      "bfd": {
+        "profile": "underlay",
+        "status": "up"
+      }
+    }
+  }
+}

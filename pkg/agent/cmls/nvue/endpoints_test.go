@@ -35,6 +35,7 @@ func TestEndpointsReturnErrors(t *testing.T) {
 		"ASICResources":     func(ctx context.Context) error { return errOf(client.ASICResources(ctx, "ASIC1")) },
 		"RoCE":              func(ctx context.Context) error { return errOf(client.RoCE(ctx)) },
 		"VRFs":              func(ctx context.Context) error { return errOf(client.VRFs(ctx)) },
+		"BGPNeighbors":      func(ctx context.Context) error { return errOf(client.BGPNeighbors(ctx, VRFDefault)) },
 	} {
 		t.Run(name, func(t *testing.T) {
 			require.ErrorIs(t, call(t.Context()), fs.ErrNotExist)
