@@ -1,0 +1,6 @@
+{
+  "detail": "'nosuchview' is not one of ['brief', 'counters', 'carrier-stats', 'debounce-counters', 'small', 'lldp-detail', 'lldp', 'mac', 'ber', 'status', 'mlag-cc', 'neighbor', 'neighbor-detail', 'acl-statistics', 'qos-profile', 'link-tracking', 'qos-roce-status', 'qos-roce-status-pool-map', 'qos-roce-counters...",
+  "status": 400,
+  "title": "Bad Request",
+  "type": "about:blank"
+}
