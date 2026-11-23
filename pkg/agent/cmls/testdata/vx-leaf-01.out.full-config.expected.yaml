@@ -299,6 +299,18 @@
             match:
               ip:
                 dest-ip: 10.0.12.0/24
+          '111':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: 10.0.13.0/24
+          '112':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: 10.0.14.0/24
           '65535':
             action:
               permit: {}
@@ -323,6 +335,49 @@
             match:
               ip:
                 dest-ip: 10.0.3.0/24
+          '65535':
+            action:
+              permit: {}
+        type: ipv4
+      vpc-filtering--vpc-01--subnet-04:
+        rule:
+          '1':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: 10.0.13.0/24
+                source-ip: 10.0.13.0/24
+          '102':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: 10.0.3.0/24
+          '104':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: 10.0.12.0/24
+          '65535':
+            action:
+              permit: {}
+        type: ipv4
+      vpc-filtering--vpc-01--subnet-05:
+        rule:
+          '102':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: 10.0.3.0/24
+          '104':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: 10.0.12.0/24
           '65535':
             action:
               permit: {}
@@ -642,9 +697,9 @@
           state:
             down: {}
       swp20:
-        description: Unused
+        description: Unbundled server-07 server-07--unbundled--leaf-01
         ipv6:
-          state: disabled
+          state: enabled
         lldp:
           state: enabled
         qos:
@@ -653,9 +708,13 @@
         link:
           speed: 10G
           state:
-            down: {}
+            up: {}
+        acl:
+          vpc-filtering--vpc-01--subnet-04:
+            inbound: {}
+        vrf: vpc-vpc-01
       swp21:
-        description: Unused
+        description: Unbundled server-08 server-08--unbundled--leaf-01
         ipv6:
           state: disabled
         lldp:
@@ -666,7 +725,7 @@
         link:
           speed: 10G
           state:
-            down: {}
+            up: {}
       swp22:
         description: Unused
         ipv6:
@@ -1328,6 +1387,17 @@
         type: sub
         vlan: 20
         vrf: vpc-vpc-03
+      swp21.1050:
+        acl:
+          vpc-filtering--vpc-01--subnet-05:
+            inbound: {}
+        base-interface: swp21
+        description: Host BGP vpc-01/subnet-05
+        ipv6:
+          state: enabled
+        type: sub
+        vlan: 1050
+        vrf: vpc-vpc-01
       vlan1001:
         acl:
           vpc-filtering--vpc-01--default:
@@ -1676,6 +1746,34 @@
                 match:
                   10.198.0.0/24: {}
             type: ipv4
+          hostbgp--vpc-01--subnet-04:
+            rule:
+              '10':
+                action: permit
+                match:
+                  10.0.13.0/24:
+                    max-prefix-len: 32
+                    min-prefix-len: 30
+              '15':
+                action: permit
+                match:
+                  10.200.0.0/16:
+                    max-prefix-len: 24
+                    min-prefix-len: 20
+              '20':
+                action: permit
+                match:
+                  10.201.0.1/32: {}
+            type: ipv4
+          hostbgp--vpc-01--subnet-05:
+            rule:
+              '10':
+                action: permit
+                match:
+                  10.0.14.0/24:
+                    max-prefix-len: 32
+                    min-prefix-len: 32
+            type: ipv4
           import-vrf--vpc-01--ext-bgp-01:
             rule:
               '103':
@@ -1700,6 +1798,16 @@
                 action: deny
                 match:
                   10.0.12.0/24:
+                    max-prefix-len: 32
+              '4':
+                action: deny
+                match:
+                  10.0.13.0/24:
+                    max-prefix-len: 32
+              '5':
+                action: deny
+                match:
+                  10.0.14.0/24:
                     max-prefix-len: 32
               '65535':
                 action: permit
@@ -1731,6 +1839,16 @@
                 action: permit
                 match:
                   10.0.12.0/24:
+                    max-prefix-len: 32
+              '4':
+                action: permit
+                match:
+                  10.0.13.0/24:
+                    max-prefix-len: 32
+              '5':
+                action: permit
+                match:
+                  10.0.14.0/24:
                     max-prefix-len: 32
             type: ipv4
           import-vrf--vpc-02--ext-snp-02:
@@ -1791,6 +1909,16 @@
                 action: permit
                 match:
                   10.0.12.0/24:
+                    max-prefix-len: 32
+              '304':
+                action: permit
+                match:
+                  10.0.13.0/24:
+                    max-prefix-len: 32
+              '305':
+                action: permit
+                match:
+                  10.0.14.0/24:
                     max-prefix-len: 32
             type: ipv4
           vpc-static-ext-subnets--vpc-03:
@@ -1970,6 +2098,22 @@
                 set:
                   community:
                     50000:0: {}
+          hostbgp--vpc-01--subnet-04:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                match:
+                  ip-prefix-list: hostbgp--vpc-01--subnet-04
+                  type: ipv4
+          hostbgp--vpc-01--subnet-05:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                match:
+                  ip-prefix-list: hostbgp--vpc-01--subnet-05
+                  type: ipv4
           import-vrf--vpc-01:
             rule:
               '5012':
@@ -2243,6 +2387,35 @@
                 state: enabled
               l2vpn-evpn:
                 state: enabled
+            neighbor:
+              swp20:
+                address-family:
+                  ipv4-unicast:
+                    aspath:
+                      replace-peer-as: enabled
+                    policy:
+                      inbound:
+                        route-map: hostbgp--vpc-01--subnet-04
+                    state: enabled
+                capabilities:
+                  extended-nexthop: enabled
+                description: Host BGP vpc-01/subnet-04 server-07--unbundled--leaf-01
+                remote-as: external
+                type: unnumbered
+              swp21.1050:
+                address-family:
+                  ipv4-unicast:
+                    aspath:
+                      replace-peer-as: enabled
+                    policy:
+                      inbound:
+                        route-map: hostbgp--vpc-01--subnet-05
+                    state: enabled
+                capabilities:
+                  extended-nexthop: enabled
+                description: Host BGP vpc-01/subnet-05 server-08--unbundled--leaf-01
+                remote-as: external
+                type: unnumbered
             path-selection:
               multipath:
                 aspath-ignore: enabled

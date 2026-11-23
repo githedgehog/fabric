@@ -137,6 +137,21 @@ type VPC struct {
 	Routes      map[string][]string
 
 	StaticExtSubnets map[uint32]string // subnet ID -> static external link subnet or routed subnet in the VPC
+	HostBGPPolicies  []HostBGPPolicy
+	HostBGPNeighbors []HostBGPNeighbor
+}
+
+// HostBGPPolicy only accepts the prefixes of a host BGP subnet and its extra prefixes from the hosts
+type HostBGPPolicy struct {
+	Name     string
+	Prefixes map[uint32]PrefixListEntry // rule ID -> entry
+}
+
+// HostBGPNeighbor is the unnumbered session with a host of a host BGP subnet on its port or VLAN subinterface
+type HostBGPNeighbor struct {
+	Key         string
+	Description string
+	Policy      string
 }
 
 // VPCExtPeer is an external peered with the VPC, only the permitted prefixes outside of the VPC's IPv4 namespace are
@@ -231,7 +246,7 @@ type PortConfig struct {
 	BridgeMember
 }
 
-// SubinterfaceConfig is a VLAN subinterface of a port with an external attachment
+// SubinterfaceConfig is a VLAN subinterface of a port with an external or host BGP attachment
 type SubinterfaceConfig struct {
 	Name        string
 	Port        string
@@ -320,7 +335,9 @@ type SubnetConfig struct {
 	DHCP          bool
 	ACL           string
 	Deny          map[uint32]string // subnet ID -> isolated or peered VPC subnet this one isn't permitted to reach
+	DenySelf      bool              // a restricted host BGP subnet, its own traffic is denied first in the same ACL
 	RestrictedACL string
+	HostBGP       bool
 }
 
 func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
@@ -1199,9 +1216,6 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		acl.Rules = append(acl.Rules, ACLRule{ID: 65535, Permit: true})
 		acls = append(acls, acl)
 	}
-	slices.SortFunc(subifs, func(a, b *SubinterfaceConfig) int {
-		return cmp.Or(cmp.Compare(a.Port, b.Port), cmp.Compare(a.VLAN, b.VLAN))
-	})
 
 	bgpExternals := len(ipv4Namespaces) > 0
 
@@ -1343,26 +1357,118 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 	subnetsByName := map[string]*SubnetConfig{}
 	subnetsByVLAN := map[uint16]string{}
 	unbundledPorts := map[string]*PortConfig{}
+	unbundledPort := func(connName string, link wiringapi.ServerToSwitchLink) (*PortConfig, error) {
+		if port, ok := unbundledPorts[connName]; ok {
+			return port, nil
+		}
+		port, err := usePort(link.Switch.LocalPortName())
+		if err != nil {
+			return nil, err
+		}
+		port.Description = fmt.Sprintf("Unbundled %s %s", link.Server.DeviceName(), connName)
+		unbundledPorts[connName] = port
+
+		return port, nil
+	}
+
+	// a host BGP subnet has no VLAN on the switch, its hosts peer with it on their ports or VLAN subinterfaces in the VPC
+	// VRF and only the subnet and its extra prefixes are accepted from them
+	type hostBGPIface struct {
+		conn   string
+		subnet *SubnetConfig
+		port   *PortConfig
+		subif  *SubinterfaceConfig
+	}
+	hostBGPIfaces := []hostBGPIface{}
+	hostBGPAttaches := map[string]string{} // interface -> attachment
+	hostBGPPolicies := map[string][]HostBGPPolicy{}
+	hostBGPNeighbors := map[string][]HostBGPNeighbor{}
+
 	for _, attachName := range slices.Sorted(maps.Keys(agent.Spec.VPCAttachments)) {
 		attach := agent.Spec.VPCAttachments[attachName]
 		conn, ok := agent.Spec.Connections[attach.Connection]
 		if !ok {
 			continue
 		}
+
+		vpcName, subnetName := attach.VPCName(), attach.SubnetName()
+		if subnet := agent.Spec.VPCs[vpcName].Subnets[subnetName]; subnet != nil && subnet.HostBGP {
+			if conn.Unbundled == nil {
+				_, _, connPorts, _, err := conn.Endpoints()
+				if err != nil {
+					return nil, fmt.Errorf("vpc attachment %q: getting conn %s endpoints: %w", attachName, attach.Connection, err)
+				}
+				if slices.ContainsFunc(connPorts, func(port string) bool { return strings.HasPrefix(port, agent.Name+"/") }) {
+					return nil, fmt.Errorf("vpc attachment %q: host BGP subnet %s is only supported on unbundled connections", attachName, attach.Subnet) //nolint:err113
+				}
+
+				continue
+			}
+			if conn.Unbundled.Link.Switch.DeviceName() != agent.Name {
+				continue
+			}
+			if attach.NativeVLAN {
+				return nil, fmt.Errorf("vpc attachment %q: host BGP subnet %s doesn't support native VLAN", attachName, attach.Subnet) //nolint:err113
+			}
+			port, err := unbundledPort(attach.Connection, conn.Unbundled.Link)
+			if err != nil {
+				return nil, fmt.Errorf("vpc attachment %q: %w", attachName, err)
+			}
+
+			policyName := fmt.Sprintf("hostbgp--%s--%s", vpcName, subnetName)
+			subnetCfg, ok := subnetsByName[attach.Subnet]
+			if !ok {
+				policy, err := hostBGPPolicy(policyName, subnet)
+				if err != nil {
+					return nil, fmt.Errorf("vpc attachment %q: subnet %s: %w", attachName, attach.Subnet, err)
+				}
+				hostBGPPolicies[vpcName] = append(hostBGPPolicies[vpcName], policy)
+
+				subnetCfg, err = newSubnetConfig(agent, vpcName, subnetName, subnet)
+				if err != nil {
+					return nil, fmt.Errorf("vpc attachment %q: %w", attachName, err)
+				}
+				subnetsByName[attach.Subnet] = subnetCfg
+			}
+
+			iface := hostBGPIface{conn: attach.Connection, subnet: subnetCfg, port: port}
+			ifaceName := port.Name
+			if subnet.VLAN == 0 {
+				port.VRF = subnetCfg.VRF
+				port.IPv6 = true
+			} else {
+				ifaceName = fmt.Sprintf("%s.%d", port.Name, subnet.VLAN)
+				iface.subif = &SubinterfaceConfig{
+					Name:        ifaceName,
+					Port:        port.Name,
+					VLAN:        subnet.VLAN,
+					VRF:         subnetCfg.VRF,
+					Description: "Host BGP " + attach.Subnet,
+				}
+				subifs = append(subifs, iface.subif)
+			}
+			if other, ok := hostBGPAttaches[ifaceName]; ok {
+				return nil, fmt.Errorf("vpc attachment %q: interface %s is already used by %s", attachName, ifaceName, other) //nolint:err113
+			}
+			hostBGPAttaches[ifaceName] = attachName
+			hostBGPIfaces = append(hostBGPIfaces, iface)
+			hostBGPNeighbors[vpcName] = append(hostBGPNeighbors[vpcName], HostBGPNeighbor{
+				Key:         ifaceName,
+				Description: fmt.Sprintf("Host BGP %s %s", attach.Subnet, attach.Connection),
+				Policy:      policyName,
+			})
+
+			continue
+		}
+
 		var member *BridgeMember
 		if bond := bondsByConn[attach.Connection]; bond != nil {
 			bond.Attached = true
 			member = &bond.BridgeMember
 		} else if conn.Unbundled != nil && conn.Unbundled.Link.Switch.DeviceName() == agent.Name {
-			port, ok := unbundledPorts[attach.Connection]
-			if !ok {
-				var err error
-				port, err = usePort(conn.Unbundled.Link.Switch.LocalPortName())
-				if err != nil {
-					return nil, fmt.Errorf("vpc attachment %q: %w", attachName, err)
-				}
-				port.Description = fmt.Sprintf("Unbundled %s %s", conn.Unbundled.Link.Server.DeviceName(), attach.Connection)
-				unbundledPorts[attach.Connection] = port
+			port, err := unbundledPort(attach.Connection, conn.Unbundled.Link)
+			if err != nil {
+				return nil, fmt.Errorf("vpc attachment %q: %w", attachName, err)
 			}
 			member = &port.BridgeMember
 		} else {
@@ -1379,7 +1485,6 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 
 		subnetCfg, ok := subnetsByName[attach.Subnet]
 		if !ok {
-			vpcName, subnetName := attach.VPCName(), attach.SubnetName()
 			vpc, ok := agent.Spec.VPCs[vpcName]
 			if !ok {
 				return nil, fmt.Errorf("vpc attachment %q: vpc %s not found", attachName, vpcName) //nolint:err113
@@ -1411,27 +1516,17 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 				return nil, fmt.Errorf("vpc attachment %q: vlan %d doesn't fit Cumulus SVI workaround subnet %s", attachName, subnet.VLAN, sviSubnet) //nolint:err113
 			}
 
-			subnetCfg = &SubnetConfig{
-				Name:        fmt.Sprintf("vlan%d", subnet.VLAN),
-				VLAN:        subnet.VLAN,
-				VNI:         vni,
-				VRF:         vpcVRF(vpcName),
-				Subnet:      subnet.Subnet,
-				Gateway:     netip.PrefixFrom(gateway, prefix.Bits()).String(),
-				IP:          netip.PrefixFrom(sviIP, 32).String(),
-				Description: "VPC " + attach.Subnet,
-				DHCP:        subnet.DHCP.Enable,
-				ACL:         fmt.Sprintf("vpc-filtering--%s--%s", vpcName, subnetName),
-				Deny:        map[uint32]string{},
-			}
-			if err := denyIsolatedSubnets(agent, subnetCfg, vpcName, subnetName); err != nil {
+			subnetCfg, err = newSubnetConfig(agent, vpcName, subnetName, subnet)
+			if err != nil {
 				return nil, fmt.Errorf("vpc attachment %q: %w", attachName, err)
 			}
-			// an ACL on the SVI only gets the routed traffic, so the traffic within a restricted subnet is dropped on the
-			// ingress of the ports and bonds it's attached to
-			if vpc.IsSubnetRestricted(subnetName) {
-				subnetCfg.RestrictedACL = fmt.Sprintf("vpc-restricted--%s--%s", vpcName, subnetName)
-			}
+			subnetCfg.Name = fmt.Sprintf("vlan%d", subnet.VLAN)
+			subnetCfg.VLAN = subnet.VLAN
+			subnetCfg.VNI = vni
+			subnetCfg.Gateway = netip.PrefixFrom(gateway, prefix.Bits()).String()
+			subnetCfg.IP = netip.PrefixFrom(sviIP, 32).String()
+			subnetCfg.Description = "VPC " + attach.Subnet
+			subnetCfg.DHCP = subnet.DHCP.Enable
 			subnetsByName[attach.Subnet] = subnetCfg
 			subnetsByVLAN[subnet.VLAN] = attach.Subnet
 		}
@@ -1460,9 +1555,46 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		}
 	}
 
-	subnets := slices.SortedFunc(maps.Values(subnetsByName), func(a, b *SubnetConfig) int {
-		return cmp.Compare(a.VLAN, b.VLAN)
+	// the host BGP interfaces are routed, so the subnet ACL only applies to the traffic from their hosts
+	for _, iface := range hostBGPIfaces {
+		if len(iface.port.VLANs) > 0 {
+			return nil, fmt.Errorf("conn %s: host BGP and VLAN attachments can't share a port", iface.conn) //nolint:err113
+		}
+		if len(iface.subnet.Deny) == 0 && !iface.subnet.DenySelf {
+			continue
+		}
+
+		if iface.subif == nil {
+			iface.port.ACLs = append(iface.port.ACLs, iface.subnet.ACL)
+		} else {
+			iface.subif.ACLs = append(iface.subif.ACLs, ACLBinding{Name: iface.subnet.ACL, Direction: "inbound"})
+		}
+	}
+	slices.SortFunc(subifs, func(a, b *SubinterfaceConfig) int {
+		return cmp.Or(cmp.Compare(a.Port, b.Port), cmp.Compare(a.VLAN, b.VLAN))
 	})
+
+	for idx := range vpcs {
+		vpcs[idx].HostBGPPolicies = slices.SortedFunc(slices.Values(hostBGPPolicies[vpcs[idx].Name]), func(a, b HostBGPPolicy) int {
+			return cmp.Compare(a.Name, b.Name)
+		})
+		vpcs[idx].HostBGPNeighbors = slices.SortedFunc(slices.Values(hostBGPNeighbors[vpcs[idx].Name]), func(a, b HostBGPNeighbor) int {
+			return cmp.Compare(a.Key, b.Key)
+		})
+	}
+
+	// the host BGP subnets only get the ACLs, after the other subnets so their order doesn't change
+	subnets, hostBGPSubnets := []*SubnetConfig{}, []*SubnetConfig{}
+	for _, subnet := range subnetsByName {
+		if subnet.HostBGP {
+			hostBGPSubnets = append(hostBGPSubnets, subnet)
+		} else {
+			subnets = append(subnets, subnet)
+		}
+	}
+	slices.SortFunc(subnets, func(a, b *SubnetConfig) int { return cmp.Compare(a.VLAN, b.VLAN) })
+	slices.SortFunc(hostBGPSubnets, func(a, b *SubnetConfig) int { return cmp.Compare(a.ACL, b.ACL) })
+	aclSubnets := slices.Concat(subnets, hostBGPSubnets)
 
 	for _, port := range ports {
 		if port.Breakout != "" {
@@ -1519,8 +1651,8 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		ESLAG:            eslag,
 		Subinterfaces:    subifs,
 		Subnets:          subnets,
-		SubnetACLs:       slices.DeleteFunc(slices.Clone(subnets), func(subnet *SubnetConfig) bool { return len(subnet.Deny) == 0 }),
-		Restricted:       slices.DeleteFunc(slices.Clone(subnets), func(subnet *SubnetConfig) bool { return subnet.RestrictedACL == "" }),
+		SubnetACLs:       slices.DeleteFunc(slices.Clone(aclSubnets), func(subnet *SubnetConfig) bool { return len(subnet.Deny) == 0 && !subnet.DenySelf }),
+		Restricted:       slices.DeleteFunc(slices.Clone(aclSubnets), func(subnet *SubnetConfig) bool { return subnet.RestrictedACL == "" }),
 		ACLs:             acls,
 		IsSpine:          isSpine,
 		IsLeaf:           isLeaf,
@@ -1565,6 +1697,76 @@ type ZTPIn struct {
 	KubeConfig    string
 	AgentConfig   string
 	AgentVersion  string
+}
+
+// prefixListEntry leaves out the prefix lengths not longer than the prefix's own as they don't restrict anything, so a
+// prefix only accepted as is gets no lengths at all
+func prefixListEntry(prefix netip.Prefix, minLen, maxLen uint8) PrefixListEntry {
+	entry := PrefixListEntry{Prefix: prefix.String()}
+	if int(minLen) > prefix.Bits() {
+		entry.MinLen = minLen
+	}
+	if int(maxLen) > prefix.Bits() {
+		entry.MaxLen = maxLen
+	}
+
+	return entry
+}
+
+// hostBGPPolicy accepts the host BGP subnet and its extra prefixes within their prefix lengths
+func hostBGPPolicy(name string, subnet *vpcapi.VPCSubnet) (HostBGPPolicy, error) {
+	entry := func(prefixStr string, minLen, maxLen uint8) (PrefixListEntry, error) {
+		prefix, err := netip.ParsePrefix(prefixStr)
+		if err != nil || !prefix.Addr().Is4() {
+			return PrefixListEntry{}, fmt.Errorf("invalid prefix %q", prefixStr) //nolint:err113
+		}
+
+		return prefixListEntry(prefix.Masked(), minLen, maxLen), nil
+	}
+
+	policy := HostBGPPolicy{Name: name, Prefixes: map[uint32]PrefixListEntry{}}
+	minLen, maxLen := subnet.HostBGPPrefixLens()
+	subnetEntry, err := entry(subnet.Subnet, minLen, maxLen)
+	if err != nil {
+		return policy, err
+	}
+	policy.Prefixes[10] = subnetEntry
+
+	for idx, extra := range slices.Sorted(maps.Keys(subnet.HostBGPExtraPrefixes)) {
+		minLen, maxLen := subnet.HostBGPExtraPrefixLens(subnet.HostBGPExtraPrefixes[extra])
+		extraEntry, err := entry(extra, minLen, maxLen)
+		if err != nil {
+			return policy, fmt.Errorf("extra prefix: %w", err)
+		}
+		policy.Prefixes[uint32(15+5*idx)] = extraEntry
+	}
+
+	return policy, nil
+}
+
+// newSubnetConfig returns an attached subnet with its ACLs. An ACL on the SVI only gets the routed traffic, so the
+// traffic within a restricted subnet is dropped on the ingress of the ports and bonds it's attached to. A host BGP
+// subnet gets it as the first rule of its single ACL instead, as the first ACL of an interface to match a packet wins.
+func newSubnetConfig(agent *agentapi.Agent, vpcName, subnetName string, subnet *vpcapi.VPCSubnet) (*SubnetConfig, error) {
+	subnetCfg := &SubnetConfig{
+		VRF:     vpcVRF(vpcName),
+		Subnet:  subnet.Subnet,
+		ACL:     fmt.Sprintf("vpc-filtering--%s--%s", vpcName, subnetName),
+		Deny:    map[uint32]string{},
+		HostBGP: subnet.HostBGP,
+	}
+	if err := denyIsolatedSubnets(agent, subnetCfg, vpcName, subnetName); err != nil {
+		return nil, err
+	}
+	if vpc := agent.Spec.VPCs[vpcName]; vpc.IsSubnetRestricted(subnetName) {
+		if subnet.HostBGP {
+			subnetCfg.DenySelf = true
+		} else {
+			subnetCfg.RestrictedACL = fmt.Sprintf("vpc-restricted--%s--%s", vpcName, subnetName)
+		}
+	}
+
+	return subnetCfg, nil
 }
 
 // denyIsolatedSubnets adds the other isolated subnets of the VPC to the attached subnet, unless a VPC permit list
@@ -1771,15 +1973,8 @@ func externalBGPPolicy(agent *agentapi.Agent, ext *External, extSpec vpcapi.Exte
 		if err != nil || !prefix.Addr().Is4() {
 			return fmt.Errorf("external %s: invalid inbound prefix %q", ext.Name, prefixStr) //nolint:err113
 		}
-		entry := PrefixListEntry{Prefix: prefix.String()}
 		minLen, maxLen := extSpec.InboundPrefixes[prefixStr].PrefixLens(prefix)
-		if minLen != maxLen || int(maxLen) != prefix.Bits() {
-			if int(minLen) != prefix.Bits() {
-				entry.MinLen = minLen
-			}
-			entry.MaxLen = maxLen
-		}
-		ext.InboundPrefixes[10*(idx+1)] = entry
+		ext.InboundPrefixes[10*(idx+1)] = prefixListEntry(prefix, minLen, maxLen)
 	}
 
 	return nil
@@ -1916,9 +2111,6 @@ func checkSupported(agent *agentapi.Agent) error {
 			subnet := vpc.Subnets[subnetName]
 			if subnet == nil {
 				continue
-			}
-			if subnet.HostBGP {
-				return fmt.Errorf("vpc %s: subnet %s: host BGP isn't supported", vpcName, subnetName) //nolint:err113
 			}
 			if subnet.DHCP.Relay != "" || subnet.DHCP.RelayVPC != "" {
 				return fmt.Errorf("vpc %s: subnet %s: DHCP relay to other servers isn't supported", vpcName, subnetName) //nolint:err113
