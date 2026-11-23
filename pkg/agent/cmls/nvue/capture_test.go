@@ -9,12 +9,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"maps"
 	"net"
 	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -24,22 +26,66 @@ import (
 // envCapture is the directory to capture the fixtures into from the local nvued, see testdata/README.md
 const envCapture = "NVUE_CAPTURE"
 
-// captureRequests are the requests the fixtures are captured for, relative to the API prefix and escaped like the
-// client sends them
-var captureRequests = []string{
-	"/system/version",
-	"/interface/swp63/link/breakout?rev=applied",
-	"/platform/environment/fan/FAN1%2F1",
-	"/interface/swp999",
-	"/vrf/mgmt/router/bgp",
-	"/system/forwarding",
-	"/nosuchthing",
-	"/interface?view=nosuchview",
+// captures are the requests the fixtures are captured for, from each test file, per model, the name of the directory
+// to capture into. The requests are relative to the API prefix and escaped like the client sends them.
+var captures = []map[string][]string{
+	clientCaptures,
 }
 
-// captureForbiddenRequests are captured into the "nobody" subdirectory by a user without an NVUE role
+// captureForbiddenRequests are captured into the "nobody" subdirectory by a user without an NVUE role, for any model
 var captureForbiddenRequests = []string{
 	"/system/version",
+}
+
+func captureRequests(model string) []string {
+	requests := []string{}
+	for _, files := range captures {
+		for _, uri := range files[model] {
+			if !slices.Contains(requests, uri) {
+				requests = append(requests, uri)
+			}
+		}
+	}
+
+	return requests
+}
+
+// TestFixturesCaptured makes sure that the fixtures are the ones a capture produces, no more and no less
+func TestFixturesCaptured(t *testing.T) {
+	if isLive() {
+		t.Skip("the fixtures aren't used when running live")
+	}
+
+	models, err := os.ReadDir("testdata")
+	require.NoError(t, err)
+
+	for _, model := range models {
+		if !model.IsDir() {
+			continue
+		}
+
+		for dir, requests := range map[string][]string{
+			filepath.Join("testdata", model.Name()):           captureRequests(model.Name()),
+			filepath.Join("testdata", model.Name(), "nobody"): captureForbiddenRequests,
+		} {
+			want := []string{}
+			for _, uri := range requests {
+				path, _, err := fixtureFile(dir, uri)
+				require.NoError(t, err, "no fixture for %s in %s", uri, dir)
+				want = append(want, filepath.Base(path))
+			}
+
+			files, err := os.ReadDir(dir)
+			require.NoError(t, err)
+			got := []string{}
+			for _, file := range files {
+				if !file.IsDir() {
+					got = append(got, file.Name())
+				}
+			}
+			require.ElementsMatch(t, want, got, dir)
+		}
+	}
 }
 
 func TestCapture(t *testing.T) {
@@ -48,7 +94,8 @@ func TestCapture(t *testing.T) {
 		t.Skip(envCapture + " isn't set")
 	}
 
-	requests := captureRequests
+	requests := captureRequests(filepath.Base(dir))
+	require.NotEmpty(t, requests, "no requests to capture for %s", filepath.Base(dir))
 	if os.Geteuid() != 0 {
 		dir = filepath.Join(dir, "nobody")
 		requests = captureForbiddenRequests
@@ -99,7 +146,11 @@ func TestCapture(t *testing.T) {
 }
 
 var (
-	macRe = regexp.MustCompile(`(?i)\b[0-9a-f]{2}(?::[0-9a-f]{2}){5}\b`)
+	// fakeMACPrefix is locally administered, and the EUI-64 interface ids of the fakes have no zero groups to compress
+	fakeMACPrefix = "0a:1b:2c:00:"
+	macRe         = regexp.MustCompile(`(?i)\b[0-9a-f]{2}(?::[0-9a-f]{2}){5}\b`)
+	// eui64Re is the interface id of an IPv6 address derived from a MAC: the MAC with ff:fe in the middle
+	eui64Re = regexp.MustCompile(`(?i)\b([0-9a-f]{1,4}):([0-9a-f]{0,2})ff:fe([0-9a-f]{2}):([0-9a-f]{1,4})\b`)
 	// the null, broadcast and fabric VRR MACs don't identify a device
 	keepMACs     = []string{"00:00:00:00:00:00", "ff:ff:ff:ff:ff:ff", "00:00:00:11:11:11"}
 	serialKeys   = []string{"vendor-sn", "serial", "serial-number"}
@@ -134,8 +185,7 @@ func (s *scrubber) mac(orig string) string {
 	fake, ok := s.macs[key]
 	if !ok {
 		n := len(s.macs) + 1
-		// locally administered, and the EUI-64 interface id of it has no zero groups to compress
-		fake = fmt.Sprintf("0a:1b:2c:00:%02x:%02x", n>>8, n&0xff)
+		fake = fmt.Sprintf("%s%02x:%02x", fakeMACPrefix, n>>8, n&0xff)
 		s.macs[key] = fake
 	}
 	if orig == strings.ToUpper(orig) {
@@ -145,8 +195,27 @@ func (s *scrubber) mac(orig string) string {
 	return fake
 }
 
+// euiID replaces the EUI-64 interface id of an IPv6 address with the one of the fake MAC, for the MACs the switch
+// reports only that way too, such as in the LLDP management address of a neighbor
+func (s *scrubber) euiID(id string) string {
+	return eui64(s.mac(euiMAC(id)))
+}
+
+// euiMAC is the MAC an EUI-64 interface id is derived from
+func euiMAC(id string) string {
+	m := eui64Re.FindStringSubmatch(strings.ToLower(id))
+	high, mid, low := padHex(m[1], 4), padHex(m[2], 2), padHex(m[4], 4)
+	first, _ := strconv.ParseUint(high[:2], 16, 8) // two hex digits by the regexp
+
+	return fmt.Sprintf("%02x:%s:%s:%s:%s:%s", first^0x02, high[2:], mid, m[3], low[:2], low[2:])
+}
+
+func padHex(s string, n int) string {
+	return strings.Repeat("0", n-len(s)) + s
+}
+
 func (s *scrubber) str(v string) string {
-	return macRe.ReplaceAllStringFunc(v, s.mac)
+	return macRe.ReplaceAllStringFunc(eui64Re.ReplaceAllStringFunc(v, s.euiID), s.mac)
 }
 
 func (s *scrubber) doc(doc any) any {
@@ -157,11 +226,12 @@ func (s *scrubber) value(key string, v any) any {
 	switch val := v.(type) {
 	case map[string]any:
 		out := make(map[string]any, len(val))
-		for k, item := range val {
+		// in order, so that the same capture gets the same fakes
+		for _, k := range slices.Sorted(maps.Keys(val)) {
 			if slices.Contains(secretKeys, k) {
 				s.secrets = append(s.secrets, k)
 			}
-			out[s.str(k)] = s.value(k, item)
+			out[s.str(k)] = s.value(k, val[k])
 		}
 
 		return out
@@ -219,9 +289,9 @@ func (s *scrubber) finish(docs map[string]any) (map[string][]byte, error) {
 		return nil, fmt.Errorf("responses with secrets: %v", s.secrets) //nolint:err113
 	}
 
+	// the EUI-64 forms are replaced with the strings already
 	forms := map[string]string{}
 	for orig, f := range s.macs {
-		forms[eui64(orig)] = eui64(f)
 		forms[strings.ReplaceAll(orig, ":", "")] = strings.ReplaceAll(f, ":", "")
 	}
 	replacer := make([]string, 0, 2*len(forms))
@@ -232,6 +302,9 @@ func (s *scrubber) finish(docs map[string]any) (map[string][]byte, error) {
 	leftovers := []string{}
 	for orig := range s.macs {
 		leftovers = append(leftovers, orig)
+	}
+	for orig := range s.macs {
+		leftovers = append(leftovers, eui64(orig))
 	}
 	for orig := range forms {
 		leftovers = append(leftovers, orig)
@@ -260,6 +333,11 @@ func (s *scrubber) finish(docs map[string]any) (map[string][]byte, error) {
 				return nil, fmt.Errorf("%s still has %q", uri, orig) //nolint:err113
 			}
 		}
+		for _, id := range eui64Re.FindAllString(lower, -1) {
+			if mac := euiMAC(id); !strings.HasPrefix(mac, fakeMACPrefix) && !slices.Contains(keepMACs, mac) {
+				return nil, fmt.Errorf("%s still has an IPv6 address of MAC %s", uri, mac) //nolint:err113
+			}
+		}
 
 		files[uri] = []byte(text)
 	}
@@ -284,6 +362,11 @@ func TestScrubber(t *testing.T) {
 			"swp1": map[string]any{
 				"link": map[string]any{"mac-address": "00:00:5e:00:53:01"},
 				"ipv6": map[string]any{"address": map[string]any{"fe80::200:5eff:fe00:5301/64": map[string]any{}}},
+			},
+			"swp2": map[string]any{
+				"lldp": map[string]any{"neighbor": map[string]any{"spine": map[string]any{
+					"management-address-ipv6": "fe80::200:5eff:fe00:5302",
+				}}},
 			},
 			"vlan10": map[string]any{
 				"link": map[string]any{"mac-address": "00:00:00:11:11:11"},
@@ -312,7 +395,7 @@ func TestScrubber(t *testing.T) {
 	for _, data := range files {
 		all += strings.ToLower(string(data))
 	}
-	originals := []string{"00:00:5e:00:53:01", "200:5eff:fe00:5301", "00005e005301", "testserial", "12345678-"}
+	originals := []string{"00:00:5e:00:53:01", "200:5eff:fe00:530", "00005e005301", "testserial", "12345678-"}
 	for _, orig := range originals {
 		require.NotContains(t, all, orig)
 	}
@@ -321,6 +404,9 @@ func TestScrubber(t *testing.T) {
 		"swp1": {
 			"link": {"mac-address": "0a:1b:2c:00:00:01"},
 			"ipv6": {"address": {"fe80::81b:2cff:fe00:1/64": {}}}
+		},
+		"swp2": {
+			"lldp": {"neighbor": {"spine": {"management-address-ipv6": "fe80::81b:2cff:fe00:2"}}}
 		},
 		"vlan10": {"link": {"mac-address": "00:00:00:11:11:11"}}
 	}`, string(files["/interface"]))

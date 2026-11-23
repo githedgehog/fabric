@@ -19,6 +19,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var clientCaptures = map[string][]string{
+	fixtureModel: {
+		"/system/version",
+		"/interface?filled=false&rev=applied",
+		"/platform/environment/fan/FAN1%2F1",
+		"/interface/swp999",
+		"/vrf/mgmt/router/bgp",
+		"/system/forwarding",
+		"/nosuchthing",
+		"/interface?view=nosuchview",
+	},
+}
+
 func TestNewInvalidOptions(t *testing.T) {
 	for _, tt := range []struct {
 		name string
@@ -54,11 +67,12 @@ func TestGet(t *testing.T) {
 func TestGetQuery(t *testing.T) {
 	client := testClient(t, fixtureModel)
 
-	breakout := map[string]any{}
-	err := client.get(t.Context(), pathOf("interface", "swp63", "link", "breakout"),
-		url.Values{"rev": {"applied"}}, &breakout)
+	// the applied config of the management port has its address, the operational state the link
+	ifaces := map[string]map[string]any{}
+	err := client.get(t.Context(), pathOf("interface"), url.Values{"rev": {"applied"}, "filled": {"false"}}, &ifaces)
 	require.NoError(t, err)
-	require.Contains(t, breakout, "2x")
+	require.Contains(t, ifaces["eth0"], "ipv4")
+	require.NotContains(t, ifaces["eth0"], "counters")
 }
 
 func TestGetEscapedSegment(t *testing.T) {

@@ -10,7 +10,9 @@ when capturing, the capture fails if any original value is left or a response ha
 
 ## Running the tests on a switch
 
-Every client test also runs against the real nvued on a switch:
+Every client test also runs against the real nvued on a switch, checking that the data is there on top of decoding it.
+nvued answers the same 404 for a path it doesn't know as for data that doesn't apply, so running them on every new
+Cumulus Linux release is what catches a renamed or removed endpoint:
 
 ```sh
 just build-nvue-test
@@ -22,8 +24,8 @@ sudo -u nobody NVUE_LIVE=true ./nvue.test -test.v -test.run TestGetForbidden
 
 ## Capturing
 
-`captureRequests` in `capture_test.go` lists the requests to capture, on the switch (`nobody` has to be able to write
-to the directory):
+`captureRequests` in `capture_test.go` lists the requests to capture per model, named like the directory to capture
+into. On the switch (`nobody` has to be able to write to the directory):
 
 ```sh
 sudo NVUE_CAPTURE=/tmp/nvue/sn5610 ./nvue.test -test.run TestCapture
@@ -31,4 +33,13 @@ sudo chmod 777 /tmp/nvue/sn5610
 sudo -u nobody NVUE_CAPTURE=/tmp/nvue/sn5610 ./nvue.test -test.run TestCapture
 ```
 
-then copy the directory over the one in `testdata`.
+then copy the directory over the one in `testdata`. The fixtures are from env-7 (Cumulus Linux 5.18.3) with the fabric
+configured by the agent and the VPCs of `hhfab vlab setup-vpcs`, the tests expect the switches to have:
+
+- sn5610: unused E1/1 and E1/3 with 800G DACs broken out 8x (disabling E1/2) and 4x, the 2x E1/63-64 spine links on
+  100G DACs, a 400G optic on E1/29 and a 10G SFP optic on E1/65 to servers, nothing in E1/4
+- sn4700: an ESLAG bond on a 4x 10G breakout (bond1 on E1/1/1), a 400G QSFP-DD optic (E1/9) and 100G QSFP28 DACs
+- sn4600: a 4x 10G DAC breakout (E1/17) disabling E1/18 and 100G QSFP28 DACs
+- sn2700: a 4x 25G DAC breakout (E1/15) disabling E1/16, so without rates for both, and QSFP28 DACs that only report
+  the cable length
+- sn2201: 1G RJ45 ports up to servers (E1/1-2) and QSFP28 DACs
