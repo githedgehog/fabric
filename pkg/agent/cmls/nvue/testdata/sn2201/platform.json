@@ -1,0 +1,13 @@
+{
+  "asic-model": "Spectrum",
+  "cpu": "x86_64 Intel(R) Atom(TM) CPU C3338R @ 1.80GHz x2",
+  "disk-size": "18.6GB",
+  "manufacturer": "Nvidia",
+  "memory": "7.35 GB",
+  "part-number": "MSN2201-CB2RC",
+  "port-layout": "48 x RJ45 & 4 x 100G-QSFP28",
+  "serial-number": "SN00000006",
+  "system-mac": "0a:1b:2c:00:00:02",
+  "system-type": "SN2201",
+  "system-uuid": "00000000-0000-0000-0000-000000000001"
+}

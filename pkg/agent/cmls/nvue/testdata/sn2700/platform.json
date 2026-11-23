@@ -1,0 +1,13 @@
+{
+  "asic-model": "Spectrum",
+  "cpu": "x86_64 Intel(R) Celeron(R) CPU 1047UE @ 1.40GHz x2",
+  "disk-size": "238.5GB",
+  "manufacturer": "Mellanox",
+  "memory": "7.33 GB",
+  "part-number": "MSN2700-CS2F",
+  "port-layout": "32 x 100G-QSFP28",
+  "serial-number": "SN00000011",
+  "system-mac": "0a:1b:2c:00:00:2f",
+  "system-type": "MSN2700",
+  "system-uuid": "00000000-0000-0000-0000-000000000001"
+}

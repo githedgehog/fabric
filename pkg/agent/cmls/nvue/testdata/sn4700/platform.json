@@ -1,0 +1,13 @@
+{
+  "asic-model": "Spectrum-3",
+  "cpu": "x86_64 Intel(R) Xeon(R) CPU D-1527 @ 2.20GHz x8",
+  "disk-size": "55.9GB",
+  "manufacturer": "Mellanox",
+  "memory": "15.01 GB",
+  "part-number": "MSN4700-WS2FC",
+  "port-layout": "32 x 400G-QSFPDD",
+  "serial-number": "SN00000008",
+  "system-mac": "0a:1b:2c:00:00:03",
+  "system-type": "MSN4700",
+  "system-uuid": "00000000-0000-0000-0000-000000000001"
+}

@@ -36,6 +36,7 @@ var captures = []map[string][]string{
 	breakoutCaptures,
 	transceiverCaptures,
 	systemCaptures,
+	platformCaptures,
 }
 
 // captureForbiddenRequests are captured into the "nobody" subdirectory by a user without an NVUE role, for any model
