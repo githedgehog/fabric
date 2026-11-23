@@ -13,6 +13,779 @@
     "softwareVersion": "5.18.3",
     "uptime": "59h0m4s"
   },
+  "interfaces": {
+    "E1/1/1": {
+      "enabled": true,
+      "admin": "up",
+      "oper": "up",
+      "mac": "0a:1b:2c:00:00:08",
+      "change": "2026-11-23T13:02:52Z",
+      "speed": "100G",
+      "auto": true,
+      "fec": "rs",
+      "counters": {
+        "inb": 760163365200,
+        "inbps": 4986,
+        "ind": 1635,
+        "inpbs": 5,
+        "clear": null,
+        "outb": 710463191704,
+        "outbps": 5271,
+        "outpps": 6,
+        "queues": {
+          "UC0": {
+            "b": 709416106856,
+            "p": 11540531
+          },
+          "UC7": {
+            "b": 1047084848,
+            "p": 1423059
+          }
+        }
+      },
+      "lldpNeighbors": [
+        {
+          "chassis": "0a:1b:2c:00:00:09",
+          "sysName": "sn3700c-01",
+          "sysDescr": "Hedgehog Fabric",
+          "portID": "swp1",
+          "portDescr": "Fabric sn4600-01/E1/1 sn3700c-01--fabric--sn4600-01",
+          "ttl": 20,
+          "mac": "0a:1b:2c:00:00:09",
+          "port": "swp1"
+        }
+      ]
+    },
+    "E1/10/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:0b",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/11/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:0c",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/12/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:0d",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/13/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:0e",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/14/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:0f",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/15/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:10",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/16/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:11",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/17/1": {
+      "enabled": true,
+      "admin": "up",
+      "oper": "up",
+      "mac": "0a:1b:2c:00:00:12",
+      "change": "2026-11-23T15:04:04Z",
+      "speed": "10G",
+      "auto": true,
+      "fec": "off",
+      "counters": {
+        "inb": 1468788517448,
+        "inbps": 76,
+        "ind": 4007,
+        "clear": null,
+        "outb": 1482126204056,
+        "outbps": 393,
+        "queues": {
+          "UC0": {
+            "b": 1481973974624,
+            "p": 24531456
+          },
+          "UC7": {
+            "b": 152229432,
+            "p": 135904
+          }
+        }
+      },
+      "lldpNeighbors": [
+        {
+          "chassis": "00:00:00:00:00:00",
+          "sysName": "server-07",
+          "portID": "enp2s1",
+          "ttl": 120,
+          "mac": "00:00:00:00:00:00",
+          "port": "enp2s1"
+        }
+      ]
+    },
+    "E1/17/2": {
+      "enabled": true,
+      "admin": "up",
+      "oper": "up",
+      "mac": "0a:1b:2c:00:00:13",
+      "change": "2026-11-21T08:30:08Z",
+      "speed": "10G",
+      "auto": true,
+      "fec": "off",
+      "counters": {
+        "inb": 117086296,
+        "inbps": 552,
+        "ind": 831,
+        "inpbs": 1,
+        "clear": null,
+        "outb": 8143053776,
+        "outbps": 890,
+        "outpps": 1,
+        "queues": {
+          "UC0": {
+            "b": 7956541616,
+            "p": 653618
+          },
+          "UC7": {
+            "b": 186512160,
+            "p": 190307
+          }
+        }
+      }
+    },
+    "E1/17/3": {
+      "enabled": true,
+      "admin": "up",
+      "oper": "up",
+      "mac": "0a:1b:2c:00:00:01",
+      "change": "2026-11-23T15:04:37Z",
+      "speed": "10G",
+      "auto": true,
+      "fec": "off",
+      "counters": {
+        "inb": 1145068638688,
+        "inbps": 1269,
+        "ind": 10719,
+        "inpbs": 1,
+        "clear": null,
+        "outb": 1081082459144,
+        "outbps": 411,
+        "outd": 30,
+        "queues": {
+          "UC0": {
+            "b": 1080977215384,
+            "p": 17226968
+          },
+          "UC7": {
+            "b": 105243760,
+            "p": 55459
+          }
+        }
+      },
+      "lldpNeighbors": [
+        {
+          "chassis": "00:00:00:00:00:00",
+          "sysName": "server-05",
+          "portID": "enp2s2",
+          "ttl": 120,
+          "mac": "00:00:00:00:00:00",
+          "port": "enp2s2"
+        }
+      ]
+    },
+    "E1/17/4": {
+      "enabled": true,
+      "admin": "up",
+      "oper": "up",
+      "mac": "0a:1b:2c:00:00:02",
+      "change": "2026-11-23T15:04:37Z",
+      "speed": "10G",
+      "auto": true,
+      "fec": "off",
+      "counters": {
+        "inb": 612007430152,
+        "inbps": 1201,
+        "ind": 2998,
+        "inpbs": 1,
+        "clear": null,
+        "outb": 1042801498208,
+        "outbps": 422,
+        "outd": 165,
+        "queues": {
+          "UC0": {
+            "b": 1042782357288,
+            "p": 16665810
+          },
+          "UC7": {
+            "b": 19140920,
+            "p": 11746
+          }
+        }
+      },
+      "lldpNeighbors": [
+        {
+          "chassis": "00:00:00:00:00:00",
+          "sysName": "server-06",
+          "portID": "enp2s2",
+          "ttl": 120,
+          "mac": "00:00:00:00:00:00",
+          "port": "enp2s2"
+        }
+      ]
+    },
+    "E1/19/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:14",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/2/1": {
+      "enabled": true,
+      "admin": "up",
+      "oper": "up",
+      "mac": "0a:1b:2c:00:00:15",
+      "change": "2026-11-23T13:02:51Z",
+      "speed": "100G",
+      "auto": true,
+      "fec": "rs",
+      "counters": {
+        "inb": 732024809792,
+        "inbps": 5325,
+        "ind": 1635,
+        "inpbs": 6,
+        "clear": null,
+        "outb": 644544619608,
+        "outbps": 5001,
+        "outpps": 5,
+        "queues": {
+          "UC0": {
+            "b": 643703364624,
+            "p": 10550280
+          },
+          "UC7": {
+            "b": 841254984,
+            "p": 1066124
+          }
+        }
+      },
+      "lldpNeighbors": [
+        {
+          "chassis": "0a:1b:2c:00:00:09",
+          "sysName": "sn3700c-01",
+          "sysDescr": "Hedgehog Fabric",
+          "portID": "swp2",
+          "portDescr": "Fabric sn4600-01/E1/2 sn3700c-01--fabric--sn4600-01",
+          "ttl": 20,
+          "mac": "0a:1b:2c:00:00:09",
+          "port": "swp2"
+        }
+      ]
+    },
+    "E1/20/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:16",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/21/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:17",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/22/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:18",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/23/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:19",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/24/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:1a",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/25/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:1b",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/26/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:1c",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/27/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:1d",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/28/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:1e",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/29/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:1f",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/3/1": {
+      "enabled": true,
+      "admin": "up",
+      "oper": "up",
+      "mac": "0a:1b:2c:00:00:20",
+      "change": "2026-11-21T08:34:19Z",
+      "speed": "100G",
+      "auto": true,
+      "fec": "rs",
+      "counters": {
+        "inb": 1061145395296,
+        "inbps": 5840,
+        "ind": 1630,
+        "inpbs": 7,
+        "clear": null,
+        "outb": 807917883616,
+        "outbps": 5784,
+        "outpps": 7,
+        "queues": {
+          "UC0": {
+            "b": 806860926664,
+            "p": 13619329
+          },
+          "UC7": {
+            "b": 1056956952,
+            "p": 1436602
+          }
+        }
+      },
+      "lldpNeighbors": [
+        {
+          "chassis": "0a:1b:2c:00:00:21",
+          "sysName": "sn2700-01",
+          "sysDescr": "Hedgehog Fabric",
+          "portID": "swp1",
+          "portDescr": "Fabric sn4600-01/E1/3 sn2700-01--fabric--sn4600-01",
+          "ttl": 20,
+          "mac": "0a:1b:2c:00:00:21",
+          "port": "swp1"
+        }
+      ]
+    },
+    "E1/30/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:23",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/31/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:24",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/32/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:25",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/33/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:26",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/34/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:27",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/35/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:28",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/36/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:29",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/37/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:2a",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/38/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:2b",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/39/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:2c",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/4/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:2d",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/40/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:2e",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/41/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:2f",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/42/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:30",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/43/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:31",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/44/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:32",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/45/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:33",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/46/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:34",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/47/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:35",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/48/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:36",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/49/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:37",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/5/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:38",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/50/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:39",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/51/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:3a",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/52/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:3b",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/53/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:3c",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/54/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:3d",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/55/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:3e",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/56/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:3f",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/57/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:40",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/58/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:41",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/59/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:42",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/6/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:43",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/60/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:44",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/61/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:45",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/62/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:46",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/63/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:47",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/64/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:48",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/7/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:49",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/8/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:4a",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "E1/9/1": {
+      "admin": "down",
+      "oper": "down",
+      "mac": "0a:1b:2c:00:00:4b",
+      "change": "2026-11-21T08:29:24Z",
+      "auto": true,
+      "fec": "none"
+    },
+    "M1": {
+      "enabled": true,
+      "admin": "up",
+      "oper": "up",
+      "mac": "0a:1b:2c:00:00:04",
+      "change": "2026-11-21T08:29:38Z",
+      "speed": "1G",
+      "auto": true
+    },
+    "bond1": {
+      "enabled": true,
+      "admin": "up",
+      "oper": "up",
+      "mac": "0a:1b:2c:00:00:01",
+      "change": "2026-11-23T15:04:39Z",
+      "speed": "10G"
+    },
+    "bond2": {
+      "enabled": true,
+      "admin": "up",
+      "oper": "up",
+      "mac": "0a:1b:2c:00:00:02",
+      "change": "2026-11-23T15:04:39Z",
+      "speed": "10G"
+    }
+  },
   "platform": {
     "fans": {
       "FAN1/1": {

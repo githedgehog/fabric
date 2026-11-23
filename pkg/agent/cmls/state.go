@@ -32,6 +32,11 @@ func (c *CumulusProcessor) UpdateSwitchState(ctx context.Context, agent *agentap
 		return errors.New("switch profile not found") //nolint:err113
 	}
 
+	portMap, err := agent.Spec.SwitchProfile.GetNOS2APIPortsFor(&agent.Spec.Switch)
+	if err != nil {
+		return fmt.Errorf("getting port mapping: %w", err)
+	}
+
 	start := time.Now()
 
 	swState := &agentapi.SwitchState{
@@ -54,8 +59,23 @@ func (c *CumulusProcessor) UpdateSwitchState(ctx context.Context, agent *agentap
 	}
 	swState.RoCE = roce
 
-	if err := c.updateNOS(ctx, swState); err != nil {
+	system, err := c.nvue.System(ctx)
+	if err != nil {
+		return fmt.Errorf("getting system: %w", err)
+	}
+
+	// the switch reports its times in its own timezone
+	loc, err := system.Location()
+	if err != nil {
+		return err //nolint:wrapcheck // it says what it is
+	}
+
+	if err := c.updateNOS(ctx, swState, system); err != nil {
 		return fmt.Errorf("updating nos: %w", err)
+	}
+
+	if err := c.updateInterfaces(ctx, reg, swState, portMap, loc); err != nil {
+		return fmt.Errorf("updating interfaces: %w", err)
 	}
 
 	if err := c.updatePlatform(ctx, reg, swState); err != nil {
@@ -98,12 +118,7 @@ func (c *CumulusProcessor) static(ctx context.Context) (*nvue.Platform, map[stri
 	return c.state.platform, c.state.firmware, nil
 }
 
-func (c *CumulusProcessor) updateNOS(ctx context.Context, swState *agentapi.SwitchState) error {
-	system, err := c.nvue.System(ctx)
-	if err != nil {
-		return fmt.Errorf("getting system: %w", err)
-	}
-
+func (c *CumulusProcessor) updateNOS(ctx context.Context, swState *agentapi.SwitchState, system *nvue.System) error {
 	platform, firmware, err := c.static(ctx)
 	if err != nil {
 		return err

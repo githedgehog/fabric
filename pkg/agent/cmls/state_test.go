@@ -72,6 +72,42 @@ func TestUpdateSwitchState(t *testing.T) {
 		}
 	}
 	require.Contains(t, st.Platform.Temperatures, "Asic-Temp-Sensor")
+
+	// the leaf uplinks, all ports in breakout modes are named E1/N/M
+	for name, peer := range map[string]string{"E1/1/1": "sn3700c-01", "E1/2/1": "sn3700c-01", "E1/3/1": "sn2700-01"} {
+		require.Contains(t, st.Interfaces, name)
+		iface := st.Interfaces[name]
+		require.True(t, iface.Enabled, name)
+		require.Equal(t, agentapi.OperStatusUp, iface.OperStatus, name)
+		require.Equal(t, "100G", iface.Speed, name)
+		require.False(t, iface.LastChange.IsZero(), name)
+		require.NotNil(t, iface.Counters, name)
+		require.Positive(t, iface.Counters.InBits, name)
+		require.Positive(t, iface.Counters.OutBits, name)
+		require.NotEmpty(t, iface.Counters.Queues, name)
+		require.Len(t, iface.LLDPNeighbors, 1, name)
+		require.Equal(t, peer, iface.LLDPNeighbors[0].SystemName, name)
+	}
+
+	// the 4x10G DAC breakout to the servers
+	for _, name := range []string{"E1/17/1", "E1/17/2", "E1/17/3", "E1/17/4"} {
+		require.Contains(t, st.Interfaces, name)
+		require.Equal(t, "10G", st.Interfaces[name].Speed, name)
+		require.NotNil(t, st.Interfaces[name].Counters, name)
+	}
+	require.Equal(t, "server-05", st.Interfaces["E1/17/3"].LLDPNeighbors[0].SystemName)
+
+	require.Contains(t, st.Interfaces, "E1/20/1")
+	require.False(t, st.Interfaces["E1/20/1"].Enabled)
+	require.Nil(t, st.Interfaces["E1/20/1"].Counters)
+
+	// bonds keep their NOS names, the management port has no LLDP neighbors reported
+	require.Contains(t, st.Interfaces, "bond1")
+	require.Contains(t, st.Interfaces, "M1")
+	require.Empty(t, st.Interfaces["M1"].LLDPNeighbors)
+	for name := range st.Interfaces {
+		require.False(t, strings.HasPrefix(name, "swp"), name)
+	}
 }
 
 // the platform and the firmware are read once, they take seconds
