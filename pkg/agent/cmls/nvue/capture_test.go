@@ -42,6 +42,7 @@ var captures = []map[string][]string{
 	temperatureCaptures,
 	firmwareCaptures,
 	asicCaptures,
+	roceCaptures,
 }
 
 // captureForbiddenRequests are captured into the "nobody" subdirectory by a user without an NVUE role, for any model
