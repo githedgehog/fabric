@@ -1,0 +1,634 @@
+{
+  "swp1": {
+    "channel": {
+      "channel-1": {
+        "rx-cdr-lol": "N/A",
+        "rx-los": "N/A",
+        "rx-power": {
+          "alarm": "Off",
+          "high-alarm-threshold": "3.00 dBm",
+          "high-warning-threshold": "2.50 dBm",
+          "low-alarm-threshold": "-13.00 dBm",
+          "low-warning-threshold": "-12.00 dBm",
+          "power": "0.0000 mW / -inf dBm"
+        },
+        "tx-bias-current": {
+          "alarm": "Off",
+          "current": "0.000 mA",
+          "high-alarm-threshold": "11.000 mA",
+          "high-warning-threshold": "10.000 mA",
+          "low-alarm-threshold": "2.000 mA",
+          "low-warning-threshold": "3.000 mA"
+        },
+        "tx-cdr-lol": "N/A",
+        "tx-fault": "N/A",
+        "tx-los": "N/A",
+        "tx-power": {
+          "alarm": "Off",
+          "high-alarm-threshold": "3.00 dBm",
+          "high-warning-threshold": "2.50 dBm",
+          "low-alarm-threshold": "-6.00 dBm",
+          "low-warning-threshold": "-5.00 dBm",
+          "power": "0.0000 mW / -inf dBm"
+        }
+      },
+      "channel-2": {
+        "rx-cdr-lol": "N/A",
+        "rx-los": "N/A",
+        "rx-power": {
+          "alarm": "Off",
+          "high-alarm-threshold": "3.00 dBm",
+          "high-warning-threshold": "2.50 dBm",
+          "low-alarm-threshold": "-13.00 dBm",
+          "low-warning-threshold": "-12.00 dBm",
+          "power": "0.0000 mW / -inf dBm"
+        },
+        "tx-bias-current": {
+          "alarm": "Off",
+          "current": "0.000 mA",
+          "high-alarm-threshold": "11.000 mA",
+          "high-warning-threshold": "10.000 mA",
+          "low-alarm-threshold": "2.000 mA",
+          "low-warning-threshold": "3.000 mA"
+        },
+        "tx-cdr-lol": "N/A",
+        "tx-fault": "N/A",
+        "tx-los": "N/A",
+        "tx-power": {
+          "alarm": "Off",
+          "high-alarm-threshold": "3.00 dBm",
+          "high-warning-threshold": "2.50 dBm",
+          "low-alarm-threshold": "-6.00 dBm",
+          "low-warning-threshold": "-5.00 dBm",
+          "power": "0.0000 mW / -inf dBm"
+        }
+      },
+      "channel-3": {
+        "rx-cdr-lol": "N/A",
+        "rx-los": "N/A",
+        "rx-power": {
+          "alarm": "Off",
+          "high-alarm-threshold": "3.00 dBm",
+          "high-warning-threshold": "2.50 dBm",
+          "low-alarm-threshold": "-13.00 dBm",
+          "low-warning-threshold": "-12.00 dBm",
+          "power": "0.0000 mW / -inf dBm"
+        },
+        "tx-bias-current": {
+          "alarm": "Off",
+          "current": "0.000 mA",
+          "high-alarm-threshold": "11.000 mA",
+          "high-warning-threshold": "10.000 mA",
+          "low-alarm-threshold": "2.000 mA",
+          "low-warning-threshold": "3.000 mA"
+        },
+        "tx-cdr-lol": "N/A",
+        "tx-fault": "N/A",
+        "tx-los": "N/A",
+        "tx-power": {
+          "alarm": "Off",
+          "high-alarm-threshold": "3.00 dBm",
+          "high-warning-threshold": "2.50 dBm",
+          "low-alarm-threshold": "-6.00 dBm",
+          "low-warning-threshold": "-5.00 dBm",
+          "power": "0.0000 mW / -inf dBm"
+        }
+      },
+      "channel-4": {
+        "rx-cdr-lol": "N/A",
+        "rx-los": "N/A",
+        "rx-power": {
+          "alarm": "Off",
+          "high-alarm-threshold": "3.00 dBm",
+          "high-warning-threshold": "2.50 dBm",
+          "low-alarm-threshold": "-13.00 dBm",
+          "low-warning-threshold": "-12.00 dBm",
+          "power": "0.0000 mW / -inf dBm"
+        },
+        "tx-bias-current": {
+          "alarm": "Off",
+          "current": "0.000 mA",
+          "high-alarm-threshold": "11.000 mA",
+          "high-warning-threshold": "10.000 mA",
+          "low-alarm-threshold": "2.000 mA",
+          "low-warning-threshold": "3.000 mA"
+        },
+        "tx-cdr-lol": "N/A",
+        "tx-fault": "N/A",
+        "tx-los": "N/A",
+        "tx-power": {
+          "alarm": "Off",
+          "high-alarm-threshold": "3.00 dBm",
+          "high-warning-threshold": "2.50 dBm",
+          "low-alarm-threshold": "-6.00 dBm",
+          "low-warning-threshold": "-5.00 dBm",
+          "power": "0.0000 mW / -inf dBm"
+        }
+      }
+    },
+    "diagnostics-status": "Diagnostic Data Available",
+    "error-status": "N/A",
+    "flag-in-use": "N/A",
+    "identifier": "0x11 (QSFP28)",
+    "pmd-type": "ETH_XAUI_1_10G",
+    "revision-compliance": "SFF-8636 Rev 2.5/2.6/2.7",
+    "status": "Inserted",
+    "temp-flags": {
+      "high-alarm": "N/A",
+      "high-warning": "N/A",
+      "low-alarm": "N/A",
+      "low-warning": "N/A"
+    },
+    "temperature": {
+      "alarm": "Off",
+      "high-alarm-threshold": "80.00 C",
+      "high-warning-threshold": "75.00 C",
+      "low-alarm-threshold": "-10.00 C",
+      "low-warning-threshold": "-5.00 C",
+      "temperature": "36.06 C"
+    },
+    "vcc-flags": {
+      "high-alarm": "N/A",
+      "high-warning": "N/A",
+      "low-alarm": "N/A",
+      "low-warning": "N/A"
+    },
+    "vendor-date-code": "________",
+    "vendor-name": "OEM",
+    "vendor-oui": "00:00:00",
+    "vendor-pn": "CAB-ZQP-4ZSP-1M",
+    "vendor-rev": "A",
+    "vendor-sn": "SN00000002",
+    "voltage": {
+      "alarm": "Off",
+      "high-alarm-threshold": "3.7000 V",
+      "high-warning-threshold": "3.5952 V",
+      "low-alarm-threshold": "2.9040 V",
+      "low-warning-threshold": "3.0024 V",
+      "voltage": "3.3234 V"
+    }
+  },
+  "swp29": {
+    "cable-length": "1m",
+    "cable-type": "Passive copper cable",
+    "diagnostics-status": "N/A",
+    "error-status": "N/A",
+    "identifier": "0x11 (QSFP28)",
+    "pmd-type": "ETH_100GBASE_CR4",
+    "revision-compliance": "SFF-8636 Rev 2.5/2.6/2.7",
+    "status": "Inserted",
+    "temperature": {
+      "temperature": "0.00 C"
+    },
+    "vendor-date-code": "200522",
+    "vendor-name": "Amphenol",
+    "vendor-oui": "78:a7:14",
+    "vendor-pn": "NDAAFF-0001",
+    "vendor-rev": "U",
+    "vendor-sn": "SN00000003",
+    "voltage": {
+      "voltage": "0.0000 V"
+    }
+  },
+  "swp30": {
+    "cable-length": "1m",
+    "cable-type": "Passive copper cable",
+    "diagnostics-status": "N/A",
+    "error-status": "N/A",
+    "identifier": "0x11 (QSFP28)",
+    "pmd-type": "ETH_100GBASE_CR4",
+    "revision-compliance": "SFF-8636 Rev 2.5/2.6/2.7",
+    "status": "Inserted",
+    "temperature": {
+      "temperature": "0.00 C"
+    },
+    "vendor-date-code": "200521",
+    "vendor-name": "Amphenol",
+    "vendor-oui": "78:a7:14",
+    "vendor-pn": "NDAAFF-0001",
+    "vendor-rev": "U",
+    "vendor-sn": "SN00000004",
+    "voltage": {
+      "voltage": "0.0000 V"
+    }
+  },
+  "swp31": {
+    "cable-length": "1m",
+    "cable-type": "Passive copper cable",
+    "diagnostics-status": "N/A",
+    "error-status": "N/A",
+    "identifier": "0x11 (QSFP28)",
+    "pmd-type": "ETH_100GBASE_CR4",
+    "revision-compliance": "SFF-8636 Rev 2.5/2.6/2.7",
+    "status": "Inserted",
+    "temperature": {
+      "temperature": "0.00 C"
+    },
+    "vendor-date-code": "200522",
+    "vendor-name": "Amphenol",
+    "vendor-oui": "78:a7:14",
+    "vendor-pn": "NDAAFF-0001",
+    "vendor-rev": "U",
+    "vendor-sn": "SN00000005",
+    "voltage": {
+      "voltage": "0.0000 V"
+    }
+  },
+  "swp32": {
+    "cable-length": "2m",
+    "cable-type": "Passive copper cable",
+    "channel": {
+      "channel-1": {
+        "rx-cdr-lol": "N/A",
+        "rx-los": "N/A",
+        "rx-power": {
+          "power": "0.0000 mW / -inf dBm"
+        },
+        "tx-bias-current": {
+          "current": "0.000 mA"
+        },
+        "tx-cdr-lol": "N/A",
+        "tx-fault": "N/A",
+        "tx-los": "N/A",
+        "tx-power": {
+          "power": "0.0000 mW / -inf dBm"
+        }
+      },
+      "channel-2": {
+        "rx-cdr-lol": "N/A",
+        "rx-los": "N/A",
+        "rx-power": {
+          "power": "0.0000 mW / -inf dBm"
+        },
+        "tx-bias-current": {
+          "current": "0.000 mA"
+        },
+        "tx-cdr-lol": "N/A",
+        "tx-fault": "N/A",
+        "tx-los": "N/A",
+        "tx-power": {
+          "power": "0.0000 mW / -inf dBm"
+        }
+      },
+      "channel-3": {
+        "rx-cdr-lol": "N/A",
+        "rx-los": "N/A",
+        "rx-power": {
+          "power": "0.0000 mW / -inf dBm"
+        },
+        "tx-bias-current": {
+          "current": "0.000 mA"
+        },
+        "tx-cdr-lol": "N/A",
+        "tx-fault": "N/A",
+        "tx-los": "N/A",
+        "tx-power": {
+          "power": "0.0000 mW / -inf dBm"
+        }
+      },
+      "channel-4": {
+        "rx-cdr-lol": "N/A",
+        "rx-los": "N/A",
+        "rx-power": {
+          "power": "0.0000 mW / -inf dBm"
+        },
+        "tx-bias-current": {
+          "current": "0.000 mA"
+        },
+        "tx-cdr-lol": "N/A",
+        "tx-fault": "N/A",
+        "tx-los": "N/A",
+        "tx-power": {
+          "power": "0.0000 mW / -inf dBm"
+        }
+      }
+    },
+    "diagnostics-status": "Diagnostic Data Available",
+    "error-status": "N/A",
+    "flag-in-use": "N/A",
+    "identifier": "0x11 (QSFP28)",
+    "pmd-type": "ETH_100GBASE_CR4",
+    "revision-compliance": "SFF-8636 Rev 2.5/2.6/2.7",
+    "status": "Inserted",
+    "temp-flags": {
+      "high-alarm": "N/A",
+      "high-warning": "N/A",
+      "low-alarm": "N/A",
+      "low-warning": "N/A"
+    },
+    "temperature": {
+      "temperature": "31.68 C"
+    },
+    "vcc-flags": {
+      "high-alarm": "N/A",
+      "high-warning": "N/A",
+      "low-alarm": "N/A",
+      "low-warning": "N/A"
+    },
+    "vendor-date-code": "221206",
+    "vendor-name": "OEM",
+    "vendor-oui": "00:00:00",
+    "vendor-pn": "CAB-ZQP/ZQP-P2M",
+    "vendor-rev": "5",
+    "vendor-sn": "SN00000006",
+    "voltage": {
+      "voltage": "3.3140 V"
+    }
+  },
+  "swp9": {
+    "cable-type": "Optical module",
+    "channel": {
+      "channel-1": {
+        "rx-cdr-lol": "False",
+        "rx-los": "False",
+        "rx-power": {
+          "alarm": "Off",
+          "high-alarm-threshold": "7.50 dBm",
+          "high-warning-threshold": "4.50 dBm",
+          "low-alarm-threshold": "-10.40 dBm",
+          "low-warning-threshold": "-6.40 dBm",
+          "power": "1.2400 mW / 0.93 dBm"
+        },
+        "tx-bias-current": {
+          "alarm": "Off",
+          "current": "113.932 mA",
+          "high-alarm-threshold": "150.000 mA",
+          "high-warning-threshold": "140.000 mA",
+          "low-alarm-threshold": "20.000 mA",
+          "low-warning-threshold": "30.000 mA"
+        },
+        "tx-cdr-lol": "False",
+        "tx-fault": "False",
+        "tx-los": "False",
+        "tx-power": {
+          "alarm": "Off",
+          "high-alarm-threshold": "7.00 dBm",
+          "high-warning-threshold": "4.00 dBm",
+          "low-alarm-threshold": "-6.40 dBm",
+          "low-warning-threshold": "-2.40 dBm",
+          "power": "1.7538 mW / 2.44 dBm"
+        }
+      },
+      "channel-2": {
+        "rx-cdr-lol": "False",
+        "rx-los": "False",
+        "rx-power": {
+          "alarm": "Off",
+          "high-alarm-threshold": "7.50 dBm",
+          "high-warning-threshold": "4.50 dBm",
+          "low-alarm-threshold": "-10.40 dBm",
+          "low-warning-threshold": "-6.40 dBm",
+          "power": "0.8521 mW / -0.70 dBm"
+        },
+        "tx-bias-current": {
+          "alarm": "Off",
+          "current": "119.912 mA",
+          "high-alarm-threshold": "150.000 mA",
+          "high-warning-threshold": "140.000 mA",
+          "low-alarm-threshold": "20.000 mA",
+          "low-warning-threshold": "30.000 mA"
+        },
+        "tx-cdr-lol": "False",
+        "tx-fault": "False",
+        "tx-los": "False",
+        "tx-power": {
+          "alarm": "Off",
+          "high-alarm-threshold": "7.00 dBm",
+          "high-warning-threshold": "4.00 dBm",
+          "low-alarm-threshold": "-6.40 dBm",
+          "low-warning-threshold": "-2.40 dBm",
+          "power": "1.6184 mW / 2.09 dBm"
+        }
+      },
+      "channel-3": {
+        "rx-cdr-lol": "False",
+        "rx-los": "False",
+        "rx-power": {
+          "alarm": "Off",
+          "high-alarm-threshold": "7.50 dBm",
+          "high-warning-threshold": "4.50 dBm",
+          "low-alarm-threshold": "-10.40 dBm",
+          "low-warning-threshold": "-6.40 dBm",
+          "power": "1.1508 mW / 0.61 dBm"
+        },
+        "tx-bias-current": {
+          "alarm": "Off",
+          "current": "101.968 mA",
+          "high-alarm-threshold": "150.000 mA",
+          "high-warning-threshold": "140.000 mA",
+          "low-alarm-threshold": "20.000 mA",
+          "low-warning-threshold": "30.000 mA"
+        },
+        "tx-cdr-lol": "False",
+        "tx-fault": "False",
+        "tx-los": "False",
+        "tx-power": {
+          "alarm": "Off",
+          "high-alarm-threshold": "7.00 dBm",
+          "high-warning-threshold": "4.00 dBm",
+          "low-alarm-threshold": "-6.40 dBm",
+          "low-warning-threshold": "-2.40 dBm",
+          "power": "1.7594 mW / 2.45 dBm"
+        }
+      },
+      "channel-4": {
+        "rx-cdr-lol": "False",
+        "rx-los": "False",
+        "rx-power": {
+          "alarm": "Off",
+          "high-alarm-threshold": "7.50 dBm",
+          "high-warning-threshold": "4.50 dBm",
+          "low-alarm-threshold": "-10.40 dBm",
+          "low-warning-threshold": "-6.40 dBm",
+          "power": "0.7856 mW / -1.05 dBm"
+        },
+        "tx-bias-current": {
+          "alarm": "Off",
+          "current": "100.992 mA",
+          "high-alarm-threshold": "150.000 mA",
+          "high-warning-threshold": "140.000 mA",
+          "low-alarm-threshold": "20.000 mA",
+          "low-warning-threshold": "30.000 mA"
+        },
+        "tx-cdr-lol": "False",
+        "tx-fault": "False",
+        "tx-los": "False",
+        "tx-power": {
+          "alarm": "Off",
+          "high-alarm-threshold": "7.00 dBm",
+          "high-warning-threshold": "4.00 dBm",
+          "low-alarm-threshold": "-6.40 dBm",
+          "low-warning-threshold": "-2.40 dBm",
+          "power": "1.8253 mW / 2.61 dBm"
+        }
+      },
+      "channel-5": {
+        "rx-cdr-lol": "False",
+        "rx-los": "False",
+        "rx-power": {
+          "alarm": "Off",
+          "high-alarm-threshold": "7.50 dBm",
+          "high-warning-threshold": "4.50 dBm",
+          "low-alarm-threshold": "-10.40 dBm",
+          "low-warning-threshold": "-6.40 dBm",
+          "power": "0.0000 mW / -inf dBm"
+        },
+        "tx-bias-current": {
+          "alarm": "Off",
+          "current": "0.000 mA",
+          "high-alarm-threshold": "150.000 mA",
+          "high-warning-threshold": "140.000 mA",
+          "low-alarm-threshold": "20.000 mA",
+          "low-warning-threshold": "30.000 mA"
+        },
+        "tx-cdr-lol": "False",
+        "tx-fault": "False",
+        "tx-los": "False",
+        "tx-power": {
+          "alarm": "Off",
+          "high-alarm-threshold": "7.00 dBm",
+          "high-warning-threshold": "4.00 dBm",
+          "low-alarm-threshold": "-6.40 dBm",
+          "low-warning-threshold": "-2.40 dBm",
+          "power": "0.0000 mW / -inf dBm"
+        }
+      },
+      "channel-6": {
+        "rx-cdr-lol": "False",
+        "rx-los": "False",
+        "rx-power": {
+          "alarm": "Off",
+          "high-alarm-threshold": "7.50 dBm",
+          "high-warning-threshold": "4.50 dBm",
+          "low-alarm-threshold": "-10.40 dBm",
+          "low-warning-threshold": "-6.40 dBm",
+          "power": "0.0000 mW / -inf dBm"
+        },
+        "tx-bias-current": {
+          "alarm": "Off",
+          "current": "0.000 mA",
+          "high-alarm-threshold": "150.000 mA",
+          "high-warning-threshold": "140.000 mA",
+          "low-alarm-threshold": "20.000 mA",
+          "low-warning-threshold": "30.000 mA"
+        },
+        "tx-cdr-lol": "False",
+        "tx-fault": "False",
+        "tx-los": "False",
+        "tx-power": {
+          "alarm": "Off",
+          "high-alarm-threshold": "7.00 dBm",
+          "high-warning-threshold": "4.00 dBm",
+          "low-alarm-threshold": "-6.40 dBm",
+          "low-warning-threshold": "-2.40 dBm",
+          "power": "0.0000 mW / -inf dBm"
+        }
+      },
+      "channel-7": {
+        "rx-cdr-lol": "False",
+        "rx-los": "False",
+        "rx-power": {
+          "alarm": "Off",
+          "high-alarm-threshold": "7.50 dBm",
+          "high-warning-threshold": "4.50 dBm",
+          "low-alarm-threshold": "-10.40 dBm",
+          "low-warning-threshold": "-6.40 dBm",
+          "power": "0.0000 mW / -inf dBm"
+        },
+        "tx-bias-current": {
+          "alarm": "Off",
+          "current": "0.000 mA",
+          "high-alarm-threshold": "150.000 mA",
+          "high-warning-threshold": "140.000 mA",
+          "low-alarm-threshold": "20.000 mA",
+          "low-warning-threshold": "30.000 mA"
+        },
+        "tx-cdr-lol": "False",
+        "tx-fault": "False",
+        "tx-los": "False",
+        "tx-power": {
+          "alarm": "Off",
+          "high-alarm-threshold": "7.00 dBm",
+          "high-warning-threshold": "4.00 dBm",
+          "low-alarm-threshold": "-6.40 dBm",
+          "low-warning-threshold": "-2.40 dBm",
+          "power": "0.0000 mW / -inf dBm"
+        }
+      },
+      "channel-8": {
+        "rx-cdr-lol": "False",
+        "rx-los": "False",
+        "rx-power": {
+          "alarm": "Off",
+          "high-alarm-threshold": "7.50 dBm",
+          "high-warning-threshold": "4.50 dBm",
+          "low-alarm-threshold": "-10.40 dBm",
+          "low-warning-threshold": "-6.40 dBm",
+          "power": "0.0000 mW / -inf dBm"
+        },
+        "tx-bias-current": {
+          "alarm": "Off",
+          "current": "0.000 mA",
+          "high-alarm-threshold": "150.000 mA",
+          "high-warning-threshold": "140.000 mA",
+          "low-alarm-threshold": "20.000 mA",
+          "low-warning-threshold": "30.000 mA"
+        },
+        "tx-cdr-lol": "False",
+        "tx-fault": "False",
+        "tx-los": "False",
+        "tx-power": {
+          "alarm": "Off",
+          "high-alarm-threshold": "7.00 dBm",
+          "high-warning-threshold": "4.00 dBm",
+          "low-alarm-threshold": "-6.40 dBm",
+          "low-warning-threshold": "-2.40 dBm",
+          "power": "0.0000 mW / -inf dBm"
+        }
+      }
+    },
+    "diagnostics-status": "Diagnostic Data Available",
+    "error-status": "N/A",
+    "flag-in-use": "False",
+    "identifier": "0x18 (QSFP-DD Double Density 8X Pluggable Transceiver (INF-8628))",
+    "pmd-type": "ETH_400GBASE_CR8",
+    "revision-compliance": "Rev. 4.0",
+    "status": "Inserted",
+    "supported-cable-length": "0m om1, 0m om2, 0m om3, 0m om4, 0m om5",
+    "supported-cable-length-smf": "2.00km",
+    "temp-flags": {
+      "high-alarm": "False",
+      "high-warning": "False",
+      "low-alarm": "False",
+      "low-warning": "False"
+    },
+    "temperature": {
+      "alarm": "Off",
+      "high-alarm-threshold": "75.00 C",
+      "high-warning-threshold": "70.00 C",
+      "low-alarm-threshold": "-5.00 C",
+      "low-warning-threshold": "0.00 C",
+      "temperature": "49.52 C"
+    },
+    "vcc-flags": {
+      "high-alarm": "False",
+      "high-warning": "False",
+      "low-alarm": "False",
+      "low-warning": "False"
+    },
+    "vendor-date-code": "220806",
+    "vendor-name": "AVAGO",
+    "vendor-oui": "00:17:6a",
+    "vendor-pn": "AFCT-91DRPHZ-AZ2",
+    "vendor-rev": "01",
+    "vendor-sn": "SN00000007",
+    "voltage": {
+      "alarm": "Off",
+      "high-alarm-threshold": "3.6300 V",
+      "high-warning-threshold": "3.4650 V",
+      "low-alarm-threshold": "2.9700 V",
+      "low-warning-threshold": "3.1350 V",
+      "voltage": "3.2836 V"
+    }
+  }
+}
