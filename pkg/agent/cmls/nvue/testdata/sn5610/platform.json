@@ -1,0 +1,13 @@
+{
+  "asic-model": "Spectrum-4",
+  "cpu": "x86_64 AMD EPYC 3251 8-Core Processor @ 2.5GHz x16",
+  "disk-size": "74.5GB",
+  "manufacturer": "Nvidia",
+  "memory": "30.73 GB",
+  "part-number": "920-9N42F-00RI-3C1",
+  "port-layout": "64 x 800G-OSFP & 2 x 25G-SFP28",
+  "serial-number": "SN00000013",
+  "system-mac": "0a:1b:2c:00:00:01",
+  "system-type": "SN5610",
+  "system-uuid": "00000000-0000-0000-0000-000000000001"
+}
