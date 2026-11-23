@@ -1,0 +1,4101 @@
+{
+  "eth0": {
+    "acl": {},
+    "ipv4": {
+      "address": {
+        "172.30.0.8/21": {}
+      },
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "disabled",
+      "gateway": {}
+    },
+    "ipv6": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "disabled",
+      "gateway": {},
+      "state": "disabled"
+    },
+    "link": {
+      "duplex": "full",
+      "fec": "auto",
+      "mtu": 9216,
+      "speed": "auto",
+      "state": {
+        "up": {}
+      }
+    },
+    "neighbor": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "sflow": {
+      "state": "enabled"
+    },
+    "type": "eth",
+    "vrf": "mgmt"
+  },
+  "lo": {
+    "ipv4": {
+      "address": {
+        "172.30.8.0/32": {}
+      },
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "igmp": {
+        "state": "disabled"
+      }
+    },
+    "ipv6": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "state": "enabled"
+    },
+    "neighbor": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "router": {
+      "ospf": {
+        "state": "disabled"
+      },
+      "ospf6": {
+        "state": "disabled"
+      },
+      "pim": {
+        "state": "disabled"
+      }
+    },
+    "sflow": {
+      "state": "enabled"
+    },
+    "type": "loopback"
+  },
+  "swp1": {
+    "acl": {},
+    "description": "Fabric sn4600-01/E1/3 sn2700-01--fabric--sn4600-01",
+    "evpn": {
+      "multihoming": {
+        "uplink": "disabled"
+      }
+    },
+    "ipv4": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "igmp": {
+        "state": "disabled"
+      },
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "ipv6": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "neighbor-discovery": {
+        "dnssl": {},
+        "home-agent": {
+          "state": "disabled"
+        },
+        "prefix": {},
+        "rdnss": {},
+        "router-advertisement": {
+          "state": "disabled"
+        },
+        "state": "enabled"
+      },
+      "state": "enabled",
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "link": {
+      "auto-negotiate": "enabled",
+      "breakout": {},
+      "debounce": {
+        "down": 10,
+        "up": 10
+      },
+      "duplex": "full",
+      "fec": "auto",
+      "flap-protection": {
+        "state": "enabled"
+      },
+      "mtu": 9216,
+      "speed": "100G",
+      "state": {
+        "up": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "state": "enabled"
+    },
+    "neighbor": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "ptp": {
+      "state": "disabled"
+    },
+    "rates": {
+      "in-bits-rate": 5790,
+      "in-pkts-rate": 7,
+      "in-utilization": 5.789748519063394e-06,
+      "load-interval": 60,
+      "out-bits-rate": 5752,
+      "out-pkts-rate": 7,
+      "out-utilization": 5.752174525413193e-06
+    },
+    "router": {
+      "adaptive-routing": {
+        "state": "disabled"
+      },
+      "ospf": {
+        "state": "disabled"
+      },
+      "ospf6": {
+        "state": "disabled"
+      },
+      "pbr": {
+        "map": {}
+      },
+      "pim": {
+        "state": "disabled"
+      }
+    },
+    "sflow": {
+      "state": "enabled"
+    },
+    "synce": {
+      "state": "disabled"
+    },
+    "type": "swp",
+    "vrf": "default"
+  },
+  "swp10": {
+    "acl": {},
+    "description": "Unused",
+    "evpn": {
+      "multihoming": {
+        "uplink": "disabled"
+      }
+    },
+    "ipv4": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "igmp": {
+        "state": "disabled"
+      },
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "ipv6": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "neighbor-discovery": {
+        "dnssl": {},
+        "home-agent": {
+          "state": "disabled"
+        },
+        "prefix": {},
+        "rdnss": {},
+        "router-advertisement": {
+          "state": "disabled"
+        },
+        "state": "enabled"
+      },
+      "state": "disabled",
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "link": {
+      "auto-negotiate": "enabled",
+      "breakout": {},
+      "debounce": {
+        "down": 10,
+        "up": 10
+      },
+      "duplex": "full",
+      "fec": "auto",
+      "flap-protection": {
+        "state": "enabled"
+      },
+      "mtu": 9216,
+      "speed": "100G",
+      "state": {
+        "down": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "state": "enabled"
+    },
+    "neighbor": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "ptp": {
+      "state": "disabled"
+    },
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    },
+    "router": {
+      "adaptive-routing": {
+        "state": "disabled"
+      },
+      "ospf": {
+        "state": "disabled"
+      },
+      "ospf6": {
+        "state": "disabled"
+      },
+      "pbr": {
+        "map": {}
+      },
+      "pim": {
+        "state": "disabled"
+      }
+    },
+    "sflow": {
+      "state": "enabled"
+    },
+    "synce": {
+      "state": "disabled"
+    },
+    "type": "swp",
+    "vrf": "default"
+  },
+  "swp11": {
+    "acl": {},
+    "description": "Unused",
+    "evpn": {
+      "multihoming": {
+        "uplink": "disabled"
+      }
+    },
+    "ipv4": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "igmp": {
+        "state": "disabled"
+      },
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "ipv6": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "neighbor-discovery": {
+        "dnssl": {},
+        "home-agent": {
+          "state": "disabled"
+        },
+        "prefix": {},
+        "rdnss": {},
+        "router-advertisement": {
+          "state": "disabled"
+        },
+        "state": "enabled"
+      },
+      "state": "disabled",
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "link": {
+      "auto-negotiate": "enabled",
+      "breakout": {},
+      "debounce": {
+        "down": 10,
+        "up": 10
+      },
+      "duplex": "full",
+      "fec": "auto",
+      "flap-protection": {
+        "state": "enabled"
+      },
+      "mtu": 9216,
+      "speed": "100G",
+      "state": {
+        "down": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "state": "enabled"
+    },
+    "neighbor": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "ptp": {
+      "state": "disabled"
+    },
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    },
+    "router": {
+      "adaptive-routing": {
+        "state": "disabled"
+      },
+      "ospf": {
+        "state": "disabled"
+      },
+      "ospf6": {
+        "state": "disabled"
+      },
+      "pbr": {
+        "map": {}
+      },
+      "pim": {
+        "state": "disabled"
+      }
+    },
+    "sflow": {
+      "state": "enabled"
+    },
+    "synce": {
+      "state": "disabled"
+    },
+    "type": "swp",
+    "vrf": "default"
+  },
+  "swp12": {
+    "acl": {},
+    "description": "Unused",
+    "evpn": {
+      "multihoming": {
+        "uplink": "disabled"
+      }
+    },
+    "ipv4": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "igmp": {
+        "state": "disabled"
+      },
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "ipv6": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "neighbor-discovery": {
+        "dnssl": {},
+        "home-agent": {
+          "state": "disabled"
+        },
+        "prefix": {},
+        "rdnss": {},
+        "router-advertisement": {
+          "state": "disabled"
+        },
+        "state": "enabled"
+      },
+      "state": "disabled",
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "link": {
+      "auto-negotiate": "enabled",
+      "breakout": {},
+      "debounce": {
+        "down": 10,
+        "up": 10
+      },
+      "duplex": "full",
+      "fec": "auto",
+      "flap-protection": {
+        "state": "enabled"
+      },
+      "mtu": 9216,
+      "speed": "100G",
+      "state": {
+        "down": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "state": "enabled"
+    },
+    "neighbor": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "ptp": {
+      "state": "disabled"
+    },
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    },
+    "router": {
+      "adaptive-routing": {
+        "state": "disabled"
+      },
+      "ospf": {
+        "state": "disabled"
+      },
+      "ospf6": {
+        "state": "disabled"
+      },
+      "pbr": {
+        "map": {}
+      },
+      "pim": {
+        "state": "disabled"
+      }
+    },
+    "sflow": {
+      "state": "enabled"
+    },
+    "synce": {
+      "state": "disabled"
+    },
+    "type": "swp",
+    "vrf": "default"
+  },
+  "swp13": {
+    "acl": {},
+    "description": "Unused",
+    "evpn": {
+      "multihoming": {
+        "uplink": "disabled"
+      }
+    },
+    "ipv4": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "igmp": {
+        "state": "disabled"
+      },
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "ipv6": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "neighbor-discovery": {
+        "dnssl": {},
+        "home-agent": {
+          "state": "disabled"
+        },
+        "prefix": {},
+        "rdnss": {},
+        "router-advertisement": {
+          "state": "disabled"
+        },
+        "state": "enabled"
+      },
+      "state": "disabled",
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "link": {
+      "auto-negotiate": "enabled",
+      "breakout": {},
+      "debounce": {
+        "down": 10,
+        "up": 10
+      },
+      "duplex": "full",
+      "fec": "auto",
+      "flap-protection": {
+        "state": "enabled"
+      },
+      "mtu": 9216,
+      "speed": "100G",
+      "state": {
+        "down": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "state": "enabled"
+    },
+    "neighbor": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "ptp": {
+      "state": "disabled"
+    },
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    },
+    "router": {
+      "adaptive-routing": {
+        "state": "disabled"
+      },
+      "ospf": {
+        "state": "disabled"
+      },
+      "ospf6": {
+        "state": "disabled"
+      },
+      "pbr": {
+        "map": {}
+      },
+      "pim": {
+        "state": "disabled"
+      }
+    },
+    "sflow": {
+      "state": "enabled"
+    },
+    "synce": {
+      "state": "disabled"
+    },
+    "type": "swp",
+    "vrf": "default"
+  },
+  "swp14": {
+    "acl": {},
+    "description": "Unused",
+    "evpn": {
+      "multihoming": {
+        "uplink": "disabled"
+      }
+    },
+    "ipv4": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "igmp": {
+        "state": "disabled"
+      },
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "ipv6": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "neighbor-discovery": {
+        "dnssl": {},
+        "home-agent": {
+          "state": "disabled"
+        },
+        "prefix": {},
+        "rdnss": {},
+        "router-advertisement": {
+          "state": "disabled"
+        },
+        "state": "enabled"
+      },
+      "state": "disabled",
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "link": {
+      "auto-negotiate": "enabled",
+      "breakout": {},
+      "debounce": {
+        "down": 10,
+        "up": 10
+      },
+      "duplex": "full",
+      "fec": "auto",
+      "flap-protection": {
+        "state": "enabled"
+      },
+      "mtu": 9216,
+      "speed": "100G",
+      "state": {
+        "down": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "state": "enabled"
+    },
+    "neighbor": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "ptp": {
+      "state": "disabled"
+    },
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    },
+    "router": {
+      "adaptive-routing": {
+        "state": "disabled"
+      },
+      "ospf": {
+        "state": "disabled"
+      },
+      "ospf6": {
+        "state": "disabled"
+      },
+      "pbr": {
+        "map": {}
+      },
+      "pim": {
+        "state": "disabled"
+      }
+    },
+    "sflow": {
+      "state": "enabled"
+    },
+    "synce": {
+      "state": "disabled"
+    },
+    "type": "swp",
+    "vrf": "default"
+  },
+  "swp15": {
+    "acl": {},
+    "evpn": {
+      "multihoming": {
+        "uplink": "disabled"
+      }
+    },
+    "ipv4": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "igmp": {
+        "state": "disabled"
+      },
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "ipv6": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "neighbor-discovery": {
+        "dnssl": {},
+        "home-agent": {
+          "state": "disabled"
+        },
+        "prefix": {},
+        "rdnss": {},
+        "router-advertisement": {
+          "state": "disabled"
+        },
+        "state": "enabled"
+      },
+      "state": "enabled",
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "link": {
+      "breakout": {
+        "4x": {}
+      },
+      "debounce": {
+        "down": 10,
+        "up": 10
+      },
+      "duplex": "full",
+      "fec": "auto",
+      "flap-protection": {
+        "state": "enabled"
+      },
+      "mtu": 9216,
+      "speed": "auto",
+      "state": {
+        "up": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "state": "enabled"
+    },
+    "neighbor": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "ptp": {
+      "state": "disabled"
+    },
+    "router": {
+      "adaptive-routing": {
+        "state": "disabled"
+      },
+      "ospf": {
+        "state": "disabled"
+      },
+      "ospf6": {
+        "state": "disabled"
+      },
+      "pbr": {
+        "map": {}
+      },
+      "pim": {
+        "state": "disabled"
+      }
+    },
+    "sflow": {
+      "state": "enabled"
+    },
+    "synce": {
+      "state": "disabled"
+    },
+    "type": "swp",
+    "vrf": "default"
+  },
+  "swp15s0": {
+    "acl": {},
+    "description": "Gateway gateway-1/port1 sn2700-01--gateway--gateway-1",
+    "evpn": {
+      "multihoming": {
+        "uplink": "disabled"
+      }
+    },
+    "ipv4": {
+      "address": {
+        "172.30.128.0/31": {}
+      },
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "igmp": {
+        "state": "disabled"
+      },
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "ipv6": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "neighbor-discovery": {
+        "dnssl": {},
+        "home-agent": {
+          "state": "disabled"
+        },
+        "prefix": {},
+        "rdnss": {},
+        "router-advertisement": {
+          "state": "disabled"
+        },
+        "state": "enabled"
+      },
+      "state": "disabled",
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "link": {
+      "auto-negotiate": "enabled",
+      "debounce": {
+        "down": 10,
+        "up": 10
+      },
+      "duplex": "full",
+      "fec": "auto",
+      "flap-protection": {
+        "state": "enabled"
+      },
+      "mtu": 9216,
+      "speed": "25G",
+      "state": {
+        "up": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "state": "enabled"
+    },
+    "neighbor": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "ptp": {
+      "state": "disabled"
+    },
+    "rates": {
+      "in-bits-rate": 3322,
+      "in-pkts-rate": 5,
+      "in-utilization": 1.3289302839087404e-05,
+      "load-interval": 60,
+      "out-bits-rate": 3636,
+      "out-pkts-rate": 5,
+      "out-utilization": 1.4544817530267443e-05
+    },
+    "router": {
+      "adaptive-routing": {
+        "state": "disabled"
+      },
+      "ospf": {
+        "state": "disabled"
+      },
+      "ospf6": {
+        "state": "disabled"
+      },
+      "pbr": {
+        "map": {}
+      },
+      "pim": {
+        "state": "disabled"
+      }
+    },
+    "sflow": {
+      "state": "enabled"
+    },
+    "synce": {
+      "state": "disabled"
+    },
+    "type": "swp",
+    "vrf": "default"
+  },
+  "swp15s1": {
+    "acl": {},
+    "description": "Gateway gateway-2/port1 sn2700-01--gateway--gateway-2",
+    "evpn": {
+      "multihoming": {
+        "uplink": "disabled"
+      }
+    },
+    "ipv4": {
+      "address": {
+        "172.30.128.2/31": {}
+      },
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "igmp": {
+        "state": "disabled"
+      },
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "ipv6": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "neighbor-discovery": {
+        "dnssl": {},
+        "home-agent": {
+          "state": "disabled"
+        },
+        "prefix": {},
+        "rdnss": {},
+        "router-advertisement": {
+          "state": "disabled"
+        },
+        "state": "enabled"
+      },
+      "state": "disabled",
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "link": {
+      "auto-negotiate": "enabled",
+      "debounce": {
+        "down": 10,
+        "up": 10
+      },
+      "duplex": "full",
+      "fec": "auto",
+      "flap-protection": {
+        "state": "enabled"
+      },
+      "mtu": 9216,
+      "speed": "25G",
+      "state": {
+        "up": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "state": "enabled"
+    },
+    "neighbor": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "ptp": {
+      "state": "disabled"
+    },
+    "rates": {
+      "in-bits-rate": 3310,
+      "in-pkts-rate": 4,
+      "in-utilization": 1.3241304879091407e-05,
+      "load-interval": 60,
+      "out-bits-rate": 3636,
+      "out-pkts-rate": 5,
+      "out-utilization": 1.4544852003102925e-05
+    },
+    "router": {
+      "adaptive-routing": {
+        "state": "disabled"
+      },
+      "ospf": {
+        "state": "disabled"
+      },
+      "ospf6": {
+        "state": "disabled"
+      },
+      "pbr": {
+        "map": {}
+      },
+      "pim": {
+        "state": "disabled"
+      }
+    },
+    "sflow": {
+      "state": "enabled"
+    },
+    "synce": {
+      "state": "disabled"
+    },
+    "type": "swp",
+    "vrf": "default"
+  },
+  "swp15s2": {
+    "acl": {},
+    "description": "Unused",
+    "evpn": {
+      "multihoming": {
+        "uplink": "disabled"
+      }
+    },
+    "ipv4": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "igmp": {
+        "state": "disabled"
+      },
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "ipv6": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "neighbor-discovery": {
+        "dnssl": {},
+        "home-agent": {
+          "state": "disabled"
+        },
+        "prefix": {},
+        "rdnss": {},
+        "router-advertisement": {
+          "state": "disabled"
+        },
+        "state": "enabled"
+      },
+      "state": "disabled",
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "link": {
+      "auto-negotiate": "enabled",
+      "debounce": {
+        "down": 10,
+        "up": 10
+      },
+      "duplex": "full",
+      "fec": "auto",
+      "flap-protection": {
+        "state": "enabled"
+      },
+      "mtu": 9216,
+      "speed": "25G",
+      "state": {
+        "down": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "state": "enabled"
+    },
+    "neighbor": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "ptp": {
+      "state": "disabled"
+    },
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    },
+    "router": {
+      "adaptive-routing": {
+        "state": "disabled"
+      },
+      "ospf": {
+        "state": "disabled"
+      },
+      "ospf6": {
+        "state": "disabled"
+      },
+      "pbr": {
+        "map": {}
+      },
+      "pim": {
+        "state": "disabled"
+      }
+    },
+    "sflow": {
+      "state": "enabled"
+    },
+    "synce": {
+      "state": "disabled"
+    },
+    "type": "swp",
+    "vrf": "default"
+  },
+  "swp15s3": {
+    "acl": {},
+    "description": "Unused",
+    "evpn": {
+      "multihoming": {
+        "uplink": "disabled"
+      }
+    },
+    "ipv4": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "igmp": {
+        "state": "disabled"
+      },
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "ipv6": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "neighbor-discovery": {
+        "dnssl": {},
+        "home-agent": {
+          "state": "disabled"
+        },
+        "prefix": {},
+        "rdnss": {},
+        "router-advertisement": {
+          "state": "disabled"
+        },
+        "state": "enabled"
+      },
+      "state": "disabled",
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "link": {
+      "auto-negotiate": "enabled",
+      "debounce": {
+        "down": 10,
+        "up": 10
+      },
+      "duplex": "full",
+      "fec": "auto",
+      "flap-protection": {
+        "state": "enabled"
+      },
+      "mtu": 9216,
+      "speed": "25G",
+      "state": {
+        "down": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "state": "enabled"
+    },
+    "neighbor": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "ptp": {
+      "state": "disabled"
+    },
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    },
+    "router": {
+      "adaptive-routing": {
+        "state": "disabled"
+      },
+      "ospf": {
+        "state": "disabled"
+      },
+      "ospf6": {
+        "state": "disabled"
+      },
+      "pbr": {
+        "map": {}
+      },
+      "pim": {
+        "state": "disabled"
+      }
+    },
+    "sflow": {
+      "state": "enabled"
+    },
+    "synce": {
+      "state": "disabled"
+    },
+    "type": "swp",
+    "vrf": "default"
+  },
+  "swp16": {
+    "acl": {},
+    "evpn": {
+      "multihoming": {
+        "uplink": "disabled"
+      }
+    },
+    "ipv4": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "igmp": {
+        "state": "disabled"
+      },
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "ipv6": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "neighbor-discovery": {
+        "dnssl": {},
+        "home-agent": {
+          "state": "disabled"
+        },
+        "prefix": {},
+        "rdnss": {},
+        "router-advertisement": {
+          "state": "disabled"
+        },
+        "state": "enabled"
+      },
+      "state": "enabled",
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "link": {
+      "breakout": {
+        "disabled": {}
+      },
+      "debounce": {
+        "down": 10,
+        "up": 10
+      },
+      "duplex": "full",
+      "fec": "auto",
+      "flap-protection": {
+        "state": "enabled"
+      },
+      "mtu": 9216,
+      "speed": "auto",
+      "state": {
+        "up": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "state": "enabled"
+    },
+    "neighbor": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "ptp": {
+      "state": "disabled"
+    },
+    "router": {
+      "adaptive-routing": {
+        "state": "disabled"
+      },
+      "ospf": {
+        "state": "disabled"
+      },
+      "ospf6": {
+        "state": "disabled"
+      },
+      "pbr": {
+        "map": {}
+      },
+      "pim": {
+        "state": "disabled"
+      }
+    },
+    "sflow": {
+      "state": "enabled"
+    },
+    "synce": {
+      "state": "disabled"
+    },
+    "type": "swp",
+    "vrf": "default"
+  },
+  "swp17": {
+    "acl": {},
+    "description": "Unused",
+    "evpn": {
+      "multihoming": {
+        "uplink": "disabled"
+      }
+    },
+    "ipv4": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "igmp": {
+        "state": "disabled"
+      },
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "ipv6": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "neighbor-discovery": {
+        "dnssl": {},
+        "home-agent": {
+          "state": "disabled"
+        },
+        "prefix": {},
+        "rdnss": {},
+        "router-advertisement": {
+          "state": "disabled"
+        },
+        "state": "enabled"
+      },
+      "state": "disabled",
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "link": {
+      "auto-negotiate": "enabled",
+      "breakout": {},
+      "debounce": {
+        "down": 10,
+        "up": 10
+      },
+      "duplex": "full",
+      "fec": "auto",
+      "flap-protection": {
+        "state": "enabled"
+      },
+      "mtu": 9216,
+      "speed": "100G",
+      "state": {
+        "down": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "state": "enabled"
+    },
+    "neighbor": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "ptp": {
+      "state": "disabled"
+    },
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    },
+    "router": {
+      "adaptive-routing": {
+        "state": "disabled"
+      },
+      "ospf": {
+        "state": "disabled"
+      },
+      "ospf6": {
+        "state": "disabled"
+      },
+      "pbr": {
+        "map": {}
+      },
+      "pim": {
+        "state": "disabled"
+      }
+    },
+    "sflow": {
+      "state": "enabled"
+    },
+    "synce": {
+      "state": "disabled"
+    },
+    "type": "swp",
+    "vrf": "default"
+  },
+  "swp18": {
+    "acl": {},
+    "description": "Unused",
+    "evpn": {
+      "multihoming": {
+        "uplink": "disabled"
+      }
+    },
+    "ipv4": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "igmp": {
+        "state": "disabled"
+      },
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "ipv6": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "neighbor-discovery": {
+        "dnssl": {},
+        "home-agent": {
+          "state": "disabled"
+        },
+        "prefix": {},
+        "rdnss": {},
+        "router-advertisement": {
+          "state": "disabled"
+        },
+        "state": "enabled"
+      },
+      "state": "disabled",
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "link": {
+      "auto-negotiate": "enabled",
+      "breakout": {},
+      "debounce": {
+        "down": 10,
+        "up": 10
+      },
+      "duplex": "full",
+      "fec": "auto",
+      "flap-protection": {
+        "state": "enabled"
+      },
+      "mtu": 9216,
+      "speed": "100G",
+      "state": {
+        "down": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "state": "enabled"
+    },
+    "neighbor": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "ptp": {
+      "state": "disabled"
+    },
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    },
+    "router": {
+      "adaptive-routing": {
+        "state": "disabled"
+      },
+      "ospf": {
+        "state": "disabled"
+      },
+      "ospf6": {
+        "state": "disabled"
+      },
+      "pbr": {
+        "map": {}
+      },
+      "pim": {
+        "state": "disabled"
+      }
+    },
+    "sflow": {
+      "state": "enabled"
+    },
+    "synce": {
+      "state": "disabled"
+    },
+    "type": "swp",
+    "vrf": "default"
+  },
+  "swp19": {
+    "acl": {},
+    "description": "Unused",
+    "evpn": {
+      "multihoming": {
+        "uplink": "disabled"
+      }
+    },
+    "ipv4": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "igmp": {
+        "state": "disabled"
+      },
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "ipv6": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "neighbor-discovery": {
+        "dnssl": {},
+        "home-agent": {
+          "state": "disabled"
+        },
+        "prefix": {},
+        "rdnss": {},
+        "router-advertisement": {
+          "state": "disabled"
+        },
+        "state": "enabled"
+      },
+      "state": "disabled",
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "link": {
+      "auto-negotiate": "enabled",
+      "breakout": {},
+      "debounce": {
+        "down": 10,
+        "up": 10
+      },
+      "duplex": "full",
+      "fec": "auto",
+      "flap-protection": {
+        "state": "enabled"
+      },
+      "mtu": 9216,
+      "speed": "100G",
+      "state": {
+        "down": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "state": "enabled"
+    },
+    "neighbor": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "ptp": {
+      "state": "disabled"
+    },
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    },
+    "router": {
+      "adaptive-routing": {
+        "state": "disabled"
+      },
+      "ospf": {
+        "state": "disabled"
+      },
+      "ospf6": {
+        "state": "disabled"
+      },
+      "pbr": {
+        "map": {}
+      },
+      "pim": {
+        "state": "disabled"
+      }
+    },
+    "sflow": {
+      "state": "enabled"
+    },
+    "synce": {
+      "state": "disabled"
+    },
+    "type": "swp",
+    "vrf": "default"
+  },
+  "swp2": {
+    "acl": {},
+    "description": "Unused",
+    "evpn": {
+      "multihoming": {
+        "uplink": "disabled"
+      }
+    },
+    "ipv4": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "igmp": {
+        "state": "disabled"
+      },
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "ipv6": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "neighbor-discovery": {
+        "dnssl": {},
+        "home-agent": {
+          "state": "disabled"
+        },
+        "prefix": {},
+        "rdnss": {},
+        "router-advertisement": {
+          "state": "disabled"
+        },
+        "state": "enabled"
+      },
+      "state": "disabled",
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "link": {
+      "auto-negotiate": "enabled",
+      "breakout": {},
+      "debounce": {
+        "down": 10,
+        "up": 10
+      },
+      "duplex": "full",
+      "fec": "auto",
+      "flap-protection": {
+        "state": "enabled"
+      },
+      "mtu": 9216,
+      "speed": "100G",
+      "state": {
+        "down": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "state": "enabled"
+    },
+    "neighbor": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "ptp": {
+      "state": "disabled"
+    },
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    },
+    "router": {
+      "adaptive-routing": {
+        "state": "disabled"
+      },
+      "ospf": {
+        "state": "disabled"
+      },
+      "ospf6": {
+        "state": "disabled"
+      },
+      "pbr": {
+        "map": {}
+      },
+      "pim": {
+        "state": "disabled"
+      }
+    },
+    "sflow": {
+      "state": "enabled"
+    },
+    "synce": {
+      "state": "disabled"
+    },
+    "type": "swp",
+    "vrf": "default"
+  },
+  "swp20": {
+    "acl": {},
+    "description": "Unused",
+    "evpn": {
+      "multihoming": {
+        "uplink": "disabled"
+      }
+    },
+    "ipv4": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "igmp": {
+        "state": "disabled"
+      },
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "ipv6": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "neighbor-discovery": {
+        "dnssl": {},
+        "home-agent": {
+          "state": "disabled"
+        },
+        "prefix": {},
+        "rdnss": {},
+        "router-advertisement": {
+          "state": "disabled"
+        },
+        "state": "enabled"
+      },
+      "state": "disabled",
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "link": {
+      "auto-negotiate": "enabled",
+      "breakout": {},
+      "debounce": {
+        "down": 10,
+        "up": 10
+      },
+      "duplex": "full",
+      "fec": "auto",
+      "flap-protection": {
+        "state": "enabled"
+      },
+      "mtu": 9216,
+      "speed": "100G",
+      "state": {
+        "down": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "state": "enabled"
+    },
+    "neighbor": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "ptp": {
+      "state": "disabled"
+    },
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    },
+    "router": {
+      "adaptive-routing": {
+        "state": "disabled"
+      },
+      "ospf": {
+        "state": "disabled"
+      },
+      "ospf6": {
+        "state": "disabled"
+      },
+      "pbr": {
+        "map": {}
+      },
+      "pim": {
+        "state": "disabled"
+      }
+    },
+    "sflow": {
+      "state": "enabled"
+    },
+    "synce": {
+      "state": "disabled"
+    },
+    "type": "swp",
+    "vrf": "default"
+  },
+  "swp21": {
+    "acl": {},
+    "description": "Unused",
+    "evpn": {
+      "multihoming": {
+        "uplink": "disabled"
+      }
+    },
+    "ipv4": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "igmp": {
+        "state": "disabled"
+      },
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "ipv6": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "neighbor-discovery": {
+        "dnssl": {},
+        "home-agent": {
+          "state": "disabled"
+        },
+        "prefix": {},
+        "rdnss": {},
+        "router-advertisement": {
+          "state": "disabled"
+        },
+        "state": "enabled"
+      },
+      "state": "disabled",
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "link": {
+      "auto-negotiate": "enabled",
+      "breakout": {},
+      "debounce": {
+        "down": 10,
+        "up": 10
+      },
+      "duplex": "full",
+      "fec": "auto",
+      "flap-protection": {
+        "state": "enabled"
+      },
+      "mtu": 9216,
+      "speed": "100G",
+      "state": {
+        "down": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "state": "enabled"
+    },
+    "neighbor": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "ptp": {
+      "state": "disabled"
+    },
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    },
+    "router": {
+      "adaptive-routing": {
+        "state": "disabled"
+      },
+      "ospf": {
+        "state": "disabled"
+      },
+      "ospf6": {
+        "state": "disabled"
+      },
+      "pbr": {
+        "map": {}
+      },
+      "pim": {
+        "state": "disabled"
+      }
+    },
+    "sflow": {
+      "state": "enabled"
+    },
+    "synce": {
+      "state": "disabled"
+    },
+    "type": "swp",
+    "vrf": "default"
+  },
+  "swp22": {
+    "acl": {},
+    "description": "Unused",
+    "evpn": {
+      "multihoming": {
+        "uplink": "disabled"
+      }
+    },
+    "ipv4": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "igmp": {
+        "state": "disabled"
+      },
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "ipv6": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "neighbor-discovery": {
+        "dnssl": {},
+        "home-agent": {
+          "state": "disabled"
+        },
+        "prefix": {},
+        "rdnss": {},
+        "router-advertisement": {
+          "state": "disabled"
+        },
+        "state": "enabled"
+      },
+      "state": "disabled",
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "link": {
+      "auto-negotiate": "enabled",
+      "breakout": {},
+      "debounce": {
+        "down": 10,
+        "up": 10
+      },
+      "duplex": "full",
+      "fec": "auto",
+      "flap-protection": {
+        "state": "enabled"
+      },
+      "mtu": 9216,
+      "speed": "100G",
+      "state": {
+        "down": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "state": "enabled"
+    },
+    "neighbor": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "ptp": {
+      "state": "disabled"
+    },
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    },
+    "router": {
+      "adaptive-routing": {
+        "state": "disabled"
+      },
+      "ospf": {
+        "state": "disabled"
+      },
+      "ospf6": {
+        "state": "disabled"
+      },
+      "pbr": {
+        "map": {}
+      },
+      "pim": {
+        "state": "disabled"
+      }
+    },
+    "sflow": {
+      "state": "enabled"
+    },
+    "synce": {
+      "state": "disabled"
+    },
+    "type": "swp",
+    "vrf": "default"
+  },
+  "swp23": {
+    "acl": {},
+    "description": "Unused",
+    "evpn": {
+      "multihoming": {
+        "uplink": "disabled"
+      }
+    },
+    "ipv4": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "igmp": {
+        "state": "disabled"
+      },
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "ipv6": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "neighbor-discovery": {
+        "dnssl": {},
+        "home-agent": {
+          "state": "disabled"
+        },
+        "prefix": {},
+        "rdnss": {},
+        "router-advertisement": {
+          "state": "disabled"
+        },
+        "state": "enabled"
+      },
+      "state": "disabled",
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "link": {
+      "auto-negotiate": "enabled",
+      "breakout": {},
+      "debounce": {
+        "down": 10,
+        "up": 10
+      },
+      "duplex": "full",
+      "fec": "auto",
+      "flap-protection": {
+        "state": "enabled"
+      },
+      "mtu": 9216,
+      "speed": "100G",
+      "state": {
+        "down": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "state": "enabled"
+    },
+    "neighbor": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "ptp": {
+      "state": "disabled"
+    },
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    },
+    "router": {
+      "adaptive-routing": {
+        "state": "disabled"
+      },
+      "ospf": {
+        "state": "disabled"
+      },
+      "ospf6": {
+        "state": "disabled"
+      },
+      "pbr": {
+        "map": {}
+      },
+      "pim": {
+        "state": "disabled"
+      }
+    },
+    "sflow": {
+      "state": "enabled"
+    },
+    "synce": {
+      "state": "disabled"
+    },
+    "type": "swp",
+    "vrf": "default"
+  },
+  "swp24": {
+    "acl": {},
+    "description": "Unused",
+    "evpn": {
+      "multihoming": {
+        "uplink": "disabled"
+      }
+    },
+    "ipv4": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "igmp": {
+        "state": "disabled"
+      },
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "ipv6": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "neighbor-discovery": {
+        "dnssl": {},
+        "home-agent": {
+          "state": "disabled"
+        },
+        "prefix": {},
+        "rdnss": {},
+        "router-advertisement": {
+          "state": "disabled"
+        },
+        "state": "enabled"
+      },
+      "state": "disabled",
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "link": {
+      "auto-negotiate": "enabled",
+      "breakout": {},
+      "debounce": {
+        "down": 10,
+        "up": 10
+      },
+      "duplex": "full",
+      "fec": "auto",
+      "flap-protection": {
+        "state": "enabled"
+      },
+      "mtu": 9216,
+      "speed": "100G",
+      "state": {
+        "down": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "state": "enabled"
+    },
+    "neighbor": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "ptp": {
+      "state": "disabled"
+    },
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    },
+    "router": {
+      "adaptive-routing": {
+        "state": "disabled"
+      },
+      "ospf": {
+        "state": "disabled"
+      },
+      "ospf6": {
+        "state": "disabled"
+      },
+      "pbr": {
+        "map": {}
+      },
+      "pim": {
+        "state": "disabled"
+      }
+    },
+    "sflow": {
+      "state": "enabled"
+    },
+    "synce": {
+      "state": "disabled"
+    },
+    "type": "swp",
+    "vrf": "default"
+  },
+  "swp25": {
+    "acl": {},
+    "description": "Unused",
+    "evpn": {
+      "multihoming": {
+        "uplink": "disabled"
+      }
+    },
+    "ipv4": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "igmp": {
+        "state": "disabled"
+      },
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "ipv6": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "neighbor-discovery": {
+        "dnssl": {},
+        "home-agent": {
+          "state": "disabled"
+        },
+        "prefix": {},
+        "rdnss": {},
+        "router-advertisement": {
+          "state": "disabled"
+        },
+        "state": "enabled"
+      },
+      "state": "disabled",
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "link": {
+      "auto-negotiate": "enabled",
+      "breakout": {},
+      "debounce": {
+        "down": 10,
+        "up": 10
+      },
+      "duplex": "full",
+      "fec": "auto",
+      "flap-protection": {
+        "state": "enabled"
+      },
+      "mtu": 9216,
+      "speed": "100G",
+      "state": {
+        "down": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "state": "enabled"
+    },
+    "neighbor": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "ptp": {
+      "state": "disabled"
+    },
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    },
+    "router": {
+      "adaptive-routing": {
+        "state": "disabled"
+      },
+      "ospf": {
+        "state": "disabled"
+      },
+      "ospf6": {
+        "state": "disabled"
+      },
+      "pbr": {
+        "map": {}
+      },
+      "pim": {
+        "state": "disabled"
+      }
+    },
+    "sflow": {
+      "state": "enabled"
+    },
+    "synce": {
+      "state": "disabled"
+    },
+    "type": "swp",
+    "vrf": "default"
+  },
+  "swp26": {
+    "acl": {},
+    "description": "Unused",
+    "evpn": {
+      "multihoming": {
+        "uplink": "disabled"
+      }
+    },
+    "ipv4": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "igmp": {
+        "state": "disabled"
+      },
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "ipv6": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "neighbor-discovery": {
+        "dnssl": {},
+        "home-agent": {
+          "state": "disabled"
+        },
+        "prefix": {},
+        "rdnss": {},
+        "router-advertisement": {
+          "state": "disabled"
+        },
+        "state": "enabled"
+      },
+      "state": "disabled",
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "link": {
+      "auto-negotiate": "enabled",
+      "breakout": {},
+      "debounce": {
+        "down": 10,
+        "up": 10
+      },
+      "duplex": "full",
+      "fec": "auto",
+      "flap-protection": {
+        "state": "enabled"
+      },
+      "mtu": 9216,
+      "speed": "100G",
+      "state": {
+        "down": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "state": "enabled"
+    },
+    "neighbor": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "ptp": {
+      "state": "disabled"
+    },
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    },
+    "router": {
+      "adaptive-routing": {
+        "state": "disabled"
+      },
+      "ospf": {
+        "state": "disabled"
+      },
+      "ospf6": {
+        "state": "disabled"
+      },
+      "pbr": {
+        "map": {}
+      },
+      "pim": {
+        "state": "disabled"
+      }
+    },
+    "sflow": {
+      "state": "enabled"
+    },
+    "synce": {
+      "state": "disabled"
+    },
+    "type": "swp",
+    "vrf": "default"
+  },
+  "swp27": {
+    "acl": {},
+    "description": "Unused",
+    "evpn": {
+      "multihoming": {
+        "uplink": "disabled"
+      }
+    },
+    "ipv4": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "igmp": {
+        "state": "disabled"
+      },
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "ipv6": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "neighbor-discovery": {
+        "dnssl": {},
+        "home-agent": {
+          "state": "disabled"
+        },
+        "prefix": {},
+        "rdnss": {},
+        "router-advertisement": {
+          "state": "disabled"
+        },
+        "state": "enabled"
+      },
+      "state": "disabled",
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "link": {
+      "auto-negotiate": "enabled",
+      "breakout": {},
+      "debounce": {
+        "down": 10,
+        "up": 10
+      },
+      "duplex": "full",
+      "fec": "auto",
+      "flap-protection": {
+        "state": "enabled"
+      },
+      "mtu": 9216,
+      "speed": "100G",
+      "state": {
+        "down": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "state": "enabled"
+    },
+    "neighbor": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "ptp": {
+      "state": "disabled"
+    },
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    },
+    "router": {
+      "adaptive-routing": {
+        "state": "disabled"
+      },
+      "ospf": {
+        "state": "disabled"
+      },
+      "ospf6": {
+        "state": "disabled"
+      },
+      "pbr": {
+        "map": {}
+      },
+      "pim": {
+        "state": "disabled"
+      }
+    },
+    "sflow": {
+      "state": "enabled"
+    },
+    "synce": {
+      "state": "disabled"
+    },
+    "type": "swp",
+    "vrf": "default"
+  },
+  "swp28": {
+    "acl": {},
+    "description": "Unused",
+    "evpn": {
+      "multihoming": {
+        "uplink": "disabled"
+      }
+    },
+    "ipv4": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "igmp": {
+        "state": "disabled"
+      },
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "ipv6": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "neighbor-discovery": {
+        "dnssl": {},
+        "home-agent": {
+          "state": "disabled"
+        },
+        "prefix": {},
+        "rdnss": {},
+        "router-advertisement": {
+          "state": "disabled"
+        },
+        "state": "enabled"
+      },
+      "state": "disabled",
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "link": {
+      "auto-negotiate": "enabled",
+      "breakout": {},
+      "debounce": {
+        "down": 10,
+        "up": 10
+      },
+      "duplex": "full",
+      "fec": "auto",
+      "flap-protection": {
+        "state": "enabled"
+      },
+      "mtu": 9216,
+      "speed": "100G",
+      "state": {
+        "down": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "state": "enabled"
+    },
+    "neighbor": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "ptp": {
+      "state": "disabled"
+    },
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    },
+    "router": {
+      "adaptive-routing": {
+        "state": "disabled"
+      },
+      "ospf": {
+        "state": "disabled"
+      },
+      "ospf6": {
+        "state": "disabled"
+      },
+      "pbr": {
+        "map": {}
+      },
+      "pim": {
+        "state": "disabled"
+      }
+    },
+    "sflow": {
+      "state": "enabled"
+    },
+    "synce": {
+      "state": "disabled"
+    },
+    "type": "swp",
+    "vrf": "default"
+  },
+  "swp29": {
+    "acl": {},
+    "description": "Fabric sn4700-01/E1/31 sn2700-01--fabric--sn4700-01",
+    "evpn": {
+      "multihoming": {
+        "uplink": "disabled"
+      }
+    },
+    "ipv4": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "igmp": {
+        "state": "disabled"
+      },
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "ipv6": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "neighbor-discovery": {
+        "dnssl": {},
+        "home-agent": {
+          "state": "disabled"
+        },
+        "prefix": {},
+        "rdnss": {},
+        "router-advertisement": {
+          "state": "disabled"
+        },
+        "state": "enabled"
+      },
+      "state": "enabled",
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "link": {
+      "auto-negotiate": "enabled",
+      "breakout": {},
+      "debounce": {
+        "down": 10,
+        "up": 10
+      },
+      "duplex": "full",
+      "fec": "auto",
+      "flap-protection": {
+        "state": "enabled"
+      },
+      "mtu": 9216,
+      "speed": "100G",
+      "state": {
+        "up": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "state": "enabled"
+    },
+    "neighbor": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "ptp": {
+      "state": "disabled"
+    },
+    "rates": {
+      "in-bits-rate": 4426,
+      "in-pkts-rate": 5,
+      "in-utilization": 4.426025953622566e-06,
+      "load-interval": 60,
+      "out-bits-rate": 5761,
+      "out-pkts-rate": 7,
+      "out-utilization": 5.760881781773692e-06
+    },
+    "router": {
+      "adaptive-routing": {
+        "state": "disabled"
+      },
+      "ospf": {
+        "state": "disabled"
+      },
+      "ospf6": {
+        "state": "disabled"
+      },
+      "pbr": {
+        "map": {}
+      },
+      "pim": {
+        "state": "disabled"
+      }
+    },
+    "sflow": {
+      "state": "enabled"
+    },
+    "synce": {
+      "state": "disabled"
+    },
+    "type": "swp",
+    "vrf": "default"
+  },
+  "swp3": {
+    "acl": {},
+    "description": "Fabric sn2201-01/E1/51 sn2700-01--fabric--sn2201-01",
+    "evpn": {
+      "multihoming": {
+        "uplink": "disabled"
+      }
+    },
+    "ipv4": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "igmp": {
+        "state": "disabled"
+      },
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "ipv6": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "neighbor-discovery": {
+        "dnssl": {},
+        "home-agent": {
+          "state": "disabled"
+        },
+        "prefix": {},
+        "rdnss": {},
+        "router-advertisement": {
+          "state": "disabled"
+        },
+        "state": "enabled"
+      },
+      "state": "enabled",
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "link": {
+      "auto-negotiate": "enabled",
+      "breakout": {},
+      "debounce": {
+        "down": 10,
+        "up": 10
+      },
+      "duplex": "full",
+      "fec": "auto",
+      "flap-protection": {
+        "state": "enabled"
+      },
+      "mtu": 9216,
+      "speed": "100G",
+      "state": {
+        "up": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "state": "enabled"
+    },
+    "neighbor": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "ptp": {
+      "state": "disabled"
+    },
+    "rates": {
+      "in-bits-rate": 5383,
+      "in-pkts-rate": 6,
+      "in-utilization": 5.382532810263682e-06,
+      "load-interval": 60,
+      "out-bits-rate": 5798,
+      "out-pkts-rate": 7,
+      "out-utilization": 5.798106849861809e-06
+    },
+    "router": {
+      "adaptive-routing": {
+        "state": "disabled"
+      },
+      "ospf": {
+        "state": "disabled"
+      },
+      "ospf6": {
+        "state": "disabled"
+      },
+      "pbr": {
+        "map": {}
+      },
+      "pim": {
+        "state": "disabled"
+      }
+    },
+    "sflow": {
+      "state": "enabled"
+    },
+    "synce": {
+      "state": "disabled"
+    },
+    "type": "swp",
+    "vrf": "default"
+  },
+  "swp30": {
+    "acl": {},
+    "description": "Fabric sn4700-01/E1/32 sn2700-01--fabric--sn4700-01",
+    "evpn": {
+      "multihoming": {
+        "uplink": "disabled"
+      }
+    },
+    "ipv4": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "igmp": {
+        "state": "disabled"
+      },
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "ipv6": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "neighbor-discovery": {
+        "dnssl": {},
+        "home-agent": {
+          "state": "disabled"
+        },
+        "prefix": {},
+        "rdnss": {},
+        "router-advertisement": {
+          "state": "disabled"
+        },
+        "state": "enabled"
+      },
+      "state": "enabled",
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "link": {
+      "auto-negotiate": "enabled",
+      "breakout": {},
+      "debounce": {
+        "down": 10,
+        "up": 10
+      },
+      "duplex": "full",
+      "fec": "auto",
+      "flap-protection": {
+        "state": "enabled"
+      },
+      "mtu": 9216,
+      "speed": "100G",
+      "state": {
+        "up": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "state": "enabled"
+    },
+    "neighbor": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "ptp": {
+      "state": "disabled"
+    },
+    "rates": {
+      "in-bits-rate": 5799,
+      "in-pkts-rate": 7,
+      "in-utilization": 5.799493514659483e-06,
+      "load-interval": 60,
+      "out-bits-rate": 4412,
+      "out-pkts-rate": 5,
+      "out-utilization": 4.411553268100558e-06
+    },
+    "router": {
+      "adaptive-routing": {
+        "state": "disabled"
+      },
+      "ospf": {
+        "state": "disabled"
+      },
+      "ospf6": {
+        "state": "disabled"
+      },
+      "pbr": {
+        "map": {}
+      },
+      "pim": {
+        "state": "disabled"
+      }
+    },
+    "sflow": {
+      "state": "enabled"
+    },
+    "synce": {
+      "state": "disabled"
+    },
+    "type": "swp",
+    "vrf": "default"
+  },
+  "swp31": {
+    "acl": {},
+    "description": "Fabric sn5610-01/E1/63/2 sn2700-01--fabric--sn5610-01",
+    "evpn": {
+      "multihoming": {
+        "uplink": "disabled"
+      }
+    },
+    "ipv4": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "igmp": {
+        "state": "disabled"
+      },
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "ipv6": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "neighbor-discovery": {
+        "dnssl": {},
+        "home-agent": {
+          "state": "disabled"
+        },
+        "prefix": {},
+        "rdnss": {},
+        "router-advertisement": {
+          "state": "disabled"
+        },
+        "state": "enabled"
+      },
+      "state": "enabled",
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "link": {
+      "auto-negotiate": "enabled",
+      "breakout": {},
+      "debounce": {
+        "down": 10,
+        "up": 10
+      },
+      "duplex": "full",
+      "fec": "auto",
+      "flap-protection": {
+        "state": "enabled"
+      },
+      "mtu": 9216,
+      "speed": "100G",
+      "state": {
+        "up": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "state": "enabled"
+    },
+    "neighbor": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "ptp": {
+      "state": "disabled"
+    },
+    "rates": {
+      "in-bits-rate": 4459,
+      "in-pkts-rate": 5,
+      "in-utilization": 4.458781532449438e-06,
+      "load-interval": 60,
+      "out-bits-rate": 5005,
+      "out-pkts-rate": 5,
+      "out-utilization": 5.005284026040736e-06
+    },
+    "router": {
+      "adaptive-routing": {
+        "state": "disabled"
+      },
+      "ospf": {
+        "state": "disabled"
+      },
+      "ospf6": {
+        "state": "disabled"
+      },
+      "pbr": {
+        "map": {}
+      },
+      "pim": {
+        "state": "disabled"
+      }
+    },
+    "sflow": {
+      "state": "enabled"
+    },
+    "synce": {
+      "state": "disabled"
+    },
+    "type": "swp",
+    "vrf": "default"
+  },
+  "swp32": {
+    "acl": {},
+    "description": "Fabric sn5610-01/E1/64/2 sn2700-01--fabric--sn5610-01",
+    "evpn": {
+      "multihoming": {
+        "uplink": "disabled"
+      }
+    },
+    "ipv4": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "igmp": {
+        "state": "disabled"
+      },
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "ipv6": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "neighbor-discovery": {
+        "dnssl": {},
+        "home-agent": {
+          "state": "disabled"
+        },
+        "prefix": {},
+        "rdnss": {},
+        "router-advertisement": {
+          "state": "disabled"
+        },
+        "state": "enabled"
+      },
+      "state": "enabled",
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "link": {
+      "auto-negotiate": "enabled",
+      "breakout": {},
+      "debounce": {
+        "down": 10,
+        "up": 10
+      },
+      "duplex": "full",
+      "fec": "auto",
+      "flap-protection": {
+        "state": "enabled"
+      },
+      "mtu": 9216,
+      "speed": "100G",
+      "state": {
+        "up": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "state": "enabled"
+    },
+    "neighbor": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "ptp": {
+      "state": "disabled"
+    },
+    "rates": {
+      "in-bits-rate": 5800,
+      "in-pkts-rate": 7,
+      "in-utilization": 5.800110683823978e-06,
+      "load-interval": 60,
+      "out-bits-rate": 5269,
+      "out-pkts-rate": 6,
+      "out-utilization": 5.269351356361135e-06
+    },
+    "router": {
+      "adaptive-routing": {
+        "state": "disabled"
+      },
+      "ospf": {
+        "state": "disabled"
+      },
+      "ospf6": {
+        "state": "disabled"
+      },
+      "pbr": {
+        "map": {}
+      },
+      "pim": {
+        "state": "disabled"
+      }
+    },
+    "sflow": {
+      "state": "enabled"
+    },
+    "synce": {
+      "state": "disabled"
+    },
+    "type": "swp",
+    "vrf": "default"
+  },
+  "swp4": {
+    "acl": {},
+    "description": "Fabric sn2201-01/E1/52 sn2700-01--fabric--sn2201-01",
+    "evpn": {
+      "multihoming": {
+        "uplink": "disabled"
+      }
+    },
+    "ipv4": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "igmp": {
+        "state": "disabled"
+      },
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "ipv6": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "neighbor-discovery": {
+        "dnssl": {},
+        "home-agent": {
+          "state": "disabled"
+        },
+        "prefix": {},
+        "rdnss": {},
+        "router-advertisement": {
+          "state": "disabled"
+        },
+        "state": "enabled"
+      },
+      "state": "enabled",
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "link": {
+      "auto-negotiate": "enabled",
+      "breakout": {},
+      "debounce": {
+        "down": 10,
+        "up": 10
+      },
+      "duplex": "full",
+      "fec": "auto",
+      "flap-protection": {
+        "state": "enabled"
+      },
+      "mtu": 9216,
+      "speed": "100G",
+      "state": {
+        "up": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "state": "enabled"
+    },
+    "neighbor": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "ptp": {
+      "state": "disabled"
+    },
+    "rates": {
+      "in-bits-rate": 5129,
+      "in-pkts-rate": 6,
+      "in-utilization": 5.129202416554788e-06,
+      "load-interval": 60,
+      "out-bits-rate": 4439,
+      "out-pkts-rate": 5,
+      "out-utilization": 4.439363501086858e-06
+    },
+    "router": {
+      "adaptive-routing": {
+        "state": "disabled"
+      },
+      "ospf": {
+        "state": "disabled"
+      },
+      "ospf6": {
+        "state": "disabled"
+      },
+      "pbr": {
+        "map": {}
+      },
+      "pim": {
+        "state": "disabled"
+      }
+    },
+    "sflow": {
+      "state": "enabled"
+    },
+    "synce": {
+      "state": "disabled"
+    },
+    "type": "swp",
+    "vrf": "default"
+  },
+  "swp5": {
+    "acl": {},
+    "description": "Unused",
+    "evpn": {
+      "multihoming": {
+        "uplink": "disabled"
+      }
+    },
+    "ipv4": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "igmp": {
+        "state": "disabled"
+      },
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "ipv6": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "neighbor-discovery": {
+        "dnssl": {},
+        "home-agent": {
+          "state": "disabled"
+        },
+        "prefix": {},
+        "rdnss": {},
+        "router-advertisement": {
+          "state": "disabled"
+        },
+        "state": "enabled"
+      },
+      "state": "disabled",
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "link": {
+      "auto-negotiate": "enabled",
+      "breakout": {},
+      "debounce": {
+        "down": 10,
+        "up": 10
+      },
+      "duplex": "full",
+      "fec": "auto",
+      "flap-protection": {
+        "state": "enabled"
+      },
+      "mtu": 9216,
+      "speed": "100G",
+      "state": {
+        "down": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "state": "enabled"
+    },
+    "neighbor": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "ptp": {
+      "state": "disabled"
+    },
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    },
+    "router": {
+      "adaptive-routing": {
+        "state": "disabled"
+      },
+      "ospf": {
+        "state": "disabled"
+      },
+      "ospf6": {
+        "state": "disabled"
+      },
+      "pbr": {
+        "map": {}
+      },
+      "pim": {
+        "state": "disabled"
+      }
+    },
+    "sflow": {
+      "state": "enabled"
+    },
+    "synce": {
+      "state": "disabled"
+    },
+    "type": "swp",
+    "vrf": "default"
+  },
+  "swp6": {
+    "acl": {},
+    "description": "Unused",
+    "evpn": {
+      "multihoming": {
+        "uplink": "disabled"
+      }
+    },
+    "ipv4": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "igmp": {
+        "state": "disabled"
+      },
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "ipv6": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "neighbor-discovery": {
+        "dnssl": {},
+        "home-agent": {
+          "state": "disabled"
+        },
+        "prefix": {},
+        "rdnss": {},
+        "router-advertisement": {
+          "state": "disabled"
+        },
+        "state": "enabled"
+      },
+      "state": "disabled",
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "link": {
+      "auto-negotiate": "enabled",
+      "breakout": {},
+      "debounce": {
+        "down": 10,
+        "up": 10
+      },
+      "duplex": "full",
+      "fec": "auto",
+      "flap-protection": {
+        "state": "enabled"
+      },
+      "mtu": 9216,
+      "speed": "100G",
+      "state": {
+        "down": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "state": "enabled"
+    },
+    "neighbor": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "ptp": {
+      "state": "disabled"
+    },
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    },
+    "router": {
+      "adaptive-routing": {
+        "state": "disabled"
+      },
+      "ospf": {
+        "state": "disabled"
+      },
+      "ospf6": {
+        "state": "disabled"
+      },
+      "pbr": {
+        "map": {}
+      },
+      "pim": {
+        "state": "disabled"
+      }
+    },
+    "sflow": {
+      "state": "enabled"
+    },
+    "synce": {
+      "state": "disabled"
+    },
+    "type": "swp",
+    "vrf": "default"
+  },
+  "swp7": {
+    "acl": {},
+    "description": "Unused",
+    "evpn": {
+      "multihoming": {
+        "uplink": "disabled"
+      }
+    },
+    "ipv4": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "igmp": {
+        "state": "disabled"
+      },
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "ipv6": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "neighbor-discovery": {
+        "dnssl": {},
+        "home-agent": {
+          "state": "disabled"
+        },
+        "prefix": {},
+        "rdnss": {},
+        "router-advertisement": {
+          "state": "disabled"
+        },
+        "state": "enabled"
+      },
+      "state": "disabled",
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "link": {
+      "auto-negotiate": "enabled",
+      "breakout": {},
+      "debounce": {
+        "down": 10,
+        "up": 10
+      },
+      "duplex": "full",
+      "fec": "auto",
+      "flap-protection": {
+        "state": "enabled"
+      },
+      "mtu": 9216,
+      "speed": "100G",
+      "state": {
+        "down": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "state": "enabled"
+    },
+    "neighbor": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "ptp": {
+      "state": "disabled"
+    },
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    },
+    "router": {
+      "adaptive-routing": {
+        "state": "disabled"
+      },
+      "ospf": {
+        "state": "disabled"
+      },
+      "ospf6": {
+        "state": "disabled"
+      },
+      "pbr": {
+        "map": {}
+      },
+      "pim": {
+        "state": "disabled"
+      }
+    },
+    "sflow": {
+      "state": "enabled"
+    },
+    "synce": {
+      "state": "disabled"
+    },
+    "type": "swp",
+    "vrf": "default"
+  },
+  "swp8": {
+    "acl": {},
+    "description": "Unused",
+    "evpn": {
+      "multihoming": {
+        "uplink": "disabled"
+      }
+    },
+    "ipv4": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "igmp": {
+        "state": "disabled"
+      },
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "ipv6": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "neighbor-discovery": {
+        "dnssl": {},
+        "home-agent": {
+          "state": "disabled"
+        },
+        "prefix": {},
+        "rdnss": {},
+        "router-advertisement": {
+          "state": "disabled"
+        },
+        "state": "enabled"
+      },
+      "state": "disabled",
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "link": {
+      "auto-negotiate": "enabled",
+      "breakout": {},
+      "debounce": {
+        "down": 10,
+        "up": 10
+      },
+      "duplex": "full",
+      "fec": "auto",
+      "flap-protection": {
+        "state": "enabled"
+      },
+      "mtu": 9216,
+      "speed": "100G",
+      "state": {
+        "down": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "state": "enabled"
+    },
+    "neighbor": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "ptp": {
+      "state": "disabled"
+    },
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    },
+    "router": {
+      "adaptive-routing": {
+        "state": "disabled"
+      },
+      "ospf": {
+        "state": "disabled"
+      },
+      "ospf6": {
+        "state": "disabled"
+      },
+      "pbr": {
+        "map": {}
+      },
+      "pim": {
+        "state": "disabled"
+      }
+    },
+    "sflow": {
+      "state": "enabled"
+    },
+    "synce": {
+      "state": "disabled"
+    },
+    "type": "swp",
+    "vrf": "default"
+  },
+  "swp9": {
+    "acl": {},
+    "description": "Unused",
+    "evpn": {
+      "multihoming": {
+        "uplink": "disabled"
+      }
+    },
+    "ipv4": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "igmp": {
+        "state": "disabled"
+      },
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "ipv6": {
+      "address": {},
+      "dhcp-client": {
+        "set-hostname": "disabled",
+        "state": "disabled"
+      },
+      "forward": "enabled",
+      "gateway": {},
+      "neighbor-discovery": {
+        "dnssl": {},
+        "home-agent": {
+          "state": "disabled"
+        },
+        "prefix": {},
+        "rdnss": {},
+        "router-advertisement": {
+          "state": "disabled"
+        },
+        "state": "enabled"
+      },
+      "state": "disabled",
+      "vrrp": {
+        "state": "disabled"
+      }
+    },
+    "link": {
+      "auto-negotiate": "enabled",
+      "breakout": {},
+      "debounce": {
+        "down": 10,
+        "up": 10
+      },
+      "duplex": "full",
+      "fec": "auto",
+      "flap-protection": {
+        "state": "enabled"
+      },
+      "mtu": 9216,
+      "speed": "100G",
+      "state": {
+        "down": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "state": "enabled"
+    },
+    "neighbor": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "ptp": {
+      "state": "disabled"
+    },
+    "rates": {
+      "in-bits-rate": 0,
+      "in-pkts-rate": 0,
+      "in-utilization": 0.0,
+      "load-interval": 60,
+      "out-bits-rate": 0,
+      "out-pkts-rate": 0,
+      "out-utilization": 0.0
+    },
+    "router": {
+      "adaptive-routing": {
+        "state": "disabled"
+      },
+      "ospf": {
+        "state": "disabled"
+      },
+      "ospf6": {
+        "state": "disabled"
+      },
+      "pbr": {
+        "map": {}
+      },
+      "pim": {
+        "state": "disabled"
+      }
+    },
+    "sflow": {
+      "state": "enabled"
+    },
+    "synce": {
+      "state": "disabled"
+    },
+    "type": "swp",
+    "vrf": "default"
+  }
+}
