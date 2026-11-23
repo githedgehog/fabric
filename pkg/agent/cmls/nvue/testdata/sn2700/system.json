@@ -1,0 +1,104 @@
+{
+  "date-time": {
+    "local-time": "2026-11-23 19:26:19",
+    "timezone": "Etc/UTC"
+  },
+  "dns": {
+    "domain": ""
+  },
+  "fqdn": "sn2700-01",
+  "global": {
+    "anycast-id": "none",
+    "anycast-mac": "none",
+    "arp": {
+      "base-reachable-time": 1080,
+      "garbage-collection-threshold": {
+        "effective": 28672,
+        "maximum": 32768,
+        "minimum": 128
+      }
+    },
+    "fabric-id": 1,
+    "fabric-mac": "none",
+    "icmp": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "nd": {
+      "base-reachable-time": 1080,
+      "garbage-collection-threshold": {
+        "effective": 14336,
+        "maximum": 16384,
+        "minimum": 128
+      }
+    },
+    "reserved": {
+      "routing-table": {
+        "pbr": {
+          "begin": 10000,
+          "end": 4294966272
+        }
+      },
+      "vlan": {
+        "internal": {
+          "range": "3725-3999"
+        },
+        "l3-vni-vlan": {
+          "begin": 4000,
+          "end": 4064
+        }
+      }
+    },
+    "system-mac": "0a:1b:2c:00:00:2f"
+  },
+  "health": {
+    "issues": {
+      "PSU2": {
+        "issue": "bad"
+      },
+      "PSU2-Temp-Sensor": {
+        "issue": "absent"
+      },
+      "PSU2/FAN": {
+        "issue": "absent"
+      },
+      "hw-management-tc": {
+        "issue": "inactive"
+      },
+      "process": {
+        "issue": "Not OK"
+      }
+    },
+    "status": "Not OK",
+    "status-led": "amber"
+  },
+  "hostname": "sn2700-01",
+  "memory": {
+    "physical": {
+      "buffer": 487841792,
+      "cache": 2401411072,
+      "free": 2001309696,
+      "total": 7869530112,
+      "used": 3379654656,
+      "utilization": 42.94607947234957
+    }
+  },
+  "platform": "x86_64-mlnx_x86-r0",
+  "product-name": "Cumulus Linux",
+  "security": {
+    "secure-boot": {
+      "state": "not-supported"
+    }
+  },
+  "uptime": 212210,
+  "version": {
+    "base-os": "Debian GNU/Linux 12.15",
+    "image": {
+      "build-date": "Sun Oct 04 17:27:31 UTC 2026",
+      "build-id": "5.18.3.0001"
+    },
+    "kernel": "6.1.0-cl-1-amd64",
+    "onie": "2019.11-5.2.0020-115200",
+    "product-release": "5.18.3"
+  }
+}
