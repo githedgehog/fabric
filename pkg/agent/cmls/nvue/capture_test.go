@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"go.githedgehog.com/fabric/pkg/agent/cmls/nvue/nvuetest"
 )
 
 const (
@@ -92,7 +93,7 @@ func TestFixturesCaptured(t *testing.T) {
 		} {
 			want := []string{}
 			for _, uri := range requests {
-				path, _, err := fixtureFile(dir, uri)
+				path, _, err := nvuetest.FixtureFile(dir, uri)
 				require.NoError(t, err, "no fixture for %s in %s", uri, dir)
 				want = append(want, filepath.Base(path))
 			}
@@ -129,10 +130,10 @@ func TestImportCapture(t *testing.T) {
 		require.NoError(t, os.MkdirAll(dstDir, 0o755))
 
 		for _, uri := range uris {
-			srcPath, srcStatus, err := fixtureFile(srcDir, uri)
+			srcPath, srcStatus, err := nvuetest.FixtureFile(srcDir, uri)
 			require.NoError(t, err, "%s wasn't captured into %s", uri, srcDir)
 
-			dstPath, dstStatus, err := fixtureFile(dstDir, uri)
+			dstPath, dstStatus, err := nvuetest.FixtureFile(dstDir, uri)
 			if err == nil {
 				if !refresh {
 					continue
@@ -145,7 +146,7 @@ func TestImportCapture(t *testing.T) {
 				require.NoError(t, os.Remove(dstPath))
 			}
 
-			data, err := os.ReadFile(srcPath)
+			data, err := os.ReadFile(srcPath) //nolint:gosec // the directory to import from is the input
 			require.NoError(t, err)
 			require.NoError(t, os.WriteFile(filepath.Join(dstDir, filepath.Base(srcPath)), data, 0o644)) //nolint:gosec
 			t.Logf("imported %s", filepath.Join(dstDir, filepath.Base(srcPath)))
@@ -205,7 +206,7 @@ func TestCapture(t *testing.T) {
 	require.NoError(t, err)
 
 	for uri, data := range files {
-		name := fixtureName(uri)
+		name := nvuetest.FixtureName(uri)
 		if status := statuses[uri]; status != http.StatusOK {
 			name += fmt.Sprintf(".%d", status)
 		}

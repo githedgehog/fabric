@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"go.githedgehog.com/fabric/pkg/agent/cmls/nvue/nvuetest"
 )
 
 func errOf[T any](_ T, err error) error {
@@ -16,7 +17,7 @@ func errOf[T any](_ T, err error) error {
 }
 
 func TestEndpointsReturnErrors(t *testing.T) {
-	client, err := New(WithSocket(socketPath(t)))
+	client, err := New(WithSocket(nvuetest.SocketPath(t)))
 	require.NoError(t, err)
 
 	for name, call := range map[string]func(ctx context.Context) error{

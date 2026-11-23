@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"go.githedgehog.com/fabric/pkg/agent/cmls/nvue/nvuetest"
 )
 
 var clientCaptures = map[string][]string{
@@ -147,7 +148,7 @@ func slowRequest(t *testing.T, opts ...Option) (*Client, string) {
 	t.Helper()
 
 	if !isLive() {
-		opts = append([]Option{WithSocket(silentSocket(t))}, opts...)
+		opts = append([]Option{WithSocket(nvuetest.SilentSocket(t))}, opts...)
 	}
 
 	client, err := New(opts...)
@@ -189,7 +190,7 @@ func TestGetResponseTooLarge(t *testing.T) {
 }
 
 func TestGetMissingSocket(t *testing.T) {
-	client, err := New(WithSocket(socketPath(t)))
+	client, err := New(WithSocket(nvuetest.SocketPath(t)))
 	require.NoError(t, err)
 
 	err = client.get(t.Context(), pathOf("system", "version"), nil, &map[string]any{})
