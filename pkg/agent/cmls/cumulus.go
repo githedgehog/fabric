@@ -340,7 +340,7 @@ type SubnetConfig struct {
 	HostBGP       bool
 }
 
-func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
+func buildConfig(agent *agentapi.Agent) (*bytes.Buffer, error) {
 	isSpine := agent.IsSpineLeaf() && agent.Spec.Switch.Role.IsSpine()
 	isLeaf := agent.IsSpineLeaf() && agent.Spec.Switch.Role.IsLeaf()
 
@@ -548,39 +548,9 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		return port, nil
 	}
 
-	users := []User{}
-	for _, user := range agent.Spec.Users {
-		role := ""
-		switch user.Role {
-		case "admin":
-			role = "system-admin"
-		case "operator":
-			role = "nvue-monitor"
-		}
-
-		if role == "" {
-			return nil, fmt.Errorf("invalid role: %s", user.Role) //nolint:err113
-		}
-
-		keys := []SSHKey{}
-		for _, key := range user.SSHKeys {
-			parts := strings.Split(key, " ")
-			if len(parts) < 2 {
-				return nil, fmt.Errorf("invalid SSH key: %s", key) //nolint:err113
-			}
-
-			keys = append(keys, SSHKey{
-				Key:  parts[1],
-				Type: parts[0],
-			})
-		}
-
-		users = append(users, User{
-			Name:           user.Name,
-			HashedPassword: user.Password,
-			Role:           role,
-			SSHKeys:        keys,
-		})
+	users, err := buildUsers(agent)
+	if err != nil {
+		return nil, err
 	}
 
 	neighs := []BGPNeighbor{}
@@ -1665,6 +1635,38 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 		cfgIn.DHCPServer = controlVIP.Addr().String()
 	}
 
+	return renderConfig(fullCfgTmpl, cfgIn)
+}
+
+// ZTPConfigIn only has what's needed to reach the switch and to install the agent, which replaces the whole config on
+// its first apply, so a wiring or VPC config the agent rejects doesn't block ZTP
+type ZTPConfigIn struct {
+	Hostname     string
+	Users        []User
+	NTPServer    string
+	ManagementIP string
+}
+
+func buildZTPConfig(agent *agentapi.Agent) (*bytes.Buffer, error) {
+	controlVIP, err := netip.ParsePrefix(agent.Spec.Config.ControlVIP)
+	if err != nil {
+		return nil, fmt.Errorf("parsing control VIP: %w", err)
+	}
+
+	users, err := buildUsers(agent)
+	if err != nil {
+		return nil, err
+	}
+
+	return renderConfig(ztpCfgTmpl, ZTPConfigIn{
+		Hostname:     agent.Name,
+		Users:        users,
+		NTPServer:    controlVIP.Addr().String(),
+		ManagementIP: agent.Spec.Switch.IP,
+	})
+}
+
+func renderConfig(tmpl string, data any) (*bytes.Buffer, error) {
 	// TODO cache template
 	cfgTmpl, err := template.New("cumulus_config").Parse(tmpl)
 	if err != nil {
@@ -1672,11 +1674,50 @@ func buildConfigFor(tmpl string, agent *agentapi.Agent) (*bytes.Buffer, error) {
 	}
 
 	cfgBuf := &bytes.Buffer{}
-	if err := cfgTmpl.Execute(cfgBuf, cfgIn); err != nil {
+	if err := cfgTmpl.Execute(cfgBuf, data); err != nil {
 		return nil, fmt.Errorf("executing config template: %w", err)
 	}
 
 	return cfgBuf, nil
+}
+
+func buildUsers(agent *agentapi.Agent) ([]User, error) {
+	users := []User{}
+	for _, user := range agent.Spec.Users {
+		role := ""
+		switch user.Role {
+		case "admin":
+			role = "system-admin"
+		case "operator":
+			role = "nvue-monitor"
+		}
+
+		if role == "" {
+			return nil, fmt.Errorf("invalid role: %s", user.Role) //nolint:err113
+		}
+
+		keys := []SSHKey{}
+		for _, key := range user.SSHKeys {
+			parts := strings.Split(key, " ")
+			if len(parts) < 2 {
+				return nil, fmt.Errorf("invalid SSH key: %s", key) //nolint:err113
+			}
+
+			keys = append(keys, SSHKey{
+				Key:  parts[1],
+				Type: parts[0],
+			})
+		}
+
+		users = append(users, User{
+			Name:           user.Name,
+			HashedPassword: user.Password,
+			Role:           role,
+			SSHKeys:        keys,
+		})
+	}
+
+	return users, nil
 }
 
 func nosPortName(api2nos map[string]string, apiPortName string) (string, error) {
@@ -2158,9 +2199,9 @@ func BuildZTPFor(agent *agentapi.Agent, kubeConfig []byte, agentVersion string) 
 		return nil, fmt.Errorf("parsing control VIP: %w", err)
 	}
 
-	cfgBuf, err := buildConfigFor(ztpCfgTmpl, agent)
+	cfgBuf, err := buildZTPConfig(agent)
 	if err != nil {
-		return nil, fmt.Errorf("building config: %w", err)
+		return nil, fmt.Errorf("building ZTP config: %w", err)
 	}
 
 	agentConfig, err := agent.MarshalInstallConfig()
@@ -2208,7 +2249,7 @@ func Enforce(ctx context.Context, _ /* processor */ dozer.Processor, agent *agen
 		return err
 	}
 
-	cfgBuf, err := buildConfigFor(fullCfgTmpl, agent)
+	cfgBuf, err := buildConfig(agent)
 	if err != nil {
 		return fmt.Errorf("building full config: %w", err)
 	}
