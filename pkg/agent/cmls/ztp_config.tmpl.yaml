@@ -6,60 +6,6 @@
             {{ $.ManagementIP }}: {}
         type: eth
         vrf: mgmt
-      {{- range $port := $.Ports }}
-      {{ $port.Name }}:
-        {{- if $port.Breakout }}
-        link:
-          breakout:
-            {{ $port.Breakout }}: {}
-        {{- else }}
-        {{- if $port.Description }}
-        description: {{ $port.Description }}
-        {{- end }}
-        ipv6:
-          state: disabled
-        link:
-          {{- if $port.AutoNeg }}
-          auto-negotiate: {{ $port.AutoNeg }}
-          {{- end }}
-          {{- if $port.FEC }}
-          fec: '{{ $port.FEC }}'
-          {{- end }}
-          {{- if $port.Speed }}
-          speed: {{ $port.Speed }}
-          {{- end }}
-          state:
-            {{- if $port.Up }}
-            up: {}
-            {{- else }}
-            down: {}
-            {{- end }}
-        lldp:
-          state: enabled
-        {{- end }}
-      {{- end }}
-      {{- range $bond := $.Bonds }}
-      {{ $bond.Name }}:
-        bond:
-          {{- if $bond.LACPBypass }}
-          lacp-bypass: enabled
-          {{- end }}
-          member:
-            {{- range $member := $bond.Members }}
-            {{ $member.Name }}: {}
-            {{- end }}
-        description: {{ $bond.Description }}
-        ipv6:
-          state: disabled
-        link:
-          state:
-            {{- if $bond.Up }}
-            up: {}
-            {{- else }}
-            down: {}
-            {{- end }}
-        type: bond
-      {{- end }}
     system:
       aaa:
         class:
@@ -120,10 +66,6 @@
       docker:
         vrf: mgmt
       hostname: {{ $.Hostname }}
-      lldp:
-        state: enabled
-        tx-hold-multiplier: 4
-        tx-interval: 5
       ntp:
         listen:
           eth0: {}

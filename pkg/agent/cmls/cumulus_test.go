@@ -4,6 +4,7 @@
 package cmls
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -41,6 +42,14 @@ func TestBuildZTPFor(t *testing.T) {
 
 	_, err = BuildZTPFor(agent.DeepCopy(), []byte("kubeconfig"), "")
 	require.ErrorContains(t, err, "agent version is empty")
+
+	// the ZTP config doesn't depend on the wiring, so a switch the full config can't be built for can still be installed
+	broken := agent.DeepCopy()
+	broken.Spec.SwitchProfile = nil
+	_, err = buildConfig(broken)
+	require.ErrorContains(t, err, "switch profile is missing")
+	_, err = BuildZTPFor(broken, []byte("kubeconfig"), "v1.2.3+dev")
+	require.NoError(t, err)
 }
 
 func TestBuildConfigErrors(t *testing.T) {
@@ -1005,7 +1014,7 @@ func TestBuildConfigErrors(t *testing.T) {
 
 			err := checkSupported(agent)
 			if err == nil {
-				_, err = buildConfigFor(fullCfgTmpl, agent)
+				_, err = buildConfig(agent)
 			}
 			require.ErrorContains(t, err, tt.err)
 		})
@@ -1197,13 +1206,13 @@ func TestBuildConfig(t *testing.T) {
 			require.NoError(t, checkSupported(ag), "checking supported features")
 
 			for _, cfg := range []struct {
-				name string
-				tmpl string
+				name  string
+				build func(agent *agentapi.Agent) (*bytes.Buffer, error)
 			}{
-				{name: "ztp", tmpl: ztpCfgTmpl},
-				{name: "full", tmpl: fullCfgTmpl},
+				{name: "ztp", build: buildZTPConfig},
+				{name: "full", build: buildConfig},
 			} {
-				actual, err := buildConfigFor(cfg.tmpl, ag)
+				actual, err := cfg.build(ag)
 				require.NoError(t, err, "building %s config", cfg.name)
 
 				requireGolden(t, tt.name+".out."+cfg.name+"-config", actual.Bytes())
