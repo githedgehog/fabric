@@ -27,8 +27,10 @@ const (
 	modelSN5610 = "sn5610"
 	modelSN4700 = "sn4700"
 	modelSN4600 = "sn4600"
-	modelSN2700 = "sn2700"
-	modelSN2201 = "sn2201"
+	// the spine only has the fixtures of the routing tests
+	modelSN3700C = "sn3700c"
+	modelSN2700  = "sn2700"
+	modelSN2201  = "sn2201"
 
 	// fixtureModel is the switch the fixtures shared by all tests are captured from
 	fixtureModel = modelSN5610

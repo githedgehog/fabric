@@ -51,7 +51,10 @@ The fakes of the scrubbed values are consistent within a capture only. The fixtu
 to have:
 
 - sn5610: unused E1/1 and E1/3 with 800G DACs broken out 8x (disabling E1/2) and 4x, the 2x E1/63-64 spine links on
-  100G DACs, a 400G optic on E1/29 and a 10G SFP optic on E1/65 to servers, nothing in E1/4
+  100G DACs, a 400G optic on E1/29 and a 10G SFP optic on E1/65 to servers, nothing in E1/4 and two of its four PSUs
+  without power
+- sn3700c: a spine with the leaves over unnumbered links and the gateways over numbered ones, it only has the fixtures
+  of the VRF, BGP and BFD tests
 - sn4700: an ESLAG bond on a 4x 10G breakout (bond1 on E1/1/1), a 400G QSFP-DD optic (E1/9) and 100G QSFP28 DACs
 - sn4600: a 4x 10G DAC breakout (E1/17) disabling E1/18 and 100G QSFP28 DACs
 - sn2700: a 4x 25G DAC breakout (E1/15) disabling E1/16, so without rates for both, and QSFP28 DACs that only report

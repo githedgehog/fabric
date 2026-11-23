@@ -49,6 +49,7 @@ var captures = []map[string][]string{
 	firmwareCaptures,
 	asicCaptures,
 	roceCaptures,
+	vrfCaptures,
 }
 
 // captureForbiddenRequests are captured into the "nobody" subdirectory by a user without an NVUE role, for any model
