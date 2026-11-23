@@ -1,0 +1,98 @@
+{
+  "date-time": {
+    "local-time": "2026-11-23 19:26:02",
+    "timezone": "Etc/UTC"
+  },
+  "dns": {
+    "domain": ""
+  },
+  "fqdn": "sn4700-01",
+  "global": {
+    "anycast-id": "none",
+    "anycast-mac": "none",
+    "arp": {
+      "base-reachable-time": 1080,
+      "garbage-collection-threshold": {
+        "effective": 36178,
+        "maximum": 41347,
+        "minimum": 128
+      }
+    },
+    "fabric-id": 1,
+    "fabric-mac": "none",
+    "icmp": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "nd": {
+      "base-reachable-time": 1080,
+      "garbage-collection-threshold": {
+        "effective": 18088,
+        "maximum": 20673,
+        "minimum": 128
+      }
+    },
+    "reserved": {
+      "routing-table": {
+        "pbr": {
+          "begin": 10000,
+          "end": 4294966272
+        }
+      },
+      "vlan": {
+        "internal": {
+          "range": "3725-3999"
+        },
+        "l3-vni-vlan": {
+          "begin": 4000,
+          "end": 4064
+        }
+      }
+    },
+    "system-mac": "0a:1b:2c:00:00:03"
+  },
+  "health": {
+    "issues": {
+      "PSU2": {
+        "issue": "bad"
+      },
+      "PSU2-Temp-Sensor": {
+        "issue": "absent"
+      },
+      "PSU2/FAN": {
+        "issue": "absent"
+      }
+    },
+    "status": "Not OK",
+    "status-led": "amber"
+  },
+  "hostname": "sn4700-01",
+  "memory": {
+    "physical": {
+      "buffer": 168935424,
+      "cache": 2324492288,
+      "free": 9752309760,
+      "total": 16122228736,
+      "used": 4354506752,
+      "utilization": 27.00933489596658
+    }
+  },
+  "platform": "x86_64-mlnx_msn4700-r0",
+  "product-name": "Cumulus Linux",
+  "security": {
+    "secure-boot": {
+      "state": "not-supported"
+    }
+  },
+  "uptime": 66175,
+  "version": {
+    "base-os": "Debian GNU/Linux 12.15",
+    "image": {
+      "build-date": "Sun Oct 04 17:27:31 UTC 2026",
+      "build-id": "5.18.3.0001"
+    },
+    "kernel": "6.1.0-cl-1-amd64",
+    "onie": "2023.11-5.3.0011-115200",
+    "product-release": "5.18.3"
+  }
+}
