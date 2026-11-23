@@ -53,6 +53,7 @@ var captures = []map[string][]string{
 	vrfCaptures,
 	bgpCaptures,
 	bfdCaptures,
+	stateCaptures,
 }
 
 // captureForbiddenRequests are captured into the "nobody" subdirectory by a user without an NVUE role, for any model
@@ -77,6 +78,9 @@ func captureRequests(model string) []string {
 func TestFixturesCaptured(t *testing.T) {
 	if isLive() {
 		t.Skip("the fixtures aren't used when running live")
+	}
+	if os.Getenv(envImport) != "" {
+		t.Skip("the fixtures are being imported")
 	}
 
 	models, err := os.ReadDir("testdata")
