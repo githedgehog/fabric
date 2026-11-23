@@ -22,9 +22,18 @@ import (
 const (
 	// envLive runs the tests against the local nvued instead of the fixtures, see testdata/README.md
 	envLive = "NVUE_LIVE"
+	// the switches the fixtures are captured from, see testdata/README.md
+	modelSN5610 = "sn5610"
+	modelSN4700 = "sn4700"
+	modelSN4600 = "sn4600"
+	modelSN2700 = "sn2700"
+	modelSN2201 = "sn2201"
+
 	// fixtureModel is the switch the fixtures shared by all tests are captured from
-	fixtureModel = "sn5610"
+	fixtureModel = modelSN5610
 )
+
+var allModels = []string{modelSN5610, modelSN4700, modelSN4600, modelSN2700, modelSN2201}
 
 func isLive() bool {
 	return os.Getenv(envLive) == "true"
@@ -179,6 +188,24 @@ func fakeNVUE(t *testing.T, dir string) string {
 	})
 
 	return sock
+}
+
+// forEachModel runs test against the fixtures of each model or, when running live, once against the local nvued with
+// an empty model: the checks that hold for any switch run either way, the ones of exact values only for their model
+func forEachModel(t *testing.T, models []string, test func(t *testing.T, client *Client, model string)) {
+	t.Helper()
+
+	if isLive() {
+		test(t, testClient(t, ""), "")
+
+		return
+	}
+
+	for _, model := range models {
+		t.Run(model, func(t *testing.T) {
+			test(t, testClient(t, model), model)
+		})
+	}
 }
 
 // testClient talks to the local nvued when running live and to a fake one serving the fixtures in the given
