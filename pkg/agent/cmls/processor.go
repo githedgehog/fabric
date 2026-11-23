@@ -14,7 +14,8 @@ import (
 )
 
 type CumulusProcessor struct {
-	nvue *nvue.Client
+	nvue  *nvue.Client
+	state staticState
 }
 
 var _ dozer.Processor = &CumulusProcessor{}

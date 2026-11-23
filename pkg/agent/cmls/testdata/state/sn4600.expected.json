@@ -1,0 +1,141 @@
+{
+  "nos": {
+    "asicVersion": "Spectrum-3",
+    "buildDate": "Sun Oct 04 17:27:31 UTC 2026",
+    "distributionVersion": "Debian GNU/Linux 12.15",
+    "hwskuVersion": "MSN4600",
+    "kernelVersion": "6.1.0-cl-1-amd64",
+    "mfgName": "Mellanox",
+    "platformName": "x86_64-mlnx_msn4600-r0",
+    "productDescription": "Cumulus Linux",
+    "productVersion": "5.18.3.0001",
+    "serialNumber": "SN00000006",
+    "softwareVersion": "5.18.3",
+    "uptime": "59h0m4s"
+  },
+  "platform": {
+    "fans": {
+      "FAN1/1": {
+        "dir": "F2B",
+        "speed": 3534,
+        "presence": true,
+        "status": true
+      },
+      "FAN2/1": {
+        "dir": "F2B",
+        "speed": 3492,
+        "presence": true,
+        "status": true
+      },
+      "FAN3/1": {
+        "dir": "F2B",
+        "speed": 3506,
+        "presence": true,
+        "status": true
+      },
+      "PSU1/FAN": {
+        "dir": "F2B",
+        "speed": 9088,
+        "presence": true,
+        "status": true
+      },
+      "PSU2/FAN": {}
+    },
+    "psus": {
+      "PSU1": {
+        "outCurrent": 21.5,
+        "outPower": 260,
+        "outVoltage": 11.937,
+        "presence": true,
+        "status": true
+      },
+      "PSU2": {
+        "presence": true
+      }
+    },
+    "temps": {
+      "Asic-Temp-Sensor": {
+        "temp": 64,
+        "highThreshold": 105,
+        "critHighThreshold": 120,
+        "lowThreshold": 5
+      },
+      "CPU-Core-Sensor-0": {
+        "temp": 53,
+        "highThreshold": 82,
+        "critHighThreshold": 104,
+        "lowThreshold": 5
+      },
+      "CPU-Core-Sensor-1": {
+        "temp": 53,
+        "highThreshold": 82,
+        "critHighThreshold": 104,
+        "lowThreshold": 5
+      },
+      "CPU-Core-Sensor-2": {
+        "temp": 53,
+        "highThreshold": 82,
+        "critHighThreshold": 104,
+        "lowThreshold": 5
+      },
+      "CPU-Core-Sensor-3": {
+        "temp": 53,
+        "highThreshold": 82,
+        "critHighThreshold": 104,
+        "lowThreshold": 5
+      },
+      "CPU-Package-Sensor": {
+        "temp": 52,
+        "highThreshold": 82,
+        "critHighThreshold": 104,
+        "lowThreshold": 5
+      },
+      "Main-Board-Ambient-Sensor": {
+        "temp": 32.7,
+        "highThreshold": 80,
+        "critHighThreshold": 85,
+        "lowThreshold": 5
+      },
+      "PSU1-Temp-Sensor": {
+        "temp": 33,
+        "highThreshold": 85,
+        "critHighThreshold": 85,
+        "lowThreshold": 5
+      },
+      "PSU2-Temp-Sensor": {},
+      "Port-Ambient-Sensor": {
+        "temp": 30.1,
+        "highThreshold": 80,
+        "critHighThreshold": 85,
+        "lowThreshold": 5
+      }
+    }
+  },
+  "criticalResources": {
+    "aclStats": {
+      "egress": {
+        "lag": {},
+        "port": {},
+        "rif": {},
+        "switch": {},
+        "vlan": {}
+      },
+      "ingress": {
+        "lag": {},
+        "port": {},
+        "rif": {},
+        "switch": {},
+        "vlan": {}
+      }
+    },
+    "stats": {}
+  },
+  "firmware": {
+    "BIOS": "0ACLH004_02.02.007",
+    "CPLD1": "9.0",
+    "CPLD2": "4.0",
+    "CPLD3": "1.0",
+    "SSD": "0202-000",
+    "Spectrum-3": "30.2020.1148"
+  }
+}
