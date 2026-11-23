@@ -1,0 +1,169 @@
+{
+  "swp1": {
+    "cable-length": "1m",
+    "cable-type": "Passive copper cable",
+    "diagnostics-status": "N/A",
+    "error-status": "N/A",
+    "identifier": "0x11 (QSFP28)",
+    "pmd-type": "ETH_100GBASE_CR4",
+    "revision-compliance": "SFF-8636 Rev 2.5/2.6/2.7",
+    "status": "Inserted",
+    "temperature": {
+      "temperature": "0.00 C"
+    },
+    "vendor-date-code": "230919",
+    "vendor-name": "FS",
+    "vendor-oui": "64:9d:99",
+    "vendor-pn": "Q28-PC01",
+    "vendor-rev": "A",
+    "vendor-sn": "SN00000002",
+    "voltage": {
+      "voltage": "0.0000 V"
+    }
+  },
+  "swp17": {
+    "cable-length": "1m",
+    "cable-type": "Passive copper cable",
+    "diagnostics-status": "N/A",
+    "error-status": "N/A",
+    "identifier": "0x11 (QSFP28)",
+    "pmd-type": "ETH_XAUI_1_10G",
+    "revision-compliance": "Unallocated",
+    "status": "Inserted",
+    "temperature": {
+      "temperature": "0.00 C"
+    },
+    "vendor-date-code": "240411",
+    "vendor-name": "FS",
+    "vendor-oui": "64:9d:99",
+    "vendor-pn": "QSFP-100G-4SPC01",
+    "vendor-rev": "A",
+    "vendor-sn": "SN00000003",
+    "voltage": {
+      "voltage": "0.0000 V"
+    }
+  },
+  "swp2": {
+    "cable-length": "1m",
+    "cable-type": "Passive copper cable",
+    "diagnostics-status": "N/A",
+    "error-status": "N/A",
+    "identifier": "0x11 (QSFP28)",
+    "pmd-type": "ETH_100GBASE_CR4",
+    "revision-compliance": "SFF-8636 Rev 2.5/2.6/2.7",
+    "status": "Inserted",
+    "temperature": {
+      "temperature": "0.00 C"
+    },
+    "vendor-date-code": "240724",
+    "vendor-name": "FS",
+    "vendor-oui": "64:9d:99",
+    "vendor-pn": "QSFP-100G-PC01",
+    "vendor-rev": "A",
+    "vendor-sn": "SN00000004",
+    "voltage": {
+      "voltage": "0.0000 V"
+    }
+  },
+  "swp3": {
+    "cable-length": "1m",
+    "cable-type": "Passive copper cable",
+    "channel": {
+      "channel-1": {
+        "rx-cdr-lol": "N/A",
+        "rx-los": "N/A",
+        "rx-power": {
+          "power": "0.0000 mW / -inf dBm"
+        },
+        "tx-bias-current": {
+          "current": "0.000 mA"
+        },
+        "tx-cdr-lol": "N/A",
+        "tx-fault": "N/A",
+        "tx-los": "N/A",
+        "tx-power": {
+          "power": "0.0000 mW / -inf dBm"
+        }
+      },
+      "channel-2": {
+        "rx-cdr-lol": "N/A",
+        "rx-los": "N/A",
+        "rx-power": {
+          "power": "0.0000 mW / -inf dBm"
+        },
+        "tx-bias-current": {
+          "current": "0.000 mA"
+        },
+        "tx-cdr-lol": "N/A",
+        "tx-fault": "N/A",
+        "tx-los": "N/A",
+        "tx-power": {
+          "power": "0.0000 mW / -inf dBm"
+        }
+      },
+      "channel-3": {
+        "rx-cdr-lol": "N/A",
+        "rx-los": "N/A",
+        "rx-power": {
+          "power": "0.0000 mW / -inf dBm"
+        },
+        "tx-bias-current": {
+          "current": "0.000 mA"
+        },
+        "tx-cdr-lol": "N/A",
+        "tx-fault": "N/A",
+        "tx-los": "N/A",
+        "tx-power": {
+          "power": "0.0000 mW / -inf dBm"
+        }
+      },
+      "channel-4": {
+        "rx-cdr-lol": "N/A",
+        "rx-los": "N/A",
+        "rx-power": {
+          "power": "0.0000 mW / -inf dBm"
+        },
+        "tx-bias-current": {
+          "current": "0.000 mA"
+        },
+        "tx-cdr-lol": "N/A",
+        "tx-fault": "N/A",
+        "tx-los": "N/A",
+        "tx-power": {
+          "power": "0.0000 mW / -inf dBm"
+        }
+      }
+    },
+    "diagnostics-status": "Diagnostic Data Available",
+    "error-status": "N/A",
+    "flag-in-use": "N/A",
+    "identifier": "0x11 (QSFP28)",
+    "pmd-type": "ETH_100GBASE_CR4",
+    "revision-compliance": "SFF-8636 Rev 2.5/2.6/2.7",
+    "status": "Inserted",
+    "temp-flags": {
+      "high-alarm": "N/A",
+      "high-warning": "N/A",
+      "low-alarm": "N/A",
+      "low-warning": "N/A"
+    },
+    "temperature": {
+      "temperature": "25.69 C"
+    },
+    "vcc-flags": {
+      "high-alarm": "N/A",
+      "high-warning": "N/A",
+      "low-alarm": "N/A",
+      "low-warning": "N/A"
+    },
+    "vendor-date-code": "250910",
+    "vendor-name": "Mellanox",
+    "vendor-oui": "00:02:c9",
+    "vendor-pn": "MCP1600-C001",
+    "vendor-rev": "A3",
+    "vendor-sn": "SN00000005",
+    "voltage": {
+      "voltage": "3.3410 V"
+    }
+  }
+}
