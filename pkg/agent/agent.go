@@ -39,6 +39,7 @@ import (
 	"go.githedgehog.com/fabric/pkg/agent/alloy"
 	"go.githedgehog.com/fabric/pkg/agent/clsp"
 	"go.githedgehog.com/fabric/pkg/agent/cmls"
+	"go.githedgehog.com/fabric/pkg/agent/cmls/nvue"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm"
 	"go.githedgehog.com/fabric/pkg/agent/dozer/bcm/clsds5000"
@@ -156,8 +157,11 @@ func (svc *Service) Run(ctx context.Context, getClient func() (*gnmi.Client, err
 		svc.processor = clsp.Processor()
 	case isCumulus:
 		svc.SkipControlLink = true
-		cmlsProcessor := cmls.Processor()
-		svc.processor = cmlsProcessor
+		client, err := nvue.New()
+		if err != nil {
+			return fmt.Errorf("creating NVUE client: %w", err)
+		}
+		svc.processor = cmls.Processor(client)
 	default:
 		return fmt.Errorf("unsupported nos type: %s", agent.Spec.SwitchProfile.NOSType) //nolint:err113
 	}

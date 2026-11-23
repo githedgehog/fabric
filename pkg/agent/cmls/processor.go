@@ -5,20 +5,23 @@ package cmls
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
 	"go.githedgehog.com/fabric/api/agent/v1beta1"
+	"go.githedgehog.com/fabric/pkg/agent/cmls/nvue"
 	"go.githedgehog.com/fabric/pkg/agent/dozer"
 )
 
-type CumulusProcessor struct{}
+type CumulusProcessor struct {
+	nvue *nvue.Client
+}
 
 var _ dozer.Processor = &CumulusProcessor{}
 
-func Processor() *CumulusProcessor {
-	return &CumulusProcessor{}
+// Processor reads the switch state with the NVUE client
+func Processor(client *nvue.Client) *CumulusProcessor {
+	return &CumulusProcessor{nvue: client}
 }
 
 // SelectONIEInstall makes the next boot only go to ONIE in install mode, on both legacy BIOS and UEFI switches
@@ -35,19 +38,12 @@ func (c *CumulusProcessor) EnsureControlLink(ctx context.Context, agent *v1beta1
 }
 
 func (c *CumulusProcessor) GetRoCE(ctx context.Context) (bool, error) {
-	out, err := runOutput(ctx, "nv show qos roce", "nv", "show", "qos", "roce", "-o", "json")
+	roce, err := c.nvue.RoCE(ctx)
 	if err != nil {
-		return false, err
-	}
-	roce := struct {
-		State string `json:"state"`
-		Mode  string `json:"mode"`
-	}{}
-	if err := json.Unmarshal(out, &roce); err != nil {
-		return false, fmt.Errorf("parsing RoCE state: %w", err)
+		return false, fmt.Errorf("getting RoCE: %w", err)
 	}
 
-	return roce.State == "enabled" && roce.Mode == "lossless", nil
+	return roce.Enabled(), nil
 }
 
 // TODO
