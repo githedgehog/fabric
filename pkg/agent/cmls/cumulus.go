@@ -127,6 +127,7 @@ type VPC struct {
 	Name        string
 	VRF         string
 	VNI         uint32
+	IRBVLAN     uint16
 	Subnets     map[uint32]string // subnet VNI % 100 -> subnet, as NVUE only allows a single prefix per rule
 	RouteSumm   []string
 	Peers       []VPCPeer
@@ -182,6 +183,7 @@ type External struct {
 	Name              string
 	VRF               string
 	VNI               uint32
+	IRBVLAN           uint16
 	Static            bool
 	Routes            map[string][]string
 	Neighbors         []*ExternalNeighbor
@@ -907,10 +909,17 @@ func buildConfig(agent *agentapi.Agent) (*bytes.Buffer, error) {
 			slices.Sort(routes[prefix.String()])
 		}
 
+		// the L3VNI VLAN is pinned so the external SVIs have a known name, and VRFs never collide with them
+		irbVLAN := agent.Spec.Catalog.IRBVLANs[vpcName]
+		if irbVLAN == 0 {
+			return nil, fmt.Errorf("vpc %s: no IRB VLAN", vpcName) //nolint:err113
+		}
+
 		vpcs = append(vpcs, VPC{
 			Name:        vpcName,
 			VRF:         vpcVRF(vpcName),
 			VNI:         vpcVNIs[vpcName],
+			IRBVLAN:     irbVLAN,
 			Subnets:     subnets,
 			RouteSumm:   routeSumm[vpcName],
 			Peers:       slices.SortedFunc(slices.Values(peers[vpcName]), func(a, b VPCPeer) int { return cmp.Compare(a.Name, b.Name) }),
@@ -948,7 +957,14 @@ func buildConfig(agent *agentapi.Agent) (*bytes.Buffer, error) {
 			if vni == 0 {
 				return nil, fmt.Errorf("external %s: no VNI", attach.External) //nolint:err113
 			}
-			ext = &External{Name: attach.External, VRF: extVRF(attach.External), VNI: vni, Routes: map[string][]string{}}
+			irbVLAN := agent.Spec.Catalog.IRBVLANs[librarian.ReqForExt(attach.External)]
+			if irbVLAN == 0 {
+				return nil, fmt.Errorf("external %s: no IRB VLAN", attach.External) //nolint:err113
+			}
+			ext = &External{
+				Name: attach.External, VRF: extVRF(attach.External), VNI: vni, IRBVLAN: irbVLAN,
+				IPv4Namespace: extSpec.IPv4Namespace, Routes: map[string][]string{},
+			}
 			externals[attach.External] = ext
 		}
 
@@ -1188,22 +1204,34 @@ func buildConfig(agent *agentapi.Agent) (*bytes.Buffer, error) {
 		}
 	}
 
-	// the traffic from the fabric to the IPv4 namespace subnets mustn't leave through an external
+	// the traffic from the fabric to the IPv4 namespace subnets mustn't leave through an external, nor come back from
+	// another border leaf over the external VNI: when the local session is down, the VPCs can pick the leaked EVPN path
+	// of the external VRF, and the other border leaf would route it to any VPC leaked into its external VRF
 	for _, nsName := range slices.Sorted(maps.Keys(egressNamespaces)) {
 		ns, ok := agent.Spec.IPv4Namespaces[nsName]
 		if !ok {
 			return nil, fmt.Errorf("external %s: ipv4 namespace %s not found", egressNamespaces[nsName], nsName) //nolint:err113
 		}
-		acl := &ACL{Name: ipnsEgressACL(nsName)}
-		for idx, subnet := range ns.Subnets {
+		subnets := []string{}
+		for _, subnet := range ns.Subnets {
 			parsed, err := netip.ParsePrefix(subnet)
 			if err != nil || !parsed.Addr().Is4() {
 				return nil, fmt.Errorf("ipv4 namespace %s: invalid subnet %q", nsName, subnet) //nolint:err113
 			}
-			acl.Rules = append(acl.Rules, ACLRule{ID: uint32(10 * (idx + 1)), DstIP: parsed.String()})
+			subnets = append(subnets, parsed.String())
 		}
-		acl.Rules = append(acl.Rules, ACLRule{ID: 65535, Permit: true})
-		acls = append(acls, acl)
+		egress := &ACL{Name: ipnsEgressACL(nsName)}
+		noPeering := &ACL{Name: "no-ipns-peering--" + nsName}
+		for srcIdx, src := range subnets {
+			egress.Rules = append(egress.Rules, ACLRule{ID: uint32(10 * (srcIdx + 1)), DstIP: src})
+			// same rule IDs as SONiC
+			for dstIdx, dst := range subnets {
+				noPeering.Rules = append(noPeering.Rules, ACLRule{ID: uint32(srcIdx*100 + dstIdx + 1), SrcIP: src, DstIP: dst})
+			}
+		}
+		egress.Rules = append(egress.Rules, ACLRule{ID: 65535, Permit: true})
+		noPeering.Rules = append(noPeering.Rules, ACLRule{ID: 65535, Permit: true})
+		acls = append(acls, egress, noPeering)
 	}
 
 	bgpExternals := len(ipv4Namespaces) > 0
@@ -2029,7 +2057,6 @@ func externalBGPPolicy(agent *agentapi.Agent, ext *External, extSpec vpcapi.Exte
 		return fmt.Errorf("external %s: ipv4 namespace %s not found", ext.Name, extSpec.IPv4Namespace) //nolint:err113
 	}
 
-	ext.IPv4Namespace = extSpec.IPv4Namespace
 	ext.InboundCommunity = extSpec.InboundCommunity
 	ext.OutboundCommunity = extSpec.OutboundCommunity
 	// the inbound community stays on the routes, as the import of the external routes into the VPCs matches it

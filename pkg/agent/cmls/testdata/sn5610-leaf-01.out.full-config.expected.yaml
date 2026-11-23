@@ -78,6 +78,19 @@
             action:
               permit: {}
         type: ipv4
+      no-ipns-peering--default:
+        rule:
+          '1':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: 10.0.0.0/16
+                source-ip: 10.0.0.0/16
+          '65535':
+            action:
+              permit: {}
+        type: ipv4
     interface:
       eth0:
         ipv6:
@@ -1276,6 +1289,13 @@
         type: svi
         vlan: 1003
         vrf: vpc-vpc-03
+      vlan3000_l3:
+        acl:
+          no-ipns-peering--default:
+            inbound: {}
+        base-interface: br_l3vni
+        type: svi
+        vlan: 3000
     bridge:
       domain:
         br_default:
@@ -1753,6 +1773,7 @@
       vpc-vpc-01:
         evpn:
           state: enabled
+          vlan: 3002
           vni:
             '300': {}
         router:
@@ -1787,6 +1808,7 @@
       vpc-vpc-02:
         evpn:
           state: enabled
+          vlan: 3003
           vni:
             '400': {}
         router:
@@ -1810,6 +1832,7 @@
       vpc-vpc-03:
         evpn:
           state: enabled
+          vlan: 3004
           vni:
             '500': {}
         router:
@@ -1842,6 +1865,7 @@
       ext-ext-snp-02:
         evpn:
           state: enabled
+          vlan: 3000
           vni:
             '100': {}
         router:

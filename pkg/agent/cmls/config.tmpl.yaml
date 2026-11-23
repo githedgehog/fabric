@@ -278,6 +278,16 @@
         vlan: {{ $subnet.VLAN }}
         vrf: {{ $subnet.VRF }}
       {{- end }}
+      {{- /* NVUE creates the L3VNI SVIs on br_l3vni, this only binds the ACL */}}
+      {{- range $ext := $.Externals }}
+      vlan{{ $ext.IRBVLAN }}_l3:
+        acl:
+          no-ipns-peering--{{ $ext.IPv4Namespace }}:
+            inbound: {}
+        base-interface: br_l3vni
+        type: svi
+        vlan: {{ $ext.IRBVLAN }}
+      {{- end }}
     {{- if $.Subnets }}
     bridge:
       domain:
@@ -1019,6 +1029,7 @@
       {{ $vpc.VRF }}:
         evpn:
           state: enabled
+          vlan: {{ $vpc.IRBVLAN }}
           vni:
             '{{ $vpc.VNI }}': {}
         router:
@@ -1096,6 +1107,7 @@
       {{ $ext.VRF }}:
         evpn:
           state: enabled
+          vlan: {{ $ext.IRBVLAN }}
           vni:
             '{{ $ext.VNI }}': {}
         router:
