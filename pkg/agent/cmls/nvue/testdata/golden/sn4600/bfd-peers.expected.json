@@ -1,0 +1,185 @@
+{
+  "default": {
+    "1402276082": {
+      "peer": "172.30.8.0",
+      "local": "172.30.8.3",
+      "interface": "",
+      "profile": "overlay",
+      "state": "up",
+      "multihop": "enabled",
+      "up-down-time": {
+        "Value": 28929,
+        "OK": true,
+        "Raw": "28929"
+      },
+      "session-up": {
+        "Value": 3,
+        "OK": true
+      },
+      "session-down": {
+        "Value": 2,
+        "OK": true
+      },
+      "detect-multiplier": {
+        "Value": 3,
+        "OK": true,
+        "Raw": "3"
+      },
+      "min-rx-interval": {
+        "Value": 1000,
+        "OK": true,
+        "Raw": "1000"
+      },
+      "min-tx-interval": {
+        "Value": 1000,
+        "OK": true,
+        "Raw": "1000"
+      }
+    },
+    "3444478755": {
+      "peer": "fe80::81b:2cff:fe00:a",
+      "local": "fe80::81b:2cff:fe00:8",
+      "interface": "swp1",
+      "profile": "underlay",
+      "state": "up",
+      "multihop": "disabled",
+      "up-down-time": {
+        "Value": 26696,
+        "OK": true,
+        "Raw": "26696"
+      },
+      "session-up": {
+        "Value": 3,
+        "OK": true
+      },
+      "session-down": {
+        "Value": 2,
+        "OK": true
+      },
+      "detect-multiplier": {
+        "Value": 3,
+        "OK": true,
+        "Raw": "3"
+      },
+      "min-rx-interval": {
+        "Value": 300,
+        "OK": true,
+        "Raw": "300"
+      },
+      "min-tx-interval": {
+        "Value": 300,
+        "OK": true,
+        "Raw": "300"
+      }
+    },
+    "3565635935": {
+      "peer": "fe80::81b:2cff:fe00:54",
+      "local": "fe80::81b:2cff:fe00:15",
+      "interface": "swp2",
+      "profile": "underlay",
+      "state": "up",
+      "multihop": "disabled",
+      "up-down-time": {
+        "Value": 26697,
+        "OK": true,
+        "Raw": "26697"
+      },
+      "session-up": {
+        "Value": 3,
+        "OK": true
+      },
+      "session-down": {
+        "Value": 2,
+        "OK": true
+      },
+      "detect-multiplier": {
+        "Value": 3,
+        "OK": true,
+        "Raw": "3"
+      },
+      "min-rx-interval": {
+        "Value": 300,
+        "OK": true,
+        "Raw": "300"
+      },
+      "min-tx-interval": {
+        "Value": 300,
+        "OK": true,
+        "Raw": "300"
+      }
+    },
+    "4201289979": {
+      "peer": "172.30.8.1",
+      "local": "172.30.8.3",
+      "interface": "",
+      "profile": "overlay",
+      "state": "up",
+      "multihop": "enabled",
+      "up-down-time": {
+        "Value": 26694,
+        "OK": true,
+        "Raw": "26694"
+      },
+      "session-up": {
+        "Value": 3,
+        "OK": true
+      },
+      "session-down": {
+        "Value": 2,
+        "OK": true
+      },
+      "detect-multiplier": {
+        "Value": 3,
+        "OK": true,
+        "Raw": "3"
+      },
+      "min-rx-interval": {
+        "Value": 1000,
+        "OK": true,
+        "Raw": "1000"
+      },
+      "min-tx-interval": {
+        "Value": 1000,
+        "OK": true,
+        "Raw": "1000"
+      }
+    },
+    "51861856": {
+      "peer": "fe80::81b:2cff:fe00:22",
+      "local": "fe80::81b:2cff:fe00:20",
+      "interface": "swp3",
+      "profile": "underlay",
+      "state": "up",
+      "multihop": "disabled",
+      "up-down-time": {
+        "Value": 28931,
+        "OK": true,
+        "Raw": "28931"
+      },
+      "session-up": {
+        "Value": 3,
+        "OK": true
+      },
+      "session-down": {
+        "Value": 2,
+        "OK": true
+      },
+      "detect-multiplier": {
+        "Value": 3,
+        "OK": true,
+        "Raw": "3"
+      },
+      "min-rx-interval": {
+        "Value": 300,
+        "OK": true,
+        "Raw": "300"
+      },
+      "min-tx-interval": {
+        "Value": 300,
+        "OK": true,
+        "Raw": "300"
+      }
+    }
+  },
+  "ext-ext-bgp": {}
+}
