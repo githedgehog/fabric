@@ -1,0 +1,259 @@
+{
+  "acl": {
+    "Egress-ACL-ipv4-filter-table": {
+      "acl-18b": 0,
+      "acl-36b": 0,
+      "acl-54b": 0,
+      "rule-count": 0
+    },
+    "Egress-ACL-ipv4-mangle-table": {
+      "acl-18b": 0,
+      "acl-36b": 0,
+      "acl-54b": 0,
+      "rule-count": 0
+    },
+    "Egress-ACL-ipv6-filter-table": {
+      "acl-18b": 0,
+      "acl-36b": 0,
+      "acl-54b": 0,
+      "rule-count": 0
+    },
+    "Egress-ACL-ipv6-mangle-table": {
+      "acl-18b": 0,
+      "acl-36b": 0,
+      "acl-54b": 0,
+      "rule-count": 0
+    },
+    "Egress-ACL-mac-filter-table": {
+      "acl-18b": 0,
+      "acl-36b": 0,
+      "acl-54b": 0,
+      "rule-count": 0
+    },
+    "Ingress-ACL-ipv4-filter-table": {
+      "acl-18b": 0,
+      "acl-36b": 0,
+      "acl-54b": 0,
+      "rule-count": 0
+    },
+    "Ingress-ACL-ipv4-mangle-table": {
+      "acl-18b": 0,
+      "acl-36b": 0,
+      "acl-54b": 0,
+      "rule-count": 0
+    },
+    "Ingress-ACL-ipv6-filter-table": {
+      "acl-18b": 0,
+      "acl-36b": 0,
+      "acl-54b": 0,
+      "rule-count": 0
+    },
+    "Ingress-ACL-ipv6-mangle-table": {
+      "acl-18b": 0,
+      "acl-36b": 0,
+      "acl-54b": 0,
+      "rule-count": 0
+    },
+    "Ingress-ACL-mac-filter-table": {
+      "acl-18b": 0,
+      "acl-36b": 0,
+      "acl-54b": 0,
+      "rule-count": 0
+    },
+    "Ingress-PBR-ipv4-filter-table": {
+      "acl-18b": 0,
+      "acl-36b": 0,
+      "acl-54b": 0,
+      "rule-count": 0
+    },
+    "Ingress-PBR-ipv6-filter-table": {
+      "acl-18b": 0,
+      "acl-36b": 0,
+      "acl-54b": 0,
+      "rule-count": 0
+    }
+  },
+  "global": {
+    "ACL-18B-Rules-Key": {
+      "free": 60012,
+      "high-watermark": 17,
+      "high-watermark-timestamp": "2026-11-23 13:18:20.547585 UTC",
+      "max": 60023,
+      "percentage": 0.01832630824850474,
+      "used": 11
+    },
+    "ACL-36B-Rules-Key": {
+      "free": 60012,
+      "high-watermark": 1,
+      "high-watermark-timestamp": "2026-11-23 01:05:20.771220 UTC",
+      "max": 60012,
+      "percentage": 0.0,
+      "used": 0
+    },
+    "ACL-54B-Rules-Key": {
+      "free": 36007,
+      "high-watermark": 0,
+      "high-watermark-timestamp": "2026-11-23 01:04:20.770940 UTC",
+      "max": 36007,
+      "percentage": 0.0,
+      "used": 0
+    },
+    "ACL-Regions": {
+      "free": 396,
+      "high-watermark": 5,
+      "high-watermark-timestamp": "2026-11-23 01:05:20.771220 UTC",
+      "max": 400,
+      "percentage": 1.0,
+      "used": 4
+    },
+    "Downstream-VNI-FID-count": {
+      "used": 0
+    },
+    "Dynamic-Config-DNAT-entries": {
+      "free": 64,
+      "max": 64,
+      "percentage": 0.0,
+      "used": 0
+    },
+    "Dynamic-Config-SNAT-entries": {
+      "free": 64,
+      "max": 64,
+      "percentage": 0.0,
+      "used": 0
+    },
+    "Dynamic-DNAT-entries": {
+      "free": 1024,
+      "max": 1024,
+      "percentage": 0.0,
+      "used": 0
+    },
+    "Dynamic-SNAT-entries": {
+      "free": 1024,
+      "max": 1024,
+      "percentage": 0.0,
+      "used": 0
+    },
+    "ECMP-entries": {
+      "used": 5
+    },
+    "ECMP-nexthops": {
+      "free": 33059,
+      "high-watermark": 85,
+      "high-watermark-timestamp": "2026-11-23 13:59:20.579185 UTC",
+      "max": 33077,
+      "percentage": 0.05441847809656257,
+      "used": 18
+    },
+    "Egress-ACL-entries": {
+      "used": 0
+    },
+    "Flow-Counters": {
+      "free": 48786,
+      "high-watermark": 106,
+      "high-watermark-timestamp": "2026-11-23 13:59:20.579185 UTC",
+      "max": 48812,
+      "percentage": 0.053265590428583136,
+      "used": 26
+    },
+    "IPv4-Routes": {
+      "free": 82664,
+      "high-watermark": 137,
+      "high-watermark-timestamp": "2026-11-23 14:00:20.579624 UTC",
+      "max": 82693,
+      "percentage": 0.035069473836963225,
+      "used": 29
+    },
+    "IPv4-host-entries": {
+      "free": 41340,
+      "high-watermark": 34,
+      "high-watermark-timestamp": "2026-11-23 14:00:20.579624 UTC",
+      "max": 41347,
+      "percentage": 0.016929886086052195,
+      "used": 7
+    },
+    "IPv4-neighbors": {
+      "used": 7
+    },
+    "IPv4-route-entries": {
+      "free": 82668,
+      "max": 82693,
+      "percentage": 0.030232305031864852,
+      "used": 25
+    },
+    "IPv6-Routes": {
+      "free": 74401,
+      "high-watermark": 47,
+      "high-watermark-timestamp": "2026-11-23 13:59:20.579185 UTC",
+      "max": 74424,
+      "percentage": 0.030904009459314197,
+      "used": 23
+    },
+    "IPv6-host-entries": {
+      "free": 20669,
+      "high-watermark": 5,
+      "high-watermark-timestamp": "2026-11-23 01:05:20.771220 UTC",
+      "max": 20673,
+      "percentage": 0.019348909205243556,
+      "used": 4
+    },
+    "IPv6-neighbors": {
+      "used": 4
+    },
+    "IPv6-route-entries": {
+      "free": 74388,
+      "max": 74424,
+      "percentage": 0.04837149306675266,
+      "used": 36
+    },
+    "Ingress-ACL-entries": {
+      "used": 0
+    },
+    "MAC-entries": {
+      "free": 57806,
+      "high-watermark": 113,
+      "high-watermark-timestamp": "2026-11-23 14:00:20.579624 UTC",
+      "max": 57885,
+      "percentage": 0.13647749848838214,
+      "used": 79
+    },
+    "RIF-Basic-Counters": {
+      "free": 7926,
+      "high-watermark": 83,
+      "high-watermark-timestamp": "2026-11-23 10:03:20.405878 UTC",
+      "max": 8000,
+      "percentage": 0.9249999999999999,
+      "used": 74
+    },
+    "RIF-Enhanced-Counters": {
+      "free": 3254,
+      "high-watermark": 0,
+      "high-watermark-timestamp": "2026-11-23 01:04:20.770940 UTC",
+      "max": 3254,
+      "percentage": 0.0,
+      "used": 0
+    },
+    "Total-FID-count": {
+      "free": 6134,
+      "max": 6143,
+      "percentage": 0.1465082207390526,
+      "used": 9
+    },
+    "Total-Mcast-Routes": {
+      "free": 1000,
+      "high-watermark": 0,
+      "high-watermark-timestamp": "2026-11-23 01:04:20.770940 UTC",
+      "max": 1000,
+      "percentage": 0.0,
+      "used": 0
+    },
+    "Total-Routes": {
+      "free": 157056,
+      "max": 157117,
+      "percentage": 0.03882457022473698,
+      "used": 61
+    },
+    "Vport-FID-count": {
+      "used": 9
+    }
+  }
+}

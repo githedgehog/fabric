@@ -1,0 +1,235 @@
+{
+  "acl": {
+    "Egress-ACL-ipv4-filter-table": {
+      "acl-18b": 0,
+      "acl-36b": 0,
+      "acl-54b": 0,
+      "rule-count": 0
+    },
+    "Egress-ACL-ipv4-mangle-table": {
+      "acl-18b": 2,
+      "acl-36b": 0,
+      "acl-54b": 0,
+      "rule-count": 2
+    },
+    "Egress-ACL-ipv6-filter-table": {
+      "acl-18b": 0,
+      "acl-36b": 0,
+      "acl-54b": 0,
+      "rule-count": 0
+    },
+    "Egress-ACL-ipv6-mangle-table": {
+      "acl-18b": 0,
+      "acl-36b": 0,
+      "acl-54b": 0,
+      "rule-count": 0
+    },
+    "Egress-ACL-mac-filter-table": {
+      "acl-18b": 0,
+      "acl-36b": 0,
+      "acl-54b": 0,
+      "rule-count": 0
+    },
+    "Ingress-ACL-ipv4-filter-table": {
+      "acl-18b": 0,
+      "acl-36b": 0,
+      "acl-54b": 0,
+      "rule-count": 0
+    },
+    "Ingress-ACL-ipv4-mangle-table": {
+      "acl-18b": 0,
+      "acl-36b": 7,
+      "acl-54b": 0,
+      "rule-count": 7
+    },
+    "Ingress-ACL-ipv6-filter-table": {
+      "acl-18b": 0,
+      "acl-36b": 0,
+      "acl-54b": 0,
+      "rule-count": 0
+    },
+    "Ingress-ACL-ipv6-mangle-table": {
+      "acl-18b": 0,
+      "acl-36b": 0,
+      "acl-54b": 0,
+      "rule-count": 0
+    },
+    "Ingress-ACL-mac-filter-table": {
+      "acl-18b": 0,
+      "acl-36b": 0,
+      "acl-54b": 0,
+      "rule-count": 0
+    },
+    "Ingress-PBR-ipv4-filter-table": {
+      "acl-18b": 0,
+      "acl-36b": 0,
+      "acl-54b": 0,
+      "rule-count": 0
+    },
+    "Ingress-PBR-ipv6-filter-table": {
+      "acl-18b": 0,
+      "acl-36b": 0,
+      "acl-54b": 0,
+      "rule-count": 0
+    }
+  },
+  "global": {
+    "ACL-18B-Rules-Key": {
+      "free": 1499,
+      "high-watermark": 5,
+      "high-watermark-timestamp": "2026-11-21 08:59:49.835961 UTC",
+      "max": 1504,
+      "percentage": 0.3324468085106383,
+      "used": 5
+    },
+    "ACL-36B-Rules-Key": {
+      "free": 952,
+      "high-watermark": 13,
+      "high-watermark-timestamp": "2026-11-23 12:43:53.125767 UTC",
+      "max": 960,
+      "percentage": 0.8333333333333334,
+      "used": 8
+    },
+    "ACL-54B-Rules-Key": {
+      "free": 511,
+      "high-watermark": 2,
+      "high-watermark-timestamp": "2026-11-21 08:58:49.457252 UTC",
+      "max": 512,
+      "percentage": 0.1953125,
+      "used": 1
+    },
+    "ACL-Regions": {
+      "free": 393,
+      "high-watermark": 8,
+      "high-watermark-timestamp": "2026-11-23 12:40:53.122663 UTC",
+      "max": 400,
+      "percentage": 1.7500000000000002,
+      "used": 7
+    },
+    "Downstream-VNI-FID-count": {
+      "used": 0
+    },
+    "ECMP-entries": {
+      "used": 6
+    },
+    "ECMP-nexthops": {
+      "free": 7789,
+      "high-watermark": 111,
+      "high-watermark-timestamp": "2026-11-23 13:59:53.199665 UTC",
+      "max": 7808,
+      "percentage": 0.24334016393442623,
+      "used": 19
+    },
+    "Egress-ACL-entries": {
+      "used": 2
+    },
+    "Flow-Counters": {
+      "free": 15958,
+      "high-watermark": 265,
+      "high-watermark-timestamp": "2026-11-23 13:59:53.199665 UTC",
+      "max": 16116,
+      "percentage": 0.9803921568627451,
+      "used": 158
+    },
+    "IPv4-Routes": {
+      "free": 65508,
+      "high-watermark": 151,
+      "high-watermark-timestamp": "2026-11-23 13:59:53.199665 UTC",
+      "max": 65536,
+      "percentage": 0.042724609375,
+      "used": 28
+    },
+    "IPv4-host-entries": {
+      "free": 32761,
+      "high-watermark": 34,
+      "high-watermark-timestamp": "2026-11-23 13:59:53.199665 UTC",
+      "max": 32768,
+      "percentage": 0.0213623046875,
+      "used": 7
+    },
+    "IPv4-neighbors": {
+      "used": 7
+    },
+    "IPv4-route-entries": {
+      "free": 65513,
+      "max": 65536,
+      "percentage": 0.03509521484375,
+      "used": 23
+    },
+    "IPv6-Routes": {
+      "free": 45033,
+      "high-watermark": 51,
+      "high-watermark-timestamp": "2026-11-23 13:56:53.195687 UTC",
+      "max": 45056,
+      "percentage": 0.05104758522727273,
+      "used": 23
+    },
+    "IPv6-host-entries": {
+      "free": 8188,
+      "high-watermark": 4,
+      "high-watermark-timestamp": "2026-11-21 08:59:49.835961 UTC",
+      "max": 8192,
+      "percentage": 0.048828125,
+      "used": 4
+    },
+    "IPv6-neighbors": {
+      "used": 4
+    },
+    "IPv6-route-entries": {
+      "free": 45020,
+      "max": 45056,
+      "percentage": 0.07990056818181819,
+      "used": 36
+    },
+    "Ingress-ACL-entries": {
+      "used": 7
+    },
+    "MAC-entries": {
+      "free": 40893,
+      "high-watermark": 113,
+      "high-watermark-timestamp": "2026-11-23 13:59:53.199665 UTC",
+      "max": 40960,
+      "percentage": 0.16357421875,
+      "used": 67
+    },
+    "RIF-Basic-Counters": {
+      "free": 943,
+      "high-watermark": 64,
+      "high-watermark-timestamp": "2026-11-23 13:56:53.195687 UTC",
+      "max": 1000,
+      "percentage": 5.7,
+      "used": 57
+    },
+    "RIF-Enhanced-Counters": {
+      "free": 948,
+      "high-watermark": 0,
+      "high-watermark-timestamp": "2026-11-21 08:58:49.457252 UTC",
+      "max": 948,
+      "percentage": 0.0,
+      "used": 0
+    },
+    "Total-FID-count": {
+      "free": 6134,
+      "max": 6143,
+      "percentage": 0.1465082207390526,
+      "used": 9
+    },
+    "Total-Mcast-Routes": {
+      "free": 1000,
+      "high-watermark": 0,
+      "high-watermark-timestamp": "2026-11-21 08:58:49.457252 UTC",
+      "max": 1000,
+      "percentage": 0.0,
+      "used": 0
+    },
+    "Total-Routes": {
+      "free": 110533,
+      "max": 110592,
+      "percentage": 0.05334924768518518,
+      "used": 59
+    },
+    "Vport-FID-count": {
+      "used": 9
+    }
+  }
+}
