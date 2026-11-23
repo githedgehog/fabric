@@ -1,0 +1,1260 @@
+{
+  "swp1": {
+    "in-bits-rate": {
+      "Value": 5790,
+      "OK": true,
+      "Raw": "5790"
+    },
+    "in-pkts-rate": {
+      "Value": 7,
+      "OK": true,
+      "Raw": "7"
+    },
+    "in-utilization": {
+      "Value": 0.000005789748519063394,
+      "OK": true,
+      "Raw": "5.789748519063394e-06"
+    },
+    "out-bits-rate": {
+      "Value": 5752,
+      "OK": true,
+      "Raw": "5752"
+    },
+    "out-pkts-rate": {
+      "Value": 7,
+      "OK": true,
+      "Raw": "7"
+    },
+    "out-utilization": {
+      "Value": 0.000005752174525413193,
+      "OK": true,
+      "Raw": "5.752174525413193e-06"
+    },
+    "load-interval": {
+      "Value": 60,
+      "OK": true,
+      "Raw": "60"
+    }
+  },
+  "swp10": {
+    "in-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "out-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "load-interval": {
+      "Value": 60,
+      "OK": true,
+      "Raw": "60"
+    }
+  },
+  "swp11": {
+    "in-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "out-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "load-interval": {
+      "Value": 60,
+      "OK": true,
+      "Raw": "60"
+    }
+  },
+  "swp12": {
+    "in-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "out-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "load-interval": {
+      "Value": 60,
+      "OK": true,
+      "Raw": "60"
+    }
+  },
+  "swp13": {
+    "in-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "out-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "load-interval": {
+      "Value": 60,
+      "OK": true,
+      "Raw": "60"
+    }
+  },
+  "swp14": {
+    "in-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "out-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "load-interval": {
+      "Value": 60,
+      "OK": true,
+      "Raw": "60"
+    }
+  },
+  "swp15s0": {
+    "in-bits-rate": {
+      "Value": 3322,
+      "OK": true,
+      "Raw": "3322"
+    },
+    "in-pkts-rate": {
+      "Value": 5,
+      "OK": true,
+      "Raw": "5"
+    },
+    "in-utilization": {
+      "Value": 0.000013289302839087404,
+      "OK": true,
+      "Raw": "1.3289302839087404e-05"
+    },
+    "out-bits-rate": {
+      "Value": 3636,
+      "OK": true,
+      "Raw": "3636"
+    },
+    "out-pkts-rate": {
+      "Value": 5,
+      "OK": true,
+      "Raw": "5"
+    },
+    "out-utilization": {
+      "Value": 0.000014544817530267443,
+      "OK": true,
+      "Raw": "1.4544817530267443e-05"
+    },
+    "load-interval": {
+      "Value": 60,
+      "OK": true,
+      "Raw": "60"
+    }
+  },
+  "swp15s1": {
+    "in-bits-rate": {
+      "Value": 3310,
+      "OK": true,
+      "Raw": "3310"
+    },
+    "in-pkts-rate": {
+      "Value": 4,
+      "OK": true,
+      "Raw": "4"
+    },
+    "in-utilization": {
+      "Value": 0.000013241304879091407,
+      "OK": true,
+      "Raw": "1.3241304879091407e-05"
+    },
+    "out-bits-rate": {
+      "Value": 3636,
+      "OK": true,
+      "Raw": "3636"
+    },
+    "out-pkts-rate": {
+      "Value": 5,
+      "OK": true,
+      "Raw": "5"
+    },
+    "out-utilization": {
+      "Value": 0.000014544852003102925,
+      "OK": true,
+      "Raw": "1.4544852003102925e-05"
+    },
+    "load-interval": {
+      "Value": 60,
+      "OK": true,
+      "Raw": "60"
+    }
+  },
+  "swp15s2": {
+    "in-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "out-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "load-interval": {
+      "Value": 60,
+      "OK": true,
+      "Raw": "60"
+    }
+  },
+  "swp15s3": {
+    "in-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "out-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "load-interval": {
+      "Value": 60,
+      "OK": true,
+      "Raw": "60"
+    }
+  },
+  "swp17": {
+    "in-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "out-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "load-interval": {
+      "Value": 60,
+      "OK": true,
+      "Raw": "60"
+    }
+  },
+  "swp18": {
+    "in-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "out-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "load-interval": {
+      "Value": 60,
+      "OK": true,
+      "Raw": "60"
+    }
+  },
+  "swp19": {
+    "in-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "out-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "load-interval": {
+      "Value": 60,
+      "OK": true,
+      "Raw": "60"
+    }
+  },
+  "swp2": {
+    "in-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "out-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "load-interval": {
+      "Value": 60,
+      "OK": true,
+      "Raw": "60"
+    }
+  },
+  "swp20": {
+    "in-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "out-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "load-interval": {
+      "Value": 60,
+      "OK": true,
+      "Raw": "60"
+    }
+  },
+  "swp21": {
+    "in-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "out-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "load-interval": {
+      "Value": 60,
+      "OK": true,
+      "Raw": "60"
+    }
+  },
+  "swp22": {
+    "in-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "out-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "load-interval": {
+      "Value": 60,
+      "OK": true,
+      "Raw": "60"
+    }
+  },
+  "swp23": {
+    "in-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "out-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "load-interval": {
+      "Value": 60,
+      "OK": true,
+      "Raw": "60"
+    }
+  },
+  "swp24": {
+    "in-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "out-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "load-interval": {
+      "Value": 60,
+      "OK": true,
+      "Raw": "60"
+    }
+  },
+  "swp25": {
+    "in-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "out-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "load-interval": {
+      "Value": 60,
+      "OK": true,
+      "Raw": "60"
+    }
+  },
+  "swp26": {
+    "in-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "out-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "load-interval": {
+      "Value": 60,
+      "OK": true,
+      "Raw": "60"
+    }
+  },
+  "swp27": {
+    "in-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "out-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "load-interval": {
+      "Value": 60,
+      "OK": true,
+      "Raw": "60"
+    }
+  },
+  "swp28": {
+    "in-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "out-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "load-interval": {
+      "Value": 60,
+      "OK": true,
+      "Raw": "60"
+    }
+  },
+  "swp29": {
+    "in-bits-rate": {
+      "Value": 4426,
+      "OK": true,
+      "Raw": "4426"
+    },
+    "in-pkts-rate": {
+      "Value": 5,
+      "OK": true,
+      "Raw": "5"
+    },
+    "in-utilization": {
+      "Value": 0.000004426025953622566,
+      "OK": true,
+      "Raw": "4.426025953622566e-06"
+    },
+    "out-bits-rate": {
+      "Value": 5761,
+      "OK": true,
+      "Raw": "5761"
+    },
+    "out-pkts-rate": {
+      "Value": 7,
+      "OK": true,
+      "Raw": "7"
+    },
+    "out-utilization": {
+      "Value": 0.000005760881781773692,
+      "OK": true,
+      "Raw": "5.760881781773692e-06"
+    },
+    "load-interval": {
+      "Value": 60,
+      "OK": true,
+      "Raw": "60"
+    }
+  },
+  "swp3": {
+    "in-bits-rate": {
+      "Value": 5383,
+      "OK": true,
+      "Raw": "5383"
+    },
+    "in-pkts-rate": {
+      "Value": 6,
+      "OK": true,
+      "Raw": "6"
+    },
+    "in-utilization": {
+      "Value": 0.000005382532810263682,
+      "OK": true,
+      "Raw": "5.382532810263682e-06"
+    },
+    "out-bits-rate": {
+      "Value": 5798,
+      "OK": true,
+      "Raw": "5798"
+    },
+    "out-pkts-rate": {
+      "Value": 7,
+      "OK": true,
+      "Raw": "7"
+    },
+    "out-utilization": {
+      "Value": 0.000005798106849861809,
+      "OK": true,
+      "Raw": "5.798106849861809e-06"
+    },
+    "load-interval": {
+      "Value": 60,
+      "OK": true,
+      "Raw": "60"
+    }
+  },
+  "swp30": {
+    "in-bits-rate": {
+      "Value": 5799,
+      "OK": true,
+      "Raw": "5799"
+    },
+    "in-pkts-rate": {
+      "Value": 7,
+      "OK": true,
+      "Raw": "7"
+    },
+    "in-utilization": {
+      "Value": 0.000005799493514659483,
+      "OK": true,
+      "Raw": "5.799493514659483e-06"
+    },
+    "out-bits-rate": {
+      "Value": 4412,
+      "OK": true,
+      "Raw": "4412"
+    },
+    "out-pkts-rate": {
+      "Value": 5,
+      "OK": true,
+      "Raw": "5"
+    },
+    "out-utilization": {
+      "Value": 0.000004411553268100558,
+      "OK": true,
+      "Raw": "4.411553268100558e-06"
+    },
+    "load-interval": {
+      "Value": 60,
+      "OK": true,
+      "Raw": "60"
+    }
+  },
+  "swp31": {
+    "in-bits-rate": {
+      "Value": 4459,
+      "OK": true,
+      "Raw": "4459"
+    },
+    "in-pkts-rate": {
+      "Value": 5,
+      "OK": true,
+      "Raw": "5"
+    },
+    "in-utilization": {
+      "Value": 0.000004458781532449438,
+      "OK": true,
+      "Raw": "4.458781532449438e-06"
+    },
+    "out-bits-rate": {
+      "Value": 5005,
+      "OK": true,
+      "Raw": "5005"
+    },
+    "out-pkts-rate": {
+      "Value": 5,
+      "OK": true,
+      "Raw": "5"
+    },
+    "out-utilization": {
+      "Value": 0.000005005284026040736,
+      "OK": true,
+      "Raw": "5.005284026040736e-06"
+    },
+    "load-interval": {
+      "Value": 60,
+      "OK": true,
+      "Raw": "60"
+    }
+  },
+  "swp32": {
+    "in-bits-rate": {
+      "Value": 5800,
+      "OK": true,
+      "Raw": "5800"
+    },
+    "in-pkts-rate": {
+      "Value": 7,
+      "OK": true,
+      "Raw": "7"
+    },
+    "in-utilization": {
+      "Value": 0.000005800110683823978,
+      "OK": true,
+      "Raw": "5.800110683823978e-06"
+    },
+    "out-bits-rate": {
+      "Value": 5269,
+      "OK": true,
+      "Raw": "5269"
+    },
+    "out-pkts-rate": {
+      "Value": 6,
+      "OK": true,
+      "Raw": "6"
+    },
+    "out-utilization": {
+      "Value": 0.000005269351356361135,
+      "OK": true,
+      "Raw": "5.269351356361135e-06"
+    },
+    "load-interval": {
+      "Value": 60,
+      "OK": true,
+      "Raw": "60"
+    }
+  },
+  "swp4": {
+    "in-bits-rate": {
+      "Value": 5129,
+      "OK": true,
+      "Raw": "5129"
+    },
+    "in-pkts-rate": {
+      "Value": 6,
+      "OK": true,
+      "Raw": "6"
+    },
+    "in-utilization": {
+      "Value": 0.000005129202416554788,
+      "OK": true,
+      "Raw": "5.129202416554788e-06"
+    },
+    "out-bits-rate": {
+      "Value": 4439,
+      "OK": true,
+      "Raw": "4439"
+    },
+    "out-pkts-rate": {
+      "Value": 5,
+      "OK": true,
+      "Raw": "5"
+    },
+    "out-utilization": {
+      "Value": 0.000004439363501086858,
+      "OK": true,
+      "Raw": "4.439363501086858e-06"
+    },
+    "load-interval": {
+      "Value": 60,
+      "OK": true,
+      "Raw": "60"
+    }
+  },
+  "swp5": {
+    "in-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "out-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "load-interval": {
+      "Value": 60,
+      "OK": true,
+      "Raw": "60"
+    }
+  },
+  "swp6": {
+    "in-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "out-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "load-interval": {
+      "Value": 60,
+      "OK": true,
+      "Raw": "60"
+    }
+  },
+  "swp7": {
+    "in-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "out-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "load-interval": {
+      "Value": 60,
+      "OK": true,
+      "Raw": "60"
+    }
+  },
+  "swp8": {
+    "in-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "out-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "load-interval": {
+      "Value": 60,
+      "OK": true,
+      "Raw": "60"
+    }
+  },
+  "swp9": {
+    "in-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "in-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "out-bits-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-pkts-rate": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0"
+    },
+    "out-utilization": {
+      "Value": 0,
+      "OK": true,
+      "Raw": "0.0"
+    },
+    "load-interval": {
+      "Value": 60,
+      "OK": true,
+      "Raw": "60"
+    }
+  }
+}

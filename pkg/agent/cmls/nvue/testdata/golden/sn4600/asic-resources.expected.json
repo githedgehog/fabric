@@ -1,0 +1,728 @@
+{
+  "global": {
+    "ACL-18B-Rules-Key": {
+      "used": {
+        "Value": 17,
+        "OK": true,
+        "Raw": "17"
+      },
+      "free": {
+        "Value": 60009,
+        "OK": true,
+        "Raw": "60009"
+      },
+      "max": {
+        "Value": 60026,
+        "OK": true,
+        "Raw": "60026"
+      },
+      "high-watermark": {
+        "Value": 17,
+        "OK": true,
+        "Raw": "17"
+      }
+    },
+    "ACL-36B-Rules-Key": {
+      "used": {
+        "Value": 8,
+        "OK": true,
+        "Raw": "8"
+      },
+      "free": {
+        "Value": 60009,
+        "OK": true,
+        "Raw": "60009"
+      },
+      "max": {
+        "Value": 60017,
+        "OK": true,
+        "Raw": "60017"
+      },
+      "high-watermark": {
+        "Value": 16,
+        "OK": true,
+        "Raw": "16"
+      }
+    },
+    "ACL-54B-Rules-Key": {
+      "used": {
+        "Value": 0,
+        "OK": true,
+        "Raw": "0"
+      },
+      "free": {
+        "Value": 36005,
+        "OK": true,
+        "Raw": "36005"
+      },
+      "max": {
+        "Value": 36005,
+        "OK": true,
+        "Raw": "36005"
+      },
+      "high-watermark": {
+        "Value": 0,
+        "OK": true,
+        "Raw": "0"
+      }
+    },
+    "ACL-Regions": {
+      "used": {
+        "Value": 8,
+        "OK": true,
+        "Raw": "8"
+      },
+      "free": {
+        "Value": 392,
+        "OK": true,
+        "Raw": "392"
+      },
+      "max": {
+        "Value": 400,
+        "OK": true,
+        "Raw": "400"
+      },
+      "high-watermark": {
+        "Value": 10,
+        "OK": true,
+        "Raw": "10"
+      }
+    },
+    "Downstream-VNI-FID-count": {
+      "used": {
+        "Value": 0,
+        "OK": true,
+        "Raw": "0"
+      },
+      "free": {
+        "Value": 0,
+        "OK": false,
+        "Raw": ""
+      },
+      "max": {
+        "Value": 0,
+        "OK": false,
+        "Raw": ""
+      },
+      "high-watermark": {
+        "Value": 0,
+        "OK": false,
+        "Raw": ""
+      }
+    },
+    "Dynamic-Config-DNAT-entries": {
+      "used": {
+        "Value": 0,
+        "OK": true,
+        "Raw": "0"
+      },
+      "free": {
+        "Value": 64,
+        "OK": true,
+        "Raw": "64"
+      },
+      "max": {
+        "Value": 64,
+        "OK": true,
+        "Raw": "64"
+      },
+      "high-watermark": {
+        "Value": 0,
+        "OK": false,
+        "Raw": ""
+      }
+    },
+    "Dynamic-Config-SNAT-entries": {
+      "used": {
+        "Value": 0,
+        "OK": true,
+        "Raw": "0"
+      },
+      "free": {
+        "Value": 64,
+        "OK": true,
+        "Raw": "64"
+      },
+      "max": {
+        "Value": 64,
+        "OK": true,
+        "Raw": "64"
+      },
+      "high-watermark": {
+        "Value": 0,
+        "OK": false,
+        "Raw": ""
+      }
+    },
+    "Dynamic-DNAT-entries": {
+      "used": {
+        "Value": 0,
+        "OK": true,
+        "Raw": "0"
+      },
+      "free": {
+        "Value": 1024,
+        "OK": true,
+        "Raw": "1024"
+      },
+      "max": {
+        "Value": 1024,
+        "OK": true,
+        "Raw": "1024"
+      },
+      "high-watermark": {
+        "Value": 0,
+        "OK": false,
+        "Raw": ""
+      }
+    },
+    "Dynamic-SNAT-entries": {
+      "used": {
+        "Value": 0,
+        "OK": true,
+        "Raw": "0"
+      },
+      "free": {
+        "Value": 1024,
+        "OK": true,
+        "Raw": "1024"
+      },
+      "max": {
+        "Value": 1024,
+        "OK": true,
+        "Raw": "1024"
+      },
+      "high-watermark": {
+        "Value": 0,
+        "OK": false,
+        "Raw": ""
+      }
+    },
+    "ECMP-entries": {
+      "used": {
+        "Value": 9,
+        "OK": true,
+        "Raw": "9"
+      },
+      "free": {
+        "Value": 0,
+        "OK": false,
+        "Raw": ""
+      },
+      "max": {
+        "Value": 0,
+        "OK": false,
+        "Raw": ""
+      },
+      "high-watermark": {
+        "Value": 0,
+        "OK": false,
+        "Raw": ""
+      }
+    },
+    "ECMP-nexthops": {
+      "used": {
+        "Value": 14,
+        "OK": true,
+        "Raw": "14"
+      },
+      "free": {
+        "Value": 33063,
+        "OK": true,
+        "Raw": "33063"
+      },
+      "max": {
+        "Value": 33077,
+        "OK": true,
+        "Raw": "33077"
+      },
+      "high-watermark": {
+        "Value": 73,
+        "OK": true,
+        "Raw": "73"
+      }
+    },
+    "Egress-ACL-entries": {
+      "used": {
+        "Value": 2,
+        "OK": true,
+        "Raw": "2"
+      },
+      "free": {
+        "Value": 0,
+        "OK": false,
+        "Raw": ""
+      },
+      "max": {
+        "Value": 0,
+        "OK": false,
+        "Raw": ""
+      },
+      "high-watermark": {
+        "Value": 0,
+        "OK": false,
+        "Raw": ""
+      }
+    },
+    "Flow-Counters": {
+      "used": {
+        "Value": 158,
+        "OK": true,
+        "Raw": "158"
+      },
+      "free": {
+        "Value": 40482,
+        "OK": true,
+        "Raw": "40482"
+      },
+      "max": {
+        "Value": 40640,
+        "OK": true,
+        "Raw": "40640"
+      },
+      "high-watermark": {
+        "Value": 229,
+        "OK": true,
+        "Raw": "229"
+      }
+    },
+    "IPv4-Routes": {
+      "used": {
+        "Value": 33,
+        "OK": true,
+        "Raw": "33"
+      },
+      "free": {
+        "Value": 82660,
+        "OK": true,
+        "Raw": "82660"
+      },
+      "max": {
+        "Value": 82693,
+        "OK": true,
+        "Raw": "82693"
+      },
+      "high-watermark": {
+        "Value": 156,
+        "OK": true,
+        "Raw": "156"
+      }
+    },
+    "IPv4-host-entries": {
+      "used": {
+        "Value": 9,
+        "OK": true,
+        "Raw": "9"
+      },
+      "free": {
+        "Value": 41338,
+        "OK": true,
+        "Raw": "41338"
+      },
+      "max": {
+        "Value": 41347,
+        "OK": true,
+        "Raw": "41347"
+      },
+      "high-watermark": {
+        "Value": 34,
+        "OK": true,
+        "Raw": "34"
+      }
+    },
+    "IPv4-neighbors": {
+      "used": {
+        "Value": 9,
+        "OK": true,
+        "Raw": "9"
+      },
+      "free": {
+        "Value": 0,
+        "OK": false,
+        "Raw": ""
+      },
+      "max": {
+        "Value": 0,
+        "OK": false,
+        "Raw": ""
+      },
+      "high-watermark": {
+        "Value": 0,
+        "OK": false,
+        "Raw": ""
+      }
+    },
+    "IPv4-route-entries": {
+      "used": {
+        "Value": 27,
+        "OK": true,
+        "Raw": "27"
+      },
+      "free": {
+        "Value": 82666,
+        "OK": true,
+        "Raw": "82666"
+      },
+      "max": {
+        "Value": 82693,
+        "OK": true,
+        "Raw": "82693"
+      },
+      "high-watermark": {
+        "Value": 0,
+        "OK": false,
+        "Raw": ""
+      }
+    },
+    "IPv6-Routes": {
+      "used": {
+        "Value": 26,
+        "OK": true,
+        "Raw": "26"
+      },
+      "free": {
+        "Value": 74398,
+        "OK": true,
+        "Raw": "74398"
+      },
+      "max": {
+        "Value": 74424,
+        "OK": true,
+        "Raw": "74424"
+      },
+      "high-watermark": {
+        "Value": 50,
+        "OK": true,
+        "Raw": "50"
+      }
+    },
+    "IPv6-host-entries": {
+      "used": {
+        "Value": 3,
+        "OK": true,
+        "Raw": "3"
+      },
+      "free": {
+        "Value": 20670,
+        "OK": true,
+        "Raw": "20670"
+      },
+      "max": {
+        "Value": 20673,
+        "OK": true,
+        "Raw": "20673"
+      },
+      "high-watermark": {
+        "Value": 4,
+        "OK": true,
+        "Raw": "4"
+      }
+    },
+    "IPv6-neighbors": {
+      "used": {
+        "Value": 3,
+        "OK": true,
+        "Raw": "3"
+      },
+      "free": {
+        "Value": 0,
+        "OK": false,
+        "Raw": ""
+      },
+      "max": {
+        "Value": 0,
+        "OK": false,
+        "Raw": ""
+      },
+      "high-watermark": {
+        "Value": 0,
+        "OK": false,
+        "Raw": ""
+      }
+    },
+    "IPv6-route-entries": {
+      "used": {
+        "Value": 40,
+        "OK": true,
+        "Raw": "40"
+      },
+      "free": {
+        "Value": 74384,
+        "OK": true,
+        "Raw": "74384"
+      },
+      "max": {
+        "Value": 74424,
+        "OK": true,
+        "Raw": "74424"
+      },
+      "high-watermark": {
+        "Value": 0,
+        "OK": false,
+        "Raw": ""
+      }
+    },
+    "Ingress-ACL-entries": {
+      "used": {
+        "Value": 7,
+        "OK": true,
+        "Raw": "7"
+      },
+      "free": {
+        "Value": 0,
+        "OK": false,
+        "Raw": ""
+      },
+      "max": {
+        "Value": 0,
+        "OK": false,
+        "Raw": ""
+      },
+      "high-watermark": {
+        "Value": 0,
+        "OK": false,
+        "Raw": ""
+      }
+    },
+    "MAC-entries": {
+      "used": {
+        "Value": 83,
+        "OK": true,
+        "Raw": "83"
+      },
+      "free": {
+        "Value": 57802,
+        "OK": true,
+        "Raw": "57802"
+      },
+      "max": {
+        "Value": 57885,
+        "OK": true,
+        "Raw": "57885"
+      },
+      "high-watermark": {
+        "Value": 126,
+        "OK": true,
+        "Raw": "126"
+      }
+    },
+    "RIF-Basic-Counters": {
+      "used": {
+        "Value": 74,
+        "OK": true,
+        "Raw": "74"
+      },
+      "free": {
+        "Value": 3926,
+        "OK": true,
+        "Raw": "3926"
+      },
+      "max": {
+        "Value": 4000,
+        "OK": true,
+        "Raw": "4000"
+      },
+      "high-watermark": {
+        "Value": 80,
+        "OK": true,
+        "Raw": "80"
+      }
+    },
+    "RIF-Enhanced-Counters": {
+      "used": {
+        "Value": 0,
+        "OK": true,
+        "Raw": "0"
+      },
+      "free": {
+        "Value": 2709,
+        "OK": true,
+        "Raw": "2709"
+      },
+      "max": {
+        "Value": 2709,
+        "OK": true,
+        "Raw": "2709"
+      },
+      "high-watermark": {
+        "Value": 0,
+        "OK": true,
+        "Raw": "0"
+      }
+    },
+    "Total-FID-count": {
+      "used": {
+        "Value": 11,
+        "OK": true,
+        "Raw": "11"
+      },
+      "free": {
+        "Value": 6132,
+        "OK": true,
+        "Raw": "6132"
+      },
+      "max": {
+        "Value": 6143,
+        "OK": true,
+        "Raw": "6143"
+      },
+      "high-watermark": {
+        "Value": 0,
+        "OK": false,
+        "Raw": ""
+      }
+    },
+    "Total-Mcast-Routes": {
+      "used": {
+        "Value": 0,
+        "OK": true,
+        "Raw": "0"
+      },
+      "free": {
+        "Value": 1000,
+        "OK": true,
+        "Raw": "1000"
+      },
+      "max": {
+        "Value": 1000,
+        "OK": true,
+        "Raw": "1000"
+      },
+      "high-watermark": {
+        "Value": 0,
+        "OK": true,
+        "Raw": "0"
+      }
+    },
+    "Total-Routes": {
+      "used": {
+        "Value": 67,
+        "OK": true,
+        "Raw": "67"
+      },
+      "free": {
+        "Value": 157050,
+        "OK": true,
+        "Raw": "157050"
+      },
+      "max": {
+        "Value": 157117,
+        "OK": true,
+        "Raw": "157117"
+      },
+      "high-watermark": {
+        "Value": 0,
+        "OK": false,
+        "Raw": ""
+      }
+    },
+    "Vport-FID-count": {
+      "used": {
+        "Value": 11,
+        "OK": true,
+        "Raw": "11"
+      },
+      "free": {
+        "Value": 0,
+        "OK": false,
+        "Raw": ""
+      },
+      "max": {
+        "Value": 0,
+        "OK": false,
+        "Raw": ""
+      },
+      "high-watermark": {
+        "Value": 0,
+        "OK": false,
+        "Raw": ""
+      }
+    }
+  },
+  "acl": {
+    "Egress-ACL-ipv4-filter-table": {
+      "rule-count": {
+        "Value": 0,
+        "OK": true,
+        "Raw": "0"
+      }
+    },
+    "Egress-ACL-ipv4-mangle-table": {
+      "rule-count": {
+        "Value": 2,
+        "OK": true,
+        "Raw": "2"
+      }
+    },
+    "Egress-ACL-ipv6-filter-table": {
+      "rule-count": {
+        "Value": 0,
+        "OK": true,
+        "Raw": "0"
+      }
+    },
+    "Egress-ACL-ipv6-mangle-table": {
+      "rule-count": {
+        "Value": 0,
+        "OK": true,
+        "Raw": "0"
+      }
+    },
+    "Egress-ACL-mac-filter-table": {
+      "rule-count": {
+        "Value": 0,
+        "OK": true,
+        "Raw": "0"
+      }
+    },
+    "Ingress-ACL-ipv4-filter-table": {
+      "rule-count": {
+        "Value": 0,
+        "OK": true,
+        "Raw": "0"
+      }
+    },
+    "Ingress-ACL-ipv4-mangle-table": {
+      "rule-count": {
+        "Value": 7,
+        "OK": true,
+        "Raw": "7"
+      }
+    },
+    "Ingress-ACL-ipv6-filter-table": {
+      "rule-count": {
+        "Value": 0,
+        "OK": true,
+        "Raw": "0"
+      }
+    },
+    "Ingress-ACL-ipv6-mangle-table": {
+      "rule-count": {
+        "Value": 0,
+        "OK": true,
+        "Raw": "0"
+      }
+    },
+    "Ingress-ACL-mac-filter-table": {
+      "rule-count": {
+        "Value": 0,
+        "OK": true,
+        "Raw": "0"
+      }
+    },
+    "Ingress-PBR-ipv4-filter-table": {
+      "rule-count": {
+        "Value": 0,
+        "OK": true,
+        "Raw": "0"
+      }
+    },
+    "Ingress-PBR-ipv6-filter-table": {
+      "rule-count": {
+        "Value": 0,
+        "OK": true,
+        "Raw": "0"
+      }
+    }
+  }
+}

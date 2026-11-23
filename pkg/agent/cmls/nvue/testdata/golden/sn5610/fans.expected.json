@@ -1,0 +1,268 @@
+{
+  "FAN1/1": {
+    "current-speed": {
+      "Value": 7020,
+      "OK": true,
+      "Raw": "7020"
+    },
+    "min-speed": {
+      "Value": 6879,
+      "OK": true,
+      "Raw": "6879"
+    },
+    "max-speed": {
+      "Value": 21800,
+      "OK": true,
+      "Raw": "21800"
+    },
+    "direction": "F2B",
+    "state": "ok"
+  },
+  "FAN1/2": {
+    "current-speed": {
+      "Value": 7163,
+      "OK": true,
+      "Raw": "7163"
+    },
+    "min-speed": {
+      "Value": 6468,
+      "OK": true,
+      "Raw": "6468"
+    },
+    "max-speed": {
+      "Value": 20500,
+      "OK": true,
+      "Raw": "20500"
+    },
+    "direction": "F2B",
+    "state": "ok"
+  },
+  "FAN2/1": {
+    "current-speed": {
+      "Value": 7067,
+      "OK": true,
+      "Raw": "7067"
+    },
+    "min-speed": {
+      "Value": 6879,
+      "OK": true,
+      "Raw": "6879"
+    },
+    "max-speed": {
+      "Value": 21800,
+      "OK": true,
+      "Raw": "21800"
+    },
+    "direction": "F2B",
+    "state": "ok"
+  },
+  "FAN2/2": {
+    "current-speed": {
+      "Value": 7211,
+      "OK": true,
+      "Raw": "7211"
+    },
+    "min-speed": {
+      "Value": 6468,
+      "OK": true,
+      "Raw": "6468"
+    },
+    "max-speed": {
+      "Value": 20500,
+      "OK": true,
+      "Raw": "20500"
+    },
+    "direction": "F2B",
+    "state": "ok"
+  },
+  "FAN3/1": {
+    "current-speed": {
+      "Value": 7067,
+      "OK": true,
+      "Raw": "7067"
+    },
+    "min-speed": {
+      "Value": 6879,
+      "OK": true,
+      "Raw": "6879"
+    },
+    "max-speed": {
+      "Value": 21800,
+      "OK": true,
+      "Raw": "21800"
+    },
+    "direction": "F2B",
+    "state": "ok"
+  },
+  "FAN3/2": {
+    "current-speed": {
+      "Value": 7211,
+      "OK": true,
+      "Raw": "7211"
+    },
+    "min-speed": {
+      "Value": 6468,
+      "OK": true,
+      "Raw": "6468"
+    },
+    "max-speed": {
+      "Value": 20500,
+      "OK": true,
+      "Raw": "20500"
+    },
+    "direction": "F2B",
+    "state": "ok"
+  },
+  "FAN4/1": {
+    "current-speed": {
+      "Value": 7067,
+      "OK": true,
+      "Raw": "7067"
+    },
+    "min-speed": {
+      "Value": 6879,
+      "OK": true,
+      "Raw": "6879"
+    },
+    "max-speed": {
+      "Value": 21800,
+      "OK": true,
+      "Raw": "21800"
+    },
+    "direction": "F2B",
+    "state": "ok"
+  },
+  "FAN4/2": {
+    "current-speed": {
+      "Value": 7362,
+      "OK": true,
+      "Raw": "7362"
+    },
+    "min-speed": {
+      "Value": 6468,
+      "OK": true,
+      "Raw": "6468"
+    },
+    "max-speed": {
+      "Value": 20500,
+      "OK": true,
+      "Raw": "20500"
+    },
+    "direction": "F2B",
+    "state": "ok"
+  },
+  "FAN5/1": {
+    "current-speed": {
+      "Value": 7115,
+      "OK": true,
+      "Raw": "7115"
+    },
+    "min-speed": {
+      "Value": 6879,
+      "OK": true,
+      "Raw": "6879"
+    },
+    "max-speed": {
+      "Value": 21800,
+      "OK": true,
+      "Raw": "21800"
+    },
+    "direction": "F2B",
+    "state": "ok"
+  },
+  "FAN5/2": {
+    "current-speed": {
+      "Value": 7261,
+      "OK": true,
+      "Raw": "7261"
+    },
+    "min-speed": {
+      "Value": 6468,
+      "OK": true,
+      "Raw": "6468"
+    },
+    "max-speed": {
+      "Value": 20500,
+      "OK": true,
+      "Raw": "20500"
+    },
+    "direction": "F2B",
+    "state": "ok"
+  },
+  "PSU1/FAN": {
+    "current-speed": {
+      "Value": 9568,
+      "OK": true,
+      "Raw": "9568"
+    },
+    "min-speed": {
+      "Value": 9000,
+      "OK": true,
+      "Raw": "9000"
+    },
+    "max-speed": {
+      "Value": 32500,
+      "OK": true,
+      "Raw": "32500"
+    },
+    "direction": "F2B",
+    "state": "ok"
+  },
+  "PSU2/FAN": {
+    "current-speed": {
+      "Value": 0,
+      "OK": false,
+      "Raw": "N/A"
+    },
+    "min-speed": {
+      "Value": 0,
+      "OK": false,
+      "Raw": "N/A"
+    },
+    "max-speed": {
+      "Value": 0,
+      "OK": false,
+      "Raw": "N/A"
+    },
+    "direction": "N/A",
+    "state": "absent"
+  },
+  "PSU3/FAN": {
+    "current-speed": {
+      "Value": 9408,
+      "OK": true,
+      "Raw": "9408"
+    },
+    "min-speed": {
+      "Value": 9000,
+      "OK": true,
+      "Raw": "9000"
+    },
+    "max-speed": {
+      "Value": 32500,
+      "OK": true,
+      "Raw": "32500"
+    },
+    "direction": "F2B",
+    "state": "ok"
+  },
+  "PSU4/FAN": {
+    "current-speed": {
+      "Value": 0,
+      "OK": false,
+      "Raw": "N/A"
+    },
+    "min-speed": {
+      "Value": 0,
+      "OK": false,
+      "Raw": "N/A"
+    },
+    "max-speed": {
+      "Value": 0,
+      "OK": false,
+      "Raw": "N/A"
+    },
+    "direction": "N/A",
+    "state": "absent"
+  }
+}

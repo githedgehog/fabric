@@ -1,0 +1,240 @@
+{
+  "swp1s0": {
+    "in-bytes": {
+      "Value": 112421797348,
+      "OK": true
+    },
+    "in-pkts": {
+      "Value": 14775415,
+      "OK": true
+    },
+    "in-unicast-pkts": {
+      "Value": 14711895,
+      "OK": true
+    },
+    "in-multicast-pkts": {
+      "Value": 62370,
+      "OK": true
+    },
+    "in-broadcast-pkts": {
+      "Value": 1150,
+      "OK": true
+    },
+    "in-drops": {
+      "Value": 1411,
+      "OK": true
+    },
+    "in-errors": {
+      "Value": 0,
+      "OK": true
+    },
+    "out-bytes": {
+      "Value": 152854768460,
+      "OK": true
+    },
+    "out-pkts": {
+      "Value": 19363046,
+      "OK": true
+    },
+    "out-unicast-pkts": {
+      "Value": 19346322,
+      "OK": true
+    },
+    "out-multicast-pkts": {
+      "Value": 15507,
+      "OK": true
+    },
+    "out-broadcast-pkts": {
+      "Value": 1217,
+      "OK": true
+    },
+    "out-drops": {
+      "Value": 207,
+      "OK": true
+    },
+    "out-errors": {
+      "Value": 0,
+      "OK": true
+    },
+    "qos": {
+      "egress-queue-stats": {
+        "0": {
+          "tx-bytes": {
+            "Value": 152851093486,
+            "OK": true
+          },
+          "tx-frames": {
+            "Value": 19346247,
+            "OK": true
+          },
+          "tx-uc-buffer-discards": {
+            "Value": 0,
+            "OK": true
+          },
+          "wred-discards": {
+            "Value": 0,
+            "OK": true
+          },
+          "ecn-marked-frames": {
+            "Value": 0,
+            "OK": true
+          }
+        },
+        "1": {
+          "tx-bytes": {
+            "Value": 0,
+            "OK": true
+          },
+          "tx-frames": {
+            "Value": 0,
+            "OK": true
+          },
+          "tx-uc-buffer-discards": {
+            "Value": 0,
+            "OK": true
+          },
+          "wred-discards": {
+            "Value": 0,
+            "OK": true
+          },
+          "ecn-marked-frames": {
+            "Value": 0,
+            "OK": true
+          }
+        },
+        "2": {
+          "tx-bytes": {
+            "Value": 0,
+            "OK": true
+          },
+          "tx-frames": {
+            "Value": 0,
+            "OK": true
+          },
+          "tx-uc-buffer-discards": {
+            "Value": 0,
+            "OK": true
+          },
+          "wred-discards": {
+            "Value": 0,
+            "OK": true
+          },
+          "ecn-marked-frames": {
+            "Value": 0,
+            "OK": true
+          }
+        },
+        "3": {
+          "tx-bytes": {
+            "Value": 0,
+            "OK": true
+          },
+          "tx-frames": {
+            "Value": 0,
+            "OK": true
+          },
+          "tx-uc-buffer-discards": {
+            "Value": 0,
+            "OK": true
+          },
+          "wred-discards": {
+            "Value": 0,
+            "OK": true
+          },
+          "ecn-marked-frames": {
+            "Value": 0,
+            "OK": true
+          }
+        },
+        "4": {
+          "tx-bytes": {
+            "Value": 0,
+            "OK": true
+          },
+          "tx-frames": {
+            "Value": 0,
+            "OK": true
+          },
+          "tx-uc-buffer-discards": {
+            "Value": 0,
+            "OK": true
+          },
+          "wred-discards": {
+            "Value": 0,
+            "OK": true
+          },
+          "ecn-marked-frames": {
+            "Value": 0,
+            "OK": true
+          }
+        },
+        "5": {
+          "tx-bytes": {
+            "Value": 0,
+            "OK": true
+          },
+          "tx-frames": {
+            "Value": 0,
+            "OK": true
+          },
+          "tx-uc-buffer-discards": {
+            "Value": 0,
+            "OK": true
+          },
+          "wred-discards": {
+            "Value": 0,
+            "OK": true
+          },
+          "ecn-marked-frames": {
+            "Value": 0,
+            "OK": true
+          }
+        },
+        "6": {
+          "tx-bytes": {
+            "Value": 0,
+            "OK": true
+          },
+          "tx-frames": {
+            "Value": 0,
+            "OK": true
+          },
+          "tx-uc-buffer-discards": {
+            "Value": 0,
+            "OK": true
+          },
+          "wred-discards": {
+            "Value": 0,
+            "OK": true
+          },
+          "ecn-marked-frames": {
+            "Value": 0,
+            "OK": true
+          }
+        },
+        "7": {
+          "tx-bytes": {
+            "Value": 3674974,
+            "OK": true
+          },
+          "tx-frames": {
+            "Value": 16799,
+            "OK": true
+          },
+          "tx-uc-buffer-discards": {
+            "Value": 0,
+            "OK": true
+          },
+          "wred-discards": {
+            "Value": 0,
+            "OK": true
+          },
+          "ecn-marked-frames": {
+            "Value": 0,
+            "OK": true
+          }
+        }
+      }
+    }
+  }
+}

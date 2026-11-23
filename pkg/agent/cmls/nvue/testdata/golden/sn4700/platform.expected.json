@@ -1,0 +1,9 @@
+{
+  "system-type": "MSN4700",
+  "manufacturer": "Mellanox",
+  "part-number": "MSN4700-WS2FC",
+  "serial-number": "SN00000008",
+  "asic-model": "Spectrum-3",
+  "system-mac": "0a:1b:2c:00:00:03",
+  "port-layout": "32 x 400G-QSFPDD"
+}

@@ -1,0 +1,26 @@
+{
+  "BIOS": {
+    "actual-firmware": "0ABZS017_02.02.004",
+    "part-number": "American Megatrends Inc."
+  },
+  "CPLD1": {
+    "actual-firmware": "14.2",
+    "part-number": "45"
+  },
+  "CPLD2": {
+    "actual-firmware": "4.0",
+    "part-number": "43"
+  },
+  "CPLD3": {
+    "actual-firmware": "1",
+    "part-number": "N/A"
+  },
+  "SSD": {
+    "actual-firmware": "3M8410E",
+    "part-number": "LITEONIT LMH-256V2M-41 MSATA 256GB SED"
+  },
+  "Spectrum": {
+    "actual-firmware": "13.2020.1148",
+    "part-number": "MSN2700-CxxxC_Ax_Bx"
+  }
+}

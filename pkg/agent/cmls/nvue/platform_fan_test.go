@@ -34,15 +34,10 @@ func TestFans(t *testing.T) {
 			require.Contains(t, []string{"F2B", "B2F"}, fan.Direction, name)
 		}
 
+		requireGolden(t, model, "fans", fans)
+
 		if model == modelSN5610 {
 			require.Len(t, fans, 14)
-			require.Equal(t, Fan{
-				CurrentSpeed: Number{Value: 7020, OK: true, Raw: "7020"},
-				MinSpeed:     Number{Value: 6879, OK: true, Raw: "6879"},
-				MaxSpeed:     Number{Value: 21800, OK: true, Raw: "21800"},
-				Direction:    "F2B",
-				State:        EnvironmentStateOK,
-			}, fans["FAN1/1"])
 			// the fan of a PSU without power
 			notAvailable := Number{Raw: "N/A"}
 			require.Equal(t, Fan{

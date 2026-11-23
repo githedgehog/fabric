@@ -45,14 +45,6 @@ func TestASICResources(t *testing.T) {
 			require.True(t, table.RuleCount.OK, name)
 		}
 
-		if model == modelSN5610 {
-			require.Equal(t, ASICResource{
-				Used:          Number{Value: 29, OK: true, Raw: "29"},
-				Free:          Number{Value: 82664, OK: true, Raw: "82664"},
-				Max:           Number{Value: 82693, OK: true, Raw: "82693"},
-				HighWatermark: Number{Value: 137, OK: true, Raw: "137"},
-			}, resources.Global["IPv4-Routes"])
-			require.Equal(t, ASICResource{Used: Number{Value: 7, OK: true, Raw: "7"}}, resources.Global["IPv4-neighbors"])
-		}
+		requireGolden(t, model, "asic-resources", resources)
 	})
 }

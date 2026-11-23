@@ -32,18 +32,9 @@ func TestInterfaceRates(t *testing.T) {
 			require.InDelta(t, 60, rates[name].LoadInterval.Value, 0, name)
 		}
 
-		switch model {
-		case modelSN5610:
-			require.Equal(t, InterfaceRates{
-				InBitsRate:     Number{Value: 113, OK: true, Raw: "113"},
-				InPktsRate:     Number{Value: 0, OK: true, Raw: "0"},
-				InUtilization:  Number{Value: 2.8259607184702132e-08, OK: true, Raw: "2.8259607184702132e-08"},
-				OutBitsRate:    Number{Value: 456, OK: true, Raw: "456"},
-				OutPktsRate:    Number{Value: 0, OK: true, Raw: "0"},
-				OutUtilization: Number{Value: 1.1387714155917655e-07, OK: true, Raw: "1.1387714155917655e-07"},
-				LoadInterval:   Number{Value: 60, OK: true, Raw: "60"},
-			}, rates["swp29"])
-		case modelSN2700:
+		requireGolden(t, model, "interface-rates", rates)
+
+		if model == modelSN2700 {
 			// the base ports of a breakout and the ones it disables have none
 			require.NotContains(t, rates, "swp15")
 			require.NotContains(t, rates, "swp16")

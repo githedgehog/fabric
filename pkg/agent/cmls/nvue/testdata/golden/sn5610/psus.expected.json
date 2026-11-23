@@ -1,0 +1,94 @@
+{
+  "PSU1": {
+    "capacity": {
+      "Value": 2200,
+      "OK": true,
+      "Raw": "2200.0"
+    },
+    "power": {
+      "Value": 157.75,
+      "OK": true,
+      "Raw": "157.75"
+    },
+    "current": {
+      "Value": 12.703,
+      "OK": true,
+      "Raw": "12.703"
+    },
+    "voltage": {
+      "Value": 12.429,
+      "OK": true,
+      "Raw": "12.429"
+    },
+    "state": "ok"
+  },
+  "PSU2": {
+    "capacity": {
+      "Value": 0,
+      "OK": false,
+      "Raw": "N/A"
+    },
+    "power": {
+      "Value": 0,
+      "OK": false,
+      "Raw": "N/A"
+    },
+    "current": {
+      "Value": 0,
+      "OK": false,
+      "Raw": "N/A"
+    },
+    "voltage": {
+      "Value": 0,
+      "OK": false,
+      "Raw": "N/A"
+    },
+    "state": "bad"
+  },
+  "PSU3": {
+    "capacity": {
+      "Value": 2200,
+      "OK": true,
+      "Raw": "2200.0"
+    },
+    "power": {
+      "Value": 164.5,
+      "OK": true,
+      "Raw": "164.5"
+    },
+    "current": {
+      "Value": 13.218,
+      "OK": true,
+      "Raw": "13.218"
+    },
+    "voltage": {
+      "Value": 12.451,
+      "OK": true,
+      "Raw": "12.451"
+    },
+    "state": "ok"
+  },
+  "PSU4": {
+    "capacity": {
+      "Value": 0,
+      "OK": false,
+      "Raw": "N/A"
+    },
+    "power": {
+      "Value": 0,
+      "OK": false,
+      "Raw": "N/A"
+    },
+    "current": {
+      "Value": 0,
+      "OK": false,
+      "Raw": "N/A"
+    },
+    "voltage": {
+      "Value": 0,
+      "OK": false,
+      "Raw": "N/A"
+    },
+    "state": "bad"
+  }
+}

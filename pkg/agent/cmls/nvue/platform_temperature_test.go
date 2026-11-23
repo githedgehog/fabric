@@ -35,14 +35,13 @@ func TestTemperatures(t *testing.T) {
 			}
 		}
 
+		requireGolden(t, model, "temperatures", temperatures)
+
 		if model == modelSN5610 {
-			require.Equal(t, Temperature{
-				Current: Number{Value: 54, OK: true, Raw: "54.0"},
-				Max:     Number{Value: 105, OK: true, Raw: "105.0"},
-				Crit:    Number{Value: 120, OK: true, Raw: "120.0"},
-				Min:     Number{Value: 5, OK: true, Raw: "5"},
-				State:   EnvironmentStateOK,
-			}, temperatures["Asic-Temp-Sensor"])
+			asic := temperatures["Asic-Temp-Sensor"]
+			require.Equal(t, Number{Value: 105, OK: true, Raw: "105.0"}, asic.Max)
+			require.Equal(t, Number{Value: 120, OK: true, Raw: "120.0"}, asic.Crit)
+			// the sensor of a PSU without power
 			notAvailable := Number{Raw: "N/A"}
 			require.Equal(t, Temperature{
 				Current: notAvailable, Max: notAvailable, Crit: notAvailable, Min: notAvailable, State: "absent",

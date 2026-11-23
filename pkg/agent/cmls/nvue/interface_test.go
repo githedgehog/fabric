@@ -59,64 +59,26 @@ func TestInterfaces(t *testing.T) {
 			}
 		}
 
+		requireGolden(t, model, "interfaces", ifaces)
+
+		// what the switches are set up with for the fixtures, see testdata/README.md
 		switch model {
 		case modelSN5610:
 			swp29 := ifaces["swp29"]
-			require.Equal(t, InterfaceTypeSwp, swp29.Type)
-			require.Equal(t, "Unbundled server-01 server-01--unbundled--sn5610-01", swp29.Description)
-			require.Equal(t, &InterfaceLink{
-				AdminStatus:          StatusUp,
-				OperStatus:           StatusUp,
-				OperStatusLastChange: "2026/11/23 15:04:20.245",
-				Speed:                "400G",
-				AutoNegotiate:        StateEnabled,
-				FEC:                  "rs",
-				MACAddress:           "0a:1b:2c:00:00:20",
-				MTU:                  Number{Value: 9216, OK: true, Raw: "9216"},
-				Protodown:            StateDisabled,
-			}, swp29.Link)
-			require.Equal(t, Counter{Value: 22, OK: true}, swp29.Counters.Link.CarrierTransitions)
-			require.Equal(t, Counter{Value: 11, OK: true}, swp29.Counters.Link.CarrierUpCount)
-			require.Equal(t, Counter{Value: 11, OK: true}, swp29.Counters.Link.CarrierDownCount)
-
-			lastChange, err := swp29.Link.LastChange(time.UTC)
-			require.NoError(t, err)
-			require.Equal(t, time.Date(2026, 11, 23, 15, 4, 20, 245_000_000, time.UTC), lastChange)
-
-			server := swp29.LLDP.Neighbor["server-01"]
-			require.Equal(t, LLDPChassis{ChassisID: "00:00:00:00:00:00", SystemName: "server-01"}, server.Chassis)
-			require.Equal(t, LLDPPort{Name: "enp2s1", Type: "ifname", TTL: Number{Value: 120, OK: true, Raw: "120"}},
-				server.Port)
+			require.Equal(t, StatusUp, swp29.Link.OperStatus)
+			require.Equal(t, "400G", swp29.Link.Speed)
+			require.Contains(t, swp29.LLDP.Neighbor, "server-01")
 
 			spine := ifaces["swp63s0"].LLDP.Neighbor["sn3700c-01"]
-			require.Equal(t, LLDPChassis{
-				ChassisID:         "0a:1b:2c:00:00:4a",
-				SystemName:        "sn3700c-01",
-				SystemDescription: "Hedgehog Fabric",
-			}, spine.Chassis)
-			require.Equal(t, LLDPPort{
-				Name:        "swp31",
-				Type:        "ifname",
-				Description: "Fabric sn5610-01/E1/63/1 sn3700c-01--fabric--sn5610-01",
-				TTL:         Number{Value: 20, OK: true, Raw: "20"},
-			}, spine.Port)
+			require.Equal(t, "Hedgehog Fabric", spine.Chassis.SystemDescription)
+			require.Equal(t, "ifname", spine.Port.Type)
 
-			mgmt := ifaces["eth0"]
-			require.Equal(t, InterfaceTypeEth, mgmt.Type)
-			require.Equal(t, "1G", mgmt.Link.Speed)
-			require.Equal(t, LLDPMED{
-				DeviceType: "Network Connectivity Device",
-				Inventory: LLDPInventory{
-					Manufacturer:     "Accton",
-					Model:            "AS4630-54NPE",
-					SerialNumber:     "SN00000001",
-					FirmwareRevision: "v47.01.02.02",
-					SoftwareRevision: "5.10.0-39-amd64",
-				},
-			}, mgmt.LLDP.Neighbor["he-f2-1500-05-07-tor"].MED)
+			// the neighbor of the management port has its inventory in LLDP-MED
+			for _, neighbor := range ifaces["eth0"].LLDP.Neighbor {
+				require.NotEmpty(t, neighbor.MED.Inventory.Model)
+			}
 
 			unused := ifaces["swp4"]
-			require.Equal(t, StatusDown, unused.Link.AdminStatus)
 			require.Equal(t, StatusDown, unused.Link.OperStatus)
 			require.Empty(t, unused.Link.Speed)
 
@@ -130,16 +92,24 @@ func TestInterfaces(t *testing.T) {
 		case modelSN4700:
 			bond := ifaces["bond1"]
 			require.Equal(t, InterfaceTypeBond, bond.Type)
-			require.Equal(t, "ESLAG server-05 server-05--eslag--sn4600-01--sn4700-01", bond.Description)
-			require.Equal(t, "10G", bond.Link.Speed)
-			require.Equal(t, &InterfaceBond{
-				Mode:       "lacp",
-				LACPRate:   "fast",
-				LACPBypass: "off",
-				Member: map[string]InterfaceBondMember{
-					"swp1s0": {BondingState: "active", MIIStatus: StatusUp},
-				},
-			}, bond.Bond)
+			require.Equal(t, "lacp", bond.Bond.Mode)
+			require.Equal(t, map[string]InterfaceBondMember{
+				"swp1s0": {BondingState: "active", MIIStatus: StatusUp},
+			}, bond.Bond.Member)
 		}
 	})
+}
+
+func TestInterfaceLinkLastChange(t *testing.T) {
+	link := &InterfaceLink{OperStatusLastChange: "2026/11/23 15:04:20.245"}
+
+	loc, err := time.LoadLocation("America/Los_Angeles")
+	require.NoError(t, err)
+	lastChange, err := link.LastChange(loc)
+	require.NoError(t, err)
+	require.Equal(t, time.Date(2026, 11, 23, 23, 4, 20, 245_000_000, time.UTC), lastChange.UTC())
+
+	link.OperStatusLastChange = "N/A"
+	_, err = link.LastChange(time.UTC)
+	require.ErrorContains(t, err, `parsing last change "N/A"`)
 }

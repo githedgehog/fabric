@@ -1,0 +1,528 @@
+{
+  "swp49": {
+    "identifier": "0x11 (QSFP28)",
+    "status": "Inserted",
+    "error-status": "N/A",
+    "diagnostics-status": "N/A",
+    "cable-type": "Passive copper cable",
+    "cable-length": {
+      "Value": 2,
+      "OK": true,
+      "Raw": "2m"
+    },
+    "pmd-type": "",
+    "revision-compliance": "SFF-8636 Rev 2.5/2.6/2.7",
+    "vendor-name": "FS",
+    "vendor-oui": "64:9d:99",
+    "vendor-pn": "QSFP-100G-PC02",
+    "vendor-rev": "A",
+    "vendor-sn": "SN00000002",
+    "vendor-date-code": "240803",
+    "temperature": {
+      "temperature": {
+        "Value": 0,
+        "OK": true,
+        "Raw": "0.00 C"
+      }
+    },
+    "voltage": {
+      "voltage": {
+        "Value": 0,
+        "OK": true,
+        "Raw": "0.0000 V"
+      }
+    },
+    "channel": null
+  },
+  "swp50": {
+    "identifier": "0x11 (QSFP28)",
+    "status": "Inserted",
+    "error-status": "N/A",
+    "diagnostics-status": "Diagnostic Data Available",
+    "cable-type": "Passive copper cable",
+    "cable-length": {
+      "Value": 1,
+      "OK": true,
+      "Raw": "1m"
+    },
+    "pmd-type": "",
+    "revision-compliance": "SFF-8636 Rev 2.5/2.6/2.7",
+    "vendor-name": "Mellanox",
+    "vendor-oui": "00:02:c9",
+    "vendor-pn": "MCP1600-C001",
+    "vendor-rev": "A3",
+    "vendor-sn": "SN00000003",
+    "vendor-date-code": "250620",
+    "temperature": {
+      "temperature": {
+        "Value": 31.41,
+        "OK": true,
+        "Raw": "31.41 C"
+      }
+    },
+    "voltage": {
+      "voltage": {
+        "Value": 3.3029,
+        "OK": true,
+        "Raw": "3.3029 V"
+      }
+    },
+    "channel": {
+      "channel-1": {
+        "rx-power": {
+          "power": {
+            "DBm": 0,
+            "OK": false,
+            "Raw": "0.0000 mW / -inf dBm"
+          }
+        },
+        "tx-power": {
+          "power": {
+            "DBm": 0,
+            "OK": false,
+            "Raw": "0.0000 mW / -inf dBm"
+          }
+        },
+        "tx-bias-current": {
+          "current": {
+            "Value": 0,
+            "OK": true,
+            "Raw": "0.000 mA"
+          }
+        },
+        "rx-los": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-los": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-fault": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "rx-cdr-lol": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-cdr-lol": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        }
+      },
+      "channel-2": {
+        "rx-power": {
+          "power": {
+            "DBm": 0,
+            "OK": false,
+            "Raw": "0.0000 mW / -inf dBm"
+          }
+        },
+        "tx-power": {
+          "power": {
+            "DBm": 0,
+            "OK": false,
+            "Raw": "0.0000 mW / -inf dBm"
+          }
+        },
+        "tx-bias-current": {
+          "current": {
+            "Value": 0,
+            "OK": true,
+            "Raw": "0.000 mA"
+          }
+        },
+        "rx-los": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-los": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-fault": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "rx-cdr-lol": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-cdr-lol": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        }
+      },
+      "channel-3": {
+        "rx-power": {
+          "power": {
+            "DBm": 0,
+            "OK": false,
+            "Raw": "0.0000 mW / -inf dBm"
+          }
+        },
+        "tx-power": {
+          "power": {
+            "DBm": 0,
+            "OK": false,
+            "Raw": "0.0000 mW / -inf dBm"
+          }
+        },
+        "tx-bias-current": {
+          "current": {
+            "Value": 0,
+            "OK": true,
+            "Raw": "0.000 mA"
+          }
+        },
+        "rx-los": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-los": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-fault": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "rx-cdr-lol": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-cdr-lol": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        }
+      },
+      "channel-4": {
+        "rx-power": {
+          "power": {
+            "DBm": 0,
+            "OK": false,
+            "Raw": "0.0000 mW / -inf dBm"
+          }
+        },
+        "tx-power": {
+          "power": {
+            "DBm": 0,
+            "OK": false,
+            "Raw": "0.0000 mW / -inf dBm"
+          }
+        },
+        "tx-bias-current": {
+          "current": {
+            "Value": 0,
+            "OK": true,
+            "Raw": "0.000 mA"
+          }
+        },
+        "rx-los": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-los": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-fault": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "rx-cdr-lol": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-cdr-lol": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        }
+      }
+    }
+  },
+  "swp51": {
+    "identifier": "0x11 (QSFP28)",
+    "status": "Inserted",
+    "error-status": "N/A",
+    "diagnostics-status": "Diagnostic Data Available",
+    "cable-type": "Passive copper cable",
+    "cable-length": {
+      "Value": 2,
+      "OK": true,
+      "Raw": "2m"
+    },
+    "pmd-type": "",
+    "revision-compliance": "SFF-8636 Rev 2.5/2.6/2.7",
+    "vendor-name": "Mellanox",
+    "vendor-oui": "00:02:c9",
+    "vendor-pn": "MCP1600-C002",
+    "vendor-rev": "A3",
+    "vendor-sn": "SN00000004",
+    "vendor-date-code": "250730",
+    "temperature": {
+      "temperature": {
+        "Value": 30.71,
+        "OK": true,
+        "Raw": "30.71 C"
+      }
+    },
+    "voltage": {
+      "voltage": {
+        "Value": 3.3046,
+        "OK": true,
+        "Raw": "3.3046 V"
+      }
+    },
+    "channel": {
+      "channel-1": {
+        "rx-power": {
+          "power": {
+            "DBm": 0,
+            "OK": false,
+            "Raw": "0.0000 mW / -inf dBm"
+          }
+        },
+        "tx-power": {
+          "power": {
+            "DBm": 0,
+            "OK": false,
+            "Raw": "0.0000 mW / -inf dBm"
+          }
+        },
+        "tx-bias-current": {
+          "current": {
+            "Value": 0,
+            "OK": true,
+            "Raw": "0.000 mA"
+          }
+        },
+        "rx-los": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-los": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-fault": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "rx-cdr-lol": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-cdr-lol": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        }
+      },
+      "channel-2": {
+        "rx-power": {
+          "power": {
+            "DBm": 0,
+            "OK": false,
+            "Raw": "0.0000 mW / -inf dBm"
+          }
+        },
+        "tx-power": {
+          "power": {
+            "DBm": 0,
+            "OK": false,
+            "Raw": "0.0000 mW / -inf dBm"
+          }
+        },
+        "tx-bias-current": {
+          "current": {
+            "Value": 0,
+            "OK": true,
+            "Raw": "0.000 mA"
+          }
+        },
+        "rx-los": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-los": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-fault": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "rx-cdr-lol": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-cdr-lol": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        }
+      },
+      "channel-3": {
+        "rx-power": {
+          "power": {
+            "DBm": 0,
+            "OK": false,
+            "Raw": "0.0000 mW / -inf dBm"
+          }
+        },
+        "tx-power": {
+          "power": {
+            "DBm": 0,
+            "OK": false,
+            "Raw": "0.0000 mW / -inf dBm"
+          }
+        },
+        "tx-bias-current": {
+          "current": {
+            "Value": 0,
+            "OK": true,
+            "Raw": "0.000 mA"
+          }
+        },
+        "rx-los": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-los": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-fault": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "rx-cdr-lol": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-cdr-lol": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        }
+      },
+      "channel-4": {
+        "rx-power": {
+          "power": {
+            "DBm": 0,
+            "OK": false,
+            "Raw": "0.0000 mW / -inf dBm"
+          }
+        },
+        "tx-power": {
+          "power": {
+            "DBm": 0,
+            "OK": false,
+            "Raw": "0.0000 mW / -inf dBm"
+          }
+        },
+        "tx-bias-current": {
+          "current": {
+            "Value": 0,
+            "OK": true,
+            "Raw": "0.000 mA"
+          }
+        },
+        "rx-los": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-los": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-fault": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "rx-cdr-lol": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-cdr-lol": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        }
+      }
+    }
+  },
+  "swp52": {
+    "identifier": "0x11 (QSFP28)",
+    "status": "Inserted",
+    "error-status": "N/A",
+    "diagnostics-status": "N/A",
+    "cable-type": "Passive copper cable",
+    "cable-length": {
+      "Value": 1,
+      "OK": true,
+      "Raw": "1m"
+    },
+    "pmd-type": "",
+    "revision-compliance": "SFF-8636 Rev 2.5/2.6/2.7",
+    "vendor-name": "FS",
+    "vendor-oui": "64:9d:99",
+    "vendor-pn": "Q28-PC01",
+    "vendor-rev": "A",
+    "vendor-sn": "SN00000005",
+    "vendor-date-code": "230919",
+    "temperature": {
+      "temperature": {
+        "Value": 0,
+        "OK": true,
+        "Raw": "0.00 C"
+      }
+    },
+    "voltage": {
+      "voltage": {
+        "Value": 0,
+        "OK": true,
+        "Raw": "0.0000 V"
+      }
+    },
+    "channel": null
+  }
+}

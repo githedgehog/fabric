@@ -36,27 +36,20 @@ func TestPSUs(t *testing.T) {
 		}
 		require.Positive(t, powered, "no PSU with power")
 
+		requireGolden(t, model, "psus", psus)
+
 		if model == modelSN5610 {
-			// two of the four PSUs aren't plugged in
+			// two of the four PSUs have no power
 			notAvailable := Number{Raw: "N/A"}
-			require.Equal(t, map[string]PSU{
-				"PSU1": {
-					Capacity: Number{Value: 2200, OK: true, Raw: "2200.0"},
-					Power:    Number{Value: 157.75, OK: true, Raw: "157.75"},
-					Current:  Number{Value: 12.703, OK: true, Raw: "12.703"},
-					Voltage:  Number{Value: 12.429, OK: true, Raw: "12.429"},
-					State:    EnvironmentStateOK,
-				},
-				"PSU2": {Capacity: notAvailable, Power: notAvailable, Current: notAvailable, Voltage: notAvailable, State: "bad"},
-				"PSU3": {
-					Capacity: Number{Value: 2200, OK: true, Raw: "2200.0"},
-					Power:    Number{Value: 164.5, OK: true, Raw: "164.5"},
-					Current:  Number{Value: 13.218, OK: true, Raw: "13.218"},
-					Voltage:  Number{Value: 12.451, OK: true, Raw: "12.451"},
-					State:    EnvironmentStateOK,
-				},
-				"PSU4": {Capacity: notAvailable, Power: notAvailable, Current: notAvailable, Voltage: notAvailable, State: "bad"},
-			}, psus)
+			for _, name := range []string{"PSU2", "PSU4"} {
+				require.Equal(t, PSU{
+					Capacity: notAvailable, Power: notAvailable, Current: notAvailable, Voltage: notAvailable, State: "bad",
+				}, psus[name], name)
+			}
+			for _, name := range []string{"PSU1", "PSU3"} {
+				require.Equal(t, EnvironmentStateOK, psus[name].State, name)
+				require.Equal(t, Number{Value: 2200, OK: true, Raw: "2200.0"}, psus[name].Capacity, name)
+			}
 		}
 	})
 }

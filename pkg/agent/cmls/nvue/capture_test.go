@@ -79,7 +79,7 @@ func TestFixturesCaptured(t *testing.T) {
 	require.NoError(t, err)
 
 	for _, model := range models {
-		if !model.IsDir() {
+		if !model.IsDir() || model.Name() == goldenDir {
 			continue
 		}
 
@@ -114,7 +114,7 @@ func TestImportCapture(t *testing.T) {
 	if src == "" {
 		t.Skip(envImport + " isn't set")
 	}
-	refresh := os.Getenv(envImportRefresh) == "true"
+	refresh := envEnabled(envImportRefresh)
 
 	model := filepath.Base(src)
 	requests := captureRequests(model)

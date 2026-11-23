@@ -1,0 +1,186 @@
+{
+  "Asic-Temp-Sensor": {
+    "current": {
+      "Value": 59,
+      "OK": true,
+      "Raw": "59.0"
+    },
+    "max": {
+      "Value": 105,
+      "OK": true,
+      "Raw": "105.0"
+    },
+    "crit": {
+      "Value": 120,
+      "OK": true,
+      "Raw": "120.0"
+    },
+    "min": {
+      "Value": 5,
+      "OK": true,
+      "Raw": "5"
+    },
+    "state": "ok"
+  },
+  "CPU-Core-Sensor-0": {
+    "current": {
+      "Value": 40,
+      "OK": true,
+      "Raw": "40.0"
+    },
+    "max": {
+      "Value": 75,
+      "OK": true,
+      "Raw": "75.0"
+    },
+    "crit": {
+      "Value": 95,
+      "OK": true,
+      "Raw": "95.0"
+    },
+    "min": {
+      "Value": 5,
+      "OK": true,
+      "Raw": "5"
+    },
+    "state": "ok"
+  },
+  "CPU-Core-Sensor-1": {
+    "current": {
+      "Value": 41,
+      "OK": true,
+      "Raw": "41.0"
+    },
+    "max": {
+      "Value": 75,
+      "OK": true,
+      "Raw": "75.0"
+    },
+    "crit": {
+      "Value": 95,
+      "OK": true,
+      "Raw": "95.0"
+    },
+    "min": {
+      "Value": 5,
+      "OK": true,
+      "Raw": "5"
+    },
+    "state": "ok"
+  },
+  "CPU-Package-Sensor": {
+    "current": {
+      "Value": 42,
+      "OK": true,
+      "Raw": "42.0"
+    },
+    "max": {
+      "Value": 75,
+      "OK": true,
+      "Raw": "75.0"
+    },
+    "crit": {
+      "Value": 95,
+      "OK": true,
+      "Raw": "95.0"
+    },
+    "min": {
+      "Value": 5,
+      "OK": true,
+      "Raw": "5"
+    },
+    "state": "ok"
+  },
+  "Main-Board-Ambient-Sensor": {
+    "current": {
+      "Value": 37.5,
+      "OK": true,
+      "Raw": "37.5"
+    },
+    "max": {
+      "Value": 80,
+      "OK": true,
+      "Raw": "80"
+    },
+    "crit": {
+      "Value": 85,
+      "OK": true,
+      "Raw": "85"
+    },
+    "min": {
+      "Value": 5,
+      "OK": true,
+      "Raw": "5"
+    },
+    "state": "ok"
+  },
+  "PSU1-Temp-Sensor": {
+    "current": {
+      "Value": 37.1,
+      "OK": true,
+      "Raw": "37.1"
+    },
+    "max": {
+      "Value": 60,
+      "OK": true,
+      "Raw": "60.0"
+    },
+    "crit": {
+      "Value": 85,
+      "OK": true,
+      "Raw": "85"
+    },
+    "min": {
+      "Value": 5,
+      "OK": true,
+      "Raw": "5"
+    },
+    "state": "ok"
+  },
+  "PSU2-Temp-Sensor": {
+    "current": {
+      "Value": 37.7,
+      "OK": true,
+      "Raw": "37.7"
+    },
+    "max": {
+      "Value": 60,
+      "OK": true,
+      "Raw": "60.0"
+    },
+    "crit": {
+      "Value": 85,
+      "OK": true,
+      "Raw": "85"
+    },
+    "min": {
+      "Value": 5,
+      "OK": true,
+      "Raw": "5"
+    },
+    "state": "ok"
+  },
+  "Port-Ambient-Sensor": {
+    "current": {
+      "Value": 34,
+      "OK": true,
+      "Raw": "34.0"
+    },
+    "max": {
+      "Value": 80,
+      "OK": true,
+      "Raw": "80"
+    },
+    "crit": {
+      "Value": 85,
+      "OK": true,
+      "Raw": "85"
+    },
+    "min": {
+      "Value": 5,
+      "OK": true,
+      "Raw": "5"
+    },
+    "state": "ok"
+  }
+}

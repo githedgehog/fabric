@@ -35,27 +35,20 @@ func TestPlatform(t *testing.T) {
 			require.Equal(t, model, strings.ToLower(strings.TrimPrefix(platform.SystemType, "M")))
 		}
 
+		requireGolden(t, model, "platform", platform)
+
+		// the hardware doesn't change, only the scrubbed serial number and MAC between captures
 		switch model {
 		case modelSN5610:
-			require.Equal(t, &Platform{
-				SystemType:   "SN5610",
-				Manufacturer: "Nvidia",
-				PartNumber:   "920-9N42F-00RI-3C1",
-				SerialNumber: "SN00000013",
-				ASICModel:    "Spectrum-4",
-				SystemMAC:    "0a:1b:2c:00:00:01",
-				PortLayout:   "64 x 800G-OSFP & 2 x 25G-SFP28",
-			}, platform)
+			require.Equal(t, "SN5610", platform.SystemType)
+			require.Equal(t, "Nvidia", platform.Manufacturer)
+			require.Equal(t, "Spectrum-4", platform.ASICModel)
+			require.Equal(t, "64 x 800G-OSFP & 2 x 25G-SFP28", platform.PortLayout)
 		case modelSN4700:
-			require.Equal(t, &Platform{
-				SystemType:   "MSN4700",
-				Manufacturer: "Mellanox",
-				PartNumber:   "MSN4700-WS2FC",
-				SerialNumber: "SN00000008",
-				ASICModel:    "Spectrum-3",
-				SystemMAC:    "0a:1b:2c:00:00:03",
-				PortLayout:   "32 x 400G-QSFPDD",
-			}, platform)
+			// the ones that came out as Mellanox are still named so
+			require.Equal(t, "MSN4700", platform.SystemType)
+			require.Equal(t, "Mellanox", platform.Manufacturer)
+			require.Equal(t, "Spectrum-3", platform.ASICModel)
 		case modelSN2201:
 			require.Equal(t, "Spectrum", platform.ASICModel)
 			require.Equal(t, "48 x RJ45 & 4 x 100G-QSFP28", platform.PortLayout)

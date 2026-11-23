@@ -1,0 +1,983 @@
+{
+  "swp1": {
+    "identifier": "0x11 (QSFP28)",
+    "status": "Inserted",
+    "error-status": "N/A",
+    "diagnostics-status": "Diagnostic Data Available",
+    "cable-type": "",
+    "cable-length": {
+      "Value": 0,
+      "OK": false,
+      "Raw": ""
+    },
+    "pmd-type": "ETH_XAUI_1_10G",
+    "revision-compliance": "SFF-8636 Rev 2.5/2.6/2.7",
+    "vendor-name": "OEM",
+    "vendor-oui": "00:00:00",
+    "vendor-pn": "CAB-ZQP-4ZSP-1M",
+    "vendor-rev": "A",
+    "vendor-sn": "SN00000002",
+    "vendor-date-code": "________",
+    "temperature": {
+      "temperature": {
+        "Value": 36.06,
+        "OK": true,
+        "Raw": "36.06 C"
+      }
+    },
+    "voltage": {
+      "voltage": {
+        "Value": 3.3234,
+        "OK": true,
+        "Raw": "3.3234 V"
+      }
+    },
+    "channel": {
+      "channel-1": {
+        "rx-power": {
+          "power": {
+            "DBm": 0,
+            "OK": false,
+            "Raw": "0.0000 mW / -inf dBm"
+          }
+        },
+        "tx-power": {
+          "power": {
+            "DBm": 0,
+            "OK": false,
+            "Raw": "0.0000 mW / -inf dBm"
+          }
+        },
+        "tx-bias-current": {
+          "current": {
+            "Value": 0,
+            "OK": true,
+            "Raw": "0.000 mA"
+          }
+        },
+        "rx-los": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-los": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-fault": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "rx-cdr-lol": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-cdr-lol": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        }
+      },
+      "channel-2": {
+        "rx-power": {
+          "power": {
+            "DBm": 0,
+            "OK": false,
+            "Raw": "0.0000 mW / -inf dBm"
+          }
+        },
+        "tx-power": {
+          "power": {
+            "DBm": 0,
+            "OK": false,
+            "Raw": "0.0000 mW / -inf dBm"
+          }
+        },
+        "tx-bias-current": {
+          "current": {
+            "Value": 0,
+            "OK": true,
+            "Raw": "0.000 mA"
+          }
+        },
+        "rx-los": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-los": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-fault": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "rx-cdr-lol": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-cdr-lol": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        }
+      },
+      "channel-3": {
+        "rx-power": {
+          "power": {
+            "DBm": 0,
+            "OK": false,
+            "Raw": "0.0000 mW / -inf dBm"
+          }
+        },
+        "tx-power": {
+          "power": {
+            "DBm": 0,
+            "OK": false,
+            "Raw": "0.0000 mW / -inf dBm"
+          }
+        },
+        "tx-bias-current": {
+          "current": {
+            "Value": 0,
+            "OK": true,
+            "Raw": "0.000 mA"
+          }
+        },
+        "rx-los": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-los": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-fault": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "rx-cdr-lol": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-cdr-lol": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        }
+      },
+      "channel-4": {
+        "rx-power": {
+          "power": {
+            "DBm": 0,
+            "OK": false,
+            "Raw": "0.0000 mW / -inf dBm"
+          }
+        },
+        "tx-power": {
+          "power": {
+            "DBm": 0,
+            "OK": false,
+            "Raw": "0.0000 mW / -inf dBm"
+          }
+        },
+        "tx-bias-current": {
+          "current": {
+            "Value": 0,
+            "OK": true,
+            "Raw": "0.000 mA"
+          }
+        },
+        "rx-los": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-los": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-fault": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "rx-cdr-lol": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-cdr-lol": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        }
+      }
+    }
+  },
+  "swp29": {
+    "identifier": "0x11 (QSFP28)",
+    "status": "Inserted",
+    "error-status": "N/A",
+    "diagnostics-status": "N/A",
+    "cable-type": "Passive copper cable",
+    "cable-length": {
+      "Value": 1,
+      "OK": true,
+      "Raw": "1m"
+    },
+    "pmd-type": "ETH_100GBASE_CR4",
+    "revision-compliance": "SFF-8636 Rev 2.5/2.6/2.7",
+    "vendor-name": "Amphenol",
+    "vendor-oui": "78:a7:14",
+    "vendor-pn": "NDAAFF-0001",
+    "vendor-rev": "U",
+    "vendor-sn": "SN00000003",
+    "vendor-date-code": "200522",
+    "temperature": {
+      "temperature": {
+        "Value": 0,
+        "OK": true,
+        "Raw": "0.00 C"
+      }
+    },
+    "voltage": {
+      "voltage": {
+        "Value": 0,
+        "OK": true,
+        "Raw": "0.0000 V"
+      }
+    },
+    "channel": null
+  },
+  "swp30": {
+    "identifier": "0x11 (QSFP28)",
+    "status": "Inserted",
+    "error-status": "N/A",
+    "diagnostics-status": "N/A",
+    "cable-type": "Passive copper cable",
+    "cable-length": {
+      "Value": 1,
+      "OK": true,
+      "Raw": "1m"
+    },
+    "pmd-type": "ETH_100GBASE_CR4",
+    "revision-compliance": "SFF-8636 Rev 2.5/2.6/2.7",
+    "vendor-name": "Amphenol",
+    "vendor-oui": "78:a7:14",
+    "vendor-pn": "NDAAFF-0001",
+    "vendor-rev": "U",
+    "vendor-sn": "SN00000004",
+    "vendor-date-code": "200521",
+    "temperature": {
+      "temperature": {
+        "Value": 0,
+        "OK": true,
+        "Raw": "0.00 C"
+      }
+    },
+    "voltage": {
+      "voltage": {
+        "Value": 0,
+        "OK": true,
+        "Raw": "0.0000 V"
+      }
+    },
+    "channel": null
+  },
+  "swp31": {
+    "identifier": "0x11 (QSFP28)",
+    "status": "Inserted",
+    "error-status": "N/A",
+    "diagnostics-status": "N/A",
+    "cable-type": "Passive copper cable",
+    "cable-length": {
+      "Value": 1,
+      "OK": true,
+      "Raw": "1m"
+    },
+    "pmd-type": "ETH_100GBASE_CR4",
+    "revision-compliance": "SFF-8636 Rev 2.5/2.6/2.7",
+    "vendor-name": "Amphenol",
+    "vendor-oui": "78:a7:14",
+    "vendor-pn": "NDAAFF-0001",
+    "vendor-rev": "U",
+    "vendor-sn": "SN00000005",
+    "vendor-date-code": "200522",
+    "temperature": {
+      "temperature": {
+        "Value": 0,
+        "OK": true,
+        "Raw": "0.00 C"
+      }
+    },
+    "voltage": {
+      "voltage": {
+        "Value": 0,
+        "OK": true,
+        "Raw": "0.0000 V"
+      }
+    },
+    "channel": null
+  },
+  "swp32": {
+    "identifier": "0x11 (QSFP28)",
+    "status": "Inserted",
+    "error-status": "N/A",
+    "diagnostics-status": "Diagnostic Data Available",
+    "cable-type": "Passive copper cable",
+    "cable-length": {
+      "Value": 2,
+      "OK": true,
+      "Raw": "2m"
+    },
+    "pmd-type": "ETH_100GBASE_CR4",
+    "revision-compliance": "SFF-8636 Rev 2.5/2.6/2.7",
+    "vendor-name": "OEM",
+    "vendor-oui": "00:00:00",
+    "vendor-pn": "CAB-ZQP/ZQP-P2M",
+    "vendor-rev": "5",
+    "vendor-sn": "SN00000006",
+    "vendor-date-code": "221206",
+    "temperature": {
+      "temperature": {
+        "Value": 31.68,
+        "OK": true,
+        "Raw": "31.68 C"
+      }
+    },
+    "voltage": {
+      "voltage": {
+        "Value": 3.314,
+        "OK": true,
+        "Raw": "3.3140 V"
+      }
+    },
+    "channel": {
+      "channel-1": {
+        "rx-power": {
+          "power": {
+            "DBm": 0,
+            "OK": false,
+            "Raw": "0.0000 mW / -inf dBm"
+          }
+        },
+        "tx-power": {
+          "power": {
+            "DBm": 0,
+            "OK": false,
+            "Raw": "0.0000 mW / -inf dBm"
+          }
+        },
+        "tx-bias-current": {
+          "current": {
+            "Value": 0,
+            "OK": true,
+            "Raw": "0.000 mA"
+          }
+        },
+        "rx-los": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-los": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-fault": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "rx-cdr-lol": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-cdr-lol": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        }
+      },
+      "channel-2": {
+        "rx-power": {
+          "power": {
+            "DBm": 0,
+            "OK": false,
+            "Raw": "0.0000 mW / -inf dBm"
+          }
+        },
+        "tx-power": {
+          "power": {
+            "DBm": 0,
+            "OK": false,
+            "Raw": "0.0000 mW / -inf dBm"
+          }
+        },
+        "tx-bias-current": {
+          "current": {
+            "Value": 0,
+            "OK": true,
+            "Raw": "0.000 mA"
+          }
+        },
+        "rx-los": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-los": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-fault": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "rx-cdr-lol": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-cdr-lol": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        }
+      },
+      "channel-3": {
+        "rx-power": {
+          "power": {
+            "DBm": 0,
+            "OK": false,
+            "Raw": "0.0000 mW / -inf dBm"
+          }
+        },
+        "tx-power": {
+          "power": {
+            "DBm": 0,
+            "OK": false,
+            "Raw": "0.0000 mW / -inf dBm"
+          }
+        },
+        "tx-bias-current": {
+          "current": {
+            "Value": 0,
+            "OK": true,
+            "Raw": "0.000 mA"
+          }
+        },
+        "rx-los": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-los": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-fault": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "rx-cdr-lol": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-cdr-lol": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        }
+      },
+      "channel-4": {
+        "rx-power": {
+          "power": {
+            "DBm": 0,
+            "OK": false,
+            "Raw": "0.0000 mW / -inf dBm"
+          }
+        },
+        "tx-power": {
+          "power": {
+            "DBm": 0,
+            "OK": false,
+            "Raw": "0.0000 mW / -inf dBm"
+          }
+        },
+        "tx-bias-current": {
+          "current": {
+            "Value": 0,
+            "OK": true,
+            "Raw": "0.000 mA"
+          }
+        },
+        "rx-los": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-los": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-fault": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "rx-cdr-lol": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        },
+        "tx-cdr-lol": {
+          "Value": false,
+          "OK": false,
+          "Raw": "N/A"
+        }
+      }
+    }
+  },
+  "swp9": {
+    "identifier": "0x18 (QSFP-DD Double Density 8X Pluggable Transceiver (INF-8628))",
+    "status": "Inserted",
+    "error-status": "N/A",
+    "diagnostics-status": "Diagnostic Data Available",
+    "cable-type": "Optical module",
+    "cable-length": {
+      "Value": 0,
+      "OK": false,
+      "Raw": ""
+    },
+    "pmd-type": "ETH_400GBASE_CR8",
+    "revision-compliance": "Rev. 4.0",
+    "vendor-name": "AVAGO",
+    "vendor-oui": "00:17:6a",
+    "vendor-pn": "AFCT-91DRPHZ-AZ2",
+    "vendor-rev": "01",
+    "vendor-sn": "SN00000007",
+    "vendor-date-code": "220806",
+    "temperature": {
+      "temperature": {
+        "Value": 49.52,
+        "OK": true,
+        "Raw": "49.52 C"
+      }
+    },
+    "voltage": {
+      "voltage": {
+        "Value": 3.2836,
+        "OK": true,
+        "Raw": "3.2836 V"
+      }
+    },
+    "channel": {
+      "channel-1": {
+        "rx-power": {
+          "power": {
+            "DBm": 0.93,
+            "OK": true,
+            "Raw": "1.2400 mW / 0.93 dBm"
+          }
+        },
+        "tx-power": {
+          "power": {
+            "DBm": 2.44,
+            "OK": true,
+            "Raw": "1.7538 mW / 2.44 dBm"
+          }
+        },
+        "tx-bias-current": {
+          "current": {
+            "Value": 113.932,
+            "OK": true,
+            "Raw": "113.932 mA"
+          }
+        },
+        "rx-los": {
+          "Value": false,
+          "OK": true,
+          "Raw": "False"
+        },
+        "tx-los": {
+          "Value": false,
+          "OK": true,
+          "Raw": "False"
+        },
+        "tx-fault": {
+          "Value": false,
+          "OK": true,
+          "Raw": "False"
+        },
+        "rx-cdr-lol": {
+          "Value": false,
+          "OK": true,
+          "Raw": "False"
+        },
+        "tx-cdr-lol": {
+          "Value": false,
+          "OK": true,
+          "Raw": "False"
+        }
+      },
+      "channel-2": {
+        "rx-power": {
+          "power": {
+            "DBm": -0.7,
+            "OK": true,
+            "Raw": "0.8521 mW / -0.70 dBm"
+          }
+        },
+        "tx-power": {
+          "power": {
+            "DBm": 2.09,
+            "OK": true,
+            "Raw": "1.6184 mW / 2.09 dBm"
+          }
+        },
+        "tx-bias-current": {
+          "current": {
+            "Value": 119.912,
+            "OK": true,
+            "Raw": "119.912 mA"
+          }
+        },
+        "rx-los": {
+          "Value": false,
+          "OK": true,
+          "Raw": "False"
+        },
+        "tx-los": {
+          "Value": false,
+          "OK": true,
+          "Raw": "False"
+        },
+        "tx-fault": {
+          "Value": false,
+          "OK": true,
+          "Raw": "False"
+        },
+        "rx-cdr-lol": {
+          "Value": false,
+          "OK": true,
+          "Raw": "False"
+        },
+        "tx-cdr-lol": {
+          "Value": false,
+          "OK": true,
+          "Raw": "False"
+        }
+      },
+      "channel-3": {
+        "rx-power": {
+          "power": {
+            "DBm": 0.61,
+            "OK": true,
+            "Raw": "1.1508 mW / 0.61 dBm"
+          }
+        },
+        "tx-power": {
+          "power": {
+            "DBm": 2.45,
+            "OK": true,
+            "Raw": "1.7594 mW / 2.45 dBm"
+          }
+        },
+        "tx-bias-current": {
+          "current": {
+            "Value": 101.968,
+            "OK": true,
+            "Raw": "101.968 mA"
+          }
+        },
+        "rx-los": {
+          "Value": false,
+          "OK": true,
+          "Raw": "False"
+        },
+        "tx-los": {
+          "Value": false,
+          "OK": true,
+          "Raw": "False"
+        },
+        "tx-fault": {
+          "Value": false,
+          "OK": true,
+          "Raw": "False"
+        },
+        "rx-cdr-lol": {
+          "Value": false,
+          "OK": true,
+          "Raw": "False"
+        },
+        "tx-cdr-lol": {
+          "Value": false,
+          "OK": true,
+          "Raw": "False"
+        }
+      },
+      "channel-4": {
+        "rx-power": {
+          "power": {
+            "DBm": -1.05,
+            "OK": true,
+            "Raw": "0.7856 mW / -1.05 dBm"
+          }
+        },
+        "tx-power": {
+          "power": {
+            "DBm": 2.61,
+            "OK": true,
+            "Raw": "1.8253 mW / 2.61 dBm"
+          }
+        },
+        "tx-bias-current": {
+          "current": {
+            "Value": 100.992,
+            "OK": true,
+            "Raw": "100.992 mA"
+          }
+        },
+        "rx-los": {
+          "Value": false,
+          "OK": true,
+          "Raw": "False"
+        },
+        "tx-los": {
+          "Value": false,
+          "OK": true,
+          "Raw": "False"
+        },
+        "tx-fault": {
+          "Value": false,
+          "OK": true,
+          "Raw": "False"
+        },
+        "rx-cdr-lol": {
+          "Value": false,
+          "OK": true,
+          "Raw": "False"
+        },
+        "tx-cdr-lol": {
+          "Value": false,
+          "OK": true,
+          "Raw": "False"
+        }
+      },
+      "channel-5": {
+        "rx-power": {
+          "power": {
+            "DBm": 0,
+            "OK": false,
+            "Raw": "0.0000 mW / -inf dBm"
+          }
+        },
+        "tx-power": {
+          "power": {
+            "DBm": 0,
+            "OK": false,
+            "Raw": "0.0000 mW / -inf dBm"
+          }
+        },
+        "tx-bias-current": {
+          "current": {
+            "Value": 0,
+            "OK": true,
+            "Raw": "0.000 mA"
+          }
+        },
+        "rx-los": {
+          "Value": false,
+          "OK": true,
+          "Raw": "False"
+        },
+        "tx-los": {
+          "Value": false,
+          "OK": true,
+          "Raw": "False"
+        },
+        "tx-fault": {
+          "Value": false,
+          "OK": true,
+          "Raw": "False"
+        },
+        "rx-cdr-lol": {
+          "Value": false,
+          "OK": true,
+          "Raw": "False"
+        },
+        "tx-cdr-lol": {
+          "Value": false,
+          "OK": true,
+          "Raw": "False"
+        }
+      },
+      "channel-6": {
+        "rx-power": {
+          "power": {
+            "DBm": 0,
+            "OK": false,
+            "Raw": "0.0000 mW / -inf dBm"
+          }
+        },
+        "tx-power": {
+          "power": {
+            "DBm": 0,
+            "OK": false,
+            "Raw": "0.0000 mW / -inf dBm"
+          }
+        },
+        "tx-bias-current": {
+          "current": {
+            "Value": 0,
+            "OK": true,
+            "Raw": "0.000 mA"
+          }
+        },
+        "rx-los": {
+          "Value": false,
+          "OK": true,
+          "Raw": "False"
+        },
+        "tx-los": {
+          "Value": false,
+          "OK": true,
+          "Raw": "False"
+        },
+        "tx-fault": {
+          "Value": false,
+          "OK": true,
+          "Raw": "False"
+        },
+        "rx-cdr-lol": {
+          "Value": false,
+          "OK": true,
+          "Raw": "False"
+        },
+        "tx-cdr-lol": {
+          "Value": false,
+          "OK": true,
+          "Raw": "False"
+        }
+      },
+      "channel-7": {
+        "rx-power": {
+          "power": {
+            "DBm": 0,
+            "OK": false,
+            "Raw": "0.0000 mW / -inf dBm"
+          }
+        },
+        "tx-power": {
+          "power": {
+            "DBm": 0,
+            "OK": false,
+            "Raw": "0.0000 mW / -inf dBm"
+          }
+        },
+        "tx-bias-current": {
+          "current": {
+            "Value": 0,
+            "OK": true,
+            "Raw": "0.000 mA"
+          }
+        },
+        "rx-los": {
+          "Value": false,
+          "OK": true,
+          "Raw": "False"
+        },
+        "tx-los": {
+          "Value": false,
+          "OK": true,
+          "Raw": "False"
+        },
+        "tx-fault": {
+          "Value": false,
+          "OK": true,
+          "Raw": "False"
+        },
+        "rx-cdr-lol": {
+          "Value": false,
+          "OK": true,
+          "Raw": "False"
+        },
+        "tx-cdr-lol": {
+          "Value": false,
+          "OK": true,
+          "Raw": "False"
+        }
+      },
+      "channel-8": {
+        "rx-power": {
+          "power": {
+            "DBm": 0,
+            "OK": false,
+            "Raw": "0.0000 mW / -inf dBm"
+          }
+        },
+        "tx-power": {
+          "power": {
+            "DBm": 0,
+            "OK": false,
+            "Raw": "0.0000 mW / -inf dBm"
+          }
+        },
+        "tx-bias-current": {
+          "current": {
+            "Value": 0,
+            "OK": true,
+            "Raw": "0.000 mA"
+          }
+        },
+        "rx-los": {
+          "Value": false,
+          "OK": true,
+          "Raw": "False"
+        },
+        "tx-los": {
+          "Value": false,
+          "OK": true,
+          "Raw": "False"
+        },
+        "tx-fault": {
+          "Value": false,
+          "OK": true,
+          "Raw": "False"
+        },
+        "rx-cdr-lol": {
+          "Value": false,
+          "OK": true,
+          "Raw": "False"
+        },
+        "tx-cdr-lol": {
+          "Value": false,
+          "OK": true,
+          "Raw": "False"
+        }
+      }
+    }
+  }
+}

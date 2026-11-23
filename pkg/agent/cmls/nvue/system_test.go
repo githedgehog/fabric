@@ -36,35 +36,15 @@ func TestSystem(t *testing.T) {
 		_, err = system.Location()
 		require.NoError(t, err)
 
+		requireGolden(t, model, "system", system)
+
 		switch model {
 		case modelSN5610:
-			require.Equal(t, &System{
-				Hostname:    "sn5610-01",
-				ProductName: "Cumulus Linux",
-				Platform:    "x86_64-nvidia_sn5610-r0",
-				Uptime:      Number{Value: 66213, OK: true, Raw: "66213"},
-				Version: SystemVersion{
-					ProductRelease: "5.18.3",
-					BaseOS:         "Debian GNU/Linux 12.15",
-					Kernel:         "6.1.0-cl-1-amd64",
-					ONIE:           "2025.05-5.3.0017-115200",
-					Image:          SystemVersionImage{BuildID: "5.18.3.0001", BuildDate: "Sun Oct 04 17:27:31 UTC 2026"},
-				},
-				DateTime: SystemDateTime{Timezone: "Etc/UTC", LocalTime: "2026-11-23 19:26:59"},
-				Health: SystemHealth{
-					Status:    "Not OK",
-					StatusLED: "amber",
-					Issues: map[string]SystemHealthIssue{
-						"PSU2":              {Issue: "bad"},
-						"PSU2-Temp-Sensor":  {Issue: "absent"},
-						"PSU2/FAN":          {Issue: "absent"},
-						"PSU4":              {Issue: "bad"},
-						"PSU4-Temp-Sensor":  {Issue: "absent"},
-						"PSU4/FAN":          {Issue: "absent"},
-						"ps_r_policy_check": {Issue: "bad : Good PSUs - 2 :: PSU redundancy Required PSUs - 4"},
-					},
-				},
-			}, system)
+			require.Equal(t, "sn5610-01", system.Hostname)
+			require.Equal(t, "x86_64-nvidia_sn5610-r0", system.Platform)
+			// two of its PSUs have no power
+			require.Equal(t, "Not OK", system.Health.Status)
+			require.Equal(t, SystemHealthIssue{Issue: "bad"}, system.Health.Issues["PSU2"])
 		case modelSN4700:
 			// the older Mellanox ones have a different platform name
 			require.Equal(t, "x86_64-mlnx_msn4700-r0", system.Platform)
