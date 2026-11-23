@@ -1,0 +1,44 @@
+{
+  "FAN1/1": {
+    "current-speed": "4990",
+    "direction": "F2B",
+    "max-speed": "22000",
+    "min-speed": "2200",
+    "state": "ok"
+  },
+  "FAN2/1": {
+    "current-speed": "5292",
+    "direction": "F2B",
+    "max-speed": "22000",
+    "min-speed": "2200",
+    "state": "ok"
+  },
+  "FAN3/1": {
+    "current-speed": "5284",
+    "direction": "F2B",
+    "max-speed": "22000",
+    "min-speed": "2200",
+    "state": "ok"
+  },
+  "FAN4/1": {
+    "current-speed": "4686",
+    "direction": "F2B",
+    "max-speed": "22000",
+    "min-speed": "2200",
+    "state": "ok"
+  },
+  "PSU1/FAN": {
+    "current-speed": "5584",
+    "direction": "F2B",
+    "max-speed": "16000",
+    "min-speed": "2500",
+    "state": "ok"
+  },
+  "PSU2/FAN": {
+    "current-speed": "5696",
+    "direction": "F2B",
+    "max-speed": "16000",
+    "min-speed": "2500",
+    "state": "ok"
+  }
+}
