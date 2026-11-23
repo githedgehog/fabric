@@ -1,0 +1,6 @@
+{
+  "detail": "Showing 'operational' is not supported for this resource.",
+  "status": 404,
+  "title": "Showing 'operational' is not supported for this resource.",
+  "type": "/errors/OperationalNotSupported"
+}

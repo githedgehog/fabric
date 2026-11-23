@@ -83,6 +83,10 @@ build: _license_headers _gotools gen _embed && version
     {{ go_linux_build }} -o ./bin/fabric-dhcpd ./cmd/fabric-dhcpd
     # Build complete
 
+# Build the NVUE client tests to run on a Cumulus switch, see pkg/agent/cmls/nvue/testdata/README.md
+build-nvue-test: _license_headers
+    GOOS=linux GOARCH=amd64 go test -c {{ go_flags }} -o ./bin/nvue.test ./pkg/agent/cmls/nvue
+
 _hhfctl-build GOOS GOARCH: _license_headers _kube_gen _gotools _embed
     GOOS={{ GOOS }} GOARCH={{ GOARCH }} {{ go_build }} -o ./bin/hhfctl-{{ GOOS }}-{{ GOARCH }}/hhfctl ./cmd/hhfctl
     cd bin && tar -czvf hhfctl-{{ GOOS }}-{{ GOARCH }}-{{ version }}.tar.gz hhfctl-{{ GOOS }}-{{ GOARCH }}/hhfctl

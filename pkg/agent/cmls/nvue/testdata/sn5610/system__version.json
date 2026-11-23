@@ -1,0 +1,10 @@
+{
+  "base-os": "Debian GNU/Linux 12.15",
+  "image": {
+    "build-date": "Sun Oct 04 17:27:31 UTC 2026",
+    "build-id": "5.18.3.0001"
+  },
+  "kernel": "6.1.0-cl-1-amd64",
+  "onie": "2025.05-5.3.0017-115200",
+  "product-release": "5.18.3"
+}
