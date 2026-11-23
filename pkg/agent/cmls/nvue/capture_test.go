@@ -30,6 +30,7 @@ const envCapture = "NVUE_CAPTURE"
 // to capture into. The requests are relative to the API prefix and escaped like the client sends them.
 var captures = []map[string][]string{
 	clientCaptures,
+	interfaceCaptures,
 }
 
 // captureForbiddenRequests are captured into the "nobody" subdirectory by a user without an NVUE role, for any model
