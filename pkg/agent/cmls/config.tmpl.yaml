@@ -995,7 +995,8 @@
                   profile: overlay
                 {{- end }}
                 multihop-ttl: 2
-                update-source: lo
+                {{- /* lo also holds the VTEP IP */}}
+                update-source: {{ $.RouterID }}
             {{- if $.BGPNeighbors }}
             neighbor:
               {{- range $neigh := $.BGPNeighbors }}

@@ -1737,7 +1737,7 @@
                 bfd:
                   profile: overlay
                 multihop-ttl: 2
-                update-source: lo
+                update-source: 172.30.8.2
             neighbor:
               172.30.128.0:
                 description: fabric underlay to spine spine-01/E1/1

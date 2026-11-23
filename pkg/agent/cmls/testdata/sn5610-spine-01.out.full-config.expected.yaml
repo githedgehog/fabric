@@ -968,7 +968,7 @@
                   l2vpn-evpn:
                     state: enabled
                 multihop-ttl: 2
-                update-source: lo
+                update-source: 172.30.8.0
             neighbor:
               172.30.128.1:
                 description: fabric underlay to leaf leaf-01/E1/5
