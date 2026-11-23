@@ -1684,6 +1684,17 @@
                 community:
                   50001:9: {}
         prefix-list:
+          own-loopbacks:
+            rule:
+              '10':
+                action: permit
+                match:
+                  172.30.8.2/32: {}
+              '20':
+                action: permit
+                match:
+                  172.30.12.0/32: {}
+            type: ipv4
           ipns-subnets--default:
             rule:
               '1':
@@ -2249,20 +2260,22 @@
                 match:
                   ip-prefix-list: static-ext-subnets
                   type: ipv4
-          w_ecmp_cumulative:
+          underlay-to-spines:
             rule:
               '10':
                 action:
                   permit: {}
-                description: enable_w_ecmp_adjustment
+                match:
+                  ip-prefix-list: own-loopbacks
+                  type: ipv4
                 set:
-                  ext-community-bw: cumulative
-          w_ecmp_origin:
-            rule:
-              '10':
+                  ext-community-bw: multipaths
+              '20':
                 action:
                   permit: {}
-                description: enable_w_ecmp_origination
+                match:
+                  ip-prefix-list: static-ext-subnets
+                  type: ipv4
                 set:
                   ext-community-bw: multipaths
       vrr:
@@ -2289,16 +2302,7 @@
                   ipv4-unicast:
                     policy:
                       outbound:
-                        route-map: w_ecmp_origin
-                    state: enabled
-                bfd:
-                  profile: underlay
-              underlay_leaf:
-                address-family:
-                  ipv4-unicast:
-                    policy:
-                      outbound:
-                        route-map: w_ecmp_cumulative
+                        route-map: underlay-to-spines
                     state: enabled
                 bfd:
                   profile: underlay

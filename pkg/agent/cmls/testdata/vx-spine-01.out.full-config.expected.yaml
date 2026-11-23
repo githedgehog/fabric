@@ -701,6 +701,28 @@
                   172.30.12.0/22:
                     max-prefix-len: 32
             type: ipv4
+          own-loopbacks:
+            rule:
+              '10':
+                action: permit
+                match:
+                  172.30.8.0/32: {}
+            type: ipv4
+          static-ext-subnets:
+            rule:
+              '106':
+                action: permit
+                match:
+                  172.31.1.0/24: {}
+              '107':
+                action: permit
+                match:
+                  10.199.0.0/16: {}
+              '108':
+                action: permit
+                match:
+                  10.198.0.0/24: {}
+            type: ipv4
         route-map:
           gateway-export:
             rule:
@@ -726,22 +748,32 @@
                 match:
                   interface: lo
                   type: ipv4
-          w_ecmp_cumulative:
+          underlay-to-leaves:
             rule:
               '10':
                 action:
                   permit: {}
-                description: enable_w_ecmp_adjustment
+                match:
+                  ip-prefix-list: own-loopbacks
+                  type: ipv4
                 set:
                   ext-community-bw: cumulative
-          w_ecmp_origin:
-            rule:
-              '10':
+              '20':
                 action:
                   permit: {}
-                description: enable_w_ecmp_origination
+                match:
+                  ip-prefix-list: all-vtep-prefixes
+                  type: ipv4
                 set:
-                  ext-community-bw: multipaths
+                  ext-community-bw: cumulative
+              '30':
+                action:
+                  permit: {}
+                match:
+                  ip-prefix-list: static-ext-subnets
+                  type: ipv4
+                set:
+                  ext-community-bw: cumulative
     vrf:
       default:
         router:
@@ -769,21 +801,12 @@
                 bfd:
                   profile: underlay
                 remote-as: 65534
-              underlay_spine:
-                address-family:
-                  ipv4-unicast:
-                    policy:
-                      outbound:
-                        route-map: w_ecmp_origin
-                    state: enabled
-                bfd:
-                  profile: underlay
               underlay_leaf:
                 address-family:
                   ipv4-unicast:
                     policy:
                       outbound:
-                        route-map: w_ecmp_cumulative
+                        route-map: underlay-to-leaves
                     state: enabled
                 bfd:
                   profile: underlay

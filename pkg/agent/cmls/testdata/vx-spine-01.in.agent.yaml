@@ -11,7 +11,11 @@ metadata:
   uid: 5807f9f4-4325-41aa-b61a-b415bcc35869
 spec:
   alloy: {}
-  catalog: {}
+  catalog:
+    subnetIDs:
+      10.198.0.0/24: 108
+      10.199.0.0/16: 107
+      172.31.1.0/24: 106
   config:
     alloy:
       hostname: spine-01

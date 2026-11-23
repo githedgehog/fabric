@@ -422,16 +422,31 @@
                   {{ $prio.Community }}: {}
           {{- end }}
         {{- end }}
-        {{- if or $.VPCs $.Gateway $.BGPExternals $.StaticExtSubnets }}
+        {{- if or $.IsLeaf $.IsSpine $.VPCs $.Gateway $.BGPExternals $.StaticExtSubnets }}
         prefix-list:
-          {{- if $.Gateway }}
+          {{- if $.VTEPSubnet }}
           all-vtep-prefixes:
             rule:
               '10':
                 action: permit
                 match:
-                  {{ $.Gateway.VTEPSubnet }}:
+                  {{ $.VTEPSubnet }}:
                     max-prefix-len: 32
+            type: ipv4
+          {{- end }}
+          {{- if or $.IsLeaf $.IsSpine }}
+          own-loopbacks:
+            rule:
+              '10':
+                action: permit
+                match:
+                  {{ $.ProtocolIP }}: {}
+              {{- if $.VTEPIP }}
+              '20':
+                action: permit
+                match:
+                  {{ $.VTEPIP }}: {}
+              {{- end }}
             type: ipv4
           {{- end }}
           {{- range $ns := $.IPv4Namespaces }}
@@ -797,7 +812,7 @@
                 match:
                   interface: lo
                   type: ipv4
-              {{- if $.StaticExtSubnets }}
+              {{- if and $.IsLeaf $.StaticExtSubnets }}
               '20':
                 action:
                   permit: {}
@@ -813,23 +828,71 @@
                   ip-prefix-list: static-ext-subnets
                   type: ipv4
               {{- end }}
+          {{- /* only the loopbacks, the VTEPs and the static external subnets go into the underlay, as on SONiC */}}
           {{- /* weighted ECMP comes with RoCE and adaptive routing, but it's useful without them too */}}
-          w_ecmp_cumulative:
+          {{- if $.IsLeaf }}
+          underlay-to-spines:
             rule:
               '10':
                 action:
                   permit: {}
-                description: enable_w_ecmp_adjustment
-                set:
-                  ext-community-bw: cumulative
-          w_ecmp_origin:
-            rule:
-              '10':
-                action:
-                  permit: {}
-                description: enable_w_ecmp_origination
+                match:
+                  ip-prefix-list: own-loopbacks
+                  type: ipv4
                 set:
                   ext-community-bw: multipaths
+              {{- if $.StaticExtSubnets }}
+              '20':
+                action:
+                  permit: {}
+                match:
+                  ip-prefix-list: static-ext-subnets
+                  type: ipv4
+                set:
+                  ext-community-bw: multipaths
+              {{- end }}
+              {{- if $.Gateway }}
+              '30':
+                action:
+                  permit: {}
+                match:
+                  as-path-list: gateway-origin
+                  ip-prefix-list: all-vtep-prefixes
+                  type: ipv4
+                set:
+                  ext-community-bw: multipaths
+              {{- end }}
+          {{- end }}
+          {{- if $.IsSpine }}
+          underlay-to-leaves:
+            rule:
+              '10':
+                action:
+                  permit: {}
+                match:
+                  ip-prefix-list: own-loopbacks
+                  type: ipv4
+                set:
+                  ext-community-bw: cumulative
+              '20':
+                action:
+                  permit: {}
+                match:
+                  ip-prefix-list: all-vtep-prefixes
+                  type: ipv4
+                set:
+                  ext-community-bw: cumulative
+              {{- if $.StaticExtSubnets }}
+              '30':
+                action:
+                  permit: {}
+                match:
+                  ip-prefix-list: static-ext-subnets
+                  type: ipv4
+                set:
+                  ext-community-bw: cumulative
+              {{- end }}
+          {{- end }}
       {{- if and $.RoCE $.IsSpectrum4 }}
       adaptive-routing:
         state: enabled
@@ -849,7 +912,7 @@
                   connected:
                     route-map: lo_to_bgp
                     state: enabled
-                  {{- if $.StaticExtSubnets }}
+                  {{- if and $.IsLeaf $.StaticExtSubnets }}
                   static:
                     route-map: static-ext
                     state: enabled
@@ -880,28 +943,32 @@
                 {{- end }}
                 remote-as: {{ $.Gateway.ASN }}
               {{- end }}
+              {{- if $.IsLeaf }}
               underlay_spine:
                 address-family:
                   ipv4-unicast:
                     policy:
                       outbound:
-                        route-map: w_ecmp_origin
+                        route-map: underlay-to-spines
                     state: enabled
                 {{- if $.BFD }}
                 bfd:
                   profile: underlay
                 {{- end }}
+              {{- end }}
+              {{- if $.IsSpine }}
               underlay_leaf:
                 address-family:
                   ipv4-unicast:
                     policy:
                       outbound:
-                        route-map: w_ecmp_cumulative
+                        route-map: underlay-to-leaves
                     state: enabled
                 {{- if $.BFD }}
                 bfd:
                   profile: underlay
                 {{- end }}
+              {{- end }}
               overlay:
                 address-family:
                   ipv4-unicast:

@@ -6,8 +6,10 @@ package cmls
 import (
 	"bytes"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -1223,6 +1225,79 @@ func TestBuildConfig(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestBuildConfigLeafPassesGatewayVTEPs(t *testing.T) {
+	agData, err := os.ReadFile(filepath.Join(testdataDir, "vx-leaf-01.in.agent.yaml"))
+	require.NoError(t, err, "reading agent file")
+	ag := &agentapi.Agent{}
+	require.NoError(t, kyaml.Unmarshal(agData, ag), "unmarshalling agent data")
+	ag.Spec.SwitchProfile = switchprofile.CumulusVX.Spec.DeepCopy()
+	ag.Spec.Connections["leaf-01--gateway--gateway-1"] = wiringapi.ConnectionSpec{Gateway: &wiringapi.ConnGateway{
+		Links: []wiringapi.GatewayLink{{
+			Switch:  wiringapi.ConnFabricLinkSwitch{BasePortName: wiringapi.BasePortName{Port: "leaf-01/E1/30"}, IP: "172.30.128.20/31"},
+			Gateway: wiringapi.ConnGatewayLinkGateway{BasePortName: wiringapi.BasePortName{Port: "gateway-1/enp2s1"}, IP: "172.30.128.21/31"},
+		}},
+	}}
+
+	cfg, err := buildConfig(ag)
+	require.NoError(t, err, "building full config")
+
+	var parsed []struct {
+		Set struct {
+			Router struct {
+				Policy struct {
+					RouteMap map[string]struct {
+						Rule map[string]struct {
+							Match map[string]string `json:"match"`
+						} `json:"rule"`
+					} `json:"route-map"`
+				} `json:"policy"`
+			} `json:"router"`
+		} `json:"set"`
+	}
+	require.NoError(t, kyaml.Unmarshal(cfg.Bytes(), &parsed), "parsing full config")
+	require.Len(t, parsed, 1)
+	require.Equal(t,
+		map[string]string{"as-path-list": "gateway-origin", "ip-prefix-list": "all-vtep-prefixes", "type": "ipv4"},
+		parsed[0].Set.Router.Policy.RouteMap["underlay-to-spines"].Rule["30"].Match,
+	)
+}
+
+func TestBuildConfigSpineSkipsBrokenStaticExternal(t *testing.T) {
+	agData, err := os.ReadFile(filepath.Join(testdataDir, "vx-spine-01.in.agent.yaml"))
+	require.NoError(t, err, "reading agent file")
+	ag := &agentapi.Agent{}
+	require.NoError(t, kyaml.Unmarshal(agData, ag), "unmarshalling agent data")
+	ag.Spec.SwitchProfile = switchprofile.CumulusVX.Spec.DeepCopy()
+	delete(ag.Spec.Catalog.SubnetIDs, "10.198.0.0/24")
+	conn := ag.Spec.Connections["leaf-01--static-external"]
+	conn.StaticExternal.Link.Switch.NextHop = "invalid"
+	ag.Spec.Connections["leaf-01--static-external"] = conn
+
+	cfg, err := buildConfig(ag)
+	require.NoError(t, err, "building full config")
+
+	var parsed []struct {
+		Set struct {
+			Router struct {
+				Policy struct {
+					PrefixList map[string]struct {
+						Rule map[string]struct {
+							Match map[string]any `json:"match"`
+						} `json:"rule"`
+					} `json:"prefix-list"`
+				} `json:"policy"`
+			} `json:"router"`
+		} `json:"set"`
+	}
+	require.NoError(t, kyaml.Unmarshal(cfg.Bytes(), &parsed), "parsing full config")
+	require.Len(t, parsed, 1)
+	subnets := []string{}
+	for _, rule := range parsed[0].Set.Router.Policy.PrefixList["static-ext-subnets"].Rule {
+		subnets = slices.AppendSeq(subnets, maps.Keys(rule.Match))
+	}
+	require.ElementsMatch(t, []string{"10.199.0.0/16", "172.31.1.0/24"}, subnets)
 }
 
 // requireNoNulls fails on a null anywhere in a generated config, as NVUE rejects a set with a null value, which is what

@@ -57,6 +57,7 @@ type ConfigIn struct {
 	ManagementIP     string
 	ProtocolIP       string
 	VTEPIP           string
+	VTEPSubnet       string
 	ASN              uint32
 	RouterID         string
 	VXLANSource      string
@@ -69,7 +70,7 @@ type ConfigIn struct {
 	BFD              bool
 	BaseVPCCommunity string
 	BGPNeighbors     []BGPNeighbor
-	StaticExtSubnets map[uint32]string // subnet ID -> static external link subnet or routed subnet in the default VRF
+	StaticExtSubnets map[uint32]string // subnet ID -> static external link subnet or routed subnet in the default VRF, of the whole fabric on a spine
 	StaticRoutes     map[string][]string
 	Gateway          *GatewayConfig
 	GatewayPrios     []GatewayPrio
@@ -110,8 +111,7 @@ type BGPNeighbor struct {
 }
 
 type GatewayConfig struct {
-	ASN        uint32
-	VTEPSubnet string
+	ASN uint32
 }
 
 // GatewayPrio is a gateway priority community, the routes with a higher priority (a lower number) get a higher local
@@ -572,11 +572,7 @@ func buildConfig(agent *agentapi.Agent) (*bytes.Buffer, error) {
 					if asn == 0 {
 						return nil, fmt.Errorf("conn %s: no gateway ASN for domain %s", connName, domains[0]) //nolint:err113
 					}
-					vtepSubnet, err := netip.ParsePrefix(agent.Spec.Config.VTEPSubnet)
-					if err != nil {
-						return nil, fmt.Errorf("conn %s: parsing VTEP subnet: %w", connName, err)
-					}
-					gateway = &GatewayConfig{ASN: asn, VTEPSubnet: vtepSubnet.Masked().String()}
+					gateway = &GatewayConfig{ASN: asn}
 				}
 
 				ip, err := netip.ParsePrefix(link.Switch.IP)
@@ -1095,14 +1091,38 @@ func buildConfig(agent *agentapi.Agent) (*bytes.Buffer, error) {
 	staticRoutes := map[string][]string{}
 	for _, connName := range slices.Sorted(maps.Keys(agent.Spec.Connections)) {
 		conn := agent.Spec.Connections[connName]
-		if conn.StaticExternal == nil || conn.StaticExternal.Link.Switch.DeviceName() != agent.Name {
+		if conn.StaticExternal == nil {
+			continue
+		}
+		cfg := conn.StaticExternal.Link.Switch
+
+		// the spines get the default VRF ones of all the leaves only to pass their subnets on, so a broken one is skipped
+		// rather than failing the spine
+		if cfg.DeviceName() != agent.Name {
+			if !isSpine || conn.StaticExternal.WithinVPC != "" {
+				continue
+			}
+			subnets := slices.Clone(cfg.Subnets)
+			if ip, err := netip.ParsePrefix(cfg.IP); err == nil {
+				subnets = append(subnets, ip.Masked().String())
+			}
+			for _, subnet := range subnets {
+				prefix, err := netip.ParsePrefix(subnet)
+				id := agent.Spec.Catalog.SubnetIDs[subnet]
+				if err != nil || !prefix.Addr().Is4() || id < 100 || id >= 65000 {
+					slog.Warn("Skipping a static external subnet of another switch", "conn", connName, "subnet", subnet, "id", id)
+
+					continue
+				}
+				staticExtSubnets[id] = prefix.String()
+			}
+
 			continue
 		}
 		if !isLeaf {
 			return nil, fmt.Errorf("conn %s: static externals are only supported on leaves", connName) //nolint:err113
 		}
 
-		cfg := conn.StaticExternal.Link.Switch
 		ip, err := netip.ParsePrefix(cfg.IP)
 		if err != nil || !ip.Addr().Is4() {
 			return nil, fmt.Errorf("conn %s: invalid IP %q", connName, cfg.IP) //nolint:err113
@@ -1592,6 +1612,16 @@ func buildConfig(agent *agentapi.Agent) (*bytes.Buffer, error) {
 		return strings.Compare(a.Name, b.Name)
 	})
 
+	// the spines pass all the VTEPs on to the leaves, the gateway gets them all
+	vtepSubnet := ""
+	if isSpine || gateway != nil {
+		prefix, err := netip.ParsePrefix(agent.Spec.Config.VTEPSubnet)
+		if err != nil {
+			return nil, fmt.Errorf("parsing VTEP subnet %q: %w", agent.Spec.Config.VTEPSubnet, err)
+		}
+		vtepSubnet = prefix.Masked().String()
+	}
+
 	cfgIn := ConfigIn{
 		Hostname:         agent.Name,
 		Users:            users,
@@ -1599,6 +1629,7 @@ func buildConfig(agent *agentapi.Agent) (*bytes.Buffer, error) {
 		ManagementIP:     agent.Spec.Switch.IP,
 		ProtocolIP:       agent.Spec.Switch.ProtocolIP,
 		VTEPIP:           agent.Spec.Switch.VTEPIP,
+		VTEPSubnet:       vtepSubnet,
 		ASN:              agent.Spec.Switch.ASN,
 		RouterID:         protocolIP.Addr().String(),
 		VXLANSource:      vtepIP.Addr().String(),
