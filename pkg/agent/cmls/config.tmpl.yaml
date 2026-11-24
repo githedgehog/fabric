@@ -264,16 +264,14 @@
             inbound: {}
         {{- end }}
         description: {{ $subnet.Description }}
+        {{- /* the anycast gateway is on the SVI itself rather than VRR's macvlan (#1833); the SVI IP is in the snippet */}}
         ipv4:
           address:
-            {{ $subnet.IP }}: {}
-          vrr:
-            address:
-              {{ $subnet.Gateway }}: {}
-            mac-address: 00:00:00:11:11:11
-            state: enabled
+            {{ $subnet.Gateway }}: {}
         ipv6:
           state: disabled
+        link:
+          mac-address: {{ $.AnycastMAC }}
         type: svi
         vlan: {{ $subnet.VLAN }}
         vrf: {{ $subnet.VRF }}
@@ -908,10 +906,6 @@
         state: enabled
         profile: profile-custom
       {{- end }}
-      {{- if $.Subnets }}
-      vrr:
-        state: enabled
-      {{- end }}
     vrf:
       default:
         router:
@@ -1289,9 +1283,12 @@
               post-up bridge link set dev {{ $bond }} backup_port vxlan48
               {{- end }}
             {{- end }}
+            {{- /* the DHCP relay's link selection is the SVI's first IP and NVUE sorts the addresses, but snippet lines
+            come first; with a MAC of its own the SVI gets no local FDB entry and the gateway traffic is flooded */}}
             {{- range $subnet := $.Subnets }}
             {{ $subnet.Name }}: |
-              address-virtual-ipv6-addrgen off
+              address {{ $subnet.IP }}
+              post-up bridge fdb replace {{ $.AnycastMAC }} dev br_default vlan {{ $subnet.VLAN }} self local
             {{- end }}
           {{- end }}
         {{- end }}

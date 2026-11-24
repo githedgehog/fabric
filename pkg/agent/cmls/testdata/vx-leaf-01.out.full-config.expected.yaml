@@ -1418,14 +1418,11 @@
         description: VPC vpc-01/default
         ipv4:
           address:
-            172.30.99.233/32: {}
-          vrr:
-            address:
-              10.0.1.1/24: {}
-            mac-address: 00:00:00:11:11:11
-            state: enabled
+            10.0.1.1/24: {}
         ipv6:
           state: disabled
+        link:
+          mac-address: 00:00:00:11:11:11
         type: svi
         vlan: 1001
         vrf: vpc-vpc-01
@@ -1433,14 +1430,11 @@
         description: VPC vpc-02/default
         ipv4:
           address:
-            172.30.99.234/32: {}
-          vrr:
-            address:
-              10.0.2.1/24: {}
-            mac-address: 00:00:00:11:11:11
-            state: enabled
+            10.0.2.1/24: {}
         ipv6:
           state: disabled
+        link:
+          mac-address: 00:00:00:11:11:11
         type: svi
         vlan: 1002
         vrf: vpc-vpc-02
@@ -1451,14 +1445,11 @@
         description: VPC vpc-03/default
         ipv4:
           address:
-            172.30.99.235/32: {}
-          vrr:
-            address:
-              10.0.3.1/24: {}
-            mac-address: 00:00:00:11:11:11
-            state: enabled
+            10.0.3.1/24: {}
         ipv6:
           state: disabled
+        link:
+          mac-address: 00:00:00:11:11:11
         type: svi
         vlan: 1003
         vrf: vpc-vpc-03
@@ -1469,14 +1460,11 @@
         description: VPC vpc-01/subnet-02
         ipv4:
           address:
-            172.30.99.243/32: {}
-          vrr:
-            address:
-              10.0.11.1/24: {}
-            mac-address: 00:00:00:11:11:11
-            state: enabled
+            10.0.11.1/24: {}
         ipv6:
           state: disabled
+        link:
+          mac-address: 00:00:00:11:11:11
         type: svi
         vlan: 1011
         vrf: vpc-vpc-01
@@ -1487,14 +1475,11 @@
         description: VPC vpc-01/subnet-03
         ipv4:
           address:
-            172.30.99.244/32: {}
-          vrr:
-            address:
-              10.0.12.1/24: {}
-            mac-address: 00:00:00:11:11:11
-            state: enabled
+            10.0.12.1/24: {}
         ipv6:
           state: disabled
+        link:
+          mac-address: 00:00:00:11:11:11
         type: svi
         vlan: 1012
         vrf: vpc-vpc-01
@@ -2305,8 +2290,6 @@
                   type: ipv4
                 set:
                   ext-community-bw: multipaths
-      vrr:
-        state: enabled
     vrf:
       default:
         router:
@@ -2707,15 +2690,20 @@
             br_default: |
               post-up bridge link set dev bond2 backup_port vxlan48
             vlan1001: |
-              address-virtual-ipv6-addrgen off
+              address 172.30.99.233/32
+              post-up bridge fdb replace 00:00:00:11:11:11 dev br_default vlan 1001 self local
             vlan1002: |
-              address-virtual-ipv6-addrgen off
+              address 172.30.99.234/32
+              post-up bridge fdb replace 00:00:00:11:11:11 dev br_default vlan 1002 self local
             vlan1003: |
-              address-virtual-ipv6-addrgen off
+              address 172.30.99.235/32
+              post-up bridge fdb replace 00:00:00:11:11:11 dev br_default vlan 1003 self local
             vlan1011: |
-              address-virtual-ipv6-addrgen off
+              address 172.30.99.243/32
+              post-up bridge fdb replace 00:00:00:11:11:11 dev br_default vlan 1011 self local
             vlan1012: |
-              address-virtual-ipv6-addrgen off
+              address 172.30.99.244/32
+              post-up bridge fdb replace 00:00:00:11:11:11 dev br_default vlan 1012 self local
       control-plane:
         acl:
           acl-default-dos:

@@ -79,6 +79,7 @@ type ConfigIn struct {
 	ESLAG            bool
 	ESLAGBridgePorts []string // the ESLAG bonds in the bridge, which need the VXLAN device as backup port
 	Subinterfaces    []*SubinterfaceConfig
+	AnycastMAC       string
 	Subnets          []*SubnetConfig
 	SubnetACLs       []*SubnetConfig
 	Restricted       []*SubnetConfig
@@ -341,6 +342,9 @@ type SubnetConfig struct {
 	RestrictedACL string
 	HostBGP       bool
 }
+
+// anycastMAC is the MAC of the VPC subnet SVIs on all the leaves
+const anycastMAC = "00:00:00:11:11:11"
 
 func buildConfig(agent *agentapi.Agent) (*bytes.Buffer, error) {
 	cfgIn, err := buildConfigIn(agent)
@@ -1693,6 +1697,7 @@ func buildConfigIn(agent *agentapi.Agent) (*ConfigIn, error) {
 		ESLAG:            eslag,
 		ESLAGBridgePorts: eslagBridgePorts,
 		Subinterfaces:    subifs,
+		AnycastMAC:       anycastMAC,
 		Subnets:          subnets,
 		SubnetACLs:       slices.DeleteFunc(slices.Clone(aclSubnets), func(subnet *SubnetConfig) bool { return len(subnet.Deny) == 0 && !subnet.DenySelf }),
 		Restricted:       slices.DeleteFunc(slices.Clone(aclSubnets), func(subnet *SubnetConfig) bool { return subnet.RestrictedACL == "" }),
@@ -2383,6 +2388,16 @@ func Enforce(ctx context.Context, _ /* processor */ dozer.Processor, agent *agen
 // agent starts. Failures are only logged, as an error would crash-loop the agent on its saved config and block any new
 // one
 func redoPostUps(ctx context.Context, cfg *ConfigIn) {
+	if len(cfg.Subnets) == 0 {
+		return
+	}
+
+	for _, subnet := range cfg.Subnets {
+		if err := run(ctx, "bridge-fdb", "bridge", "fdb", "replace", cfg.AnycastMAC, "dev", "br_default",
+			"vlan", strconv.Itoa(int(subnet.VLAN)), "self", "local"); err != nil {
+			slog.Error("Failed to add the local bridge fdb entry", "subnet", subnet.Name, "err", err)
+		}
+	}
 	for _, bond := range cfg.ESLAGBridgePorts {
 		if err := run(ctx, "bridge-link", "bridge", "link", "set", "dev", bond, "backup_port", "vxlan48"); err != nil {
 			slog.Error("Failed to set the bridge backup port", "bond", bond, "err", err)
