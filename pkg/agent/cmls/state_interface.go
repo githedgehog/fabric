@@ -359,6 +359,8 @@ func applyCounters(reg *switchstate.Registry, st *agentapi.SwitchStateInterface,
 	}
 }
 
+const unknownLLDPChassisID = "00:00:00:00:00:00"
+
 func lldpNeighbors(raw map[string]nvue.LLDPNeighbor) []agentapi.SwitchStateLLDPNeighbor {
 	if len(raw) == 0 {
 		return nil
@@ -378,6 +380,11 @@ func lldpNeighbors(raw map[string]nvue.LLDPNeighbor) []agentapi.SwitchStateLLDPN
 		}
 		if neighbor.Port.TTL.OK {
 			st.TTL = uint16(min(max(neighbor.Port.TTL.Value, 0), math.MaxUint16))
+		}
+
+		// a chassis id that isn't a MAC, such as the machine id hosts send, is reported as all zeroes
+		if st.ChassisID == unknownLLDPChassisID {
+			st.ChassisID = ""
 		}
 
 		// the port id of a host is often its MAC, the description is more telling then

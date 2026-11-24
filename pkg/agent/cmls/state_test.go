@@ -100,6 +100,9 @@ func TestUpdateSwitchState(t *testing.T) {
 		require.NotNil(t, st.Interfaces[name].Counters, name)
 	}
 	require.Equal(t, "server-05", st.Interfaces["E1/17/3"].LLDPNeighbors[0].SystemName)
+	// the server sends its machine id as the chassis id, which NVUE reports as all zeroes
+	require.Empty(t, st.Interfaces["E1/17/3"].LLDPNeighbors[0].ChassisID)
+	require.Empty(t, st.Interfaces["E1/17/3"].LLDPNeighbors[0].MAC)
 
 	require.Contains(t, st.Interfaces, "E1/20/1")
 	require.False(t, st.Interfaces["E1/20/1"].Enabled)

@@ -37,11 +37,9 @@
       },
       "lldpNeighbors": [
         {
-          "chassis": "00:00:00:00:00:00",
           "sysName": "server-01",
           "portID": "enp2s1",
           "ttl": 120,
-          "mac": "00:00:00:00:00:00",
           "port": "enp2s1"
         }
       ]
@@ -58,11 +56,9 @@
       },
       "lldpNeighbors": [
         {
-          "chassis": "00:00:00:00:00:00",
           "sysName": "server-02",
           "portID": "enp2s1",
           "ttl": 120,
-          "mac": "00:00:00:00:00:00",
           "port": "enp2s1"
         }
       ]
@@ -79,11 +75,9 @@
       },
       "lldpNeighbors": [
         {
-          "chassis": "00:00:00:00:00:00",
           "sysName": "server-03",
           "portID": "enp2s1",
           "ttl": 120,
-          "mac": "00:00:00:00:00:00",
           "port": "enp2s1"
         }
       ]
