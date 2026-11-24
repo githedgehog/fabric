@@ -494,7 +494,7 @@ func (m *Manager) CatalogForSwitch(ctx context.Context, kube kclient.Client, ret
 	ret.SubnetIDs = cat.Spec.SubnetIDs
 	for prefix := range subnets {
 		if _, exists := ret.SubnetIDs[prefix]; !exists {
-			return fmt.Errorf("failed to find external peering prefix ID for %s", prefix) //nolint:err113
+			return fmt.Errorf("failed to find subnet ID for %s", prefix) //nolint:err113
 		}
 	}
 

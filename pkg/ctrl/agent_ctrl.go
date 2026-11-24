@@ -890,6 +890,9 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req kctrl.Request) (kct
 	for _, vpc := range vpcs {
 		for _, subnet := range vpc.Subnets {
 			subnetsReq[subnet.Subnet] = true
+			for prefix := range subnet.HostBGPExtraPrefixes {
+				subnetsReq[prefix] = true
+			}
 		}
 	}
 	for _, peering := range externalPeerings {
