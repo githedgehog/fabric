@@ -116,6 +116,14 @@ func TestInterfaceLinkLastChange(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, time.Date(2026, 11, 23, 23, 4, 20, 245_000_000, time.UTC), lastChange.UTC())
 
+	// no change since the interface was created
+	for _, never := range []string{"", "Never"} {
+		link.OperStatusLastChange = never
+		lastChange, err = link.LastChange(time.UTC)
+		require.NoError(t, err, never)
+		require.True(t, lastChange.IsZero(), never)
+	}
+
 	link.OperStatusLastChange = "N/A"
 	_, err = link.LastChange(time.UTC)
 	require.ErrorContains(t, err, `parsing last change "N/A"`)
