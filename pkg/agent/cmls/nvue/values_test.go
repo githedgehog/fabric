@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// the values are the forms NVUE reports them in on the env-7 switches
+// the values are the forms NVUE reports them in on the hardware switches
 func TestNumber(t *testing.T) {
 	for _, tt := range []struct {
 		in   string

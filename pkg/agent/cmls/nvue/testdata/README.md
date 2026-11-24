@@ -46,9 +46,9 @@ them in `golden/`, and a review of its diff. The import fails if the status of a
 that the switch isn't set up like the fixtures expect. The tests check the rest, such as the breakouts or the modules,
 against the setup below.
 
-The fakes of the scrubbed values are consistent within a capture only. The fixtures are from env-7 (Cumulus Linux
-5.18.3) with the fabric configured by the agent and the VPCs of `hhfab vlab setup-vpcs`, the tests expect the switches
-to have:
+The fakes of the scrubbed values are consistent within a capture only. The fixtures are from a hardware environment
+(Cumulus Linux 5.18.3) with the fabric configured by the agent and the VPCs of `hhfab vlab setup-vpcs`, the tests expect
+the switches to have:
 
 - sn5610: unused E1/1 and E1/3 with 800G DACs broken out 8x (disabling E1/2) and 4x, the 2x E1/63-64 spine links on
   100G DACs, a 400G optic on E1/29 and a 10G SFP optic on E1/65 to servers, nothing in E1/4, two of its four PSUs

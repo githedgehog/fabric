@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// env-7 has RoCE only on the SN2201
+// of the hardware switches the fixtures are from, only the SN2201 has RoCE
 var roceCaptures = map[string][]string{
 	modelSN5610: {"/qos/roce"},
 	modelSN2201: {"/qos/roce"},

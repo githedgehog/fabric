@@ -13,7 +13,7 @@ import (
 	"go.githedgehog.com/fabric/pkg/agent/cmls/nvue/nvuetest"
 )
 
-// nvueFixtures are the NVUE responses captured from the switches of env-7, see nvue/testdata/README.md
+// nvueFixtures are the NVUE responses captured from hardware switches and a VLAB, see nvue/testdata/README.md
 var nvueFixtures = filepath.Join("nvue", "testdata")
 
 // fixtureTime is a little after the fixtures were captured, so that the times counted back from it stay the same
@@ -32,7 +32,7 @@ func fixtureProcessor(t *testing.T, model string) *CumulusProcessor {
 }
 
 func TestGetRoCE(t *testing.T) {
-	// env-7 has RoCE only on the SN2201
+	// of the hardware switches the fixtures are from, only the SN2201 has RoCE
 	for model, want := range map[string]bool{"sn5610": false, "sn2201": true} {
 		t.Run(model, func(t *testing.T) {
 			roce, err := fixtureProcessor(t, model).GetRoCE(t.Context())
