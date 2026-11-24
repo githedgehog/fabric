@@ -23,6 +23,15 @@ var bgpCaptures = map[string][]string{
 		"/vrf/ext-ext-bgp/router/bgp/neighbor?view=detail",
 	},
 	modelSN3700C: {"/vrf/default/router/bgp/neighbor?view=detail"},
+	modelVX: {
+		"/vrf/default/router/bgp/neighbor?view=detail",
+		"/vrf/ext-ext-bgp-01/router/bgp/neighbor?view=detail",
+		"/vrf/ext-ext-snp-01/router/bgp/neighbor?view=detail",
+		"/vrf/mgmt/router/bgp/neighbor?view=detail",
+		"/vrf/vpc-vpc-01/router/bgp/neighbor?view=detail",
+		"/vrf/vpc-vpc-02/router/bgp/neighbor?view=detail",
+		"/vrf/vpc-vpc-03/router/bgp/neighbor?view=detail",
+	},
 }
 
 // the VRFs with fixtures, all of them when running live
@@ -30,6 +39,7 @@ var bgpVRFs = map[string][]string{
 	modelSN5610:  {VRFDefault, "vpc-hbgp-nvue", "vpc-vpc-01", "vpc-vpc-02", VRFMgmt},
 	modelSN4600:  {VRFDefault, "ext-ext-bgp"},
 	modelSN3700C: {VRFDefault},
+	modelVX:      {VRFDefault, "ext-ext-bgp-01", "ext-ext-snp-01", VRFMgmt, "vpc-vpc-01", "vpc-vpc-02", "vpc-vpc-03"},
 }
 
 func routingVRFs(t *testing.T, client *Client, model string) []string {
@@ -61,7 +71,13 @@ func TestBGPNeighbors(t *testing.T) {
 			all[vrf] = neighbors
 
 			for id, neighbor := range neighbors {
-				require.Contains(t, []string{BGPNeighborNumbered, BGPNeighborUnnumbered}, neighbor.Type, "%s %s", vrf, id)
+				if model == modelVX {
+					// Cumulus Linux 5.16 has no type and no peer group in the details
+					require.Empty(t, neighbor.Type, "%s %s", vrf, id)
+					require.Empty(t, neighbor.PeerGroup, "%s %s", vrf, id)
+				} else {
+					require.Contains(t, []string{BGPNeighborNumbered, BGPNeighborUnnumbered}, neighbor.Type, "%s %s", vrf, id)
+				}
 				require.True(t, neighbor.LocalAS.ASN.OK, "%s %s", vrf, id)
 				if neighbor.SessionState != BGPSessionEstablished {
 					continue
@@ -117,6 +133,11 @@ func TestBGPNeighbors(t *testing.T) {
 			require.Equal(t, BGPNeighborUnnumbered, all[VRFDefault]["swp31"].Type)
 			require.Equal(t, "sn5610-01", all[VRFDefault]["swp31"].RemoteHostname)
 			require.Equal(t, BGPNeighborNumbered, all[VRFDefault]["172.30.128.5"].Type)
+		case modelVX:
+			// the spines over unnumbered links and their loopbacks for the overlay, the externals in their VRFs
+			require.Equal(t, "spine-01", all[VRFDefault]["swp5"].RemoteHostname)
+			require.Contains(t, all[VRFDefault]["172.30.8.0"].AddressFamily, "l2vpn-evpn")
+			require.NotEmpty(t, all["ext-ext-bgp-01"])
 		}
 	})
 }

@@ -13,9 +13,10 @@ var vrfCaptures = map[string][]string{
 	modelSN5610:  {"/vrf"},
 	modelSN4600:  {"/vrf"},
 	modelSN3700C: {"/vrf"},
+	modelVX:      {"/vrf"},
 }
 
-var routingModels = []string{modelSN5610, modelSN4600, modelSN3700C}
+var routingModels = []string{modelSN5610, modelSN4600, modelSN3700C, modelVX}
 
 func TestVRFs(t *testing.T) {
 	forEachModel(t, routingModels, func(t *testing.T, client *Client, model string) {
@@ -32,6 +33,10 @@ func TestVRFs(t *testing.T) {
 			require.Contains(t, vrfs, "ext-ext-bgp")
 		case modelSN3700C:
 			require.Equal(t, []string{VRFDefault, VRFMgmt}, vrfs)
+		case modelVX:
+			require.Equal(t, []string{
+				VRFDefault, "ext-ext-bgp-01", "ext-ext-snp-01", VRFMgmt, "vpc-vpc-01", "vpc-vpc-02", "vpc-vpc-03",
+			}, vrfs)
 		}
 	})
 }

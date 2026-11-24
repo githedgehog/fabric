@@ -1,0 +1,6 @@
+{
+  "detail": "Unable to fetch traffic-rate stats. The prometheus-sdk-stats.service is not active.",
+  "status": 404,
+  "title": "Not Found",
+  "type": "about:blank"
+}

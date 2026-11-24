@@ -1,0 +1,643 @@
+{
+  "default": {
+    "172.30.8.0": {
+      "type": "",
+      "description": "fabric overlay to spine spine-01",
+      "peer-group": "",
+      "remote-as": {
+        "Value": 4200005633,
+        "OK": true,
+        "Raw": "4200005633"
+      },
+      "local-as": {
+        "asn": {
+          "Value": 4200006632,
+          "OK": true,
+          "Raw": "4200006632"
+        }
+      },
+      "remote-router-id": "172.30.8.0",
+      "remote-hostname": "spine-01",
+      "remote-port": {
+        "Value": 179,
+        "OK": true,
+        "Raw": "179"
+      },
+      "session-state": "established",
+      "uptime": {
+        "Value": 7652000,
+        "OK": true,
+        "Raw": "7652000"
+      },
+      "last-reset-time": {
+        "Value": 7660000,
+        "OK": true,
+        "Raw": "7660000"
+      },
+      "last-reset-reason": "Waiting for peer OPEN",
+      "connections-established": {
+        "Value": 1,
+        "OK": true
+      },
+      "connections-dropped": {
+        "Value": 0,
+        "OK": true
+      },
+      "message-stats": {
+        "rx-opens": {
+          "Value": 1,
+          "OK": true
+        },
+        "rx-keepalives": {
+          "Value": 2551,
+          "OK": true
+        },
+        "rx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "rx-total": {
+          "Value": 2622,
+          "OK": true
+        },
+        "tx-opens": {
+          "Value": 1,
+          "OK": true
+        },
+        "tx-keepalives": {
+          "Value": 2551,
+          "OK": true
+        },
+        "tx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "tx-total": {
+          "Value": 2622,
+          "OK": true
+        }
+      },
+      "address-family": {
+        "l2vpn-evpn": {
+          "rx-prefix": {
+            "Value": 29,
+            "OK": true
+          },
+          "tx-prefix": {
+            "Value": 52,
+            "OK": true
+          }
+        }
+      },
+      "bfd": null
+    },
+    "172.30.8.1": {
+      "type": "",
+      "description": "fabric overlay to spine spine-02",
+      "peer-group": "",
+      "remote-as": {
+        "Value": 4200005633,
+        "OK": true,
+        "Raw": "4200005633"
+      },
+      "local-as": {
+        "asn": {
+          "Value": 4200006632,
+          "OK": true,
+          "Raw": "4200006632"
+        }
+      },
+      "remote-router-id": "172.30.8.1",
+      "remote-hostname": "spine-02",
+      "remote-port": {
+        "Value": 179,
+        "OK": true,
+        "Raw": "179"
+      },
+      "session-state": "established",
+      "uptime": {
+        "Value": 7649000,
+        "OK": true,
+        "Raw": "7649000"
+      },
+      "last-reset-time": {
+        "Value": 7660000,
+        "OK": true,
+        "Raw": "7660000"
+      },
+      "last-reset-reason": "Waiting for peer OPEN",
+      "connections-established": {
+        "Value": 1,
+        "OK": true
+      },
+      "connections-dropped": {
+        "Value": 0,
+        "OK": true
+      },
+      "message-stats": {
+        "rx-opens": {
+          "Value": 1,
+          "OK": true
+        },
+        "rx-keepalives": {
+          "Value": 2550,
+          "OK": true
+        },
+        "rx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "rx-total": {
+          "Value": 2621,
+          "OK": true
+        },
+        "tx-opens": {
+          "Value": 1,
+          "OK": true
+        },
+        "tx-keepalives": {
+          "Value": 2550,
+          "OK": true
+        },
+        "tx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "tx-total": {
+          "Value": 2621,
+          "OK": true
+        }
+      },
+      "address-family": {
+        "l2vpn-evpn": {
+          "rx-prefix": {
+            "Value": 29,
+            "OK": true
+          },
+          "tx-prefix": {
+            "Value": 52,
+            "OK": true
+          }
+        }
+      },
+      "bfd": null
+    },
+    "swp5": {
+      "type": "",
+      "description": "fabric underlay to spine spine-01/E1/1",
+      "peer-group": "",
+      "remote-as": {
+        "Value": 4200005633,
+        "OK": true,
+        "Raw": "4200005633"
+      },
+      "local-as": {
+        "asn": {
+          "Value": 4200006632,
+          "OK": true,
+          "Raw": "4200006632"
+        }
+      },
+      "remote-router-id": "172.30.8.0",
+      "remote-hostname": "spine-01",
+      "remote-port": {
+        "Value": 179,
+        "OK": true,
+        "Raw": "179"
+      },
+      "session-state": "established",
+      "uptime": {
+        "Value": 7654000,
+        "OK": true,
+        "Raw": "7654000"
+      },
+      "last-reset-time": {
+        "Value": 7660000,
+        "OK": true,
+        "Raw": "7660000"
+      },
+      "last-reset-reason": "Waiting for peer OPEN",
+      "connections-established": {
+        "Value": 1,
+        "OK": true
+      },
+      "connections-dropped": {
+        "Value": 0,
+        "OK": true
+      },
+      "message-stats": {
+        "rx-opens": {
+          "Value": 1,
+          "OK": true
+        },
+        "rx-keepalives": {
+          "Value": 2552,
+          "OK": true
+        },
+        "rx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "rx-total": {
+          "Value": 2559,
+          "OK": true
+        },
+        "tx-opens": {
+          "Value": 1,
+          "OK": true
+        },
+        "tx-keepalives": {
+          "Value": 2552,
+          "OK": true
+        },
+        "tx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "tx-total": {
+          "Value": 2562,
+          "OK": true
+        }
+      },
+      "address-family": {
+        "ipv4-unicast": {
+          "rx-prefix": {
+            "Value": 7,
+            "OK": true
+          },
+          "tx-prefix": {
+            "Value": 10,
+            "OK": true
+          }
+        }
+      },
+      "bfd": null
+    },
+    "swp6": {
+      "type": "",
+      "description": "fabric underlay to spine spine-01/E1/2",
+      "peer-group": "",
+      "remote-as": {
+        "Value": 4200005633,
+        "OK": true,
+        "Raw": "4200005633"
+      },
+      "local-as": {
+        "asn": {
+          "Value": 4200006632,
+          "OK": true,
+          "Raw": "4200006632"
+        }
+      },
+      "remote-router-id": "172.30.8.0",
+      "remote-hostname": "spine-01",
+      "remote-port": {
+        "Value": 179,
+        "OK": true,
+        "Raw": "179"
+      },
+      "session-state": "established",
+      "uptime": {
+        "Value": 7654000,
+        "OK": true,
+        "Raw": "7654000"
+      },
+      "last-reset-time": {
+        "Value": 7660000,
+        "OK": true,
+        "Raw": "7660000"
+      },
+      "last-reset-reason": "Waiting for peer OPEN",
+      "connections-established": {
+        "Value": 1,
+        "OK": true
+      },
+      "connections-dropped": {
+        "Value": 0,
+        "OK": true
+      },
+      "message-stats": {
+        "rx-opens": {
+          "Value": 1,
+          "OK": true
+        },
+        "rx-keepalives": {
+          "Value": 2552,
+          "OK": true
+        },
+        "rx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "rx-total": {
+          "Value": 2559,
+          "OK": true
+        },
+        "tx-opens": {
+          "Value": 1,
+          "OK": true
+        },
+        "tx-keepalives": {
+          "Value": 2552,
+          "OK": true
+        },
+        "tx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "tx-total": {
+          "Value": 2562,
+          "OK": true
+        }
+      },
+      "address-family": {
+        "ipv4-unicast": {
+          "rx-prefix": {
+            "Value": 7,
+            "OK": true
+          },
+          "tx-prefix": {
+            "Value": 10,
+            "OK": true
+          }
+        }
+      },
+      "bfd": null
+    },
+    "swp7": {
+      "type": "",
+      "description": "fabric underlay to spine spine-02/E1/1",
+      "peer-group": "",
+      "remote-as": {
+        "Value": 4200005633,
+        "OK": true,
+        "Raw": "4200005633"
+      },
+      "local-as": {
+        "asn": {
+          "Value": 4200006632,
+          "OK": true,
+          "Raw": "4200006632"
+        }
+      },
+      "remote-router-id": "172.30.8.1",
+      "remote-hostname": "spine-02",
+      "remote-port": {
+        "Value": 179,
+        "OK": true,
+        "Raw": "179"
+      },
+      "session-state": "established",
+      "uptime": {
+        "Value": 7650000,
+        "OK": true,
+        "Raw": "7650000"
+      },
+      "last-reset-time": {
+        "Value": 7660000,
+        "OK": true,
+        "Raw": "7660000"
+      },
+      "last-reset-reason": "Waiting for peer OPEN",
+      "connections-established": {
+        "Value": 1,
+        "OK": true
+      },
+      "connections-dropped": {
+        "Value": 0,
+        "OK": true
+      },
+      "message-stats": {
+        "rx-opens": {
+          "Value": 1,
+          "OK": true
+        },
+        "rx-keepalives": {
+          "Value": 2551,
+          "OK": true
+        },
+        "rx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "rx-total": {
+          "Value": 2558,
+          "OK": true
+        },
+        "tx-opens": {
+          "Value": 1,
+          "OK": true
+        },
+        "tx-keepalives": {
+          "Value": 2551,
+          "OK": true
+        },
+        "tx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "tx-total": {
+          "Value": 2561,
+          "OK": true
+        }
+      },
+      "address-family": {
+        "ipv4-unicast": {
+          "rx-prefix": {
+            "Value": 7,
+            "OK": true
+          },
+          "tx-prefix": {
+            "Value": 10,
+            "OK": true
+          }
+        }
+      },
+      "bfd": null
+    },
+    "swp8": {
+      "type": "",
+      "description": "fabric underlay to spine spine-02/E1/2",
+      "peer-group": "",
+      "remote-as": {
+        "Value": 4200005633,
+        "OK": true,
+        "Raw": "4200005633"
+      },
+      "local-as": {
+        "asn": {
+          "Value": 4200006632,
+          "OK": true,
+          "Raw": "4200006632"
+        }
+      },
+      "remote-router-id": "172.30.8.1",
+      "remote-hostname": "spine-02",
+      "remote-port": {
+        "Value": 179,
+        "OK": true,
+        "Raw": "179"
+      },
+      "session-state": "established",
+      "uptime": {
+        "Value": 7650000,
+        "OK": true,
+        "Raw": "7650000"
+      },
+      "last-reset-time": {
+        "Value": 7660000,
+        "OK": true,
+        "Raw": "7660000"
+      },
+      "last-reset-reason": "Waiting for peer OPEN",
+      "connections-established": {
+        "Value": 1,
+        "OK": true
+      },
+      "connections-dropped": {
+        "Value": 0,
+        "OK": true
+      },
+      "message-stats": {
+        "rx-opens": {
+          "Value": 1,
+          "OK": true
+        },
+        "rx-keepalives": {
+          "Value": 2551,
+          "OK": true
+        },
+        "rx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "rx-total": {
+          "Value": 2558,
+          "OK": true
+        },
+        "tx-opens": {
+          "Value": 1,
+          "OK": true
+        },
+        "tx-keepalives": {
+          "Value": 2551,
+          "OK": true
+        },
+        "tx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "tx-total": {
+          "Value": 2561,
+          "OK": true
+        }
+      },
+      "address-family": {
+        "ipv4-unicast": {
+          "rx-prefix": {
+            "Value": 7,
+            "OK": true
+          },
+          "tx-prefix": {
+            "Value": 10,
+            "OK": true
+          }
+        }
+      },
+      "bfd": null
+    }
+  },
+  "ext-ext-bgp-01": {
+    "100.1.10.6": {
+      "type": "",
+      "description": "External attach leaf-01--ext-bgp-01",
+      "peer-group": "",
+      "remote-as": {
+        "Value": 64102,
+        "OK": true,
+        "Raw": "64102"
+      },
+      "local-as": {
+        "asn": {
+          "Value": 4200006632,
+          "OK": true,
+          "Raw": "4200006632"
+        }
+      },
+      "remote-router-id": "100.1.10.6",
+      "remote-hostname": "virt-external",
+      "remote-port": {
+        "Value": 179,
+        "OK": true,
+        "Raw": "179"
+      },
+      "session-state": "established",
+      "uptime": {
+        "Value": 7655000,
+        "OK": true,
+        "Raw": "7655000"
+      },
+      "last-reset-time": {
+        "Value": 7660000,
+        "OK": true,
+        "Raw": "7660000"
+      },
+      "last-reset-reason": "Waiting for peer OPEN",
+      "connections-established": {
+        "Value": 1,
+        "OK": true
+      },
+      "connections-dropped": {
+        "Value": 0,
+        "OK": true
+      },
+      "message-stats": {
+        "rx-opens": {
+          "Value": 1,
+          "OK": true
+        },
+        "rx-keepalives": {
+          "Value": 2552,
+          "OK": true
+        },
+        "rx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "rx-total": {
+          "Value": 2556,
+          "OK": true
+        },
+        "tx-opens": {
+          "Value": 1,
+          "OK": true
+        },
+        "tx-keepalives": {
+          "Value": 2552,
+          "OK": true
+        },
+        "tx-route-refreshes": {
+          "Value": 0,
+          "OK": true
+        },
+        "tx-total": {
+          "Value": 2554,
+          "OK": true
+        }
+      },
+      "address-family": {
+        "ipv4-unicast": {
+          "rx-prefix": {
+            "Value": 1,
+            "OK": true
+          },
+          "tx-prefix": {
+            "Value": 0,
+            "OK": true
+          }
+        }
+      },
+      "bfd": null
+    }
+  }
+}

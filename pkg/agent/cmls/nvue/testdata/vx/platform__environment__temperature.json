@@ -1,0 +1,51 @@
+{
+  "Board-Sensor-Near-Virtual-Switch": {
+    "crit": "85.0",
+    "current": "25.0",
+    "max": "80.0",
+    "min": "5",
+    "state": "ok"
+  },
+  "Board-Sensor-at-Front-Left-Corner": {
+    "crit": "85.0",
+    "current": "25.0",
+    "max": "80.0",
+    "min": "5",
+    "state": "ok"
+  },
+  "Board-Sensor-at-Front-Right-Corner": {
+    "crit": "85.0",
+    "current": "25.0",
+    "max": "80.0",
+    "min": "5",
+    "state": "ok"
+  },
+  "Board-Sensor-near-CPU": {
+    "crit": "85.0",
+    "current": "25.0",
+    "max": "80.0",
+    "min": "5",
+    "state": "ok"
+  },
+  "Board-Sensor-near-Fan": {
+    "crit": "85.0",
+    "current": "25.0",
+    "max": "80.0",
+    "min": "5",
+    "state": "ok"
+  },
+  "PSU1-Temp-Sensor": {
+    "crit": "85.0",
+    "current": "25.0",
+    "max": "80.0",
+    "min": "5",
+    "state": "ok"
+  },
+  "PSU2-Temp-Sensor": {
+    "crit": "85.0",
+    "current": "25.0",
+    "max": "80.0",
+    "min": "5",
+    "state": "ok"
+  }
+}

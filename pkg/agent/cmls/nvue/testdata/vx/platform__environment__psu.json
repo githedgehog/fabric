@@ -1,0 +1,16 @@
+{
+  "PSU1": {
+    "capacity": "N/A",
+    "current": "N/A",
+    "power": "N/A",
+    "state": "ok",
+    "voltage": "N/A"
+  },
+  "PSU2": {
+    "capacity": "N/A",
+    "current": "N/A",
+    "power": "N/A",
+    "state": "ok",
+    "voltage": "N/A"
+  }
+}

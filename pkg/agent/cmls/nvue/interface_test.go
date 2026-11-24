@@ -5,6 +5,7 @@ package nvue
 
 import (
 	"regexp"
+	"slices"
 	"testing"
 	"time"
 
@@ -17,6 +18,7 @@ var interfaceCaptures = map[string][]string{
 	modelSN4600: {"/interface"},
 	modelSN2700: {"/interface"},
 	modelSN2201: {"/interface"},
+	modelVX:     {"/interface"},
 }
 
 var macAddressRe = regexp.MustCompile(`^[0-9a-f]{2}(:[0-9a-f]{2}){5}$`)
@@ -26,7 +28,7 @@ func isPort(iface Interface) bool {
 }
 
 func TestInterfaces(t *testing.T) {
-	forEachModel(t, allModels, func(t *testing.T, client *Client, model string) {
+	forEachModel(t, slices.Concat(allModels, []string{modelVX}), func(t *testing.T, client *Client, model string) {
 		ifaces, err := client.Interfaces(t.Context())
 		require.NoError(t, err)
 		require.Contains(t, ifaces, "eth0")
@@ -96,6 +98,11 @@ func TestInterfaces(t *testing.T) {
 			require.Equal(t, map[string]InterfaceBondMember{
 				"swp1s0": {BondingState: "active", MIIStatus: StatusUp},
 			}, bond.Bond.Member)
+		case modelVX:
+			// the ESLAG bonds to the servers and the spines over the fabric ports
+			require.Equal(t, InterfaceTypeBond, ifaces["bond1"].Type)
+			require.Contains(t, ifaces["bond1"].Bond.Member, "swp2")
+			require.Contains(t, ifaces["swp5"].LLDP.Neighbor, "spine-01")
 		}
 	})
 }

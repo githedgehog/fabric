@@ -1,0 +1,12 @@
+{
+  "BIOS": {
+    "actual-firmware": null,
+    "fw-source": "default",
+    "part-number": "SeaBIOS"
+  },
+  "SSD": {
+    "actual-firmware": "N/A",
+    "fw-source": "default",
+    "part-number": "N/A"
+  }
+}

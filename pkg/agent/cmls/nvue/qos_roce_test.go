@@ -13,10 +13,11 @@ import (
 var roceCaptures = map[string][]string{
 	modelSN5610: {"/qos/roce"},
 	modelSN2201: {"/qos/roce"},
+	modelVX:     {"/qos/roce"},
 }
 
 func TestRoCE(t *testing.T) {
-	forEachModel(t, []string{modelSN5610, modelSN2201}, func(t *testing.T, client *Client, model string) {
+	forEachModel(t, []string{modelSN5610, modelSN2201, modelVX}, func(t *testing.T, client *Client, model string) {
 		roce, err := client.RoCE(t.Context())
 		require.NoError(t, err)
 
@@ -26,7 +27,7 @@ func TestRoCE(t *testing.T) {
 		}
 
 		switch model {
-		case modelSN5610:
+		case modelSN5610, modelVX:
 			require.Equal(t, &RoCE{}, roce)
 			require.False(t, roce.Enabled())
 		case modelSN2201:

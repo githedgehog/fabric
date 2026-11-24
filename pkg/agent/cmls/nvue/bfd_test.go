@@ -24,6 +24,15 @@ var bfdCaptures = map[string][]string{
 		"/vrf/ext-ext-bgp/router/bfd/peers",
 	},
 	modelSN3700C: {"/vrf/default/router/bfd/peers"},
+	modelVX: {
+		"/vrf/default/router/bfd/peers",
+		"/vrf/ext-ext-bgp-01/router/bfd/peers",
+		"/vrf/ext-ext-snp-01/router/bfd/peers",
+		"/vrf/mgmt/router/bfd/peers",
+		"/vrf/vpc-vpc-01/router/bfd/peers",
+		"/vrf/vpc-vpc-02/router/bfd/peers",
+		"/vrf/vpc-vpc-03/router/bfd/peers",
+	},
 }
 
 func TestBFDPeers(t *testing.T) {
@@ -39,9 +48,9 @@ func TestBFDPeers(t *testing.T) {
 				require.NotEmpty(t, peer.State, "%s %s", vrf, id)
 				require.True(t, peer.SessionUp.OK, "%s %s", vrf, id)
 				require.True(t, peer.DetectMultiplier.OK, "%s %s", vrf, id)
-				// "enabled" or "disabled" since Cumulus Linux 5.18
+				// "enabled" or "disabled" since Cumulus Linux 5.18, a JSON boolean before
 				require.True(t, peer.Multihop.OK, "%s %s", vrf, id)
-				require.False(t, peer.Multihop.Bool, "%s %s", vrf, id)
+				require.Equal(t, model == modelVX, peer.Multihop.Bool, "%s %s", vrf, id)
 				// the sessions of the overlay are the multihop ones, between the loopbacks
 				require.Equal(t, peer.Interface == "", peer.Multihop.Value, "%s %s", vrf, id)
 			}
@@ -59,7 +68,7 @@ func TestBFDPeers(t *testing.T) {
 
 				found := false
 				for _, peer := range peers {
-					if (neighbor.Type == BGPNeighborUnnumbered && peer.Interface == id) || peer.Peer == id {
+					if peer.Interface == id || peer.Peer == id {
 						require.Equal(t, StatusUp, peer.State, "%s %s", vrf, id)
 						require.Equal(t, neighbor.BFD.Profile, peer.Profile, "%s %s", vrf, id)
 						found = true
@@ -75,7 +84,7 @@ func TestBFDPeers(t *testing.T) {
 			// the host BGP sessions have no BFD
 			require.Empty(t, all["vpc-hbgp-nvue"])
 			require.NotEmpty(t, all[VRFDefault])
-		case modelSN3700C:
+		case modelSN3700C, modelVX:
 			require.NotEmpty(t, all[VRFDefault])
 		}
 	})
