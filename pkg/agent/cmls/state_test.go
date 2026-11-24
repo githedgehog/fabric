@@ -337,6 +337,18 @@ func captureWarnings(t *testing.T) *strings.Builder {
 	return logs
 }
 
+// a bond created down, such as to a server that's off, has no oper status change to report
+func TestInterfaceStateNeverChanged(t *testing.T) {
+	st, err := interfaceState("bond1", &nvue.InterfaceLink{
+		AdminStatus:          nvue.StatusUp,
+		OperStatus:           nvue.StatusDown,
+		OperStatusLastChange: "Never",
+	}, fixtureTime.Location())
+	require.NoError(t, err)
+	require.Equal(t, agentapi.OperStatusDown, st.OperStatus)
+	require.True(t, st.LastChange.IsZero())
+}
+
 func TestReportedInterface(t *testing.T) {
 	sn2700 := switchprofile.CumulusNvidiaSN2700
 	portMap, err := sn2700.Spec.GetNOS2APIPortsFor(&wiringapi.SwitchSpec{Profile: sn2700.Name})

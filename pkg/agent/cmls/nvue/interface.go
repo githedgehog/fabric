@@ -28,6 +28,7 @@ const (
 
 	// lastChangeLayout is how the link reports its last change, in the local time of the switch
 	lastChangeLayout = "2006/01/02 15:04:05.000"
+	lastChangeNever  = "Never"
 )
 
 // Interface is an interface of any type, only the parts the agent reads are modeled
@@ -56,6 +57,12 @@ type InterfaceLink struct {
 
 // LastChange is when the oper status last changed, loc is the timezone of the switch
 func (l *InterfaceLink) LastChange(loc *time.Location) (time.Time, error) {
+	// an interface that hasn't changed its oper status since it was created, such as a bond that was created down, has no
+	// last change
+	if l.OperStatusLastChange == "" || l.OperStatusLastChange == lastChangeNever {
+		return time.Time{}, nil
+	}
+
 	t, err := time.ParseInLocation(lastChangeLayout, l.OperStatusLastChange, loc)
 	if err != nil {
 		return time.Time{}, fmt.Errorf("parsing last change %q: %w", l.OperStatusLastChange, err)

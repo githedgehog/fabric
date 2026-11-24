@@ -187,13 +187,11 @@ func interfaceState(nosName string, link *nvue.InterfaceLink, loc *time.Location
 		st.OperStatus = agentapi.OperStatusUnknown
 	}
 
-	if link.OperStatusLastChange != "" {
-		lastChange, err := link.LastChange(loc)
-		if err != nil {
-			return st, fmt.Errorf("interface %s: %w", nosName, err)
-		}
-		st.LastChange = kmetav1.Time{Time: lastChange}
+	lastChange, err := link.LastChange(loc)
+	if err != nil {
+		return st, fmt.Errorf("interface %s: %w", nosName, err)
 	}
+	st.LastChange = kmetav1.Time{Time: lastChange}
 
 	return st, nil
 }
