@@ -74,7 +74,7 @@ func (c *CumulusProcessor) UpdateSwitchState(ctx context.Context, agent *agentap
 		return fmt.Errorf("updating nos: %w", err)
 	}
 
-	if err := c.updateInterfaces(ctx, reg, swState, portMap, loc); err != nil {
+	if err := c.updateInterfaces(ctx, reg, swState, agent.Spec.Switch.Profile, portMap, loc); err != nil {
 		return fmt.Errorf("updating interfaces: %w", err)
 	}
 

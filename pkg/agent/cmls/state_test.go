@@ -4,6 +4,7 @@
 package cmls
 
 import (
+	"log/slog"
 	"maps"
 	"os"
 	"path/filepath"
@@ -316,6 +317,47 @@ func TestBGPNeighborState(t *testing.T) {
 			require.Equal(t, tc.peerType, st.PeerType)
 			require.Empty(t, st.PeerGroup)
 			require.Equal(t, tc.state == agentapi.BGPNeighborSessionStateEstablished, !st.LastEstablished.IsZero())
+		})
+	}
+}
+
+func TestReportedInterface(t *testing.T) {
+	sn2700 := switchprofile.CumulusNvidiaSN2700
+	portMap, err := sn2700.Spec.GetNOS2APIPortsFor(&wiringapi.SwitchSpec{Profile: sn2700.Name})
+	require.NoError(t, err)
+	link := &nvue.InterfaceLink{}
+
+	for name, tc := range map[string]struct {
+		nosName string
+		iface   nvue.Interface
+		profile string
+		api     string
+		warn    bool
+	}{
+		"port":                    {nosName: "swp1", iface: nvue.Interface{Type: "swp", Link: link}, api: "E1/1/1"},
+		"management port":         {nosName: "eth0", iface: nvue.Interface{Type: "eth", Link: link}, api: "M1"},
+		"bond":                    {nosName: "bond1", iface: nvue.Interface{Type: "bond", Link: link}, api: "bond1"},
+		"svi":                     {nosName: "vlan1001", iface: nvue.Interface{Type: "svi", Link: link}},
+		"unknown port":            {nosName: "swp99", iface: nvue.Interface{Type: "swp", Link: link}, warn: true},
+		"no link":                 {nosName: "swp1", iface: nvue.Interface{Type: "swp"}, warn: true},
+		"second management port":  {nosName: "eth1", iface: nvue.Interface{Type: "eth", Link: link}},
+		"other profile with eth1": {nosName: "eth1", iface: nvue.Interface{Type: "eth", Link: link}, profile: "other", warn: true},
+	} {
+		t.Run(name, func(t *testing.T) {
+			logs := &strings.Builder{}
+			defaultLogger := slog.Default()
+			slog.SetDefault(slog.New(slog.NewTextHandler(logs, &slog.HandlerOptions{Level: slog.LevelWarn})))
+			t.Cleanup(func() { slog.SetDefault(defaultLogger) })
+
+			profile := sn2700.Name
+			if tc.profile != "" {
+				profile = tc.profile
+			}
+
+			api, ok := reportedInterface(tc.nosName, &tc.iface, profile, portMap)
+			require.Equal(t, tc.api, api)
+			require.Equal(t, tc.api != "", ok)
+			require.Equal(t, tc.warn, logs.Len() > 0, logs.String())
 		})
 	}
 }
