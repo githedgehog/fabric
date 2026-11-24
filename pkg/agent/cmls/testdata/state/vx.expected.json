@@ -1,0 +1,649 @@
+{
+  "nos": {
+    "asicVersion": "n/a",
+    "buildDate": "Thu Jun 11 11:16:30 UTC 2026",
+    "distributionVersion": "Debian GNU/Linux 12.13",
+    "hwskuVersion": "VX",
+    "kernelVersion": "6.1.0-cl-1-amd64",
+    "mfgName": "Cumulus",
+    "platformName": "N/A",
+    "productDescription": "Cumulus Linux",
+    "productVersion": "5.16.5.0017",
+    "serialNumber": "SN00000001",
+    "softwareVersion": "5.16.5",
+    "uptime": "2h17m33s"
+  },
+  "interfaces": {
+    "E1/1": {
+      "enabled": true,
+      "admin": "up",
+      "oper": "up",
+      "mac": "0a:1b:2c:00:00:10",
+      "change": "2026-11-23T23:21:03Z",
+      "speed": "10G",
+      "counters": {
+        "clear": null
+      }
+    },
+    "E1/2": {
+      "enabled": true,
+      "admin": "up",
+      "oper": "up",
+      "mac": "0a:1b:2c:00:00:01",
+      "change": "2026-11-24T00:54:14Z",
+      "speed": "10G",
+      "counters": {
+        "clear": null
+      },
+      "lldpNeighbors": [
+        {
+          "chassis": "00:00:00:00:00:00",
+          "sysName": "server-01",
+          "portID": "enp2s1",
+          "ttl": 120,
+          "mac": "00:00:00:00:00:00",
+          "port": "enp2s1"
+        }
+      ]
+    },
+    "E1/3": {
+      "enabled": true,
+      "admin": "up",
+      "oper": "up",
+      "mac": "0a:1b:2c:00:00:02",
+      "change": "2026-11-24T00:54:14Z",
+      "speed": "10G",
+      "counters": {
+        "clear": null
+      },
+      "lldpNeighbors": [
+        {
+          "chassis": "00:00:00:00:00:00",
+          "sysName": "server-02",
+          "portID": "enp2s1",
+          "ttl": 120,
+          "mac": "00:00:00:00:00:00",
+          "port": "enp2s1"
+        }
+      ]
+    },
+    "E1/4": {
+      "enabled": true,
+      "admin": "up",
+      "oper": "up",
+      "mac": "0a:1b:2c:00:00:11",
+      "change": "2026-11-24T00:54:14Z",
+      "speed": "10G",
+      "counters": {
+        "clear": null
+      },
+      "lldpNeighbors": [
+        {
+          "chassis": "00:00:00:00:00:00",
+          "sysName": "server-03",
+          "portID": "enp2s1",
+          "ttl": 120,
+          "mac": "00:00:00:00:00:00",
+          "port": "enp2s1"
+        }
+      ]
+    },
+    "E1/5": {
+      "enabled": true,
+      "admin": "up",
+      "oper": "up",
+      "mac": "0a:1b:2c:00:00:12",
+      "change": "2026-11-23T23:21:03Z",
+      "speed": "10G",
+      "counters": {
+        "clear": null
+      },
+      "lldpNeighbors": [
+        {
+          "chassis": "0a:1b:2c:00:00:09",
+          "sysName": "spine-01",
+          "sysDescr": "Hedgehog Fabric",
+          "portID": "swp1",
+          "portDescr": "Fabric leaf-01/E1/5 spine-01--fabric--leaf-01",
+          "ttl": 20,
+          "mac": "0a:1b:2c:00:00:09",
+          "port": "swp1"
+        }
+      ]
+    },
+    "E1/6": {
+      "enabled": true,
+      "admin": "up",
+      "oper": "up",
+      "mac": "0a:1b:2c:00:00:13",
+      "change": "2026-11-23T23:21:03Z",
+      "speed": "10G",
+      "counters": {
+        "clear": null
+      },
+      "lldpNeighbors": [
+        {
+          "chassis": "0a:1b:2c:00:00:09",
+          "sysName": "spine-01",
+          "sysDescr": "Hedgehog Fabric",
+          "portID": "swp2",
+          "portDescr": "Fabric leaf-01/E1/6 spine-01--fabric--leaf-01",
+          "ttl": 20,
+          "mac": "0a:1b:2c:00:00:09",
+          "port": "swp2"
+        }
+      ]
+    },
+    "E1/7": {
+      "enabled": true,
+      "admin": "up",
+      "oper": "up",
+      "mac": "0a:1b:2c:00:00:14",
+      "change": "2026-11-23T23:21:03Z",
+      "speed": "10G",
+      "counters": {
+        "clear": null
+      },
+      "lldpNeighbors": [
+        {
+          "chassis": "0a:1b:2c:00:00:0b",
+          "sysName": "spine-02",
+          "sysDescr": "Hedgehog Fabric",
+          "portID": "swp1",
+          "portDescr": "Fabric leaf-01/E1/7 spine-02--fabric--leaf-01",
+          "ttl": 20,
+          "mac": "0a:1b:2c:00:00:0b",
+          "port": "swp1"
+        }
+      ]
+    },
+    "E1/8": {
+      "enabled": true,
+      "admin": "up",
+      "oper": "up",
+      "mac": "0a:1b:2c:00:00:15",
+      "change": "2026-11-23T23:21:03Z",
+      "speed": "10G",
+      "counters": {
+        "clear": null
+      },
+      "lldpNeighbors": [
+        {
+          "chassis": "0a:1b:2c:00:00:0b",
+          "sysName": "spine-02",
+          "sysDescr": "Hedgehog Fabric",
+          "portID": "swp2",
+          "portDescr": "Fabric leaf-01/E1/8 spine-02--fabric--leaf-01",
+          "ttl": 20,
+          "mac": "0a:1b:2c:00:00:0b",
+          "port": "swp2"
+        }
+      ]
+    },
+    "M1": {
+      "enabled": true,
+      "admin": "up",
+      "oper": "up",
+      "mac": "0a:1b:2c:00:00:04",
+      "change": "2026-11-23T23:12:16Z",
+      "speed": "1G"
+    },
+    "bond1": {
+      "enabled": true,
+      "admin": "up",
+      "oper": "up",
+      "mac": "0a:1b:2c:00:00:01",
+      "change": "2026-11-24T00:54:42Z",
+      "speed": "10G"
+    },
+    "bond2": {
+      "enabled": true,
+      "admin": "up",
+      "oper": "up",
+      "mac": "0a:1b:2c:00:00:02",
+      "change": "2026-11-24T00:54:42Z",
+      "speed": "10G"
+    }
+  },
+  "transceivers": {
+    "E1/1": {},
+    "E1/10": {},
+    "E1/11": {},
+    "E1/12": {},
+    "E1/13": {},
+    "E1/14": {},
+    "E1/15": {},
+    "E1/16": {},
+    "E1/17": {},
+    "E1/18": {},
+    "E1/19": {},
+    "E1/2": {},
+    "E1/20": {},
+    "E1/21": {},
+    "E1/22": {},
+    "E1/23": {},
+    "E1/24": {},
+    "E1/25": {},
+    "E1/26": {},
+    "E1/27": {},
+    "E1/28": {},
+    "E1/29": {},
+    "E1/3": {},
+    "E1/30": {},
+    "E1/31": {},
+    "E1/32": {},
+    "E1/33": {},
+    "E1/34": {},
+    "E1/35": {},
+    "E1/36": {},
+    "E1/37": {},
+    "E1/38": {},
+    "E1/39": {},
+    "E1/4": {},
+    "E1/40": {},
+    "E1/41": {},
+    "E1/42": {},
+    "E1/43": {},
+    "E1/44": {},
+    "E1/45": {},
+    "E1/46": {},
+    "E1/47": {},
+    "E1/48": {},
+    "E1/49": {},
+    "E1/5": {},
+    "E1/50": {},
+    "E1/51": {},
+    "E1/52": {},
+    "E1/53": {},
+    "E1/54": {},
+    "E1/55": {},
+    "E1/56": {},
+    "E1/57": {},
+    "E1/58": {},
+    "E1/59": {},
+    "E1/6": {},
+    "E1/60": {},
+    "E1/61": {},
+    "E1/62": {},
+    "E1/63": {},
+    "E1/64": {},
+    "E1/7": {},
+    "E1/8": {},
+    "E1/9": {}
+  },
+  "bgpNeighbors": {
+    "default": {
+      "172.30.8.0": {
+        "enabled": true,
+        "estabTrans": 1,
+        "lastEstab": "2026-11-23T13:52:28Z",
+        "lastRead": null,
+        "lastResetReason": "Waiting for peer OPEN",
+        "lastReset": "2026-11-23T13:52:20Z",
+        "lastWrite": null,
+        "localAS": 4200006632,
+        "msgs": {
+          "rec": {
+            "keepal": 2551,
+            "open": 1
+          },
+          "sent": {
+            "keepal": 2551,
+            "open": 1
+          }
+        },
+        "peerAS": 4200005633,
+        "peerPort": 179,
+        "peerType": "external",
+        "remoteRouterID": "172.30.8.0",
+        "state": "established",
+        "prefixes": {
+          "L2VPN_EVPN": {
+            "rec": 29,
+            "sent": 52
+          }
+        }
+      },
+      "172.30.8.1": {
+        "enabled": true,
+        "estabTrans": 1,
+        "lastEstab": "2026-11-23T13:52:31Z",
+        "lastRead": null,
+        "lastResetReason": "Waiting for peer OPEN",
+        "lastReset": "2026-11-23T13:52:20Z",
+        "lastWrite": null,
+        "localAS": 4200006632,
+        "msgs": {
+          "rec": {
+            "keepal": 2550,
+            "open": 1
+          },
+          "sent": {
+            "keepal": 2550,
+            "open": 1
+          }
+        },
+        "peerAS": 4200005633,
+        "peerPort": 179,
+        "peerType": "external",
+        "remoteRouterID": "172.30.8.1",
+        "state": "established",
+        "prefixes": {
+          "L2VPN_EVPN": {
+            "rec": 29,
+            "sent": 52
+          }
+        }
+      },
+      "E1/5": {
+        "enabled": true,
+        "estabTrans": 1,
+        "lastEstab": "2026-11-23T13:52:26Z",
+        "lastRead": null,
+        "lastResetReason": "Waiting for peer OPEN",
+        "lastReset": "2026-11-23T13:52:20Z",
+        "lastWrite": null,
+        "localAS": 4200006632,
+        "msgs": {
+          "rec": {
+            "keepal": 2552,
+            "open": 1
+          },
+          "sent": {
+            "keepal": 2552,
+            "open": 1
+          }
+        },
+        "peerAS": 4200005633,
+        "peerPort": 179,
+        "peerType": "external",
+        "remoteRouterID": "172.30.8.0",
+        "state": "established",
+        "prefixes": {
+          "IPV4_UNICAST": {
+            "rec": 7,
+            "sent": 10
+          }
+        }
+      },
+      "E1/6": {
+        "enabled": true,
+        "estabTrans": 1,
+        "lastEstab": "2026-11-23T13:52:26Z",
+        "lastRead": null,
+        "lastResetReason": "Waiting for peer OPEN",
+        "lastReset": "2026-11-23T13:52:20Z",
+        "lastWrite": null,
+        "localAS": 4200006632,
+        "msgs": {
+          "rec": {
+            "keepal": 2552,
+            "open": 1
+          },
+          "sent": {
+            "keepal": 2552,
+            "open": 1
+          }
+        },
+        "peerAS": 4200005633,
+        "peerPort": 179,
+        "peerType": "external",
+        "remoteRouterID": "172.30.8.0",
+        "state": "established",
+        "prefixes": {
+          "IPV4_UNICAST": {
+            "rec": 7,
+            "sent": 10
+          }
+        }
+      },
+      "E1/7": {
+        "enabled": true,
+        "estabTrans": 1,
+        "lastEstab": "2026-11-23T13:52:30Z",
+        "lastRead": null,
+        "lastResetReason": "Waiting for peer OPEN",
+        "lastReset": "2026-11-23T13:52:20Z",
+        "lastWrite": null,
+        "localAS": 4200006632,
+        "msgs": {
+          "rec": {
+            "keepal": 2551,
+            "open": 1
+          },
+          "sent": {
+            "keepal": 2551,
+            "open": 1
+          }
+        },
+        "peerAS": 4200005633,
+        "peerPort": 179,
+        "peerType": "external",
+        "remoteRouterID": "172.30.8.1",
+        "state": "established",
+        "prefixes": {
+          "IPV4_UNICAST": {
+            "rec": 7,
+            "sent": 10
+          }
+        }
+      },
+      "E1/8": {
+        "enabled": true,
+        "estabTrans": 1,
+        "lastEstab": "2026-11-23T13:52:30Z",
+        "lastRead": null,
+        "lastResetReason": "Waiting for peer OPEN",
+        "lastReset": "2026-11-23T13:52:20Z",
+        "lastWrite": null,
+        "localAS": 4200006632,
+        "msgs": {
+          "rec": {
+            "keepal": 2551,
+            "open": 1
+          },
+          "sent": {
+            "keepal": 2551,
+            "open": 1
+          }
+        },
+        "peerAS": 4200005633,
+        "peerPort": 179,
+        "peerType": "external",
+        "remoteRouterID": "172.30.8.1",
+        "state": "established",
+        "prefixes": {
+          "IPV4_UNICAST": {
+            "rec": 7,
+            "sent": 10
+          }
+        }
+      }
+    },
+    "ext-ext-bgp-01": {
+      "100.1.10.6": {
+        "enabled": true,
+        "estabTrans": 1,
+        "lastEstab": "2026-11-23T13:52:25Z",
+        "lastRead": null,
+        "lastResetReason": "Waiting for peer OPEN",
+        "lastReset": "2026-11-23T13:52:20Z",
+        "lastWrite": null,
+        "localAS": 4200006632,
+        "msgs": {
+          "rec": {
+            "keepal": 2552,
+            "open": 1
+          },
+          "sent": {
+            "keepal": 2552,
+            "open": 1
+          }
+        },
+        "peerAS": 64102,
+        "peerPort": 179,
+        "peerType": "external",
+        "remoteRouterID": "100.1.10.6",
+        "state": "established",
+        "prefixes": {
+          "IPV4_UNICAST": {
+            "rec": 1
+          }
+        }
+      }
+    },
+    "ext-ext-snp-01": {},
+    "vpc-vpc-01": {},
+    "vpc-vpc-02": {},
+    "vpc-vpc-03": {}
+  },
+  "bfdPeers": {
+    "default": {
+      "172.30.8.0": {
+        "state": "up",
+        "lastUpTime": "2026-11-23T13:52:29Z"
+      },
+      "172.30.8.1": {
+        "state": "up",
+        "lastUpTime": "2026-11-23T13:52:32Z"
+      },
+      "E1/5": {
+        "state": "up",
+        "lastUpTime": "2026-11-23T13:52:28Z"
+      },
+      "E1/6": {
+        "state": "up",
+        "lastUpTime": "2026-11-23T13:52:28Z"
+      },
+      "E1/7": {
+        "state": "up",
+        "lastUpTime": "2026-11-23T13:52:31Z"
+      },
+      "E1/8": {
+        "state": "up",
+        "lastUpTime": "2026-11-23T13:52:31Z"
+      }
+    }
+  },
+  "platform": {
+    "fans": {
+      "FAN1/1": {
+        "speed": 6000,
+        "presence": true,
+        "status": true
+      },
+      "FAN1/2": {
+        "speed": 6000,
+        "presence": true,
+        "status": true
+      },
+      "FAN2/1": {
+        "speed": 6000,
+        "presence": true,
+        "status": true
+      },
+      "FAN2/2": {
+        "speed": 6000,
+        "presence": true,
+        "status": true
+      },
+      "FAN3/1": {
+        "speed": 6000,
+        "presence": true,
+        "status": true
+      },
+      "FAN3/2": {
+        "speed": 6000,
+        "presence": true,
+        "status": true
+      },
+      "PSU1/FAN": {
+        "speed": 6000,
+        "presence": true,
+        "status": true
+      },
+      "PSU2/FAN": {
+        "speed": 6000,
+        "presence": true,
+        "status": true
+      }
+    },
+    "psus": {
+      "PSU1": {
+        "presence": true,
+        "status": true
+      },
+      "PSU2": {
+        "presence": true,
+        "status": true
+      }
+    },
+    "temps": {
+      "Board-Sensor-Near-Virtual-Switch": {
+        "temp": 25,
+        "highThreshold": 80,
+        "critHighThreshold": 85,
+        "lowThreshold": 5
+      },
+      "Board-Sensor-at-Front-Left-Corner": {
+        "temp": 25,
+        "highThreshold": 80,
+        "critHighThreshold": 85,
+        "lowThreshold": 5
+      },
+      "Board-Sensor-at-Front-Right-Corner": {
+        "temp": 25,
+        "highThreshold": 80,
+        "critHighThreshold": 85,
+        "lowThreshold": 5
+      },
+      "Board-Sensor-near-CPU": {
+        "temp": 25,
+        "highThreshold": 80,
+        "critHighThreshold": 85,
+        "lowThreshold": 5
+      },
+      "Board-Sensor-near-Fan": {
+        "temp": 25,
+        "highThreshold": 80,
+        "critHighThreshold": 85,
+        "lowThreshold": 5
+      },
+      "PSU1-Temp-Sensor": {
+        "temp": 25,
+        "highThreshold": 80,
+        "critHighThreshold": 85,
+        "lowThreshold": 5
+      },
+      "PSU2-Temp-Sensor": {
+        "temp": 25,
+        "highThreshold": 80,
+        "critHighThreshold": 85,
+        "lowThreshold": 5
+      }
+    }
+  },
+  "criticalResources": {
+    "aclStats": {
+      "egress": {
+        "lag": {},
+        "port": {},
+        "rif": {},
+        "switch": {},
+        "vlan": {}
+      },
+      "ingress": {
+        "lag": {},
+        "port": {},
+        "rif": {},
+        "switch": {},
+        "vlan": {}
+      }
+    },
+    "stats": {}
+  },
+  "firmware": {
+    "BIOS": "",
+    "SSD": "N/A"
+  }
+}
