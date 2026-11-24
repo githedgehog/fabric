@@ -160,6 +160,43 @@ func (f *Flag) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// Toggle is a state NVUE reports as "enabled" or "disabled", OK is false for anything else. Cumulus Linux 5.16 reports
+// some of them, such as the multihop of the BFD peers, as a JSON boolean instead, which is decoded with Bool set.
+type Toggle struct {
+	Value bool
+	OK    bool
+	Bool  bool
+	Raw   string
+}
+
+func (s *Toggle) UnmarshalJSON(data []byte) error {
+	*s = Toggle{}
+
+	raw, err := decodeScalar(data)
+	if err != nil {
+		return err
+	}
+
+	switch v := raw.(type) {
+	case nil:
+	case string:
+		s.Raw = v
+		switch v {
+		case StateEnabled:
+			s.Value, s.OK = true, true
+		case StateDisabled:
+			s.OK = true
+		}
+	case bool:
+		s.Raw = strconv.FormatBool(v)
+		s.Value, s.OK, s.Bool = v, true, true
+	default:
+		return fmt.Errorf("toggle: %w: %s", errNotScalar, data)
+	}
+
+	return nil
+}
+
 func parseLeadingNumber(s string) (float64, bool) {
 	match := leadingNumber.FindString(s)
 	if match == "" {

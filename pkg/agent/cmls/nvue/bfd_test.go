@@ -39,6 +39,11 @@ func TestBFDPeers(t *testing.T) {
 				require.NotEmpty(t, peer.State, "%s %s", vrf, id)
 				require.True(t, peer.SessionUp.OK, "%s %s", vrf, id)
 				require.True(t, peer.DetectMultiplier.OK, "%s %s", vrf, id)
+				// "enabled" or "disabled" since Cumulus Linux 5.18
+				require.True(t, peer.Multihop.OK, "%s %s", vrf, id)
+				require.False(t, peer.Multihop.Bool, "%s %s", vrf, id)
+				// the sessions of the overlay are the multihop ones, between the loopbacks
+				require.Equal(t, peer.Interface == "", peer.Multihop.Value, "%s %s", vrf, id)
 			}
 
 			// every BGP neighbor with BFD up has its session, unnumbered ones by interface

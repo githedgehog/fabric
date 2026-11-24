@@ -104,11 +104,35 @@ func TestFlag(t *testing.T) {
 	}
 }
 
+func TestToggle(t *testing.T) {
+	for _, tt := range []struct {
+		in   string
+		want Toggle
+	}{
+		{in: `"enabled"`, want: Toggle{Value: true, OK: true, Raw: "enabled"}},
+		{in: `"disabled"`, want: Toggle{OK: true, Raw: "disabled"}},
+		{in: `"N/A"`, want: Toggle{Raw: "N/A"}},
+		{in: `null`, want: Toggle{}},
+		// Cumulus Linux 5.16
+		{in: `true`, want: Toggle{Value: true, OK: true, Bool: true, Raw: "true"}},
+		{in: `false`, want: Toggle{OK: true, Bool: true, Raw: "false"}},
+	} {
+		t.Run(tt.in, func(t *testing.T) {
+			got := Toggle{Value: true, OK: true, Bool: true, Raw: "stale"}
+			require.NoError(t, json.Unmarshal([]byte(tt.in), &got))
+			require.Equal(t, tt.want, got)
+		})
+	}
+}
+
 func TestValuesNotScalar(t *testing.T) {
 	for _, in := range []string{`{"value": 1}`, `[1]`, `true`} {
 		require.ErrorIs(t, json.Unmarshal([]byte(in), &Number{}), errNotScalar, in)
 		require.ErrorIs(t, json.Unmarshal([]byte(in), &Counter{}), errNotScalar, in)
 		require.ErrorIs(t, json.Unmarshal([]byte(in), &Flag{}), errNotScalar, in)
+	}
+	for _, in := range []string{`{"value": 1}`, `[1]`, `1`} {
+		require.ErrorIs(t, json.Unmarshal([]byte(in), &Toggle{}), errNotScalar, in)
 	}
 	for _, in := range []string{`{"value": 1}`, `[1]`, `true`, `1.5`} {
 		require.ErrorIs(t, json.Unmarshal([]byte(in), &Power{}), errNotScalar, in)
