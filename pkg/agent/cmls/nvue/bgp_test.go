@@ -15,6 +15,7 @@ var bgpCaptures = map[string][]string{
 		"/vrf/default/router/bgp/neighbor?view=detail",
 		"/vrf/vpc-hbgp-nvue/router/bgp/neighbor?view=detail",
 		"/vrf/vpc-vpc-01/router/bgp/neighbor?view=detail",
+		"/vrf/vpc-vpc-02/router/bgp/neighbor?view=detail",
 		"/vrf/mgmt/router/bgp/neighbor?view=detail",
 	},
 	modelSN4600: {
@@ -26,7 +27,7 @@ var bgpCaptures = map[string][]string{
 
 // the VRFs with fixtures, all of them when running live
 var bgpVRFs = map[string][]string{
-	modelSN5610:  {VRFDefault, "vpc-hbgp-nvue", "vpc-vpc-01", VRFMgmt},
+	modelSN5610:  {VRFDefault, "vpc-hbgp-nvue", "vpc-vpc-01", "vpc-vpc-02", VRFMgmt},
 	modelSN4600:  {VRFDefault, "ext-ext-bgp"},
 	modelSN3700C: {VRFDefault},
 }
