@@ -24,7 +24,7 @@ import (
 // stateModel has the fixtures of everything the switch state is collected from, see nvue/testdata/README.md
 const stateModel = "sn4600"
 
-// stateAgent is the SN4600 of env-7 the fixtures are captured from
+// stateAgent is the SN4600 the fixtures are captured from
 func stateAgent() *agentapi.Agent {
 	return &agentapi.Agent{
 		Spec: agentapi.AgentSpec{
