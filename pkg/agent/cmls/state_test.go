@@ -4,8 +4,10 @@
 package cmls
 
 import (
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -124,6 +126,212 @@ func TestUpdateSwitchState(t *testing.T) {
 	require.Equal(t, "4x10G", st.Breakouts["E1/17"].Mode)
 	require.Equal(t, "disabled", st.Breakouts["E1/18"].Mode)
 	require.Equal(t, "1x200G", st.Breakouts["E1/20"].Mode)
+
+	// the spines over the unnumbered uplinks and their loopbacks for the overlay, the VPCs have no BGP, the external
+	// keeps its native VRF name
+	require.Equal(t, []string{"172.30.8.0", "172.30.8.1", "E1/1/1", "E1/2/1", "E1/3/1"},
+		slices.Sorted(maps.Keys(st.BGPNeighbors["default"])))
+	for name, neighbor := range st.BGPNeighbors["default"] {
+		require.Equal(t, agentapi.BGPNeighborSessionStateEstablished, neighbor.SessionState, name)
+		require.Equal(t, agentapi.BGPPeerTypeExternal, neighbor.PeerType, name)
+		require.Equal(t, uint32(65102), neighbor.LocalAS, name)
+		require.Equal(t, uint32(65100), neighbor.PeerAS, name)
+		require.Less(t, neighbor.LastEstablished.Time, fixtureTime, name)
+	}
+	require.Contains(t, st.BGPNeighbors["default"]["E1/1/1"].Prefixes, "IPV4_UNICAST")
+	require.Contains(t, st.BGPNeighbors["default"]["172.30.8.0"].Prefixes, "L2VPN_EVPN")
+	require.Equal(t, "overlay", st.BGPNeighbors["default"]["172.30.8.0"].PeerGroup)
+	require.Empty(t, st.BGPNeighbors["vpc-vpc-05"])
+	require.NotContains(t, st.BGPNeighbors, "mgmt")
+	require.Contains(t, st.BGPNeighbors["ext-ext-bgp"], "100.1.10.6")
+	require.Empty(t, st.BGPNeighbors["ext-ext-bgp"]["100.1.10.6"].PeerGroup)
+
+	// the single hop BFD sessions of the unnumbered uplinks and the multihop ones of the overlay
+	require.Equal(t, map[string][]string{"default": {"172.30.8.0", "172.30.8.1", "E1/1/1", "E1/2/1", "E1/3/1"}},
+		bfdPeerNames(st))
+	for name, peer := range st.BFDPeers["default"] {
+		require.Equal(t, agentapi.BFDSessionStateUp, peer.SessionState, name)
+		require.Less(t, peer.LastUpTime.Time, fixtureTime, name)
+	}
+	require.Equal(t, "underlay", st.BFDPeers["default"]["E1/1/1"].Profile)
+	require.Equal(t, "overlay", st.BFDPeers["default"]["172.30.8.0"].Profile)
+}
+
+func bfdPeerNames(st *agentapi.SwitchState) map[string][]string {
+	res := map[string][]string{}
+	for vrf, peers := range st.BFDPeers {
+		res[vrf] = slices.Sorted(maps.Keys(peers))
+	}
+
+	return res
+}
+
+// the BGP neighbors and BFD peers of the switches with other kinds of them than the SN4600 has
+func TestUpdateBGPNeighborsAndBFDPeers(t *testing.T) {
+	for _, tc := range []struct {
+		model  string
+		agent  *agentapi.Agent
+		bgp    map[string][]string
+		bfd    map[string][]string
+		peerAS map[string]map[string]uint32
+	}{
+		{
+			// a leaf with 2x breakout uplinks and a host BGP VPC
+			model: "sn5610",
+			agent: &agentapi.Agent{Spec: agentapi.AgentSpec{
+				SwitchProfile: switchprofile.CumulusNvidiaSN5610.Spec.DeepCopy(),
+				Switch: wiringapi.SwitchSpec{
+					Profile:       switchprofile.CumulusNvidiaSN5610.Name,
+					PortBreakouts: map[string]string{"E1/63": "2x100G", "E1/64": "2x100G"},
+				},
+			}},
+			bgp: map[string][]string{
+				"default":       {"172.30.8.0", "172.30.8.1", "E1/63/1", "E1/63/2", "E1/64/1", "E1/64/2"},
+				"vpc-hbgp-nvue": {"E1/66"},
+				// the VPCs without BGP are there, but empty
+				"vpc-vpc-01": nil,
+				"vpc-vpc-02": nil,
+			},
+			bfd: map[string][]string{"default": {
+				"172.30.8.0", "172.30.8.1", "E1/63/1", "E1/63/2", "E1/64/1", "E1/64/2",
+			}},
+			peerAS: map[string]map[string]uint32{"default": {"E1/63/1": 65100}, "vpc-hbgp-nvue": {"E1/66": 64999}},
+		},
+		{
+			// a spine with the leaves over unnumbered links and the gateways over numbered ones on a 4x breakout
+			model: "sn3700c",
+			agent: &agentapi.Agent{Spec: agentapi.AgentSpec{
+				SwitchProfile: switchprofile.CumulusNvidiaSN3700c.Spec.DeepCopy(),
+				Switch: wiringapi.SwitchSpec{
+					Profile:       switchprofile.CumulusNvidiaSN3700c.Name,
+					PortBreakouts: map[string]string{"E1/10": "1x100G", "E1/15": "4x25G", "E1/24": "1x100G"},
+				},
+			}},
+			bgp: map[string][]string{
+				"default": {
+					"172.30.128.5", "172.30.128.7", "172.30.8.2", "172.30.8.3", "172.30.8.4", "172.30.8.5",
+					"E1/1/1", "E1/2/1", "E1/29/1", "E1/3/1", "E1/30/1", "E1/31/1", "E1/32/1", "E1/4/1",
+				},
+			},
+			bfd: map[string][]string{"default": {
+				"172.30.128.5", "172.30.128.7", "172.30.8.2", "172.30.8.3", "172.30.8.4", "172.30.8.5",
+				"E1/1/1", "E1/2/1", "E1/29/1", "E1/3/1", "E1/30/1", "E1/31/1", "E1/32/1", "E1/4/1",
+			}},
+			peerAS: map[string]map[string]uint32{"default": {"172.30.128.5": 65534, "172.30.8.2": 65101, "E1/1/1": 65102}},
+		},
+	} {
+		t.Run(tc.model, func(t *testing.T) {
+			proc := fixtureProcessor(t, tc.model)
+			portMap, err := tc.agent.Spec.SwitchProfile.GetNOS2APIPortsFor(&tc.agent.Spec.Switch)
+			require.NoError(t, err)
+
+			reg := switchstate.NewRegistry()
+			st := &agentapi.SwitchState{
+				BGPNeighbors: map[string]map[string]agentapi.SwitchStateBGPNeighbor{},
+				BFDPeers:     map[string]map[string]agentapi.SwitchStateBFDPeer{},
+			}
+
+			vrfs, err := proc.routedVRFs(t.Context())
+			require.NoError(t, err)
+			require.NoError(t, proc.updateBGPNeighbors(t.Context(), reg, st, vrfs, portMap))
+			require.NoError(t, proc.updateBFDPeers(t.Context(), reg, st, vrfs, portMap))
+			nvuetest.RequireGolden(t, filepath.Join("testdata", "state"), tc.model+"-routing", st)
+
+			bgp := map[string][]string{}
+			for vrf, neighbors := range st.BGPNeighbors {
+				bgp[vrf] = slices.Sorted(maps.Keys(neighbors))
+				for name, neighbor := range neighbors {
+					require.Equal(t, agentapi.BGPNeighborSessionStateEstablished, neighbor.SessionState, name)
+				}
+			}
+			require.Equal(t, tc.bgp, bgp)
+			require.Equal(t, tc.bfd, bfdPeerNames(st))
+			for vrf, peers := range tc.peerAS {
+				for name, peerAS := range peers {
+					require.Equal(t, peerAS, st.BGPNeighbors[vrf][name].PeerAS, "%s in %s", name, vrf)
+				}
+			}
+
+			bgpSeries := 0
+			for _, neighbors := range tc.bgp {
+				bgpSeries += len(neighbors)
+			}
+			require.Len(t, metricSeries(t, reg, "bgp_neighbor_session_state"), bgpSeries)
+			require.Len(t, metricSeries(t, reg, "bfd_peer_session_state"), len(tc.bfd["default"]))
+		})
+	}
+}
+
+func TestBGPNeighborState(t *testing.T) {
+	for name, tc := range map[string]struct {
+		neighbor nvue.BGPNeighbor
+		state    agentapi.BGPNeighborSessionState
+		peerType agentapi.BGPPeerType
+		err      bool
+	}{
+		"internal by AS": {
+			neighbor: nvue.BGPNeighbor{SessionState: "established", RemoteAS: nvue.Number{Value: 65102, OK: true}},
+			state:    agentapi.BGPNeighborSessionStateEstablished,
+			peerType: agentapi.BGPPeerTypeInternal,
+		},
+		"external by kind": {
+			neighbor: nvue.BGPNeighbor{SessionState: "active", RemoteAS: nvue.Number{Raw: "external"}},
+			state:    agentapi.BGPNeighborSessionStateActive,
+			peerType: agentapi.BGPPeerTypeExternal,
+		},
+		"internal by kind": {
+			neighbor: nvue.BGPNeighbor{SessionState: "opensent", RemoteAS: nvue.Number{Raw: "internal"}},
+			state:    agentapi.BGPNeighborSessionStateOpenSent,
+			peerType: agentapi.BGPPeerTypeInternal,
+		},
+		"openconfirm": {
+			neighbor: nvue.BGPNeighbor{SessionState: "openconfirm", RemoteAS: nvue.Number{Value: 65100, OK: true}},
+			state:    agentapi.BGPNeighborSessionStateOpenConfirm,
+			peerType: agentapi.BGPPeerTypeExternal,
+		},
+		"clearing": {
+			neighbor: nvue.BGPNeighbor{SessionState: "clearing", RemoteAS: nvue.Number{Value: 65100, OK: true}},
+			state:    agentapi.BGPNeighborSessionStateIdle,
+			peerType: agentapi.BGPPeerTypeExternal,
+		},
+		"unknown state": {
+			neighbor: nvue.BGPNeighbor{SessionState: "bogus", RemoteAS: nvue.Number{Value: 65100, OK: true}},
+			err:      true,
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			tc.neighbor.LocalAS.ASN = nvue.Number{Value: 65102, OK: true}
+			tc.neighbor.PeerGroup = nvue.BGPPeerGroupNone
+			// not established, so there's no uptime to count back
+			tc.neighbor.Uptime = nvue.Number{Value: 1000, OK: true}
+
+			st, err := bgpNeighborState(switchstate.NewRegistry(), "default", "n", &tc.neighbor, fixtureTime)
+			if tc.err {
+				require.Error(t, err)
+
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, tc.state, st.SessionState)
+			require.Equal(t, tc.peerType, st.PeerType)
+			require.Empty(t, st.PeerGroup)
+			require.Equal(t, tc.state == agentapi.BGPNeighborSessionStateEstablished, !st.LastEstablished.IsZero())
+		})
+	}
+}
+
+func TestAPIIfaceName(t *testing.T) {
+	portMap := map[string]string{"swp1": "E1/1/1", "swp17s1": "E1/17/2", "swp66": "E1/66"}
+	for name, expected := range map[string]string{
+		"swp1":         "E1/1/1",
+		"swp17s1":      "E1/17/2",
+		"swp17s1.1001": "E1/17/2.1001",
+		"swp66.1060":   "E1/66.1060",
+		"swp99":        "swp99",
+		"vlan1005":     "vlan1005",
+	} {
+		require.Equal(t, expected, apiIfaceName(name, portMap), name)
+	}
 }
 
 // metricSeries returns the reported values of a metric keyed by its labels

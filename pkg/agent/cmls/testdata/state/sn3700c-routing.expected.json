@@ -1,0 +1,587 @@
+{
+  "nos": {},
+  "bgpNeighbors": {
+    "default": {
+      "172.30.128.5": {
+        "connDropped": 6,
+        "enabled": true,
+        "estabTrans": 7,
+        "lastEstab": "2026-11-23T09:46:26Z",
+        "lastRead": null,
+        "lastResetReason": "No AFI/SAFI activated for peer",
+        "lastReset": "2026-11-23T09:45:40Z",
+        "lastWrite": null,
+        "localAS": 65100,
+        "msgs": {
+          "rec": {
+            "keepal": 71943,
+            "open": 7,
+            "rrefresh": 3
+          },
+          "sent": {
+            "keepal": 71944,
+            "open": 13,
+            "rrefresh": 3
+          }
+        },
+        "peerAS": 65534,
+        "peerGroup": "gateway",
+        "peerPort": 179,
+        "peerType": "external",
+        "remoteRouterID": "172.30.8.6",
+        "state": "established",
+        "prefixes": {
+          "IPV4_UNICAST": {
+            "rec": 1,
+            "sent": 6
+          },
+          "L2VPN_EVPN": {
+            "sent": 61
+          }
+        }
+      },
+      "172.30.128.7": {
+        "connDropped": 4,
+        "enabled": true,
+        "estabTrans": 5,
+        "lastEstab": "2026-11-23T09:21:29Z",
+        "lastRead": null,
+        "lastResetReason": "No AFI/SAFI activated for peer",
+        "lastReset": "2026-11-23T09:21:13Z",
+        "lastWrite": null,
+        "localAS": 65100,
+        "msgs": {
+          "rec": {
+            "keepal": 71957,
+            "open": 5,
+            "rrefresh": 3
+          },
+          "sent": {
+            "keepal": 71958,
+            "open": 11,
+            "rrefresh": 3
+          }
+        },
+        "peerAS": 65534,
+        "peerGroup": "gateway",
+        "peerPort": 179,
+        "peerType": "external",
+        "remoteRouterID": "172.30.8.7",
+        "state": "established",
+        "prefixes": {
+          "IPV4_UNICAST": {
+            "rec": 1,
+            "sent": 6
+          },
+          "L2VPN_EVPN": {
+            "sent": 61
+          }
+        }
+      },
+      "172.30.8.2": {
+        "connDropped": 4,
+        "enabled": true,
+        "estabTrans": 5,
+        "lastEstab": "2026-11-23T08:35:45Z",
+        "lastRead": null,
+        "lastResetReason": "No AFI/SAFI activated for peer",
+        "lastReset": "2026-11-23T08:35:43Z",
+        "lastWrite": null,
+        "localAS": 65100,
+        "msgs": {
+          "rec": {
+            "keepal": 71841,
+            "open": 5
+          },
+          "sent": {
+            "keepal": 71842,
+            "open": 5
+          }
+        },
+        "peerAS": 65101,
+        "peerGroup": "overlay",
+        "peerPort": 179,
+        "peerType": "external",
+        "remoteRouterID": "172.30.8.2",
+        "state": "established",
+        "prefixes": {
+          "L2VPN_EVPN": {
+            "rec": 9,
+            "sent": 61
+          }
+        }
+      },
+      "172.30.8.3": {
+        "connDropped": 2,
+        "enabled": true,
+        "estabTrans": 3,
+        "lastEstab": "2026-11-23T08:35:04Z",
+        "lastRead": null,
+        "lastResetReason": "No AFI/SAFI activated for peer",
+        "lastReset": "2026-11-23T08:31:35Z",
+        "lastWrite": null,
+        "localAS": 65100,
+        "msgs": {
+          "rec": {
+            "keepal": 71870,
+            "open": 3
+          },
+          "sent": {
+            "keepal": 71872,
+            "open": 3
+          }
+        },
+        "peerAS": 65102,
+        "peerGroup": "overlay",
+        "peerPort": 179,
+        "peerType": "external",
+        "remoteRouterID": "172.30.8.3",
+        "state": "established",
+        "prefixes": {
+          "L2VPN_EVPN": {
+            "rec": 22,
+            "sent": 61
+          }
+        }
+      },
+      "172.30.8.4": {
+        "connDropped": 4,
+        "enabled": true,
+        "estabTrans": 5,
+        "lastEstab": "2026-11-23T08:35:04Z",
+        "lastRead": null,
+        "lastResetReason": "Waiting for peer OPEN",
+        "lastReset": "2026-11-23T08:31:46Z",
+        "lastWrite": null,
+        "localAS": 65100,
+        "msgs": {
+          "rec": {
+            "keepal": 71800,
+            "open": 6
+          },
+          "sent": {
+            "keepal": 71802,
+            "open": 6
+          }
+        },
+        "peerAS": 65103,
+        "peerGroup": "overlay",
+        "peerPort": 179,
+        "peerType": "external",
+        "remoteRouterID": "172.30.8.4",
+        "state": "established",
+        "prefixes": {
+          "L2VPN_EVPN": {
+            "rec": 21,
+            "sent": 61
+          }
+        }
+      },
+      "172.30.8.5": {
+        "connDropped": 3,
+        "enabled": true,
+        "estabTrans": 4,
+        "lastEstab": "2026-11-23T08:35:04Z",
+        "lastRead": null,
+        "lastResetReason": "Waiting for peer OPEN",
+        "lastReset": "2026-11-23T08:31:58Z",
+        "lastWrite": null,
+        "localAS": 65100,
+        "msgs": {
+          "rec": {
+            "keepal": 71858,
+            "open": 4
+          },
+          "sent": {
+            "keepal": 71859,
+            "open": 4
+          }
+        },
+        "peerAS": 65104,
+        "peerGroup": "overlay",
+        "peerPort": 179,
+        "peerType": "external",
+        "remoteRouterID": "172.30.8.5",
+        "state": "established",
+        "prefixes": {
+          "L2VPN_EVPN": {
+            "rec": 9,
+            "sent": 61
+          }
+        }
+      },
+      "E1/1/1": {
+        "connDropped": 2,
+        "enabled": true,
+        "estabTrans": 3,
+        "lastEstab": "2026-11-23T08:35:03Z",
+        "lastRead": null,
+        "lastResetReason": "No AFI/SAFI activated for peer",
+        "lastReset": "2026-11-23T08:31:26Z",
+        "lastWrite": null,
+        "localAS": 65100,
+        "msgs": {
+          "rec": {
+            "keepal": 71868,
+            "open": 5
+          },
+          "sent": {
+            "keepal": 71870,
+            "open": 5
+          }
+        },
+        "peerAS": 65102,
+        "peerGroup": "underlay_leaf",
+        "peerPort": 179,
+        "peerType": "external",
+        "remoteRouterID": "172.30.8.3",
+        "state": "established",
+        "prefixes": {
+          "IPV4_UNICAST": {
+            "rec": 2,
+            "sent": 11
+          }
+        }
+      },
+      "E1/2/1": {
+        "connDropped": 2,
+        "enabled": true,
+        "estabTrans": 3,
+        "lastEstab": "2026-11-23T08:35:02Z",
+        "lastRead": null,
+        "lastResetReason": "No AFI/SAFI activated for peer",
+        "lastReset": "2026-11-23T08:31:32Z",
+        "lastWrite": null,
+        "localAS": 65100,
+        "msgs": {
+          "rec": {
+            "keepal": 71871,
+            "open": 5
+          },
+          "sent": {
+            "keepal": 71872,
+            "open": 5
+          }
+        },
+        "peerAS": 65102,
+        "peerGroup": "underlay_leaf",
+        "peerPort": 179,
+        "peerType": "external",
+        "remoteRouterID": "172.30.8.3",
+        "state": "established",
+        "prefixes": {
+          "IPV4_UNICAST": {
+            "rec": 2,
+            "sent": 11
+          }
+        }
+      },
+      "E1/29/1": {
+        "connDropped": 4,
+        "enabled": true,
+        "estabTrans": 5,
+        "lastEstab": "2026-11-23T08:35:04Z",
+        "lastRead": null,
+        "lastResetReason": "No AFI/SAFI activated for peer",
+        "lastReset": "2026-11-23T08:31:38Z",
+        "lastWrite": null,
+        "localAS": 65100,
+        "msgs": {
+          "rec": {
+            "keepal": 71801,
+            "open": 9
+          },
+          "sent": {
+            "keepal": 71803,
+            "open": 9
+          }
+        },
+        "peerAS": 65103,
+        "peerGroup": "underlay_leaf",
+        "peerPort": 179,
+        "peerType": "external",
+        "remoteRouterID": "172.30.8.4",
+        "state": "established",
+        "prefixes": {
+          "IPV4_UNICAST": {
+            "rec": 2,
+            "sent": 11
+          }
+        }
+      },
+      "E1/3/1": {
+        "connDropped": 6,
+        "enabled": true,
+        "estabTrans": 7,
+        "lastEstab": "2026-11-23T08:35:43Z",
+        "lastRead": null,
+        "lastResetReason": "No AFI/SAFI activated for peer",
+        "lastReset": "2026-11-23T08:35:41Z",
+        "lastWrite": null,
+        "localAS": 65100,
+        "msgs": {
+          "rec": {
+            "keepal": 71842,
+            "open": 10
+          },
+          "sent": {
+            "keepal": 71843,
+            "open": 11
+          }
+        },
+        "peerAS": 65101,
+        "peerGroup": "underlay_leaf",
+        "peerPort": 179,
+        "peerType": "external",
+        "remoteRouterID": "172.30.8.2",
+        "state": "established",
+        "prefixes": {
+          "IPV4_UNICAST": {
+            "rec": 2,
+            "sent": 11
+          }
+        }
+      },
+      "E1/30/1": {
+        "connDropped": 4,
+        "enabled": true,
+        "estabTrans": 5,
+        "lastEstab": "2026-11-23T08:35:03Z",
+        "lastRead": null,
+        "lastResetReason": "No AFI/SAFI activated for peer",
+        "lastReset": "2026-11-23T08:31:43Z",
+        "lastWrite": null,
+        "localAS": 65100,
+        "msgs": {
+          "rec": {
+            "keepal": 71803,
+            "open": 8
+          },
+          "sent": {
+            "keepal": 71804,
+            "open": 8
+          }
+        },
+        "peerAS": 65103,
+        "peerGroup": "underlay_leaf",
+        "peerPort": 179,
+        "peerType": "external",
+        "remoteRouterID": "172.30.8.4",
+        "state": "established",
+        "prefixes": {
+          "IPV4_UNICAST": {
+            "rec": 2,
+            "sent": 11
+          }
+        }
+      },
+      "E1/31/1": {
+        "connDropped": 4,
+        "enabled": true,
+        "estabTrans": 5,
+        "lastEstab": "2026-11-23T08:35:03Z",
+        "lastRead": null,
+        "lastResetReason": "No AFI/SAFI activated for peer",
+        "lastReset": "2026-11-23T08:31:50Z",
+        "lastWrite": null,
+        "localAS": 65100,
+        "msgs": {
+          "rec": {
+            "keepal": 71860,
+            "open": 8
+          },
+          "sent": {
+            "keepal": 71862,
+            "open": 8
+          }
+        },
+        "peerAS": 65104,
+        "peerGroup": "underlay_leaf",
+        "peerPort": 179,
+        "peerType": "external",
+        "remoteRouterID": "172.30.8.5",
+        "state": "established",
+        "prefixes": {
+          "IPV4_UNICAST": {
+            "rec": 2,
+            "sent": 11
+          }
+        }
+      },
+      "E1/32/1": {
+        "connDropped": 4,
+        "enabled": true,
+        "estabTrans": 5,
+        "lastEstab": "2026-11-23T08:35:03Z",
+        "lastRead": null,
+        "lastResetReason": "No AFI/SAFI activated for peer",
+        "lastReset": "2026-11-23T08:31:56Z",
+        "lastWrite": null,
+        "localAS": 65100,
+        "msgs": {
+          "rec": {
+            "keepal": 71861,
+            "open": 5
+          },
+          "sent": {
+            "keepal": 71861,
+            "open": 5
+          }
+        },
+        "peerAS": 65104,
+        "peerGroup": "underlay_leaf",
+        "peerPort": 179,
+        "peerType": "external",
+        "remoteRouterID": "172.30.8.5",
+        "state": "established",
+        "prefixes": {
+          "IPV4_UNICAST": {
+            "rec": 2,
+            "sent": 11
+          }
+        }
+      },
+      "E1/4/1": {
+        "connDropped": 5,
+        "enabled": true,
+        "estabTrans": 6,
+        "lastEstab": "2026-11-23T08:35:43Z",
+        "lastRead": null,
+        "lastResetReason": "Waiting for peer OPEN",
+        "lastReset": "2026-11-23T08:35:41Z",
+        "lastWrite": null,
+        "localAS": 65100,
+        "msgs": {
+          "rec": {
+            "keepal": 71843,
+            "open": 7
+          },
+          "sent": {
+            "keepal": 71843,
+            "open": 7
+          }
+        },
+        "peerAS": 65101,
+        "peerGroup": "underlay_leaf",
+        "peerPort": 179,
+        "peerType": "external",
+        "remoteRouterID": "172.30.8.2",
+        "state": "established",
+        "prefixes": {
+          "IPV4_UNICAST": {
+            "rec": 2,
+            "sent": 11
+          }
+        }
+      }
+    }
+  },
+  "bfdPeers": {
+    "default": {
+      "172.30.128.5": {
+        "state": "up",
+        "profile": "underlay",
+        "lastUpTime": "2026-11-23T09:46:26Z",
+        "fails": 8
+      },
+      "172.30.128.7": {
+        "state": "up",
+        "profile": "underlay",
+        "lastUpTime": "2026-11-23T09:21:29Z",
+        "fails": 7
+      },
+      "172.30.8.2": {
+        "state": "up",
+        "profile": "overlay",
+        "lastUpTime": "2026-11-23T08:35:46Z",
+        "fails": 4
+      },
+      "172.30.8.3": {
+        "state": "up",
+        "profile": "overlay",
+        "lastUpTime": "2026-11-23T08:35:04Z",
+        "fails": 2
+      },
+      "172.30.8.4": {
+        "state": "up",
+        "profile": "overlay",
+        "lastUpTime": "2026-11-23T08:35:05Z",
+        "fails": 3
+      },
+      "172.30.8.5": {
+        "state": "up",
+        "profile": "overlay",
+        "lastUpTime": "2026-11-23T08:35:04Z",
+        "fails": 3
+      },
+      "E1/1/1": {
+        "state": "up",
+        "profile": "underlay",
+        "lastUpTime": "2026-11-23T08:35:03Z",
+        "fails": 2
+      },
+      "E1/2/1": {
+        "state": "up",
+        "profile": "underlay",
+        "lastUpTime": "2026-11-23T08:35:02Z",
+        "fails": 2
+      },
+      "E1/29/1": {
+        "state": "up",
+        "profile": "underlay",
+        "lastUpTime": "2026-11-23T08:35:04Z",
+        "fails": 3
+      },
+      "E1/3/1": {
+        "state": "up",
+        "profile": "underlay",
+        "lastUpTime": "2026-11-23T08:35:43Z",
+        "fails": 5
+      },
+      "E1/30/1": {
+        "state": "up",
+        "profile": "underlay",
+        "lastUpTime": "2026-11-23T08:35:03Z",
+        "fails": 3
+      },
+      "E1/31/1": {
+        "state": "up",
+        "profile": "underlay",
+        "lastUpTime": "2026-11-23T08:35:03Z",
+        "fails": 3
+      },
+      "E1/32/1": {
+        "state": "up",
+        "profile": "underlay",
+        "lastUpTime": "2026-11-23T08:35:03Z",
+        "fails": 3
+      },
+      "E1/4/1": {
+        "state": "up",
+        "profile": "underlay",
+        "lastUpTime": "2026-11-23T08:35:43Z",
+        "fails": 4
+      }
+    }
+  },
+  "platform": {},
+  "criticalResources": {
+    "aclStats": {
+      "egress": {
+        "lag": {},
+        "port": {},
+        "rif": {},
+        "switch": {},
+        "vlan": {}
+      },
+      "ingress": {
+        "lag": {},
+        "port": {},
+        "rif": {},
+        "switch": {},
+        "vlan": {}
+      }
+    },
+    "stats": {}
+  }
+}

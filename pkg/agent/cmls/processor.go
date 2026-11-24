@@ -16,13 +16,15 @@ import (
 type CumulusProcessor struct {
 	nvue  *nvue.Client
 	state staticState
+	// now is when the durations NVUE reports, such as uptimes, are counted back from
+	now func() time.Time
 }
 
 var _ dozer.Processor = &CumulusProcessor{}
 
 // Processor reads the switch state with the NVUE client
 func Processor(client *nvue.Client) *CumulusProcessor {
-	return &CumulusProcessor{nvue: client}
+	return &CumulusProcessor{nvue: client, now: time.Now}
 }
 
 // SelectONIEInstall makes the next boot only go to ONIE in install mode, on both legacy BIOS and UEFI switches
