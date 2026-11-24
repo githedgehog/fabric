@@ -380,6 +380,16 @@ func externalVRF(sp *wiringapi.SwitchProfile, extName string) string {
 	return "VrfE" + extName
 }
 
+// VPCVRF is the VRF of a VPC as the agent of a switch with the NOS names it
+// TODO dedup with agent code
+func VPCVRF(nosType meta.NOSType, vpcName string) string {
+	if slices.Contains(meta.NOSTypesCumulus, nosType) {
+		return "vpc-" + vpcName
+	}
+
+	return "VrfV" + vpcName
+}
+
 // bfdPeers enriches the BFD peers the agent reports with the connection metadata of the BGP neighbors and makes sure
 // the expected ones are present even when there is no BFD session in the switch state
 func bfdPeers(ag *agentapi.Agent, bgpNeighbors map[string]map[string]BGPNeighborStatus, overlayBFD bool) map[string]map[string]BFDPeerStatus {

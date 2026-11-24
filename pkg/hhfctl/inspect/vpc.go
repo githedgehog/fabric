@@ -22,7 +22,9 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"go.githedgehog.com/fabric/api/meta"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/apiutil"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -36,6 +38,7 @@ type VPCIn struct {
 type VPCOut struct {
 	Name             string                                  `json:"name,omitempty"`
 	Subnet           string                                  `json:"subnet,omitempty"`
+	VRFs             []string                                `json:"vrfs,omitempty"`
 	Spec             vpcapi.VPCSpec                          `json:"spec,omitempty"`
 	VPCAttachments   map[string]*vpcapi.VPCAttachmentSpec    `json:"vpcAttachments,omitempty"`
 	VPCPeerings      map[string]*vpcapi.VPCPeeringSpec       `json:"vpcPeerings,omitempty"`
@@ -46,8 +49,14 @@ type VPCOut struct {
 func (out *VPCOut) MarshalText(_ VPCIn, now time.Time) (string, error) {
 	str := strings.Builder{}
 
-	// TODO helper func
-	str.WriteString(fmt.Sprintf("VRF Name (on all switches): VrfV%s\n", out.Name))
+	// the agent of each NOS names the VRF its own way
+	switch len(out.VRFs) {
+	case 0:
+	case 1:
+		str.WriteString(fmt.Sprintf("VRF Name (on all switches): %s\n", out.VRFs[0]))
+	default:
+		str.WriteString(fmt.Sprintf("VRF Names (depending on the switch NOS): %s\n", strings.Join(out.VRFs, ", ")))
+	}
 
 	str.WriteString(fmt.Sprintf("VLAN Namespace: %s\n", out.Spec.VLANNamespace))
 	str.WriteString(fmt.Sprintf("IPv4 Namespace: %s\n", out.Spec.IPv4Namespace))
@@ -166,6 +175,12 @@ func VPC(ctx context.Context, kube kclient.Reader, in VPCIn) (*VPCOut, error) {
 
 	out.Spec = vpc.Spec
 
+	vrfs, err := vpcVRFs(ctx, kube, name)
+	if err != nil {
+		return nil, err
+	}
+	out.VRFs = vrfs
+
 	attachLabels := kclient.MatchingLabels{vpcapi.LabelVPC: name}
 	if subnet != "" {
 		attachLabels[vpcapi.LabelSubnet] = subnet
@@ -235,4 +250,37 @@ func VPC(ctx context.Context, kube kclient.Reader, in VPCIn) (*VPCOut, error) {
 	}
 
 	return out, nil
+}
+
+// vpcVRFs is the names of the VRF of the VPC on the leaves, which depend on their NOS
+func vpcVRFs(ctx context.Context, kube kclient.Reader, vpcName string) ([]string, error) {
+	switches := &wiringapi.SwitchList{}
+	if err := kube.List(ctx, switches, kclient.InNamespace(kmetav1.NamespaceDefault)); err != nil {
+		return nil, fmt.Errorf("listing switches: %w", err)
+	}
+
+	nosTypes := map[string]meta.NOSType{}
+	vrfs := []string{}
+	for _, sw := range switches.Items {
+		if !sw.Spec.Role.IsLeaf() {
+			continue
+		}
+
+		nosType, ok := nosTypes[sw.Spec.Profile]
+		if !ok {
+			sp := &wiringapi.SwitchProfile{}
+			if err := kube.Get(ctx, kclient.ObjectKey{Name: sw.Spec.Profile, Namespace: kmetav1.NamespaceDefault}, sp); err != nil {
+				return nil, fmt.Errorf("getting switch profile %s of switch %s: %w", sw.Spec.Profile, sw.Name, err)
+			}
+			nosType = sp.Spec.NOSType
+			nosTypes[sw.Spec.Profile] = nosType
+		}
+
+		if vrf := apiutil.VPCVRF(nosType, vpcName); !slices.Contains(vrfs, vrf) {
+			vrfs = append(vrfs, vrf)
+		}
+	}
+	slices.Sort(vrfs)
+
+	return vrfs, nil
 }
