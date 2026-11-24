@@ -6,6 +6,7 @@ package apiutil
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
@@ -135,9 +136,15 @@ func GetBGPStatus(ctx context.Context, kube kclient.Reader, fabCfg *meta.FabricC
 			return fmt.Errorf("getting BGP neighbors for switch %s: %w", in.sw.Name, err)
 		}
 
+		_, sp, err := in.cache.switchProfile(ctx, in.sw.Name)
+		if err != nil {
+			return err
+		}
+
 		out[in.sw.Name] = &BGPSwitchStatus{
 			Neighbors: neighs,
-			BFDPeers:  bfdPeers(in.ag, neighs),
+			// Cumulus runs BFD on the overlay sessions between the loopbacks too
+			BFDPeers: bfdPeers(in.ag, neighs, isCumulus(sp)),
 		}
 
 		return nil
@@ -324,8 +331,7 @@ func bgpNeighbors(ctx context.Context, exts *externalsData, in *switchInput) (ma
 				return nil, fmt.Errorf("external %s not found", extAtt.Spec.External) //nolint:err113
 			}
 
-			// TODO dedup with agent code
-			vrf := "VrfE" + ext.Name
+			vrf := externalVRF(sp, ext.Name)
 			if _, ok := out[vrf]; !ok {
 				out[vrf] = map[string]BGPNeighborStatus{}
 			}
@@ -360,9 +366,23 @@ func bgpNeighbors(ctx context.Context, exts *externalsData, in *switchInput) (ma
 	return out, nil
 }
 
+func isCumulus(sp *wiringapi.SwitchProfile) bool {
+	return slices.Contains(meta.NOSTypesCumulus, sp.Spec.NOSType)
+}
+
+// externalVRF is the VRF of an external as the agent of the switch NOS names it
+// TODO dedup with agent code
+func externalVRF(sp *wiringapi.SwitchProfile, extName string) string {
+	if isCumulus(sp) {
+		return "ext-" + extName
+	}
+
+	return "VrfE" + extName
+}
+
 // bfdPeers enriches the BFD peers the agent reports with the connection metadata of the BGP neighbors and makes sure
 // the expected ones are present even when there is no BFD session in the switch state
-func bfdPeers(ag *agentapi.Agent, bgpNeighbors map[string]map[string]BGPNeighborStatus) map[string]map[string]BFDPeerStatus {
+func bfdPeers(ag *agentapi.Agent, bgpNeighbors map[string]map[string]BGPNeighborStatus, overlayBFD bool) map[string]map[string]BFDPeerStatus {
 	out := map[string]map[string]BFDPeerStatus{}
 	for vrf, vrfPeers := range ag.Status.State.BFDPeers {
 		out[vrf] = map[string]BFDPeerStatus{}
@@ -379,8 +399,8 @@ func bfdPeers(ag *agentapi.Agent, bgpNeighbors map[string]map[string]BGPNeighbor
 		}
 
 		for addr, bgpNeighbor := range bgpVRF {
-			// Skip BGP neighbors that don't run BFD: loopbacks and externals
-			if bgpNeighbor.Port == "" || bgpNeighbor.Port == "Lo" || bgpNeighbor.Type == BGPNeighborTypeExternal {
+			// Skip BGP neighbors that don't run BFD: externals and loopbacks, unless there's BFD on the overlay
+			if bgpNeighbor.Port == "" || (bgpNeighbor.Port == "Lo" && !overlayBFD) || bgpNeighbor.Type == BGPNeighborTypeExternal {
 				continue
 			}
 
