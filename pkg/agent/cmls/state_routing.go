@@ -74,13 +74,13 @@ func (c *CumulusProcessor) routedVRFs(ctx context.Context) ([]string, error) {
 }
 
 func (c *CumulusProcessor) updateBGPNeighbors(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState, vrfs []string, portMap map[string]string, vxLegacy bool) error {
-	now := c.now()
-
 	for _, vrf := range vrfs {
 		neighbors, err := c.nvue.BGPNeighbors(ctx, vrf)
 		if err != nil && !errors.Is(err, nvue.ErrNotFound) {
 			return fmt.Errorf("getting bgp neighbors of vrf %s: %w", vrf, err)
 		}
+		// the times are reported as ages, as of the response
+		now := c.now()
 
 		// a VRF without BGP or without any neighbors is reported empty
 		vrfSt := map[string]agentapi.SwitchStateBGPNeighbor{}
@@ -253,13 +253,13 @@ func millis(ms float64) time.Duration {
 }
 
 func (c *CumulusProcessor) updateBFDPeers(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState, vrfs []string, portMap map[string]string, vxLegacy bool) error {
-	now := c.now()
-
 	for _, vrf := range vrfs {
 		peers, err := c.nvue.BFDPeers(ctx, vrf)
 		if err != nil && !errors.Is(err, nvue.ErrNotFound) {
 			return fmt.Errorf("getting bfd peers of vrf %s: %w", vrf, err)
 		}
+		// the times are reported as ages, as of the response
+		now := c.now()
 
 		for id, peer := range peers {
 			// Cumulus Linux 5.16 reports it as a JSON boolean
