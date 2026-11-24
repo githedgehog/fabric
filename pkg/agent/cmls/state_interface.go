@@ -19,6 +19,7 @@ import (
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
 	"go.githedgehog.com/fabric/pkg/agent/cmls/nvue"
 	"go.githedgehog.com/fabric/pkg/agent/switchstate"
+	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
 	"golang.org/x/sync/errgroup"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -30,6 +31,12 @@ const (
 	unicastQueuePrefix = "UC"
 	maxUtilizationPct  = 100
 )
+
+// unmanagedInterfaces are the interfaces of a switch its profile doesn't have, so they aren't reported, by switch profile
+var unmanagedInterfaces = map[string][]string{
+	// a second management port
+	switchprofile.CumulusNvidiaSN2700.Name: {"eth1"},
+}
 
 // transceiverForPort returns the transceiver cage an interface lives in, e.g. E1/1 for both E1/1/1 and E1/1/2, and
 // nothing for the interfaces that have no cage at all, such as the management port and the bonds
@@ -44,7 +51,7 @@ func transceiverForPort(port string) string {
 	}
 }
 
-func (c *CumulusProcessor) updateInterfaces(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState, portMap map[string]string, loc *time.Location) error {
+func (c *CumulusProcessor) updateInterfaces(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState, profile string, portMap map[string]string, loc *time.Location) error {
 	ifaces, err := c.nvue.Interfaces(ctx)
 	if err != nil {
 		return fmt.Errorf("getting interfaces: %w", err)
@@ -59,24 +66,9 @@ func (c *CumulusProcessor) updateInterfaces(ctx context.Context, reg *switchstat
 	withCounters := map[string]string{}
 
 	for nosName, iface := range ifaces {
-		if iface.Type != nvue.InterfaceTypeSwp && iface.Type != nvue.InterfaceTypeEth && iface.Type != nvue.InterfaceTypeBond {
+		name, ok := reportedInterface(nosName, &iface, profile, portMap)
+		if !ok {
 			continue
-		}
-		if iface.Link == nil {
-			slog.Warn("Interface without link state, ignoring", "interface", nosName)
-
-			continue
-		}
-
-		name := nosName
-		if iface.Type != nvue.InterfaceTypeBond {
-			apiName, exists := portMap[nosName]
-			if !exists {
-				slog.Warn("Port mapping not found, ignoring for metrics", "interface", nosName)
-
-				continue
-			}
-			name = apiName
 		}
 
 		transceiverName := transceiverForPort(name)
@@ -130,6 +122,34 @@ func (c *CumulusProcessor) updateInterfaces(ctx context.Context, reg *switchstat
 	updateLLDPMetrics(reg, swState, portMap)
 
 	return nil
+}
+
+// reportedInterface returns the API name of an interface to report: the ports, the management port and the bonds, which
+// keep their NOS names
+func reportedInterface(nosName string, iface *nvue.Interface, profile string, portMap map[string]string) (string, bool) {
+	if iface.Type != nvue.InterfaceTypeSwp && iface.Type != nvue.InterfaceTypeEth && iface.Type != nvue.InterfaceTypeBond {
+		return "", false
+	}
+	if iface.Link == nil {
+		slog.Warn("Interface without link state, ignoring", "interface", nosName)
+
+		return "", false
+	}
+	if slices.Contains(unmanagedInterfaces[profile], nosName) {
+		return "", false
+	}
+	if iface.Type == nvue.InterfaceTypeBond {
+		return nosName, true
+	}
+
+	apiName, exists := portMap[nosName]
+	if !exists {
+		slog.Warn("Port mapping not found, ignoring for metrics", "interface", nosName)
+
+		return "", false
+	}
+
+	return apiName, true
 }
 
 func interfaceState(nosName string, link *nvue.InterfaceLink, loc *time.Location) (agentapi.SwitchStateInterface, error) {
