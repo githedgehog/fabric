@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -55,6 +56,74 @@ func TestVPCSubnetAttachments(t *testing.T) {
 	out, err = VPC(t.Context(), kube, VPCIn{Name: "vpc-1", Subnet: "subnet-2"})
 	require.NoError(t, err)
 	require.Equal(t, []string{"attach-2"}, attaches(out))
+}
+
+// the VRF of a VPC is named by the agent of the leaf NOS
+func TestVPCVRFs(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, wiringapi.AddToScheme(scheme))
+	require.NoError(t, vpcapi.AddToScheme(scheme))
+
+	vpc := &vpcapi.VPC{Spec: vpcapi.VPCSpec{Subnets: map[string]*vpcapi.VPCSubnet{"subnet-1": {Subnet: "10.0.1.0/24"}}}}
+	vpc.Name, vpc.Namespace = "vpc-1", kmetav1.NamespaceDefault
+
+	profileGen := func(sp *wiringapi.SwitchProfile) kclient.Object {
+		sp = sp.DeepCopy()
+		sp.Namespace = kmetav1.NamespaceDefault
+
+		return sp
+	}
+	switchGen := func(name string, role wiringapi.SwitchRole, profile *wiringapi.SwitchProfile) kclient.Object {
+		sw := &wiringapi.Switch{Spec: wiringapi.SwitchSpec{Role: role, Profile: profile.Name}}
+		sw.Name, sw.Namespace = name, kmetav1.NamespaceDefault
+
+		return sw
+	}
+
+	for _, tt := range []struct {
+		name     string
+		switches []kclient.Object
+		vrfs     []string
+	}{
+		{
+			name: "sonic",
+			switches: []kclient.Object{
+				switchGen("leaf-1", wiringapi.SwitchRoleServerLeaf, &switchprofile.DellS5248FON),
+			},
+			vrfs: []string{"VrfVvpc-1"},
+		},
+		{
+			// spines have no VPC VRFs
+			name: "cumulus",
+			switches: []kclient.Object{
+				switchGen("leaf-1", wiringapi.SwitchRoleServerLeaf, &switchprofile.CumulusNvidiaSN2700),
+				switchGen("leaf-2", wiringapi.SwitchRoleBorderLeaf, &switchprofile.CumulusNvidiaSN2700),
+				switchGen("spine-1", wiringapi.SwitchRoleSpine, &switchprofile.DellS5248FON),
+			},
+			vrfs: []string{"vpc-vpc-1"},
+		},
+		{
+			name: "mixed",
+			switches: []kclient.Object{
+				switchGen("leaf-1", wiringapi.SwitchRoleServerLeaf, &switchprofile.CumulusNvidiaSN2700),
+				switchGen("leaf-2", wiringapi.SwitchRoleServerLeaf, &switchprofile.DellS5248FON),
+			},
+			vrfs: []string{"VrfVvpc-1", "vpc-vpc-1"},
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			objs := append([]kclient.Object{
+				vpc,
+				profileGen(&switchprofile.DellS5248FON),
+				profileGen(&switchprofile.CumulusNvidiaSN2700),
+			}, tt.switches...)
+			kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objs...).Build()
+
+			out, err := VPC(t.Context(), kube, VPCIn{Name: "vpc-1"})
+			require.NoError(t, err)
+			require.Equal(t, tt.vrfs, out.VRFs)
+		})
+	}
 }
 
 func TestVPCSubnetPeerings(t *testing.T) {
