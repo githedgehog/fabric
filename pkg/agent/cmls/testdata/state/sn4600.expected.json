@@ -1102,6 +1102,244 @@
     "E1/8": {},
     "E1/9": {}
   },
+  "bgpNeighbors": {
+    "default": {
+      "172.30.8.0": {
+        "connDropped": 2,
+        "enabled": true,
+        "estabTrans": 3,
+        "lastEstab": "2026-11-23T07:57:50Z",
+        "lastRead": null,
+        "lastResetReason": "No AFI/SAFI activated for peer",
+        "lastReset": "2026-11-23T07:57:49Z",
+        "lastWrite": null,
+        "localAS": 65102,
+        "msgs": {
+          "rec": {
+            "keepal": 71854,
+            "open": 3
+          },
+          "sent": {
+            "keepal": 71855,
+            "open": 3
+          }
+        },
+        "peerAS": 65100,
+        "peerGroup": "overlay",
+        "peerPort": 179,
+        "peerType": "external",
+        "remoteRouterID": "172.30.8.0",
+        "state": "established",
+        "prefixes": {
+          "L2VPN_EVPN": {
+            "rec": 39,
+            "sent": 61
+          }
+        }
+      },
+      "172.30.8.1": {
+        "connDropped": 2,
+        "enabled": true,
+        "estabTrans": 3,
+        "lastEstab": "2026-11-23T08:35:05Z",
+        "lastRead": null,
+        "lastResetReason": "Waiting for peer OPEN",
+        "lastReset": "2026-11-23T08:31:36Z",
+        "lastWrite": null,
+        "localAS": 65102,
+        "msgs": {
+          "rec": {
+            "keepal": 71869,
+            "open": 3
+          },
+          "sent": {
+            "keepal": 71871,
+            "open": 3
+          }
+        },
+        "peerAS": 65100,
+        "peerGroup": "overlay",
+        "peerPort": 179,
+        "peerType": "external",
+        "remoteRouterID": "172.30.8.1",
+        "state": "established",
+        "prefixes": {
+          "L2VPN_EVPN": {
+            "rec": 39,
+            "sent": 61
+          }
+        }
+      },
+      "E1/1/1": {
+        "connDropped": 3,
+        "enabled": true,
+        "estabTrans": 4,
+        "lastEstab": "2026-11-23T08:35:04Z",
+        "lastRead": null,
+        "lastResetReason": "Waiting for peer OPEN",
+        "lastReset": "2026-11-23T08:31:28Z",
+        "lastWrite": null,
+        "localAS": 65102,
+        "msgs": {
+          "rec": {
+            "keepal": 71869,
+            "open": 4
+          },
+          "sent": {
+            "keepal": 71869,
+            "open": 4
+          }
+        },
+        "peerAS": 65100,
+        "peerGroup": "underlay_spine",
+        "peerPort": 179,
+        "peerType": "external",
+        "remoteRouterID": "172.30.8.1",
+        "state": "established",
+        "prefixes": {
+          "IPV4_UNICAST": {
+            "rec": 9,
+            "sent": 12
+          }
+        }
+      },
+      "E1/2/1": {
+        "connDropped": 3,
+        "enabled": true,
+        "estabTrans": 4,
+        "lastEstab": "2026-11-23T08:35:03Z",
+        "lastRead": null,
+        "lastResetReason": "Waiting for peer OPEN",
+        "lastReset": "2026-11-23T08:31:33Z",
+        "lastWrite": null,
+        "localAS": 65102,
+        "msgs": {
+          "rec": {
+            "keepal": 71871,
+            "open": 4
+          },
+          "sent": {
+            "keepal": 71871,
+            "open": 4
+          }
+        },
+        "peerAS": 65100,
+        "peerGroup": "underlay_spine",
+        "peerPort": 179,
+        "peerType": "external",
+        "remoteRouterID": "172.30.8.1",
+        "state": "established",
+        "prefixes": {
+          "IPV4_UNICAST": {
+            "rec": 9,
+            "sent": 12
+          }
+        }
+      },
+      "E1/3/1": {
+        "connDropped": 2,
+        "enabled": true,
+        "estabTrans": 3,
+        "lastEstab": "2026-11-23T07:57:49Z",
+        "lastRead": null,
+        "lastResetReason": "Waiting for peer OPEN",
+        "lastReset": "2026-11-23T07:57:47Z",
+        "lastWrite": null,
+        "localAS": 65102,
+        "msgs": {
+          "rec": {
+            "keepal": 71856,
+            "open": 3
+          },
+          "sent": {
+            "keepal": 71856,
+            "open": 3
+          }
+        },
+        "peerAS": 65100,
+        "peerGroup": "underlay_spine",
+        "peerPort": 179,
+        "peerType": "external",
+        "remoteRouterID": "172.30.8.0",
+        "state": "established",
+        "prefixes": {
+          "IPV4_UNICAST": {
+            "rec": 9,
+            "sent": 12
+          }
+        }
+      }
+    },
+    "ext-ext-bgp": {
+      "100.1.10.6": {
+        "enabled": true,
+        "estabTrans": 1,
+        "lastEstab": "2026-11-21T04:02:35Z",
+        "lastRead": null,
+        "lastResetReason": "Waiting for peer OPEN",
+        "lastReset": "2026-11-21T04:02:28Z",
+        "lastWrite": null,
+        "localAS": 65102,
+        "msgs": {
+          "rec": {
+            "keepal": 71945,
+            "open": 1
+          },
+          "sent": {
+            "keepal": 71946,
+            "open": 1
+          }
+        },
+        "peerAS": 64102,
+        "peerPort": 179,
+        "peerType": "external",
+        "remoteRouterID": "100.1.10.6",
+        "state": "established",
+        "prefixes": {
+          "IPV4_UNICAST": {
+            "rec": 1
+          }
+        }
+      }
+    },
+    "vpc-vpc-05": {},
+    "vpc-vpc-06": {},
+    "vpc-vpc-07": {}
+  },
+  "bfdPeers": {
+    "default": {
+      "172.30.8.0": {
+        "state": "up",
+        "profile": "overlay",
+        "lastUpTime": "2026-11-23T07:57:51Z",
+        "fails": 2
+      },
+      "172.30.8.1": {
+        "state": "up",
+        "profile": "overlay",
+        "lastUpTime": "2026-11-23T08:35:06Z",
+        "fails": 2
+      },
+      "E1/1/1": {
+        "state": "up",
+        "profile": "underlay",
+        "lastUpTime": "2026-11-23T08:35:04Z",
+        "fails": 2
+      },
+      "E1/2/1": {
+        "state": "up",
+        "profile": "underlay",
+        "lastUpTime": "2026-11-23T08:35:03Z",
+        "fails": 2
+      },
+      "E1/3/1": {
+        "state": "up",
+        "profile": "underlay",
+        "lastUpTime": "2026-11-23T07:57:49Z",
+        "fails": 2
+      }
+    }
+  },
   "platform": {
     "fans": {
       "FAN1/1": {

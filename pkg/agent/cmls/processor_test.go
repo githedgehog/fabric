@@ -6,6 +6,7 @@ package cmls
 import (
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"go.githedgehog.com/fabric/pkg/agent/cmls/nvue"
@@ -15,13 +16,19 @@ import (
 // nvueFixtures are the NVUE responses captured from the switches of env-7, see nvue/testdata/README.md
 var nvueFixtures = filepath.Join("nvue", "testdata")
 
+// fixtureTime is a little after the fixtures were captured, so that the times counted back from it stay the same
+var fixtureTime = time.Date(2026, time.November, 23, 16, 0, 0, 0, time.UTC)
+
 func fixtureProcessor(t *testing.T, model string) *CumulusProcessor {
 	t.Helper()
 
 	client, err := nvue.New(nvue.WithSocket(nvuetest.Serve(t, filepath.Join(nvueFixtures, model))))
 	require.NoError(t, err)
 
-	return Processor(client)
+	proc := Processor(client)
+	proc.now = func() time.Time { return fixtureTime }
+
+	return proc
 }
 
 func TestGetRoCE(t *testing.T) {

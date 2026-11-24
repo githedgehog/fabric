@@ -88,6 +88,19 @@ func (c *CumulusProcessor) UpdateSwitchState(ctx context.Context, agent *agentap
 		return fmt.Errorf("updating breakouts: %w", err)
 	}
 
+	vrfs, err := c.routedVRFs(ctx)
+	if err != nil {
+		return err
+	}
+
+	if err := c.updateBGPNeighbors(ctx, reg, swState, vrfs, portMap); err != nil {
+		return fmt.Errorf("updating bgp neighbors: %w", err)
+	}
+
+	if err := c.updateBFDPeers(ctx, reg, swState, vrfs, portMap); err != nil {
+		return fmt.Errorf("updating bfd peers: %w", err)
+	}
+
 	if err := c.updatePlatform(ctx, reg, swState); err != nil {
 		return fmt.Errorf("updating platform: %w", err)
 	}
