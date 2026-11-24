@@ -16,6 +16,7 @@ var bfdCaptures = map[string][]string{
 		"/vrf/default/router/bfd/peers",
 		"/vrf/vpc-hbgp-nvue/router/bfd/peers",
 		"/vrf/vpc-vpc-01/router/bfd/peers",
+		"/vrf/vpc-vpc-02/router/bfd/peers",
 		"/vrf/mgmt/router/bfd/peers",
 	},
 	modelSN4600: {

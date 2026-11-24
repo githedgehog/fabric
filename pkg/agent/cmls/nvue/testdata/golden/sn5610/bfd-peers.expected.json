@@ -219,5 +219,6 @@
   },
   "mgmt": {},
   "vpc-hbgp-nvue": {},
-  "vpc-vpc-01": {}
+  "vpc-vpc-01": {},
+  "vpc-vpc-02": {}
 }
