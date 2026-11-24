@@ -14,7 +14,7 @@ type BFDPeer struct {
 	Interface string `json:"interface"`
 	Profile   string `json:"profile"`
 	State     string `json:"state"`
-	Multihop  string `json:"multihop"`
+	Multihop  Toggle `json:"multihop"`
 	// UpDownTime is how long the session is in its state for, in seconds
 	UpDownTime       Number  `json:"up-down-time"`
 	SessionUp        Counter `json:"session-up"`

@@ -6,7 +6,12 @@
       "interface": "swp64s1",
       "profile": "underlay",
       "state": "up",
-      "multihop": "disabled",
+      "multihop": {
+        "Value": false,
+        "OK": true,
+        "Bool": false,
+        "Raw": "disabled"
+      },
       "up-down-time": {
         "Value": 28922,
         "OK": true,
@@ -42,7 +47,12 @@
       "interface": "swp63s1",
       "profile": "underlay",
       "state": "up",
-      "multihop": "disabled",
+      "multihop": {
+        "Value": false,
+        "OK": true,
+        "Bool": false,
+        "Raw": "disabled"
+      },
       "up-down-time": {
         "Value": 28921,
         "OK": true,
@@ -78,7 +88,12 @@
       "interface": "",
       "profile": "overlay",
       "state": "up",
-      "multihop": "enabled",
+      "multihop": {
+        "Value": true,
+        "OK": true,
+        "Bool": false,
+        "Raw": "enabled"
+      },
       "up-down-time": {
         "Value": 28920,
         "OK": true,
@@ -114,7 +129,12 @@
       "interface": "",
       "profile": "overlay",
       "state": "up",
-      "multihop": "enabled",
+      "multihop": {
+        "Value": true,
+        "OK": true,
+        "Bool": false,
+        "Raw": "enabled"
+      },
       "up-down-time": {
         "Value": 26684,
         "OK": true,
@@ -150,7 +170,12 @@
       "interface": "swp63s0",
       "profile": "underlay",
       "state": "up",
-      "multihop": "disabled",
+      "multihop": {
+        "Value": false,
+        "OK": true,
+        "Bool": false,
+        "Raw": "disabled"
+      },
       "up-down-time": {
         "Value": 26686,
         "OK": true,
@@ -186,7 +211,12 @@
       "interface": "swp64s0",
       "profile": "underlay",
       "state": "up",
-      "multihop": "disabled",
+      "multihop": {
+        "Value": false,
+        "OK": true,
+        "Bool": false,
+        "Raw": "disabled"
+      },
       "up-down-time": {
         "Value": 26685,
         "OK": true,

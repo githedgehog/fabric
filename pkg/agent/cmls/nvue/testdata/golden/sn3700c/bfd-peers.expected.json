@@ -6,7 +6,12 @@
       "interface": "",
       "profile": "overlay",
       "state": "up",
-      "multihop": "enabled",
+      "multihop": {
+        "Value": true,
+        "OK": true,
+        "Bool": false,
+        "Raw": "enabled"
+      },
       "up-down-time": {
         "Value": 26695,
         "OK": true,
@@ -42,7 +47,12 @@
       "interface": "swp31",
       "profile": "underlay",
       "state": "up",
-      "multihop": "disabled",
+      "multihop": {
+        "Value": false,
+        "OK": true,
+        "Bool": false,
+        "Raw": "disabled"
+      },
       "up-down-time": {
         "Value": 26697,
         "OK": true,
@@ -78,7 +88,12 @@
       "interface": "swp32",
       "profile": "underlay",
       "state": "up",
-      "multihop": "disabled",
+      "multihop": {
+        "Value": false,
+        "OK": true,
+        "Bool": false,
+        "Raw": "disabled"
+      },
       "up-down-time": {
         "Value": 26697,
         "OK": true,
@@ -114,7 +129,12 @@
       "interface": "",
       "profile": "overlay",
       "state": "up",
-      "multihop": "enabled",
+      "multihop": {
+        "Value": true,
+        "OK": true,
+        "Bool": false,
+        "Raw": "enabled"
+      },
       "up-down-time": {
         "Value": 26696,
         "OK": true,
@@ -150,7 +170,12 @@
       "interface": "swp30",
       "profile": "underlay",
       "state": "up",
-      "multihop": "disabled",
+      "multihop": {
+        "Value": false,
+        "OK": true,
+        "Bool": false,
+        "Raw": "disabled"
+      },
       "up-down-time": {
         "Value": 26697,
         "OK": true,
@@ -186,7 +211,12 @@
       "interface": "swp1",
       "profile": "underlay",
       "state": "up",
-      "multihop": "disabled",
+      "multihop": {
+        "Value": false,
+        "OK": true,
+        "Bool": false,
+        "Raw": "disabled"
+      },
       "up-down-time": {
         "Value": 26697,
         "OK": true,
@@ -222,7 +252,12 @@
       "interface": "swp4",
       "profile": "underlay",
       "state": "up",
-      "multihop": "disabled",
+      "multihop": {
+        "Value": false,
+        "OK": true,
+        "Bool": false,
+        "Raw": "disabled"
+      },
       "up-down-time": {
         "Value": 26657,
         "OK": true,
@@ -258,7 +293,12 @@
       "interface": "swp15s1",
       "profile": "underlay",
       "state": "up",
-      "multihop": "disabled",
+      "multihop": {
+        "Value": false,
+        "OK": true,
+        "Bool": false,
+        "Raw": "disabled"
+      },
       "up-down-time": {
         "Value": 23911,
         "OK": true,
@@ -294,7 +334,12 @@
       "interface": "",
       "profile": "overlay",
       "state": "up",
-      "multihop": "enabled",
+      "multihop": {
+        "Value": true,
+        "OK": true,
+        "Bool": false,
+        "Raw": "enabled"
+      },
       "up-down-time": {
         "Value": 26654,
         "OK": true,
@@ -330,7 +375,12 @@
       "interface": "swp3",
       "profile": "underlay",
       "state": "up",
-      "multihop": "disabled",
+      "multihop": {
+        "Value": false,
+        "OK": true,
+        "Bool": false,
+        "Raw": "disabled"
+      },
       "up-down-time": {
         "Value": 26657,
         "OK": true,
@@ -366,7 +416,12 @@
       "interface": "swp2",
       "profile": "underlay",
       "state": "up",
-      "multihop": "disabled",
+      "multihop": {
+        "Value": false,
+        "OK": true,
+        "Bool": false,
+        "Raw": "disabled"
+      },
       "up-down-time": {
         "Value": 26698,
         "OK": true,
@@ -402,7 +457,12 @@
       "interface": "swp29",
       "profile": "underlay",
       "state": "up",
-      "multihop": "disabled",
+      "multihop": {
+        "Value": false,
+        "OK": true,
+        "Bool": false,
+        "Raw": "disabled"
+      },
       "up-down-time": {
         "Value": 26696,
         "OK": true,
@@ -438,7 +498,12 @@
       "interface": "",
       "profile": "overlay",
       "state": "up",
-      "multihop": "enabled",
+      "multihop": {
+        "Value": true,
+        "OK": true,
+        "Bool": false,
+        "Raw": "enabled"
+      },
       "up-down-time": {
         "Value": 26696,
         "OK": true,
@@ -474,7 +539,12 @@
       "interface": "swp15s0",
       "profile": "underlay",
       "state": "up",
-      "multihop": "disabled",
+      "multihop": {
+        "Value": false,
+        "OK": true,
+        "Bool": false,
+        "Raw": "disabled"
+      },
       "up-down-time": {
         "Value": 22414,
         "OK": true,
