@@ -390,7 +390,8 @@ func Switch(ctx context.Context, kube kclient.Reader, in SwitchIn) (*SwitchOut, 
 				}
 			}
 
-			ports[portName] = port
+			// keyed by the interface name, so the breakout of the port gets its own row
+			ports[port.PortName] = port
 		}
 	}
 
