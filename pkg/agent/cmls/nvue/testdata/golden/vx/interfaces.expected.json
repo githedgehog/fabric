@@ -1,0 +1,1789 @@
+{
+  "bond1": {
+    "type": "bond",
+    "description": "ESLAG server-01 server-01--eslag--leaf-01--leaf-02",
+    "link": {
+      "admin-status": "up",
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/24 00:54:42.703",
+      "speed": "10G",
+      "auto-negotiate": "disabled",
+      "fec": "",
+      "mac-address": "0a:1b:2c:00:00:01",
+      "mtu": {
+        "Value": 9216,
+        "OK": true,
+        "Raw": "9216"
+      },
+      "protodown": "disabled"
+    },
+    "bond": {
+      "mode": "lacp",
+      "lacp-rate": "fast",
+      "lacp-bypass": "off",
+      "member": {
+        "swp2": {
+          "bonding-state": "active",
+          "mii-status": "up"
+        }
+      }
+    },
+    "lldp": null,
+    "counters": {
+      "link": {
+        "carrier-transitions": {
+          "Value": 1,
+          "OK": true
+        },
+        "carrier-up-count": {
+          "Value": 1,
+          "OK": true
+        },
+        "carrier-down-count": {
+          "Value": 0,
+          "OK": true
+        }
+      }
+    }
+  },
+  "bond2": {
+    "type": "bond",
+    "description": "ESLAG server-02 server-02--eslag--leaf-01--leaf-02",
+    "link": {
+      "admin-status": "up",
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/24 00:54:42.702",
+      "speed": "10G",
+      "auto-negotiate": "disabled",
+      "fec": "",
+      "mac-address": "0a:1b:2c:00:00:02",
+      "mtu": {
+        "Value": 9216,
+        "OK": true,
+        "Raw": "9216"
+      },
+      "protodown": "disabled"
+    },
+    "bond": {
+      "mode": "lacp",
+      "lacp-rate": "fast",
+      "lacp-bypass": "off",
+      "member": {
+        "swp3": {
+          "bonding-state": "active",
+          "mii-status": "up"
+        }
+      }
+    },
+    "lldp": null,
+    "counters": {
+      "link": {
+        "carrier-transitions": {
+          "Value": 1,
+          "OK": true
+        },
+        "carrier-up-count": {
+          "Value": 1,
+          "OK": true
+        },
+        "carrier-down-count": {
+          "Value": 0,
+          "OK": true
+        }
+      }
+    }
+  },
+  "br_default": {
+    "type": "bridge",
+    "description": "",
+    "link": {
+      "admin-status": "up",
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/24 00:54:15.558",
+      "speed": "",
+      "auto-negotiate": "",
+      "fec": "",
+      "mac-address": "0a:1b:2c:00:00:03",
+      "mtu": {
+        "Value": 9216,
+        "OK": true,
+        "Raw": "9216"
+      },
+      "protodown": "disabled"
+    },
+    "bond": null,
+    "lldp": null,
+    "counters": {
+      "link": {
+        "carrier-transitions": {
+          "Value": 2,
+          "OK": true
+        },
+        "carrier-up-count": {
+          "Value": 1,
+          "OK": true
+        },
+        "carrier-down-count": {
+          "Value": 1,
+          "OK": true
+        }
+      }
+    }
+  },
+  "br_l3vni": {
+    "type": "bridge",
+    "description": "",
+    "link": {
+      "admin-status": "up",
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/23 23:21:03.496",
+      "speed": "",
+      "auto-negotiate": "",
+      "fec": "",
+      "mac-address": "0a:1b:2c:00:00:03",
+      "mtu": {
+        "Value": 9216,
+        "OK": true,
+        "Raw": "9216"
+      },
+      "protodown": "disabled"
+    },
+    "bond": null,
+    "lldp": null,
+    "counters": {
+      "link": {
+        "carrier-transitions": {
+          "Value": 2,
+          "OK": true
+        },
+        "carrier-up-count": {
+          "Value": 1,
+          "OK": true
+        },
+        "carrier-down-count": {
+          "Value": 1,
+          "OK": true
+        }
+      }
+    }
+  },
+  "eth0": {
+    "type": "eth",
+    "description": "",
+    "link": {
+      "admin-status": "up",
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/23 23:12:16.346",
+      "speed": "1G",
+      "auto-negotiate": "disabled",
+      "fec": "",
+      "mac-address": "0a:1b:2c:00:00:04",
+      "mtu": {
+        "Value": 1500,
+        "OK": true,
+        "Raw": "1500"
+      },
+      "protodown": "disabled"
+    },
+    "bond": null,
+    "lldp": {
+      "neighbor": {
+        "control-1": {
+          "age": {
+            "Value": 7660,
+            "OK": true,
+            "Raw": "7660"
+          },
+          "chassis": {
+            "chassis-id": "00:00:00:00:00:00",
+            "system-name": "control-1",
+            "system-description": ""
+          },
+          "port": {
+            "name": "enp2s1",
+            "type": "ifname",
+            "description": "",
+            "ttl": {
+              "Value": 120,
+              "OK": true,
+              "Raw": "120"
+            }
+          },
+          "lldp-med": {
+            "device-type": "",
+            "inventory": {
+              "manufacturer": "",
+              "model": "",
+              "serial-number": "",
+              "firmware-revision": "",
+              "software-revision": ""
+            }
+          }
+        },
+        "gateway-1": {
+          "age": {
+            "Value": 7660,
+            "OK": true,
+            "Raw": "7660"
+          },
+          "chassis": {
+            "chassis-id": "00:00:00:00:00:00",
+            "system-name": "gateway-1",
+            "system-description": ""
+          },
+          "port": {
+            "name": "enp2s0",
+            "type": "ifname",
+            "description": "",
+            "ttl": {
+              "Value": 120,
+              "OK": true,
+              "Raw": "120"
+            }
+          },
+          "lldp-med": {
+            "device-type": "",
+            "inventory": {
+              "manufacturer": "",
+              "model": "",
+              "serial-number": "",
+              "firmware-revision": "",
+              "software-revision": ""
+            }
+          }
+        },
+        "gateway-2": {
+          "age": {
+            "Value": 7660,
+            "OK": true,
+            "Raw": "7660"
+          },
+          "chassis": {
+            "chassis-id": "00:00:00:00:00:00",
+            "system-name": "gateway-2",
+            "system-description": ""
+          },
+          "port": {
+            "name": "enp2s0",
+            "type": "ifname",
+            "description": "",
+            "ttl": {
+              "Value": 120,
+              "OK": true,
+              "Raw": "120"
+            }
+          },
+          "lldp-med": {
+            "device-type": "",
+            "inventory": {
+              "manufacturer": "",
+              "model": "",
+              "serial-number": "",
+              "firmware-revision": "",
+              "software-revision": ""
+            }
+          }
+        },
+        "leaf-02": {
+          "age": {
+            "Value": 2068,
+            "OK": true,
+            "Raw": "2068"
+          },
+          "chassis": {
+            "chassis-id": "0a:1b:2c:00:00:05",
+            "system-name": "leaf-02",
+            "system-description": "Hedgehog Fabric"
+          },
+          "port": {
+            "name": "eth0",
+            "type": "ifname",
+            "description": "eth0",
+            "ttl": {
+              "Value": 20,
+              "OK": true,
+              "Raw": "20"
+            }
+          },
+          "lldp-med": {
+            "device-type": "Network Connectivity Device",
+            "inventory": {
+              "manufacturer": "",
+              "model": "",
+              "serial-number": "",
+              "firmware-revision": "",
+              "software-revision": ""
+            }
+          }
+        },
+        "leaf-03": {
+          "age": {
+            "Value": 2068,
+            "OK": true,
+            "Raw": "2068"
+          },
+          "chassis": {
+            "chassis-id": "0a:1b:2c:00:00:07",
+            "system-name": "leaf-03",
+            "system-description": "Hedgehog Fabric"
+          },
+          "port": {
+            "name": "eth0",
+            "type": "ifname",
+            "description": "eth0",
+            "ttl": {
+              "Value": 20,
+              "OK": true,
+              "Raw": "20"
+            }
+          },
+          "lldp-med": {
+            "device-type": "Network Connectivity Device",
+            "inventory": {
+              "manufacturer": "",
+              "model": "",
+              "serial-number": "",
+              "firmware-revision": "",
+              "software-revision": ""
+            }
+          }
+        },
+        "spine-01": {
+          "age": {
+            "Value": 7661,
+            "OK": true,
+            "Raw": "7661"
+          },
+          "chassis": {
+            "chassis-id": "0a:1b:2c:00:00:09",
+            "system-name": "spine-01",
+            "system-description": "Hedgehog Fabric"
+          },
+          "port": {
+            "name": "eth0",
+            "type": "ifname",
+            "description": "eth0",
+            "ttl": {
+              "Value": 20,
+              "OK": true,
+              "Raw": "20"
+            }
+          },
+          "lldp-med": {
+            "device-type": "Network Connectivity Device",
+            "inventory": {
+              "manufacturer": "",
+              "model": "",
+              "serial-number": "",
+              "firmware-revision": "",
+              "software-revision": ""
+            }
+          }
+        },
+        "spine-02": {
+          "age": {
+            "Value": 7661,
+            "OK": true,
+            "Raw": "7661"
+          },
+          "chassis": {
+            "chassis-id": "0a:1b:2c:00:00:0b",
+            "system-name": "spine-02",
+            "system-description": "Hedgehog Fabric"
+          },
+          "port": {
+            "name": "eth0",
+            "type": "ifname",
+            "description": "eth0",
+            "ttl": {
+              "Value": 20,
+              "OK": true,
+              "Raw": "20"
+            }
+          },
+          "lldp-med": {
+            "device-type": "Network Connectivity Device",
+            "inventory": {
+              "manufacturer": "",
+              "model": "",
+              "serial-number": "",
+              "firmware-revision": "",
+              "software-revision": ""
+            }
+          }
+        }
+      }
+    },
+    "counters": {
+      "link": {
+        "carrier-transitions": {
+          "Value": 2,
+          "OK": true
+        },
+        "carrier-up-count": {
+          "Value": 1,
+          "OK": true
+        },
+        "carrier-down-count": {
+          "Value": 1,
+          "OK": true
+        }
+      }
+    }
+  },
+  "ext-ext-bgp-01": {
+    "type": "vrf",
+    "description": "",
+    "link": {
+      "admin-status": "up",
+      "oper-status": "up",
+      "oper-status-last-change": "Never",
+      "speed": "",
+      "auto-negotiate": "",
+      "fec": "",
+      "mac-address": "0a:1b:2c:00:00:0d",
+      "mtu": {
+        "Value": 65575,
+        "OK": true,
+        "Raw": "65575"
+      },
+      "protodown": "disabled"
+    },
+    "bond": null,
+    "lldp": null,
+    "counters": {
+      "link": {
+        "carrier-transitions": {
+          "Value": 0,
+          "OK": true
+        },
+        "carrier-up-count": {
+          "Value": 0,
+          "OK": true
+        },
+        "carrier-down-count": {
+          "Value": 0,
+          "OK": true
+        }
+      }
+    }
+  },
+  "ext-ext-snp-01": {
+    "type": "vrf",
+    "description": "",
+    "link": {
+      "admin-status": "up",
+      "oper-status": "up",
+      "oper-status-last-change": "Never",
+      "speed": "",
+      "auto-negotiate": "",
+      "fec": "",
+      "mac-address": "0a:1b:2c:00:00:0e",
+      "mtu": {
+        "Value": 65575,
+        "OK": true,
+        "Raw": "65575"
+      },
+      "protodown": "disabled"
+    },
+    "bond": null,
+    "lldp": null,
+    "counters": {
+      "link": {
+        "carrier-transitions": {
+          "Value": 0,
+          "OK": true
+        },
+        "carrier-up-count": {
+          "Value": 0,
+          "OK": true
+        },
+        "carrier-down-count": {
+          "Value": 0,
+          "OK": true
+        }
+      }
+    }
+  },
+  "lo": {
+    "type": "loopback",
+    "description": "",
+    "link": {
+      "admin-status": "up",
+      "oper-status": "unknown",
+      "oper-status-last-change": "Never",
+      "speed": "",
+      "auto-negotiate": "",
+      "fec": "",
+      "mac-address": "00:00:00:00:00:00",
+      "mtu": {
+        "Value": 65536,
+        "OK": true,
+        "Raw": "65536"
+      },
+      "protodown": "disabled"
+    },
+    "bond": null,
+    "lldp": null,
+    "counters": {
+      "link": {
+        "carrier-transitions": {
+          "Value": 0,
+          "OK": true
+        },
+        "carrier-up-count": {
+          "Value": 0,
+          "OK": true
+        },
+        "carrier-down-count": {
+          "Value": 0,
+          "OK": true
+        }
+      }
+    }
+  },
+  "mgmt": {
+    "type": "vrf",
+    "description": "",
+    "link": {
+      "admin-status": "up",
+      "oper-status": "up",
+      "oper-status-last-change": "Never",
+      "speed": "",
+      "auto-negotiate": "",
+      "fec": "",
+      "mac-address": "0a:1b:2c:00:00:0f",
+      "mtu": {
+        "Value": 65575,
+        "OK": true,
+        "Raw": "65575"
+      },
+      "protodown": "disabled"
+    },
+    "bond": null,
+    "lldp": null,
+    "counters": {
+      "link": {
+        "carrier-transitions": {
+          "Value": 0,
+          "OK": true
+        },
+        "carrier-up-count": {
+          "Value": 0,
+          "OK": true
+        },
+        "carrier-down-count": {
+          "Value": 0,
+          "OK": true
+        }
+      }
+    }
+  },
+  "swp1": {
+    "type": "swp",
+    "description": "External leaf-01--external",
+    "link": {
+      "admin-status": "up",
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/23 23:21:03.312",
+      "speed": "10G",
+      "auto-negotiate": "disabled",
+      "fec": "",
+      "mac-address": "0a:1b:2c:00:00:10",
+      "mtu": {
+        "Value": 9216,
+        "OK": true,
+        "Raw": "9216"
+      },
+      "protodown": "disabled"
+    },
+    "bond": null,
+    "lldp": null,
+    "counters": {
+      "link": {
+        "carrier-transitions": {
+          "Value": 2,
+          "OK": true
+        },
+        "carrier-up-count": {
+          "Value": 1,
+          "OK": true
+        },
+        "carrier-down-count": {
+          "Value": 1,
+          "OK": true
+        }
+      }
+    }
+  },
+  "swp1.10": {
+    "type": "sub",
+    "description": "External leaf-01--ext-bgp-01",
+    "link": {
+      "admin-status": "up",
+      "oper-status": "up",
+      "oper-status-last-change": "Never",
+      "speed": "",
+      "auto-negotiate": "",
+      "fec": "",
+      "mac-address": "0a:1b:2c:00:00:10",
+      "mtu": {
+        "Value": 9216,
+        "OK": true,
+        "Raw": "9216"
+      },
+      "protodown": "disabled"
+    },
+    "bond": null,
+    "lldp": null,
+    "counters": {
+      "link": {
+        "carrier-transitions": {
+          "Value": 0,
+          "OK": true
+        },
+        "carrier-up-count": {
+          "Value": 0,
+          "OK": true
+        },
+        "carrier-down-count": {
+          "Value": 0,
+          "OK": true
+        }
+      }
+    }
+  },
+  "swp1.20": {
+    "type": "sub",
+    "description": "External leaf-01--ext-snp-01",
+    "link": {
+      "admin-status": "up",
+      "oper-status": "up",
+      "oper-status-last-change": "Never",
+      "speed": "",
+      "auto-negotiate": "",
+      "fec": "",
+      "mac-address": "0a:1b:2c:00:00:10",
+      "mtu": {
+        "Value": 9216,
+        "OK": true,
+        "Raw": "9216"
+      },
+      "protodown": "disabled"
+    },
+    "bond": null,
+    "lldp": null,
+    "counters": {
+      "link": {
+        "carrier-transitions": {
+          "Value": 0,
+          "OK": true
+        },
+        "carrier-up-count": {
+          "Value": 0,
+          "OK": true
+        },
+        "carrier-down-count": {
+          "Value": 0,
+          "OK": true
+        }
+      }
+    }
+  },
+  "swp2": {
+    "type": "swp",
+    "description": "ESLAG server-01 server-01--eslag--leaf-01--leaf-02",
+    "link": {
+      "admin-status": "up",
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/24 00:54:14.519",
+      "speed": "10G",
+      "auto-negotiate": "disabled",
+      "fec": "",
+      "mac-address": "0a:1b:2c:00:00:01",
+      "mtu": {
+        "Value": 9216,
+        "OK": true,
+        "Raw": "9216"
+      },
+      "protodown": "disabled"
+    },
+    "bond": null,
+    "lldp": {
+      "neighbor": {
+        "server-01": {
+          "age": {
+            "Value": 2044,
+            "OK": true,
+            "Raw": "2044"
+          },
+          "chassis": {
+            "chassis-id": "00:00:00:00:00:00",
+            "system-name": "server-01",
+            "system-description": ""
+          },
+          "port": {
+            "name": "enp2s1",
+            "type": "ifname",
+            "description": "",
+            "ttl": {
+              "Value": 120,
+              "OK": true,
+              "Raw": "120"
+            }
+          },
+          "lldp-med": {
+            "device-type": "",
+            "inventory": {
+              "manufacturer": "",
+              "model": "",
+              "serial-number": "",
+              "firmware-revision": "",
+              "software-revision": ""
+            }
+          }
+        }
+      }
+    },
+    "counters": {
+      "link": {
+        "carrier-transitions": {
+          "Value": 4,
+          "OK": true
+        },
+        "carrier-up-count": {
+          "Value": 2,
+          "OK": true
+        },
+        "carrier-down-count": {
+          "Value": 2,
+          "OK": true
+        }
+      }
+    }
+  },
+  "swp3": {
+    "type": "swp",
+    "description": "ESLAG server-02 server-02--eslag--leaf-01--leaf-02",
+    "link": {
+      "admin-status": "up",
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/24 00:54:14.531",
+      "speed": "10G",
+      "auto-negotiate": "disabled",
+      "fec": "",
+      "mac-address": "0a:1b:2c:00:00:02",
+      "mtu": {
+        "Value": 9216,
+        "OK": true,
+        "Raw": "9216"
+      },
+      "protodown": "disabled"
+    },
+    "bond": null,
+    "lldp": {
+      "neighbor": {
+        "server-02": {
+          "age": {
+            "Value": 2044,
+            "OK": true,
+            "Raw": "2044"
+          },
+          "chassis": {
+            "chassis-id": "00:00:00:00:00:00",
+            "system-name": "server-02",
+            "system-description": ""
+          },
+          "port": {
+            "name": "enp2s1",
+            "type": "ifname",
+            "description": "",
+            "ttl": {
+              "Value": 120,
+              "OK": true,
+              "Raw": "120"
+            }
+          },
+          "lldp-med": {
+            "device-type": "",
+            "inventory": {
+              "manufacturer": "",
+              "model": "",
+              "serial-number": "",
+              "firmware-revision": "",
+              "software-revision": ""
+            }
+          }
+        }
+      }
+    },
+    "counters": {
+      "link": {
+        "carrier-transitions": {
+          "Value": 4,
+          "OK": true
+        },
+        "carrier-up-count": {
+          "Value": 2,
+          "OK": true
+        },
+        "carrier-down-count": {
+          "Value": 2,
+          "OK": true
+        }
+      }
+    }
+  },
+  "swp4": {
+    "type": "swp",
+    "description": "Unbundled server-03 server-03--unbundled--leaf-01",
+    "link": {
+      "admin-status": "up",
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/24 00:54:14.565",
+      "speed": "10G",
+      "auto-negotiate": "disabled",
+      "fec": "",
+      "mac-address": "0a:1b:2c:00:00:11",
+      "mtu": {
+        "Value": 9216,
+        "OK": true,
+        "Raw": "9216"
+      },
+      "protodown": "disabled"
+    },
+    "bond": null,
+    "lldp": {
+      "neighbor": {
+        "server-03": {
+          "age": {
+            "Value": 2066,
+            "OK": true,
+            "Raw": "2066"
+          },
+          "chassis": {
+            "chassis-id": "00:00:00:00:00:00",
+            "system-name": "server-03",
+            "system-description": ""
+          },
+          "port": {
+            "name": "enp2s1",
+            "type": "ifname",
+            "description": "",
+            "ttl": {
+              "Value": 120,
+              "OK": true,
+              "Raw": "120"
+            }
+          },
+          "lldp-med": {
+            "device-type": "",
+            "inventory": {
+              "manufacturer": "",
+              "model": "",
+              "serial-number": "",
+              "firmware-revision": "",
+              "software-revision": ""
+            }
+          }
+        }
+      }
+    },
+    "counters": {
+      "link": {
+        "carrier-transitions": {
+          "Value": 2,
+          "OK": true
+        },
+        "carrier-up-count": {
+          "Value": 1,
+          "OK": true
+        },
+        "carrier-down-count": {
+          "Value": 1,
+          "OK": true
+        }
+      }
+    }
+  },
+  "swp5": {
+    "type": "swp",
+    "description": "Fabric spine-01/E1/1 spine-01--fabric--leaf-01",
+    "link": {
+      "admin-status": "up",
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/23 23:21:03.612",
+      "speed": "10G",
+      "auto-negotiate": "disabled",
+      "fec": "",
+      "mac-address": "0a:1b:2c:00:00:12",
+      "mtu": {
+        "Value": 9216,
+        "OK": true,
+        "Raw": "9216"
+      },
+      "protodown": "disabled"
+    },
+    "bond": null,
+    "lldp": {
+      "neighbor": {
+        "spine-01": {
+          "age": {
+            "Value": 7659,
+            "OK": true,
+            "Raw": "7659"
+          },
+          "chassis": {
+            "chassis-id": "0a:1b:2c:00:00:09",
+            "system-name": "spine-01",
+            "system-description": "Hedgehog Fabric"
+          },
+          "port": {
+            "name": "swp1",
+            "type": "ifname",
+            "description": "Fabric leaf-01/E1/5 spine-01--fabric--leaf-01",
+            "ttl": {
+              "Value": 20,
+              "OK": true,
+              "Raw": "20"
+            }
+          },
+          "lldp-med": {
+            "device-type": "Network Connectivity Device",
+            "inventory": {
+              "manufacturer": "",
+              "model": "",
+              "serial-number": "",
+              "firmware-revision": "",
+              "software-revision": ""
+            }
+          }
+        }
+      }
+    },
+    "counters": {
+      "link": {
+        "carrier-transitions": {
+          "Value": 2,
+          "OK": true
+        },
+        "carrier-up-count": {
+          "Value": 1,
+          "OK": true
+        },
+        "carrier-down-count": {
+          "Value": 1,
+          "OK": true
+        }
+      }
+    }
+  },
+  "swp6": {
+    "type": "swp",
+    "description": "Fabric spine-01/E1/2 spine-01--fabric--leaf-01",
+    "link": {
+      "admin-status": "up",
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/23 23:21:03.616",
+      "speed": "10G",
+      "auto-negotiate": "disabled",
+      "fec": "",
+      "mac-address": "0a:1b:2c:00:00:13",
+      "mtu": {
+        "Value": 9216,
+        "OK": true,
+        "Raw": "9216"
+      },
+      "protodown": "disabled"
+    },
+    "bond": null,
+    "lldp": {
+      "neighbor": {
+        "spine-01": {
+          "age": {
+            "Value": 7659,
+            "OK": true,
+            "Raw": "7659"
+          },
+          "chassis": {
+            "chassis-id": "0a:1b:2c:00:00:09",
+            "system-name": "spine-01",
+            "system-description": "Hedgehog Fabric"
+          },
+          "port": {
+            "name": "swp2",
+            "type": "ifname",
+            "description": "Fabric leaf-01/E1/6 spine-01--fabric--leaf-01",
+            "ttl": {
+              "Value": 20,
+              "OK": true,
+              "Raw": "20"
+            }
+          },
+          "lldp-med": {
+            "device-type": "Network Connectivity Device",
+            "inventory": {
+              "manufacturer": "",
+              "model": "",
+              "serial-number": "",
+              "firmware-revision": "",
+              "software-revision": ""
+            }
+          }
+        }
+      }
+    },
+    "counters": {
+      "link": {
+        "carrier-transitions": {
+          "Value": 2,
+          "OK": true
+        },
+        "carrier-up-count": {
+          "Value": 1,
+          "OK": true
+        },
+        "carrier-down-count": {
+          "Value": 1,
+          "OK": true
+        }
+      }
+    }
+  },
+  "swp7": {
+    "type": "swp",
+    "description": "Fabric spine-02/E1/1 spine-02--fabric--leaf-01",
+    "link": {
+      "admin-status": "up",
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/23 23:21:03.621",
+      "speed": "10G",
+      "auto-negotiate": "disabled",
+      "fec": "",
+      "mac-address": "0a:1b:2c:00:00:14",
+      "mtu": {
+        "Value": 9216,
+        "OK": true,
+        "Raw": "9216"
+      },
+      "protodown": "disabled"
+    },
+    "bond": null,
+    "lldp": {
+      "neighbor": {
+        "spine-02": {
+          "age": {
+            "Value": 7660,
+            "OK": true,
+            "Raw": "7660"
+          },
+          "chassis": {
+            "chassis-id": "0a:1b:2c:00:00:0b",
+            "system-name": "spine-02",
+            "system-description": "Hedgehog Fabric"
+          },
+          "port": {
+            "name": "swp1",
+            "type": "ifname",
+            "description": "Fabric leaf-01/E1/7 spine-02--fabric--leaf-01",
+            "ttl": {
+              "Value": 20,
+              "OK": true,
+              "Raw": "20"
+            }
+          },
+          "lldp-med": {
+            "device-type": "Network Connectivity Device",
+            "inventory": {
+              "manufacturer": "",
+              "model": "",
+              "serial-number": "",
+              "firmware-revision": "",
+              "software-revision": ""
+            }
+          }
+        }
+      }
+    },
+    "counters": {
+      "link": {
+        "carrier-transitions": {
+          "Value": 2,
+          "OK": true
+        },
+        "carrier-up-count": {
+          "Value": 1,
+          "OK": true
+        },
+        "carrier-down-count": {
+          "Value": 1,
+          "OK": true
+        }
+      }
+    }
+  },
+  "swp8": {
+    "type": "swp",
+    "description": "Fabric spine-02/E1/2 spine-02--fabric--leaf-01",
+    "link": {
+      "admin-status": "up",
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/23 23:21:03.625",
+      "speed": "10G",
+      "auto-negotiate": "disabled",
+      "fec": "",
+      "mac-address": "0a:1b:2c:00:00:15",
+      "mtu": {
+        "Value": 9216,
+        "OK": true,
+        "Raw": "9216"
+      },
+      "protodown": "disabled"
+    },
+    "bond": null,
+    "lldp": {
+      "neighbor": {
+        "spine-02": {
+          "age": {
+            "Value": 7660,
+            "OK": true,
+            "Raw": "7660"
+          },
+          "chassis": {
+            "chassis-id": "0a:1b:2c:00:00:0b",
+            "system-name": "spine-02",
+            "system-description": "Hedgehog Fabric"
+          },
+          "port": {
+            "name": "swp2",
+            "type": "ifname",
+            "description": "Fabric leaf-01/E1/8 spine-02--fabric--leaf-01",
+            "ttl": {
+              "Value": 20,
+              "OK": true,
+              "Raw": "20"
+            }
+          },
+          "lldp-med": {
+            "device-type": "Network Connectivity Device",
+            "inventory": {
+              "manufacturer": "",
+              "model": "",
+              "serial-number": "",
+              "firmware-revision": "",
+              "software-revision": ""
+            }
+          }
+        }
+      }
+    },
+    "counters": {
+      "link": {
+        "carrier-transitions": {
+          "Value": 2,
+          "OK": true
+        },
+        "carrier-up-count": {
+          "Value": 1,
+          "OK": true
+        },
+        "carrier-down-count": {
+          "Value": 1,
+          "OK": true
+        }
+      }
+    }
+  },
+  "vlan1001": {
+    "type": "svi",
+    "description": "VPC vpc-01/subnet-01",
+    "link": {
+      "admin-status": "up",
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/24 00:54:15.559",
+      "speed": "",
+      "auto-negotiate": "",
+      "fec": "",
+      "mac-address": "0a:1b:2c:00:00:03",
+      "mtu": {
+        "Value": 9216,
+        "OK": true,
+        "Raw": "9216"
+      },
+      "protodown": "disabled"
+    },
+    "bond": null,
+    "lldp": null,
+    "counters": {
+      "link": {
+        "carrier-transitions": {
+          "Value": 1,
+          "OK": true
+        },
+        "carrier-up-count": {
+          "Value": 1,
+          "OK": true
+        },
+        "carrier-down-count": {
+          "Value": 0,
+          "OK": true
+        }
+      }
+    }
+  },
+  "vlan1001-v0": {
+    "type": "svi",
+    "description": "",
+    "link": {
+      "admin-status": "up",
+      "oper-status": "up",
+      "oper-status-last-change": "Never",
+      "speed": "",
+      "auto-negotiate": "",
+      "fec": "",
+      "mac-address": "00:00:00:11:11:11",
+      "mtu": {
+        "Value": 9216,
+        "OK": true,
+        "Raw": "9216"
+      },
+      "protodown": "disabled"
+    },
+    "bond": null,
+    "lldp": null,
+    "counters": {
+      "link": {
+        "carrier-transitions": {
+          "Value": 0,
+          "OK": true
+        },
+        "carrier-up-count": {
+          "Value": 0,
+          "OK": true
+        },
+        "carrier-down-count": {
+          "Value": 0,
+          "OK": true
+        }
+      }
+    }
+  },
+  "vlan1002": {
+    "type": "svi",
+    "description": "VPC vpc-02/subnet-01",
+    "link": {
+      "admin-status": "up",
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/24 00:54:15.561",
+      "speed": "",
+      "auto-negotiate": "",
+      "fec": "",
+      "mac-address": "0a:1b:2c:00:00:03",
+      "mtu": {
+        "Value": 9216,
+        "OK": true,
+        "Raw": "9216"
+      },
+      "protodown": "disabled"
+    },
+    "bond": null,
+    "lldp": null,
+    "counters": {
+      "link": {
+        "carrier-transitions": {
+          "Value": 1,
+          "OK": true
+        },
+        "carrier-up-count": {
+          "Value": 1,
+          "OK": true
+        },
+        "carrier-down-count": {
+          "Value": 0,
+          "OK": true
+        }
+      }
+    }
+  },
+  "vlan1002-v0": {
+    "type": "svi",
+    "description": "",
+    "link": {
+      "admin-status": "up",
+      "oper-status": "up",
+      "oper-status-last-change": "Never",
+      "speed": "",
+      "auto-negotiate": "",
+      "fec": "",
+      "mac-address": "00:00:00:11:11:11",
+      "mtu": {
+        "Value": 9216,
+        "OK": true,
+        "Raw": "9216"
+      },
+      "protodown": "disabled"
+    },
+    "bond": null,
+    "lldp": null,
+    "counters": {
+      "link": {
+        "carrier-transitions": {
+          "Value": 0,
+          "OK": true
+        },
+        "carrier-up-count": {
+          "Value": 0,
+          "OK": true
+        },
+        "carrier-down-count": {
+          "Value": 0,
+          "OK": true
+        }
+      }
+    }
+  },
+  "vlan1003": {
+    "type": "svi",
+    "description": "VPC vpc-03/subnet-01",
+    "link": {
+      "admin-status": "up",
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/24 00:54:15.563",
+      "speed": "",
+      "auto-negotiate": "",
+      "fec": "",
+      "mac-address": "0a:1b:2c:00:00:03",
+      "mtu": {
+        "Value": 9216,
+        "OK": true,
+        "Raw": "9216"
+      },
+      "protodown": "disabled"
+    },
+    "bond": null,
+    "lldp": null,
+    "counters": {
+      "link": {
+        "carrier-transitions": {
+          "Value": 1,
+          "OK": true
+        },
+        "carrier-up-count": {
+          "Value": 1,
+          "OK": true
+        },
+        "carrier-down-count": {
+          "Value": 0,
+          "OK": true
+        }
+      }
+    }
+  },
+  "vlan1003-v0": {
+    "type": "svi",
+    "description": "",
+    "link": {
+      "admin-status": "up",
+      "oper-status": "up",
+      "oper-status-last-change": "Never",
+      "speed": "",
+      "auto-negotiate": "",
+      "fec": "",
+      "mac-address": "00:00:00:11:11:11",
+      "mtu": {
+        "Value": 9216,
+        "OK": true,
+        "Raw": "9216"
+      },
+      "protodown": "disabled"
+    },
+    "bond": null,
+    "lldp": null,
+    "counters": {
+      "link": {
+        "carrier-transitions": {
+          "Value": 0,
+          "OK": true
+        },
+        "carrier-up-count": {
+          "Value": 0,
+          "OK": true
+        },
+        "carrier-down-count": {
+          "Value": 0,
+          "OK": true
+        }
+      }
+    }
+  },
+  "vlan1378_l3": {
+    "type": "svi",
+    "description": "",
+    "link": {
+      "admin-status": "up",
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/24 00:54:15.562",
+      "speed": "",
+      "auto-negotiate": "",
+      "fec": "",
+      "mac-address": "0a:1b:2c:00:00:03",
+      "mtu": {
+        "Value": 9216,
+        "OK": true,
+        "Raw": "9216"
+      },
+      "protodown": "disabled"
+    },
+    "bond": null,
+    "lldp": null,
+    "counters": {
+      "link": {
+        "carrier-transitions": {
+          "Value": 1,
+          "OK": true
+        },
+        "carrier-up-count": {
+          "Value": 1,
+          "OK": true
+        },
+        "carrier-down-count": {
+          "Value": 0,
+          "OK": true
+        }
+      }
+    }
+  },
+  "vlan1401_l3": {
+    "type": "svi",
+    "description": "",
+    "link": {
+      "admin-status": "up",
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/24 00:54:15.560",
+      "speed": "",
+      "auto-negotiate": "",
+      "fec": "",
+      "mac-address": "0a:1b:2c:00:00:03",
+      "mtu": {
+        "Value": 9216,
+        "OK": true,
+        "Raw": "9216"
+      },
+      "protodown": "disabled"
+    },
+    "bond": null,
+    "lldp": null,
+    "counters": {
+      "link": {
+        "carrier-transitions": {
+          "Value": 1,
+          "OK": true
+        },
+        "carrier-up-count": {
+          "Value": 1,
+          "OK": true
+        },
+        "carrier-down-count": {
+          "Value": 0,
+          "OK": true
+        }
+      }
+    }
+  },
+  "vlan688_l3": {
+    "type": "svi",
+    "description": "",
+    "link": {
+      "admin-status": "up",
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/24 00:54:15.564",
+      "speed": "",
+      "auto-negotiate": "",
+      "fec": "",
+      "mac-address": "0a:1b:2c:00:00:03",
+      "mtu": {
+        "Value": 9216,
+        "OK": true,
+        "Raw": "9216"
+      },
+      "protodown": "disabled"
+    },
+    "bond": null,
+    "lldp": null,
+    "counters": {
+      "link": {
+        "carrier-transitions": {
+          "Value": 1,
+          "OK": true
+        },
+        "carrier-up-count": {
+          "Value": 1,
+          "OK": true
+        },
+        "carrier-down-count": {
+          "Value": 0,
+          "OK": true
+        }
+      }
+    }
+  },
+  "vlan883_l3": {
+    "type": "svi",
+    "description": "",
+    "link": {
+      "admin-status": "up",
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/23 23:21:04.322",
+      "speed": "",
+      "auto-negotiate": "",
+      "fec": "",
+      "mac-address": "0a:1b:2c:00:00:03",
+      "mtu": {
+        "Value": 9216,
+        "OK": true,
+        "Raw": "9216"
+      },
+      "protodown": "disabled"
+    },
+    "bond": null,
+    "lldp": null,
+    "counters": {
+      "link": {
+        "carrier-transitions": {
+          "Value": 1,
+          "OK": true
+        },
+        "carrier-up-count": {
+          "Value": 1,
+          "OK": true
+        },
+        "carrier-down-count": {
+          "Value": 0,
+          "OK": true
+        }
+      }
+    }
+  },
+  "vlan933_l3": {
+    "type": "svi",
+    "description": "",
+    "link": {
+      "admin-status": "up",
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/23 23:21:04.323",
+      "speed": "",
+      "auto-negotiate": "",
+      "fec": "",
+      "mac-address": "0a:1b:2c:00:00:03",
+      "mtu": {
+        "Value": 9216,
+        "OK": true,
+        "Raw": "9216"
+      },
+      "protodown": "disabled"
+    },
+    "bond": null,
+    "lldp": null,
+    "counters": {
+      "link": {
+        "carrier-transitions": {
+          "Value": 1,
+          "OK": true
+        },
+        "carrier-up-count": {
+          "Value": 1,
+          "OK": true
+        },
+        "carrier-down-count": {
+          "Value": 0,
+          "OK": true
+        }
+      }
+    }
+  },
+  "vpc-vpc-01": {
+    "type": "vrf",
+    "description": "",
+    "link": {
+      "admin-status": "up",
+      "oper-status": "up",
+      "oper-status-last-change": "Never",
+      "speed": "",
+      "auto-negotiate": "",
+      "fec": "",
+      "mac-address": "0a:1b:2c:00:00:16",
+      "mtu": {
+        "Value": 65575,
+        "OK": true,
+        "Raw": "65575"
+      },
+      "protodown": "disabled"
+    },
+    "bond": null,
+    "lldp": null,
+    "counters": {
+      "link": {
+        "carrier-transitions": {
+          "Value": 0,
+          "OK": true
+        },
+        "carrier-up-count": {
+          "Value": 0,
+          "OK": true
+        },
+        "carrier-down-count": {
+          "Value": 0,
+          "OK": true
+        }
+      }
+    }
+  },
+  "vpc-vpc-02": {
+    "type": "vrf",
+    "description": "",
+    "link": {
+      "admin-status": "up",
+      "oper-status": "up",
+      "oper-status-last-change": "Never",
+      "speed": "",
+      "auto-negotiate": "",
+      "fec": "",
+      "mac-address": "0a:1b:2c:00:00:17",
+      "mtu": {
+        "Value": 65575,
+        "OK": true,
+        "Raw": "65575"
+      },
+      "protodown": "disabled"
+    },
+    "bond": null,
+    "lldp": null,
+    "counters": {
+      "link": {
+        "carrier-transitions": {
+          "Value": 0,
+          "OK": true
+        },
+        "carrier-up-count": {
+          "Value": 0,
+          "OK": true
+        },
+        "carrier-down-count": {
+          "Value": 0,
+          "OK": true
+        }
+      }
+    }
+  },
+  "vpc-vpc-03": {
+    "type": "vrf",
+    "description": "",
+    "link": {
+      "admin-status": "up",
+      "oper-status": "up",
+      "oper-status-last-change": "Never",
+      "speed": "",
+      "auto-negotiate": "",
+      "fec": "",
+      "mac-address": "0a:1b:2c:00:00:18",
+      "mtu": {
+        "Value": 65575,
+        "OK": true,
+        "Raw": "65575"
+      },
+      "protodown": "disabled"
+    },
+    "bond": null,
+    "lldp": null,
+    "counters": {
+      "link": {
+        "carrier-transitions": {
+          "Value": 0,
+          "OK": true
+        },
+        "carrier-up-count": {
+          "Value": 0,
+          "OK": true
+        },
+        "carrier-down-count": {
+          "Value": 0,
+          "OK": true
+        }
+      }
+    }
+  },
+  "vxlan48": {
+    "type": "vxlan",
+    "description": "",
+    "link": {
+      "admin-status": "up",
+      "oper-status": "unknown",
+      "oper-status-last-change": "Never",
+      "speed": "",
+      "auto-negotiate": "",
+      "fec": "",
+      "mac-address": "0a:1b:2c:00:00:19",
+      "mtu": {
+        "Value": 9216,
+        "OK": true,
+        "Raw": "9216"
+      },
+      "protodown": "disabled"
+    },
+    "bond": null,
+    "lldp": null,
+    "counters": {
+      "link": {
+        "carrier-transitions": {
+          "Value": 0,
+          "OK": true
+        },
+        "carrier-up-count": {
+          "Value": 0,
+          "OK": true
+        },
+        "carrier-down-count": {
+          "Value": 0,
+          "OK": true
+        }
+      }
+    }
+  },
+  "vxlan99": {
+    "type": "vxlan",
+    "description": "",
+    "link": {
+      "admin-status": "up",
+      "oper-status": "unknown",
+      "oper-status-last-change": "Never",
+      "speed": "",
+      "auto-negotiate": "",
+      "fec": "",
+      "mac-address": "0a:1b:2c:00:00:1a",
+      "mtu": {
+        "Value": 9216,
+        "OK": true,
+        "Raw": "9216"
+      },
+      "protodown": "disabled"
+    },
+    "bond": null,
+    "lldp": null,
+    "counters": {
+      "link": {
+        "carrier-transitions": {
+          "Value": 0,
+          "OK": true
+        },
+        "carrier-up-count": {
+          "Value": 0,
+          "OK": true
+        },
+        "carrier-down-count": {
+          "Value": 0,
+          "OK": true
+        }
+      }
+    }
+  }
+}

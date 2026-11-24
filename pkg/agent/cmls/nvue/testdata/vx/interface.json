@@ -1,0 +1,2027 @@
+{
+  "bond1": {
+    "bond": {
+      "down-delay": 0,
+      "lacp-bypass": "off",
+      "lacp-rate": "fast",
+      "member": {
+        "swp2": {
+          "bonding-state": "active",
+          "mii-status": "up"
+        }
+      },
+      "mode": "lacp",
+      "up-delay": 0
+    },
+    "bridge": {
+      "domain": {
+        "br_default": {
+          "learning": "enabled"
+        }
+      }
+    },
+    "counters": {
+      "link": {
+        "carrier-down-count": 0,
+        "carrier-transitions": 1,
+        "carrier-up-count": 1
+      }
+    },
+    "description": "ESLAG server-01 server-01--eslag--leaf-01--leaf-02",
+    "ifindex": 20,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "disabled",
+      "duplex": "full",
+      "flag": {
+        "broadcast": {},
+        "lower-up": {},
+        "master": {},
+        "multicast": {},
+        "up": {}
+      },
+      "mac-address": "0a:1b:2c:00:00:01",
+      "mtu": 9216,
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/24 00:54:42.703",
+      "protodown": "disabled",
+      "speed": "10G",
+      "state": {
+        "up": {}
+      }
+    },
+    "parent": "br_default",
+    "type": "bond"
+  },
+  "bond2": {
+    "bond": {
+      "down-delay": 0,
+      "lacp-bypass": "off",
+      "lacp-rate": "fast",
+      "member": {
+        "swp3": {
+          "bonding-state": "active",
+          "mii-status": "up"
+        }
+      },
+      "mode": "lacp",
+      "up-delay": 0
+    },
+    "bridge": {
+      "domain": {
+        "br_default": {
+          "learning": "enabled"
+        }
+      }
+    },
+    "counters": {
+      "link": {
+        "carrier-down-count": 0,
+        "carrier-transitions": 1,
+        "carrier-up-count": 1
+      }
+    },
+    "description": "ESLAG server-02 server-02--eslag--leaf-01--leaf-02",
+    "ifindex": 21,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "disabled",
+      "duplex": "full",
+      "flag": {
+        "broadcast": {},
+        "lower-up": {},
+        "master": {},
+        "multicast": {},
+        "up": {}
+      },
+      "mac-address": "0a:1b:2c:00:00:02",
+      "mtu": 9216,
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/24 00:54:42.702",
+      "protodown": "disabled",
+      "speed": "10G",
+      "state": {
+        "up": {}
+      }
+    },
+    "parent": "br_default",
+    "type": "bond"
+  },
+  "br_default": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 2,
+        "carrier-up-count": 1
+      }
+    },
+    "ifindex": 23,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {
+        "fe80::81b:2cff:fe00:3/64": {}
+      }
+    },
+    "link": {
+      "admin-status": "up",
+      "flag": {
+        "broadcast": {},
+        "lower-up": {},
+        "multicast": {},
+        "up": {}
+      },
+      "mac-address": "0a:1b:2c:00:00:03",
+      "mtu": 9216,
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/24 00:54:15.558",
+      "protodown": "disabled"
+    },
+    "type": "bridge"
+  },
+  "br_l3vni": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 2,
+        "carrier-up-count": 1
+      }
+    },
+    "ifindex": 15,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {
+        "fe80::81b:2cff:fe00:3/64": {}
+      }
+    },
+    "link": {
+      "admin-status": "up",
+      "flag": {
+        "broadcast": {},
+        "lower-up": {},
+        "multicast": {},
+        "up": {}
+      },
+      "mac-address": "0a:1b:2c:00:00:03",
+      "mtu": 9216,
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/23 23:21:03.496",
+      "protodown": "disabled"
+    },
+    "type": "bridge"
+  },
+  "eth0": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 2,
+        "carrier-up-count": 1
+      }
+    },
+    "ifindex": 2,
+    "ipv4": {
+      "address": {
+        "172.30.0.10/21": {
+          "type": "primary"
+        }
+      }
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "disabled",
+      "duplex": "full",
+      "flag": {
+        "broadcast": {},
+        "lower-up": {},
+        "multicast": {},
+        "up": {}
+      },
+      "mac-address": "0a:1b:2c:00:00:04",
+      "mtu": 1500,
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/23 23:12:16.346",
+      "protodown": "disabled",
+      "speed": "1G",
+      "state": {
+        "up": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "dcbx-ets-config-tlv": "disabled",
+      "dcbx-ets-recomm-tlv": "disabled",
+      "dcbx-pfc-tlv": "disabled",
+      "neighbor": {
+        "control-1": {
+          "age": "7660",
+          "bridge": {
+            "vlan": {}
+          },
+          "chassis": {
+            "capability": {},
+            "chassis-id": "00:00:00:00:00:00",
+            "system-description": "",
+            "system-name": "control-1"
+          },
+          "lldp-med": {
+            "capability": {},
+            "device-type": "",
+            "inventory": {}
+          },
+          "port": {
+            "description": "",
+            "name": "enp2s1",
+            "pmd-autoneg": {
+              "advertised": {},
+              "autoneg": {}
+            },
+            "ttl": 120,
+            "type": "ifname"
+          }
+        },
+        "gateway-1": {
+          "age": "7660",
+          "bridge": {
+            "vlan": {}
+          },
+          "chassis": {
+            "capability": {},
+            "chassis-id": "00:00:00:00:00:00",
+            "system-description": "",
+            "system-name": "gateway-1"
+          },
+          "lldp-med": {
+            "capability": {},
+            "device-type": "",
+            "inventory": {}
+          },
+          "port": {
+            "description": "",
+            "name": "enp2s0",
+            "pmd-autoneg": {
+              "advertised": {},
+              "autoneg": {}
+            },
+            "ttl": 120,
+            "type": "ifname"
+          }
+        },
+        "gateway-2": {
+          "age": "7660",
+          "bridge": {
+            "vlan": {}
+          },
+          "chassis": {
+            "capability": {},
+            "chassis-id": "00:00:00:00:00:00",
+            "system-description": "",
+            "system-name": "gateway-2"
+          },
+          "lldp-med": {
+            "capability": {},
+            "device-type": "",
+            "inventory": {}
+          },
+          "port": {
+            "description": "",
+            "name": "enp2s0",
+            "pmd-autoneg": {
+              "advertised": {},
+              "autoneg": {}
+            },
+            "ttl": 120,
+            "type": "ifname"
+          }
+        },
+        "leaf-02": {
+          "age": "2068",
+          "bridge": {
+            "vlan": {}
+          },
+          "chassis": {
+            "capability": {
+              "is-bridge": {},
+              "is-router": {}
+            },
+            "chassis-id": "0a:1b:2c:00:00:05",
+            "management-ifinfo": {
+              "1": {
+                "management-address-ipv4": "172.30.8.3"
+              },
+              "7": {
+                "management-address-ipv6": "fe80::81b:2cff:fe00:6"
+              }
+            },
+            "system-description": "Hedgehog Fabric",
+            "system-name": "leaf-02"
+          },
+          "lldp-med": {
+            "capability": {
+              "capabilities": {},
+              "inventory": {},
+              "location": {},
+              "mdi-pd": {},
+              "mdi-pse": {},
+              "policy": {}
+            },
+            "device-type": "Network Connectivity Device",
+            "inventory": {}
+          },
+          "port": {
+            "description": "eth0",
+            "mtu": 1500,
+            "name": "eth0",
+            "pmd-autoneg": {
+              "advertised": {},
+              "autoneg": {},
+              "mau-oper-type": "1000BaseTFD - Four-pair Category 5 UTP, full duplex mode"
+            },
+            "ttl": 20,
+            "type": "ifname"
+          }
+        },
+        "leaf-03": {
+          "age": "2068",
+          "bridge": {
+            "vlan": {}
+          },
+          "chassis": {
+            "capability": {
+              "is-bridge": {},
+              "is-router": {}
+            },
+            "chassis-id": "0a:1b:2c:00:00:07",
+            "management-ifinfo": {
+              "1": {
+                "management-address-ipv4": "172.30.8.4"
+              },
+              "6": {
+                "management-address-ipv6": "fe80::81b:2cff:fe00:8"
+              }
+            },
+            "system-description": "Hedgehog Fabric",
+            "system-name": "leaf-03"
+          },
+          "lldp-med": {
+            "capability": {
+              "capabilities": {},
+              "inventory": {},
+              "location": {},
+              "mdi-pd": {},
+              "mdi-pse": {},
+              "policy": {}
+            },
+            "device-type": "Network Connectivity Device",
+            "inventory": {}
+          },
+          "port": {
+            "description": "eth0",
+            "mtu": 1500,
+            "name": "eth0",
+            "pmd-autoneg": {
+              "advertised": {},
+              "autoneg": {},
+              "mau-oper-type": "1000BaseTFD - Four-pair Category 5 UTP, full duplex mode"
+            },
+            "ttl": 20,
+            "type": "ifname"
+          }
+        },
+        "spine-01": {
+          "age": "7661",
+          "bridge": {
+            "vlan": {}
+          },
+          "chassis": {
+            "capability": {
+              "is-router": {}
+            },
+            "chassis-id": "0a:1b:2c:00:00:09",
+            "management-ifinfo": {
+              "1": {
+                "management-address-ipv4": "172.30.8.0"
+              },
+              "3": {
+                "management-address-ipv6": "fe80::81b:2cff:fe00:a"
+              }
+            },
+            "system-description": "Hedgehog Fabric",
+            "system-name": "spine-01"
+          },
+          "lldp-med": {
+            "capability": {
+              "capabilities": {},
+              "inventory": {},
+              "location": {},
+              "mdi-pd": {},
+              "mdi-pse": {},
+              "policy": {}
+            },
+            "device-type": "Network Connectivity Device",
+            "inventory": {}
+          },
+          "port": {
+            "description": "eth0",
+            "mtu": 1500,
+            "name": "eth0",
+            "pmd-autoneg": {
+              "advertised": {},
+              "autoneg": {},
+              "mau-oper-type": "1000BaseTFD - Four-pair Category 5 UTP, full duplex mode"
+            },
+            "ttl": 20,
+            "type": "ifname"
+          }
+        },
+        "spine-02": {
+          "age": "7661",
+          "bridge": {
+            "vlan": {}
+          },
+          "chassis": {
+            "capability": {
+              "is-router": {}
+            },
+            "chassis-id": "0a:1b:2c:00:00:0b",
+            "management-ifinfo": {
+              "1": {
+                "management-address-ipv4": "172.30.8.1"
+              },
+              "3": {
+                "management-address-ipv6": "fe80::81b:2cff:fe00:c"
+              }
+            },
+            "system-description": "Hedgehog Fabric",
+            "system-name": "spine-02"
+          },
+          "lldp-med": {
+            "capability": {
+              "capabilities": {},
+              "inventory": {},
+              "location": {},
+              "mdi-pd": {},
+              "mdi-pse": {},
+              "policy": {}
+            },
+            "device-type": "Network Connectivity Device",
+            "inventory": {}
+          },
+          "port": {
+            "description": "eth0",
+            "mtu": 1500,
+            "name": "eth0",
+            "pmd-autoneg": {
+              "advertised": {},
+              "autoneg": {},
+              "mau-oper-type": "1000BaseTFD - Four-pair Category 5 UTP, full duplex mode"
+            },
+            "ttl": 20,
+            "type": "ifname"
+          }
+        }
+      }
+    },
+    "parent": "mgmt",
+    "type": "eth",
+    "vrf": "mgmt"
+  },
+  "ext-ext-bgp-01": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 0,
+        "carrier-transitions": 0,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 13,
+    "ipv4": {
+      "address": {
+        "127.0.0.1/8": {
+          "type": "primary"
+        },
+        "127.0.1.1/8": {
+          "type": "secondary"
+        }
+      }
+    },
+    "ipv6": {
+      "address": {
+        "::1/128": {}
+      }
+    },
+    "link": {
+      "admin-status": "up",
+      "flag": {
+        "lower-up": {},
+        "master": {},
+        "noarp": {},
+        "up": {}
+      },
+      "mac-address": "0a:1b:2c:00:00:0d",
+      "mtu": 65575,
+      "oper-status": "up",
+      "oper-status-last-change": "Never",
+      "protodown": "disabled"
+    },
+    "type": "vrf"
+  },
+  "ext-ext-snp-01": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 0,
+        "carrier-transitions": 0,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 18,
+    "ipv4": {
+      "address": {
+        "127.0.0.1/8": {
+          "type": "primary"
+        },
+        "127.0.1.1/8": {
+          "type": "secondary"
+        }
+      }
+    },
+    "ipv6": {
+      "address": {
+        "::1/128": {}
+      }
+    },
+    "link": {
+      "admin-status": "up",
+      "flag": {
+        "lower-up": {},
+        "master": {},
+        "noarp": {},
+        "up": {}
+      },
+      "mac-address": "0a:1b:2c:00:00:0e",
+      "mtu": 65575,
+      "oper-status": "up",
+      "oper-status-last-change": "Never",
+      "protodown": "disabled"
+    },
+    "type": "vrf"
+  },
+  "lo": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 0,
+        "carrier-transitions": 0,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 1,
+    "ipv4": {
+      "address": {
+        "127.0.0.1/8": {
+          "type": "primary"
+        },
+        "172.30.12.0/32": {
+          "type": "primary"
+        },
+        "172.30.8.2/32": {
+          "type": "primary"
+        }
+      }
+    },
+    "ipv6": {
+      "address": {
+        "::1/128": {}
+      }
+    },
+    "link": {
+      "admin-status": "up",
+      "flag": {
+        "loopback": {},
+        "lower-up": {},
+        "up": {}
+      },
+      "mac-address": "00:00:00:00:00:00",
+      "mtu": 65536,
+      "oper-status": "unknown",
+      "oper-status-last-change": "Never",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "loopback"
+  },
+  "mgmt": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 0,
+        "carrier-transitions": 0,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 11,
+    "ipv4": {
+      "address": {
+        "127.0.0.1/8": {
+          "type": "primary"
+        },
+        "127.0.1.1/8": {
+          "type": "secondary"
+        }
+      }
+    },
+    "ipv6": {
+      "address": {
+        "::1/128": {}
+      }
+    },
+    "link": {
+      "admin-status": "up",
+      "flag": {
+        "lower-up": {},
+        "master": {},
+        "noarp": {},
+        "up": {}
+      },
+      "mac-address": "0a:1b:2c:00:00:0f",
+      "mtu": 65575,
+      "oper-status": "up",
+      "oper-status-last-change": "Never",
+      "protodown": "disabled"
+    },
+    "type": "vrf"
+  },
+  "swp1": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 2,
+        "carrier-up-count": 1
+      }
+    },
+    "description": "External leaf-01--external",
+    "ifindex": 3,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "disabled",
+      "duplex": "full",
+      "flag": {
+        "broadcast": {},
+        "lower-up": {},
+        "multicast": {},
+        "up": {}
+      },
+      "mac-address": "0a:1b:2c:00:00:10",
+      "mtu": 9216,
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/23 23:21:03.312",
+      "protodown": "disabled",
+      "speed": "10G",
+      "state": {
+        "up": {}
+      }
+    },
+    "type": "swp"
+  },
+  "swp1.10": {
+    "base-interface": "swp1",
+    "counters": {
+      "link": {
+        "carrier-down-count": 0,
+        "carrier-transitions": 0,
+        "carrier-up-count": 0
+      }
+    },
+    "description": "External leaf-01--ext-bgp-01",
+    "ifindex": 12,
+    "ipv4": {
+      "address": {
+        "100.1.10.1/24": {
+          "type": "primary"
+        }
+      }
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "flag": {
+        "broadcast": {},
+        "lower-up": {},
+        "multicast": {},
+        "up": {}
+      },
+      "mac-address": "0a:1b:2c:00:00:10",
+      "mtu": 9216,
+      "oper-status": "up",
+      "oper-status-last-change": "Never",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "parent": "ext-ext-bgp-01",
+    "type": "sub",
+    "vlan": 10,
+    "vrf": "ext-ext-bgp-01"
+  },
+  "swp1.20": {
+    "base-interface": "swp1",
+    "counters": {
+      "link": {
+        "carrier-down-count": 0,
+        "carrier-transitions": 0,
+        "carrier-up-count": 0
+      }
+    },
+    "description": "External leaf-01--ext-snp-01",
+    "ifindex": 17,
+    "ipv4": {
+      "address": {
+        "100.1.20.2/24": {
+          "type": "primary"
+        }
+      }
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "flag": {
+        "broadcast": {},
+        "lower-up": {},
+        "multicast": {},
+        "up": {}
+      },
+      "mac-address": "0a:1b:2c:00:00:10",
+      "mtu": 9216,
+      "oper-status": "up",
+      "oper-status-last-change": "Never",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "parent": "ext-ext-snp-01",
+    "type": "sub",
+    "vlan": 20,
+    "vrf": "ext-ext-snp-01"
+  },
+  "swp2": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 2,
+        "carrier-transitions": 4,
+        "carrier-up-count": 2
+      }
+    },
+    "description": "ESLAG server-01 server-01--eslag--leaf-01--leaf-02",
+    "ifindex": 4,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "disabled",
+      "duplex": "full",
+      "flag": {
+        "broadcast": {},
+        "lower-up": {},
+        "multicast": {},
+        "slave": {},
+        "up": {}
+      },
+      "mac-address": "0a:1b:2c:00:00:01",
+      "mtu": 9216,
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/24 00:54:14.519",
+      "protodown": "disabled",
+      "speed": "10G",
+      "state": {
+        "up": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "dcbx-ets-config-tlv": "disabled",
+      "dcbx-ets-recomm-tlv": "disabled",
+      "dcbx-pfc-tlv": "disabled",
+      "neighbor": {
+        "server-01": {
+          "age": "2044",
+          "bridge": {
+            "vlan": {}
+          },
+          "chassis": {
+            "capability": {},
+            "chassis-id": "00:00:00:00:00:00",
+            "system-description": "",
+            "system-name": "server-01"
+          },
+          "lldp-med": {
+            "capability": {},
+            "device-type": "",
+            "inventory": {}
+          },
+          "port": {
+            "description": "",
+            "name": "enp2s1",
+            "pmd-autoneg": {
+              "advertised": {},
+              "autoneg": {}
+            },
+            "ttl": 120,
+            "type": "ifname"
+          }
+        }
+      }
+    },
+    "parent": "bond1",
+    "type": "swp"
+  },
+  "swp3": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 2,
+        "carrier-transitions": 4,
+        "carrier-up-count": 2
+      }
+    },
+    "description": "ESLAG server-02 server-02--eslag--leaf-01--leaf-02",
+    "ifindex": 5,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "disabled",
+      "duplex": "full",
+      "flag": {
+        "broadcast": {},
+        "lower-up": {},
+        "multicast": {},
+        "slave": {},
+        "up": {}
+      },
+      "mac-address": "0a:1b:2c:00:00:02",
+      "mtu": 9216,
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/24 00:54:14.531",
+      "protodown": "disabled",
+      "speed": "10G",
+      "state": {
+        "up": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "dcbx-ets-config-tlv": "disabled",
+      "dcbx-ets-recomm-tlv": "disabled",
+      "dcbx-pfc-tlv": "disabled",
+      "neighbor": {
+        "server-02": {
+          "age": "2044",
+          "bridge": {
+            "vlan": {}
+          },
+          "chassis": {
+            "capability": {},
+            "chassis-id": "00:00:00:00:00:00",
+            "system-description": "",
+            "system-name": "server-02"
+          },
+          "lldp-med": {
+            "capability": {},
+            "device-type": "",
+            "inventory": {}
+          },
+          "port": {
+            "description": "",
+            "name": "enp2s1",
+            "pmd-autoneg": {
+              "advertised": {},
+              "autoneg": {}
+            },
+            "ttl": 120,
+            "type": "ifname"
+          }
+        }
+      }
+    },
+    "parent": "bond2",
+    "type": "swp"
+  },
+  "swp4": {
+    "bridge": {
+      "domain": {
+        "br_default": {
+          "learning": "enabled"
+        }
+      }
+    },
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 2,
+        "carrier-up-count": 1
+      }
+    },
+    "description": "Unbundled server-03 server-03--unbundled--leaf-01",
+    "ifindex": 6,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "disabled",
+      "duplex": "full",
+      "flag": {
+        "broadcast": {},
+        "lower-up": {},
+        "multicast": {},
+        "up": {}
+      },
+      "mac-address": "0a:1b:2c:00:00:11",
+      "mtu": 9216,
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/24 00:54:14.565",
+      "protodown": "disabled",
+      "speed": "10G",
+      "state": {
+        "up": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "dcbx-ets-config-tlv": "disabled",
+      "dcbx-ets-recomm-tlv": "disabled",
+      "dcbx-pfc-tlv": "disabled",
+      "neighbor": {
+        "server-03": {
+          "age": "2066",
+          "bridge": {
+            "vlan": {}
+          },
+          "chassis": {
+            "capability": {},
+            "chassis-id": "00:00:00:00:00:00",
+            "system-description": "",
+            "system-name": "server-03"
+          },
+          "lldp-med": {
+            "capability": {},
+            "device-type": "",
+            "inventory": {}
+          },
+          "port": {
+            "description": "",
+            "name": "enp2s1",
+            "pmd-autoneg": {
+              "advertised": {},
+              "autoneg": {}
+            },
+            "ttl": 120,
+            "type": "ifname"
+          }
+        }
+      }
+    },
+    "parent": "br_default",
+    "type": "swp"
+  },
+  "swp5": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 2,
+        "carrier-up-count": 1
+      }
+    },
+    "description": "Fabric spine-01/E1/1 spine-01--fabric--leaf-01",
+    "ifindex": 7,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {
+        "fe80::81b:2cff:fe00:12/64": {}
+      }
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "disabled",
+      "duplex": "full",
+      "flag": {
+        "broadcast": {},
+        "lower-up": {},
+        "multicast": {},
+        "up": {}
+      },
+      "mac-address": "0a:1b:2c:00:00:12",
+      "mtu": 9216,
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/23 23:21:03.612",
+      "protodown": "disabled",
+      "speed": "10G",
+      "state": {
+        "up": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "dcbx-ets-config-tlv": "disabled",
+      "dcbx-ets-recomm-tlv": "disabled",
+      "dcbx-pfc-tlv": "disabled",
+      "neighbor": {
+        "spine-01": {
+          "age": "7659",
+          "bridge": {
+            "vlan": {}
+          },
+          "chassis": {
+            "capability": {
+              "is-router": {}
+            },
+            "chassis-id": "0a:1b:2c:00:00:09",
+            "management-ifinfo": {
+              "1": {
+                "management-address-ipv4": "172.30.8.0"
+              },
+              "3": {
+                "management-address-ipv6": "fe80::81b:2cff:fe00:a"
+              }
+            },
+            "system-description": "Hedgehog Fabric",
+            "system-name": "spine-01"
+          },
+          "lldp-med": {
+            "capability": {
+              "capabilities": {},
+              "inventory": {},
+              "location": {},
+              "mdi-pd": {},
+              "mdi-pse": {},
+              "policy": {}
+            },
+            "device-type": "Network Connectivity Device",
+            "inventory": {}
+          },
+          "port": {
+            "description": "Fabric leaf-01/E1/5 spine-01--fabric--leaf-01",
+            "mtu": 9216,
+            "name": "swp1",
+            "pmd-autoneg": {
+              "advertised": {},
+              "autoneg": {}
+            },
+            "ttl": 20,
+            "type": "ifname"
+          }
+        }
+      }
+    },
+    "type": "swp"
+  },
+  "swp6": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 2,
+        "carrier-up-count": 1
+      }
+    },
+    "description": "Fabric spine-01/E1/2 spine-01--fabric--leaf-01",
+    "ifindex": 8,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {
+        "fe80::81b:2cff:fe00:13/64": {}
+      }
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "disabled",
+      "duplex": "full",
+      "flag": {
+        "broadcast": {},
+        "lower-up": {},
+        "multicast": {},
+        "up": {}
+      },
+      "mac-address": "0a:1b:2c:00:00:13",
+      "mtu": 9216,
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/23 23:21:03.616",
+      "protodown": "disabled",
+      "speed": "10G",
+      "state": {
+        "up": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "dcbx-ets-config-tlv": "disabled",
+      "dcbx-ets-recomm-tlv": "disabled",
+      "dcbx-pfc-tlv": "disabled",
+      "neighbor": {
+        "spine-01": {
+          "age": "7659",
+          "bridge": {
+            "vlan": {}
+          },
+          "chassis": {
+            "capability": {
+              "is-router": {}
+            },
+            "chassis-id": "0a:1b:2c:00:00:09",
+            "management-ifinfo": {
+              "1": {
+                "management-address-ipv4": "172.30.8.0"
+              },
+              "3": {
+                "management-address-ipv6": "fe80::81b:2cff:fe00:a"
+              }
+            },
+            "system-description": "Hedgehog Fabric",
+            "system-name": "spine-01"
+          },
+          "lldp-med": {
+            "capability": {
+              "capabilities": {},
+              "inventory": {},
+              "location": {},
+              "mdi-pd": {},
+              "mdi-pse": {},
+              "policy": {}
+            },
+            "device-type": "Network Connectivity Device",
+            "inventory": {}
+          },
+          "port": {
+            "description": "Fabric leaf-01/E1/6 spine-01--fabric--leaf-01",
+            "mtu": 9216,
+            "name": "swp2",
+            "pmd-autoneg": {
+              "advertised": {},
+              "autoneg": {}
+            },
+            "ttl": 20,
+            "type": "ifname"
+          }
+        }
+      }
+    },
+    "type": "swp"
+  },
+  "swp7": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 2,
+        "carrier-up-count": 1
+      }
+    },
+    "description": "Fabric spine-02/E1/1 spine-02--fabric--leaf-01",
+    "ifindex": 9,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {
+        "fe80::81b:2cff:fe00:14/64": {}
+      }
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "disabled",
+      "duplex": "full",
+      "flag": {
+        "broadcast": {},
+        "lower-up": {},
+        "multicast": {},
+        "up": {}
+      },
+      "mac-address": "0a:1b:2c:00:00:14",
+      "mtu": 9216,
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/23 23:21:03.621",
+      "protodown": "disabled",
+      "speed": "10G",
+      "state": {
+        "up": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "dcbx-ets-config-tlv": "disabled",
+      "dcbx-ets-recomm-tlv": "disabled",
+      "dcbx-pfc-tlv": "disabled",
+      "neighbor": {
+        "spine-02": {
+          "age": "7660",
+          "bridge": {
+            "vlan": {}
+          },
+          "chassis": {
+            "capability": {
+              "is-router": {}
+            },
+            "chassis-id": "0a:1b:2c:00:00:0b",
+            "management-ifinfo": {
+              "1": {
+                "management-address-ipv4": "172.30.8.1"
+              },
+              "3": {
+                "management-address-ipv6": "fe80::81b:2cff:fe00:c"
+              }
+            },
+            "system-description": "Hedgehog Fabric",
+            "system-name": "spine-02"
+          },
+          "lldp-med": {
+            "capability": {
+              "capabilities": {},
+              "inventory": {},
+              "location": {},
+              "mdi-pd": {},
+              "mdi-pse": {},
+              "policy": {}
+            },
+            "device-type": "Network Connectivity Device",
+            "inventory": {}
+          },
+          "port": {
+            "description": "Fabric leaf-01/E1/7 spine-02--fabric--leaf-01",
+            "mtu": 9216,
+            "name": "swp1",
+            "pmd-autoneg": {
+              "advertised": {},
+              "autoneg": {}
+            },
+            "ttl": 20,
+            "type": "ifname"
+          }
+        }
+      }
+    },
+    "type": "swp"
+  },
+  "swp8": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 1,
+        "carrier-transitions": 2,
+        "carrier-up-count": 1
+      }
+    },
+    "description": "Fabric spine-02/E1/2 spine-02--fabric--leaf-01",
+    "ifindex": 10,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {
+        "fe80::81b:2cff:fe00:15/64": {}
+      }
+    },
+    "link": {
+      "admin-status": "up",
+      "auto-negotiate": "disabled",
+      "duplex": "full",
+      "flag": {
+        "broadcast": {},
+        "lower-up": {},
+        "multicast": {},
+        "up": {}
+      },
+      "mac-address": "0a:1b:2c:00:00:15",
+      "mtu": 9216,
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/23 23:21:03.625",
+      "protodown": "disabled",
+      "speed": "10G",
+      "state": {
+        "up": {}
+      }
+    },
+    "lldp": {
+      "application-tlv": {},
+      "dcbx-ets-config-tlv": "disabled",
+      "dcbx-ets-recomm-tlv": "disabled",
+      "dcbx-pfc-tlv": "disabled",
+      "neighbor": {
+        "spine-02": {
+          "age": "7660",
+          "bridge": {
+            "vlan": {}
+          },
+          "chassis": {
+            "capability": {
+              "is-router": {}
+            },
+            "chassis-id": "0a:1b:2c:00:00:0b",
+            "management-ifinfo": {
+              "1": {
+                "management-address-ipv4": "172.30.8.1"
+              },
+              "3": {
+                "management-address-ipv6": "fe80::81b:2cff:fe00:c"
+              }
+            },
+            "system-description": "Hedgehog Fabric",
+            "system-name": "spine-02"
+          },
+          "lldp-med": {
+            "capability": {
+              "capabilities": {},
+              "inventory": {},
+              "location": {},
+              "mdi-pd": {},
+              "mdi-pse": {},
+              "policy": {}
+            },
+            "device-type": "Network Connectivity Device",
+            "inventory": {}
+          },
+          "port": {
+            "description": "Fabric leaf-01/E1/8 spine-02--fabric--leaf-01",
+            "mtu": 9216,
+            "name": "swp2",
+            "pmd-autoneg": {
+              "advertised": {},
+              "autoneg": {}
+            },
+            "ttl": 20,
+            "type": "ifname"
+          }
+        }
+      }
+    },
+    "type": "swp"
+  },
+  "vlan1001": {
+    "base-interface": "br_default",
+    "counters": {
+      "link": {
+        "carrier-down-count": 0,
+        "carrier-transitions": 1,
+        "carrier-up-count": 1
+      }
+    },
+    "description": "VPC vpc-01/subnet-01",
+    "ifindex": 24,
+    "ipv4": {
+      "address": {
+        "172.30.99.233/32": {
+          "type": "primary"
+        }
+      }
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "flag": {
+        "broadcast": {},
+        "lower-up": {},
+        "multicast": {},
+        "up": {}
+      },
+      "mac-address": "0a:1b:2c:00:00:03",
+      "mtu": 9216,
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/24 00:54:15.559",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "parent": "vpc-vpc-01",
+    "type": "svi",
+    "vlan": 1001,
+    "vrf": "vpc-vpc-01"
+  },
+  "vlan1001-v0": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 0,
+        "carrier-transitions": 0,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 26,
+    "ipv4": {
+      "address": {
+        "10.0.1.1/24": {
+          "type": "primary"
+        }
+      }
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "flag": {
+        "broadcast": {},
+        "lower-up": {},
+        "multicast": {},
+        "up": {}
+      },
+      "mac-address": "00:00:00:11:11:11",
+      "mtu": 9216,
+      "oper-status": "up",
+      "oper-status-last-change": "Never",
+      "protodown": "disabled"
+    },
+    "parent": "vpc-vpc-01",
+    "type": "svi",
+    "vrf": "vpc-vpc-01"
+  },
+  "vlan1002": {
+    "base-interface": "br_default",
+    "counters": {
+      "link": {
+        "carrier-down-count": 0,
+        "carrier-transitions": 1,
+        "carrier-up-count": 1
+      }
+    },
+    "description": "VPC vpc-02/subnet-01",
+    "ifindex": 28,
+    "ipv4": {
+      "address": {
+        "172.30.99.234/32": {
+          "type": "primary"
+        }
+      }
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "flag": {
+        "broadcast": {},
+        "lower-up": {},
+        "multicast": {},
+        "up": {}
+      },
+      "mac-address": "0a:1b:2c:00:00:03",
+      "mtu": 9216,
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/24 00:54:15.561",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "parent": "vpc-vpc-02",
+    "type": "svi",
+    "vlan": 1002,
+    "vrf": "vpc-vpc-02"
+  },
+  "vlan1002-v0": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 0,
+        "carrier-transitions": 0,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 30,
+    "ipv4": {
+      "address": {
+        "10.0.2.1/24": {
+          "type": "primary"
+        }
+      }
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "flag": {
+        "broadcast": {},
+        "lower-up": {},
+        "multicast": {},
+        "up": {}
+      },
+      "mac-address": "00:00:00:11:11:11",
+      "mtu": 9216,
+      "oper-status": "up",
+      "oper-status-last-change": "Never",
+      "protodown": "disabled"
+    },
+    "parent": "vpc-vpc-02",
+    "type": "svi",
+    "vrf": "vpc-vpc-02"
+  },
+  "vlan1003": {
+    "base-interface": "br_default",
+    "counters": {
+      "link": {
+        "carrier-down-count": 0,
+        "carrier-transitions": 1,
+        "carrier-up-count": 1
+      }
+    },
+    "description": "VPC vpc-03/subnet-01",
+    "ifindex": 32,
+    "ipv4": {
+      "address": {
+        "172.30.99.235/32": {
+          "type": "primary"
+        }
+      }
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "flag": {
+        "broadcast": {},
+        "lower-up": {},
+        "multicast": {},
+        "up": {}
+      },
+      "mac-address": "0a:1b:2c:00:00:03",
+      "mtu": 9216,
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/24 00:54:15.563",
+      "protodown": "disabled",
+      "state": {
+        "up": {}
+      }
+    },
+    "parent": "vpc-vpc-03",
+    "type": "svi",
+    "vlan": 1003,
+    "vrf": "vpc-vpc-03"
+  },
+  "vlan1003-v0": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 0,
+        "carrier-transitions": 0,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 34,
+    "ipv4": {
+      "address": {
+        "10.0.3.1/24": {
+          "type": "primary"
+        }
+      }
+    },
+    "ipv6": {
+      "address": {}
+    },
+    "link": {
+      "admin-status": "up",
+      "flag": {
+        "broadcast": {},
+        "lower-up": {},
+        "multicast": {},
+        "up": {}
+      },
+      "mac-address": "00:00:00:11:11:11",
+      "mtu": 9216,
+      "oper-status": "up",
+      "oper-status-last-change": "Never",
+      "protodown": "disabled"
+    },
+    "parent": "vpc-vpc-03",
+    "type": "svi",
+    "vrf": "vpc-vpc-03"
+  },
+  "vlan1378_l3": {
+    "base-interface": "br_l3vni",
+    "counters": {
+      "link": {
+        "carrier-down-count": 0,
+        "carrier-transitions": 1,
+        "carrier-up-count": 1
+      }
+    },
+    "ifindex": 31,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {
+        "fe80::81b:2cff:fe00:3/64": {}
+      }
+    },
+    "link": {
+      "admin-status": "up",
+      "flag": {
+        "broadcast": {},
+        "lower-up": {},
+        "multicast": {},
+        "up": {}
+      },
+      "mac-address": "0a:1b:2c:00:00:03",
+      "mtu": 9216,
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/24 00:54:15.562",
+      "protodown": "disabled"
+    },
+    "parent": "vpc-vpc-02",
+    "type": "svi",
+    "vlan": 1378,
+    "vrf": "vpc-vpc-02"
+  },
+  "vlan1401_l3": {
+    "base-interface": "br_l3vni",
+    "counters": {
+      "link": {
+        "carrier-down-count": 0,
+        "carrier-transitions": 1,
+        "carrier-up-count": 1
+      }
+    },
+    "ifindex": 27,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {
+        "fe80::81b:2cff:fe00:3/64": {}
+      }
+    },
+    "link": {
+      "admin-status": "up",
+      "flag": {
+        "broadcast": {},
+        "lower-up": {},
+        "multicast": {},
+        "up": {}
+      },
+      "mac-address": "0a:1b:2c:00:00:03",
+      "mtu": 9216,
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/24 00:54:15.560",
+      "protodown": "disabled"
+    },
+    "parent": "vpc-vpc-01",
+    "type": "svi",
+    "vlan": 1401,
+    "vrf": "vpc-vpc-01"
+  },
+  "vlan688_l3": {
+    "base-interface": "br_l3vni",
+    "counters": {
+      "link": {
+        "carrier-down-count": 0,
+        "carrier-transitions": 1,
+        "carrier-up-count": 1
+      }
+    },
+    "ifindex": 35,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {
+        "fe80::81b:2cff:fe00:3/64": {}
+      }
+    },
+    "link": {
+      "admin-status": "up",
+      "flag": {
+        "broadcast": {},
+        "lower-up": {},
+        "multicast": {},
+        "up": {}
+      },
+      "mac-address": "0a:1b:2c:00:00:03",
+      "mtu": 9216,
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/24 00:54:15.564",
+      "protodown": "disabled"
+    },
+    "parent": "vpc-vpc-03",
+    "type": "svi",
+    "vlan": 688,
+    "vrf": "vpc-vpc-03"
+  },
+  "vlan883_l3": {
+    "base-interface": "br_l3vni",
+    "counters": {
+      "link": {
+        "carrier-down-count": 0,
+        "carrier-transitions": 1,
+        "carrier-up-count": 1
+      }
+    },
+    "ifindex": 16,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {
+        "fe80::81b:2cff:fe00:3/64": {}
+      }
+    },
+    "link": {
+      "admin-status": "up",
+      "flag": {
+        "broadcast": {},
+        "lower-up": {},
+        "multicast": {},
+        "up": {}
+      },
+      "mac-address": "0a:1b:2c:00:00:03",
+      "mtu": 9216,
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/23 23:21:04.322",
+      "protodown": "disabled"
+    },
+    "parent": "ext-ext-bgp-01",
+    "type": "svi",
+    "vlan": 883,
+    "vrf": "ext-ext-bgp-01"
+  },
+  "vlan933_l3": {
+    "base-interface": "br_l3vni",
+    "counters": {
+      "link": {
+        "carrier-down-count": 0,
+        "carrier-transitions": 1,
+        "carrier-up-count": 1
+      }
+    },
+    "ifindex": 19,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {
+        "fe80::81b:2cff:fe00:3/64": {}
+      }
+    },
+    "link": {
+      "admin-status": "up",
+      "flag": {
+        "broadcast": {},
+        "lower-up": {},
+        "multicast": {},
+        "up": {}
+      },
+      "mac-address": "0a:1b:2c:00:00:03",
+      "mtu": 9216,
+      "oper-status": "up",
+      "oper-status-last-change": "2026/11/23 23:21:04.323",
+      "protodown": "disabled"
+    },
+    "parent": "ext-ext-snp-01",
+    "type": "svi",
+    "vlan": 933,
+    "vrf": "ext-ext-snp-01"
+  },
+  "vpc-vpc-01": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 0,
+        "carrier-transitions": 0,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 25,
+    "ipv4": {
+      "address": {
+        "127.0.0.1/8": {
+          "type": "primary"
+        },
+        "127.0.1.1/8": {
+          "type": "secondary"
+        }
+      }
+    },
+    "ipv6": {
+      "address": {
+        "::1/128": {}
+      }
+    },
+    "link": {
+      "admin-status": "up",
+      "flag": {
+        "lower-up": {},
+        "master": {},
+        "noarp": {},
+        "up": {}
+      },
+      "mac-address": "0a:1b:2c:00:00:16",
+      "mtu": 65575,
+      "oper-status": "up",
+      "oper-status-last-change": "Never",
+      "protodown": "disabled"
+    },
+    "type": "vrf"
+  },
+  "vpc-vpc-02": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 0,
+        "carrier-transitions": 0,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 29,
+    "ipv4": {
+      "address": {
+        "127.0.0.1/8": {
+          "type": "primary"
+        },
+        "127.0.1.1/8": {
+          "type": "secondary"
+        }
+      }
+    },
+    "ipv6": {
+      "address": {
+        "::1/128": {}
+      }
+    },
+    "link": {
+      "admin-status": "up",
+      "flag": {
+        "lower-up": {},
+        "master": {},
+        "noarp": {},
+        "up": {}
+      },
+      "mac-address": "0a:1b:2c:00:00:17",
+      "mtu": 65575,
+      "oper-status": "up",
+      "oper-status-last-change": "Never",
+      "protodown": "disabled"
+    },
+    "type": "vrf"
+  },
+  "vpc-vpc-03": {
+    "counters": {
+      "link": {
+        "carrier-down-count": 0,
+        "carrier-transitions": 0,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 33,
+    "ipv4": {
+      "address": {
+        "127.0.0.1/8": {
+          "type": "primary"
+        },
+        "127.0.1.1/8": {
+          "type": "secondary"
+        }
+      }
+    },
+    "ipv6": {
+      "address": {
+        "::1/128": {}
+      }
+    },
+    "link": {
+      "admin-status": "up",
+      "flag": {
+        "lower-up": {},
+        "master": {},
+        "noarp": {},
+        "up": {}
+      },
+      "mac-address": "0a:1b:2c:00:00:18",
+      "mtu": 65575,
+      "oper-status": "up",
+      "oper-status-last-change": "Never",
+      "protodown": "disabled"
+    },
+    "type": "vrf"
+  },
+  "vxlan48": {
+    "bridge": {
+      "domain": {
+        "br_default": {
+          "learning": "disabled"
+        }
+      }
+    },
+    "counters": {
+      "link": {
+        "carrier-down-count": 0,
+        "carrier-transitions": 0,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 22,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {
+        "fe80::81b:2cff:fe00:19/64": {}
+      }
+    },
+    "link": {
+      "admin-status": "up",
+      "flag": {
+        "broadcast": {},
+        "lower-up": {},
+        "multicast": {},
+        "up": {}
+      },
+      "mac-address": "0a:1b:2c:00:00:19",
+      "mtu": 9216,
+      "oper-status": "unknown",
+      "oper-status-last-change": "Never",
+      "protodown": "disabled"
+    },
+    "parent": "br_default",
+    "type": "vxlan",
+    "vlan": 0
+  },
+  "vxlan99": {
+    "bridge": {
+      "domain": {
+        "br_l3vni": {
+          "learning": "disabled"
+        }
+      }
+    },
+    "counters": {
+      "link": {
+        "carrier-down-count": 0,
+        "carrier-transitions": 0,
+        "carrier-up-count": 0
+      }
+    },
+    "ifindex": 14,
+    "ipv4": {
+      "address": {}
+    },
+    "ipv6": {
+      "address": {
+        "fe80::81b:2cff:fe00:1a/64": {}
+      }
+    },
+    "link": {
+      "admin-status": "up",
+      "flag": {
+        "broadcast": {},
+        "lower-up": {},
+        "multicast": {},
+        "up": {}
+      },
+      "mac-address": "0a:1b:2c:00:00:1a",
+      "mtu": 9216,
+      "oper-status": "unknown",
+      "oper-status-last-change": "Never",
+      "protodown": "disabled"
+    },
+    "parent": "br_l3vni",
+    "type": "vxlan",
+    "vlan": 0
+  }
+}

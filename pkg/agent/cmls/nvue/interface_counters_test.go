@@ -4,6 +4,7 @@
 package nvue
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -23,6 +24,7 @@ var interfaceCountersCaptures = map[string][]string{
 	modelSN4600: {"/interface/swp17s0/counters"},
 	modelSN2700: {"/interface/swp15s0/counters"},
 	modelSN2201: {"/interface/swp1/counters"},
+	modelVX:     {"/interface/swp5/counters", "/interface/bond1/counters"},
 }
 
 func TestInterfaceCounters(t *testing.T) {
@@ -33,13 +35,15 @@ func TestInterfaceCounters(t *testing.T) {
 		modelSN4600: {"swp17s0"},
 		modelSN2700: {"swp15s0"},
 		modelSN2201: {"swp1"},
+		modelVX:     {"swp5"},
 	}
 	others := map[string][]string{
 		modelSN5610: {"eth0"},
 		modelSN4700: {"bond1"},
+		modelVX:     {"bond1"},
 	}
 
-	forEachModel(t, allModels, func(t *testing.T, client *Client, model string) {
+	forEachModel(t, slices.Concat(allModels, []string{modelVX}), func(t *testing.T, client *Client, model string) {
 		if isLive() {
 			ifaces, err := client.Interfaces(t.Context())
 			require.NoError(t, err)

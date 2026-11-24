@@ -61,3 +61,9 @@ to have:
 - sn2700: a 4x 25G DAC breakout (E1/15) disabling E1/16, so without rates for both, and QSFP28 DACs that only report
   the cable length
 - sn2201: 1G RJ45 ports up to servers (E1/1-2) and QSFP28 DACs
+
+The `vx` fixtures are from leaf-01 of a Cumulus VX VLAB (Cumulus Linux 5.16.5), the one the CI runs, with the default
+VLAB wiring, the VPCs of `hhfab vlab setup-vpcs` and the externals `ext-bgp-01` and `ext-snp-01` attached. They only
+cover the switch state and what 5.16 and VX report differently: no traffic rates, BGP neighbors without their type and
+peer group, and the multihop of the BFD peers as a JSON boolean. They're captured like the others, into a directory
+named `vx`.

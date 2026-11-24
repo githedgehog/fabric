@@ -12,6 +12,18 @@ import (
 var interfaceRatesCaptures = map[string][]string{
 	modelSN5610: {"/interface?view=rates"},
 	modelSN2700: {"/interface?view=rates"},
+	modelVX:     {"/interface?view=rates"},
+}
+
+// Cumulus VX has no traffic rates, its nvued says the service collecting them isn't active
+func TestInterfaceRatesVX(t *testing.T) {
+	if isLive() {
+		t.Skip("only for the fixtures of " + modelVX)
+	}
+
+	_, err := testClient(t, modelVX).InterfaceRates(t.Context())
+	require.ErrorIs(t, err, ErrNotFound)
+	require.ErrorContains(t, err, "prometheus-sdk-stats.service is not active")
 }
 
 func TestInterfaceRates(t *testing.T) {

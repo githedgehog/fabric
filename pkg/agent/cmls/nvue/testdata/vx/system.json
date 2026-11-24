@@ -1,0 +1,101 @@
+{
+  "contact": "",
+  "date-time": {
+    "local-time": "2026-11-24 01:28:45",
+    "timezone": "Etc/UTC"
+  },
+  "dns": {
+    "domain": ""
+  },
+  "fqdn": "leaf-01",
+  "global": {
+    "anycast-id": "none",
+    "anycast-mac": "none",
+    "arp": {
+      "base-reachable-time": 1080,
+      "garbage-collection-threshold": {
+        "effective": 35840,
+        "maximum": 40960,
+        "minimum": 128
+      }
+    },
+    "fabric-id": 1,
+    "fabric-mac": "none",
+    "icmp": {
+      "ipv4": {},
+      "ipv6": {}
+    },
+    "nd": {
+      "base-reachable-time": 1080,
+      "garbage-collection-threshold": {
+        "effective": 17920,
+        "maximum": 20480,
+        "minimum": 128
+      }
+    },
+    "reserved": {
+      "routing-table": {
+        "pbr": {
+          "begin": 10000,
+          "end": 4294966272
+        }
+      },
+      "vlan": {
+        "internal": {
+          "range": "3725-3999"
+        },
+        "l3-vni-vlan": {
+          "begin": 4000,
+          "end": 4064
+        }
+      }
+    },
+    "system-mac": "0a:1b:2c:00:00:03"
+  },
+  "health": {
+    "issues": {
+      "forwarding": {
+        "issue": "active (running) since Mon 2026-11-23 23:12:15 UTC; 2h 16min ago"
+      },
+      "hw-management": {
+        "issue": "inactive"
+      },
+      "hw-management-tc": {
+        "issue": "inactive"
+      },
+      "mft": {
+        "issue": "inactive"
+      },
+      "process": {
+        "issue": "Not OK"
+      }
+    },
+    "status": "Not OK",
+    "status-led": "green"
+  },
+  "hostname": "leaf-01",
+  "location": "",
+  "memory": {
+    "physical": {
+      "buffer": 76656640,
+      "cache": 1664888832,
+      "free": 1520615424,
+      "total": 4752199680,
+      "used": 1855356928,
+      "utilization": 39.04206584181244
+    }
+  },
+  "platform": "N/A",
+  "product-name": "Cumulus Linux",
+  "uptime": 8253,
+  "version": {
+    "base-os": "Debian GNU/Linux 12.13",
+    "image": {
+      "build-date": "Thu Jun 11 11:16:30 UTC 2026",
+      "build-id": "5.16.5.0017"
+    },
+    "kernel": "6.1.0-cl-1-amd64",
+    "onie": "N/A",
+    "product-release": "5.16.5"
+  }
+}

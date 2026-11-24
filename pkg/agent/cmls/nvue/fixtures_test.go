@@ -23,6 +23,8 @@ const (
 	modelSN3700C = "sn3700c"
 	modelSN2700  = "sn2700"
 	modelSN2201  = "sn2201"
+	// Cumulus VX on 5.16 of the VLAB the CI runs, only for the switch state and what's different there
+	modelVX = "vx"
 
 	// fixtureModel is the switch the fixtures shared by all tests are captured from
 	fixtureModel = modelSN5610
