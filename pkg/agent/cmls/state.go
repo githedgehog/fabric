@@ -10,15 +10,30 @@ import (
 	"log/slog"
 	"maps"
 	"math"
+	"strings"
 	"sync"
 	"time"
 
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
+	"go.githedgehog.com/fabric/api/meta"
+	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/agent/cmls/nvue"
 	"go.githedgehog.com/fabric/pkg/agent/switchstate"
 )
 
-const notAvailable = "N/A"
+const (
+	notAvailable = "N/A"
+
+	// vxLegacyRelease is the Cumulus Linux release of the Cumulus VX the CI runs, see isVXLegacy
+	vxLegacyRelease = "5.16."
+)
+
+// isVXLegacy tells the Cumulus VX on 5.16 the CI runs, the only switches where the state falls back to what 5.16 and VX
+// report differently: no traffic rates, BGP neighbors without their type, the BFD multihop as a JSON boolean and
+// transceiver placeholders without a status. On anything else these are errors or warnings.
+func isVXLegacy(profile *wiringapi.SwitchProfileSpec, system *nvue.System) bool {
+	return profile.NOSType == meta.NOSTypeCumulusVX && strings.HasPrefix(system.Version.ProductRelease, vxLegacyRelease)
+}
 
 // staticState is the part of the switch state that doesn't change and takes seconds to read, so it's read once
 type staticState struct {
@@ -70,17 +85,19 @@ func (c *CumulusProcessor) UpdateSwitchState(ctx context.Context, agent *agentap
 		return err //nolint:wrapcheck // it says what it is
 	}
 
+	vxLegacy := isVXLegacy(agent.Spec.SwitchProfile, system)
+
 	if err := c.updateNOS(ctx, swState, system); err != nil {
 		return fmt.Errorf("updating nos: %w", err)
 	}
 
-	if err := c.updateInterfaces(ctx, reg, swState, agent.Spec.Switch.Profile, portMap, loc); err != nil {
+	if err := c.updateInterfaces(ctx, reg, swState, agent.Spec.Switch.Profile, portMap, loc, vxLegacy); err != nil {
 		return fmt.Errorf("updating interfaces: %w", err)
 	}
 
 	cages := cagesOf(agent.Spec.SwitchProfile)
 
-	if err := c.updateTransceivers(ctx, reg, swState, cages); err != nil {
+	if err := c.updateTransceivers(ctx, reg, swState, cages, vxLegacy); err != nil {
 		return fmt.Errorf("updating transceivers: %w", err)
 	}
 
@@ -93,11 +110,11 @@ func (c *CumulusProcessor) UpdateSwitchState(ctx context.Context, agent *agentap
 		return err
 	}
 
-	if err := c.updateBGPNeighbors(ctx, reg, swState, vrfs, portMap); err != nil {
+	if err := c.updateBGPNeighbors(ctx, reg, swState, vrfs, portMap, vxLegacy); err != nil {
 		return fmt.Errorf("updating bgp neighbors: %w", err)
 	}
 
-	if err := c.updateBFDPeers(ctx, reg, swState, vrfs, portMap); err != nil {
+	if err := c.updateBFDPeers(ctx, reg, swState, vrfs, portMap, vxLegacy); err != nil {
 		return fmt.Errorf("updating bfd peers: %w", err)
 	}
 

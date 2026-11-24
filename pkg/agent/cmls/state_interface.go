@@ -51,14 +51,15 @@ func transceiverForPort(port string) string {
 	}
 }
 
-func (c *CumulusProcessor) updateInterfaces(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState, profile string, portMap map[string]string, loc *time.Location) error {
+func (c *CumulusProcessor) updateInterfaces(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState, profile string, portMap map[string]string, loc *time.Location, vxLegacy bool) error {
 	ifaces, err := c.nvue.Interfaces(ctx)
 	if err != nil {
 		return fmt.Errorf("getting interfaces: %w", err)
 	}
 
 	rates, err := c.nvue.InterfaceRates(ctx)
-	if err != nil {
+	// Cumulus VX doesn't collect the traffic rates, its nvued says the service collecting them isn't active
+	if err != nil && (!vxLegacy || !errors.Is(err, nvue.ErrNotFound)) {
 		return fmt.Errorf("getting interface rates: %w", err)
 	}
 

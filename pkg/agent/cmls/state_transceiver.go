@@ -54,7 +54,7 @@ func cagesOf(profile *wiringapi.SwitchProfileSpec) map[string]cage {
 	return cages
 }
 
-func (c *CumulusProcessor) updateTransceivers(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState, cages map[string]cage) error {
+func (c *CumulusProcessor) updateTransceivers(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState, cages map[string]cage, vxLegacy bool) error {
 	transceivers, err := c.nvue.Transceivers(ctx)
 	if err != nil {
 		return fmt.Errorf("getting transceivers: %w", err)
@@ -66,6 +66,11 @@ func (c *CumulusProcessor) updateTransceivers(ctx context.Context, reg *switchst
 	}
 
 	for nosName, transceiver := range transceivers {
+		// Cumulus VX has no modules, it lists placeholders without a status, even for subinterfaces
+		if vxLegacy && transceiver.Status == "" {
+			continue
+		}
+
 		cage, exists := cages[nosName]
 		if !exists {
 			slog.Warn("Port mapping not found, ignoring for metrics", "transceiver", nosName)

@@ -73,7 +73,7 @@ func (c *CumulusProcessor) routedVRFs(ctx context.Context) ([]string, error) {
 	return routed, nil
 }
 
-func (c *CumulusProcessor) updateBGPNeighbors(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState, vrfs []string, portMap map[string]string) error {
+func (c *CumulusProcessor) updateBGPNeighbors(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState, vrfs []string, portMap map[string]string, vxLegacy bool) error {
 	now := c.now()
 
 	for _, vrf := range vrfs {
@@ -85,9 +85,14 @@ func (c *CumulusProcessor) updateBGPNeighbors(ctx context.Context, reg *switchst
 		// a VRF without BGP or without any neighbors is reported empty
 		vrfSt := map[string]agentapi.SwitchStateBGPNeighbor{}
 		for nosName, neighbor := range neighbors {
+			unnumbered, err := bgpNeighborUnnumbered(nosName, &neighbor, vxLegacy)
+			if err != nil {
+				return fmt.Errorf("bgp neighbor %s in vrf %s: %w", nosName, vrf, err)
+			}
+
 			// an unnumbered neighbor is keyed by the interface it runs over
 			name := nosName
-			if neighbor.Type == nvue.BGPNeighborUnnumbered {
+			if unnumbered {
 				name = apiIfaceName(nosName, portMap)
 			}
 
@@ -102,6 +107,26 @@ func (c *CumulusProcessor) updateBGPNeighbors(ctx context.Context, reg *switchst
 	}
 
 	return nil
+}
+
+func bgpNeighborUnnumbered(name string, neighbor *nvue.BGPNeighbor, vxLegacy bool) (bool, error) {
+	switch neighbor.Type {
+	case nvue.BGPNeighborNumbered:
+		return false, nil
+	case nvue.BGPNeighborUnnumbered:
+		return true, nil
+	case "":
+		if !vxLegacy {
+			return false, errors.New("no type") //nolint:err113
+		}
+
+		// Cumulus Linux 5.16 doesn't tell, the unnumbered neighbors are named after their interfaces
+		_, err := netip.ParseAddr(name)
+
+		return err != nil, nil
+	default:
+		return false, fmt.Errorf("unknown type %q", neighbor.Type) //nolint:err113
+	}
 }
 
 func bgpNeighborState(reg *switchstate.Registry, vrf, name string, neighbor *nvue.BGPNeighbor, now time.Time) (agentapi.SwitchStateBGPNeighbor, error) {
@@ -227,7 +252,7 @@ func millis(ms float64) time.Duration {
 	return time.Duration(ms * float64(time.Millisecond))
 }
 
-func (c *CumulusProcessor) updateBFDPeers(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState, vrfs []string, portMap map[string]string) error {
+func (c *CumulusProcessor) updateBFDPeers(ctx context.Context, reg *switchstate.Registry, swState *agentapi.SwitchState, vrfs []string, portMap map[string]string, vxLegacy bool) error {
 	now := c.now()
 
 	for _, vrf := range vrfs {
@@ -236,7 +261,12 @@ func (c *CumulusProcessor) updateBFDPeers(ctx context.Context, reg *switchstate.
 			return fmt.Errorf("getting bfd peers of vrf %s: %w", vrf, err)
 		}
 
-		for _, peer := range peers {
+		for id, peer := range peers {
+			// Cumulus Linux 5.16 reports it as a JSON boolean
+			if peer.Multihop.Bool && !vxLegacy {
+				return fmt.Errorf("bfd peer %s in vrf %s: multihop as a boolean %s", id, vrf, peer.Multihop.Raw) //nolint:err113
+			}
+
 			// the multihop sessions of the overlay are reported too, keyed by the VTEP loopbacks like the BGP neighbors
 			// TODO decide on the overlay BFD, https://github.com/githedgehog/fabric/issues/1844
 

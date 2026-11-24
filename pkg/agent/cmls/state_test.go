@@ -14,6 +14,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
+	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/agent/cmls/nvue"
 	"go.githedgehog.com/fabric/pkg/agent/cmls/nvue/nvuetest"
@@ -234,8 +235,8 @@ func TestUpdateBGPNeighborsAndBFDPeers(t *testing.T) {
 
 			vrfs, err := proc.routedVRFs(t.Context())
 			require.NoError(t, err)
-			require.NoError(t, proc.updateBGPNeighbors(t.Context(), reg, st, vrfs, portMap))
-			require.NoError(t, proc.updateBFDPeers(t.Context(), reg, st, vrfs, portMap))
+			require.NoError(t, proc.updateBGPNeighbors(t.Context(), reg, st, vrfs, portMap, false))
+			require.NoError(t, proc.updateBFDPeers(t.Context(), reg, st, vrfs, portMap, false))
 			nvuetest.RequireGolden(t, filepath.Join("testdata", "state"), tc.model+"-routing", st)
 
 			bgp := map[string][]string{}
@@ -321,6 +322,18 @@ func TestBGPNeighborState(t *testing.T) {
 	}
 }
 
+// captureWarnings collects what's logged at the warning level and above until the end of the test
+func captureWarnings(t *testing.T) *strings.Builder {
+	t.Helper()
+
+	logs := &strings.Builder{}
+	defaultLogger := slog.Default()
+	slog.SetDefault(slog.New(slog.NewTextHandler(logs, &slog.HandlerOptions{Level: slog.LevelWarn})))
+	t.Cleanup(func() { slog.SetDefault(defaultLogger) })
+
+	return logs
+}
+
 func TestReportedInterface(t *testing.T) {
 	sn2700 := switchprofile.CumulusNvidiaSN2700
 	portMap, err := sn2700.Spec.GetNOS2APIPortsFor(&wiringapi.SwitchSpec{Profile: sn2700.Name})
@@ -344,10 +357,7 @@ func TestReportedInterface(t *testing.T) {
 		"other profile with eth1": {nosName: "eth1", iface: nvue.Interface{Type: "eth", Link: link}, profile: "other", warn: true},
 	} {
 		t.Run(name, func(t *testing.T) {
-			logs := &strings.Builder{}
-			defaultLogger := slog.Default()
-			slog.SetDefault(slog.New(slog.NewTextHandler(logs, &slog.HandlerOptions{Level: slog.LevelWarn})))
-			t.Cleanup(func() { slog.SetDefault(defaultLogger) })
+			logs := captureWarnings(t)
 
 			profile := sn2700.Name
 			if tc.profile != "" {
@@ -498,7 +508,7 @@ func TestUpdateTransceiversAndBreakouts(t *testing.T) {
 			}
 
 			cages := cagesOf(tc.profile)
-			require.NoError(t, proc.updateTransceivers(t.Context(), reg, st, cages))
+			require.NoError(t, proc.updateTransceivers(t.Context(), reg, st, cages, false))
 			require.NoError(t, proc.updateBreakouts(t.Context(), st, cages))
 			nvuetest.RequireGolden(t, filepath.Join("testdata", "state"), tc.model+"-ports", st)
 
@@ -555,6 +565,126 @@ func TestUpdateSwitchStateStatic(t *testing.T) {
 	second := collectState(t, proc, stateAgent())
 	require.Equal(t, first.NOS.SerialNumber, second.NOS.SerialNumber)
 	require.Equal(t, first.Firmware, second.Firmware)
+}
+
+// vxModel has the fixtures of a Cumulus VX leaf on 5.16, see nvue/testdata/README.md
+const vxModel = "vx"
+
+func vxAgent() *agentapi.Agent {
+	return &agentapi.Agent{
+		Spec: agentapi.AgentSpec{
+			SwitchProfile: switchprofile.CumulusVX.Spec.DeepCopy(),
+			Switch:        wiringapi.SwitchSpec{Profile: switchprofile.CumulusVX.Name},
+		},
+	}
+}
+
+func TestUpdateSwitchStateVX(t *testing.T) {
+	logs := captureWarnings(t)
+	st := collectState(t, fixtureProcessor(t, vxModel), vxAgent())
+	nvuetest.RequireGolden(t, filepath.Join("testdata", "state"), vxModel, st)
+	require.Empty(t, logs.String())
+
+	require.Equal(t, "5.16.5", st.NOS.SoftwareVersion)
+
+	// no traffic rates, and the hardware counters of VX are all zeroes as it has no ASIC
+	uplink := st.Interfaces["E1/5"]
+	require.Equal(t, agentapi.OperStatusUp, uplink.OperStatus)
+	require.Equal(t, &agentapi.SwitchStateInterfaceCounters{}, uplink.Counters)
+	require.Equal(t, "spine-01", uplink.LLDPNeighbors[0].SystemName)
+
+	// the unnumbered neighbors and their BFD sessions by port, without the type 5.16 doesn't report
+	for _, name := range []string{"E1/5", "E1/6", "E1/7", "E1/8"} {
+		require.Equal(t, agentapi.BGPNeighborSessionStateEstablished, st.BGPNeighbors["default"][name].SessionState, name)
+		require.Equal(t, agentapi.BFDSessionStateUp, st.BFDPeers["default"][name].SessionState, name)
+	}
+	require.Contains(t, st.BGPNeighbors["default"], "172.30.8.0")
+	require.Contains(t, st.BFDPeers["default"], "172.30.8.0")
+	require.NotEmpty(t, st.BGPNeighbors["ext-ext-bgp-01"])
+	for vrf, neighbors := range st.BGPNeighbors {
+		for name := range neighbors {
+			require.False(t, strings.HasPrefix(name, "swp"), "%s in %s", name, vrf)
+		}
+	}
+}
+
+// the fallbacks are only for the Cumulus VX on 5.16, anything else reporting the same fails
+func TestUpdateSwitchStateVXLegacyOnly(t *testing.T) {
+	hardware := vxAgent()
+	hardware.Spec.SwitchProfile.NOSType = meta.NOSTypeCumulusMlx
+	err := fixtureProcessor(t, vxModel).UpdateSwitchState(t.Context(), hardware, switchstate.NewRegistry())
+	require.ErrorContains(t, err, "getting interface rates")
+	require.ErrorIs(t, err, nvue.ErrNotFound)
+
+	proc := fixtureProcessor(t, vxModel)
+	portMap, err := vxAgent().Spec.SwitchProfile.GetNOS2APIPortsFor(&vxAgent().Spec.Switch)
+	require.NoError(t, err)
+	st := &agentapi.SwitchState{
+		BGPNeighbors: map[string]map[string]agentapi.SwitchStateBGPNeighbor{},
+		BFDPeers:     map[string]map[string]agentapi.SwitchStateBFDPeer{},
+	}
+	err = proc.updateBGPNeighbors(t.Context(), switchstate.NewRegistry(), st, []string{"default"}, portMap, false)
+	require.ErrorContains(t, err, "no type")
+	err = proc.updateBFDPeers(t.Context(), switchstate.NewRegistry(), st, []string{"default"}, portMap, false)
+	require.ErrorContains(t, err, "multihop as a boolean")
+
+	// the placeholders of the transceivers are taken for modules with an unknown status
+	logs := captureWarnings(t)
+	st.Transceivers = map[string]agentapi.SwitchStateTransceiver{}
+	cages := cagesOf(vxAgent().Spec.SwitchProfile)
+	require.NoError(t, proc.updateTransceivers(t.Context(), switchstate.NewRegistry(), st, cages, false))
+	require.Contains(t, logs.String(), "Unknown transceiver status")
+	require.Contains(t, logs.String(), "transceiver=swp1.20")
+}
+
+func TestIsVXLegacy(t *testing.T) {
+	for _, tc := range []struct {
+		nosType meta.NOSType
+		release string
+		legacy  bool
+	}{
+		{nosType: meta.NOSTypeCumulusVX, release: "5.16.5", legacy: true},
+		{nosType: meta.NOSTypeCumulusVX, release: "5.16.0", legacy: true},
+		{nosType: meta.NOSTypeCumulusVX, release: "5.18.3"},
+		{nosType: meta.NOSTypeCumulusVX, release: "5.1.0"},
+		{nosType: meta.NOSTypeCumulusMlx, release: "5.16.5"},
+		{nosType: meta.NOSTypeCumulusMlx, release: "5.18.3"},
+	} {
+		system := &nvue.System{}
+		system.Version.ProductRelease = tc.release
+		profile := &wiringapi.SwitchProfileSpec{NOSType: tc.nosType}
+		require.Equal(t, tc.legacy, isVXLegacy(profile, system), "%s %s", tc.nosType, tc.release)
+	}
+}
+
+func TestBGPNeighborUnnumbered(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		typ      string
+		vxLegacy bool
+		want     bool
+		err      string
+	}{
+		{name: "swp1", typ: nvue.BGPNeighborUnnumbered, want: true},
+		{name: "172.30.8.0", typ: nvue.BGPNeighborNumbered},
+		{name: "swp1", typ: nvue.BGPNeighborUnnumbered, vxLegacy: true, want: true},
+		{name: "swp1", vxLegacy: true, want: true},
+		{name: "swp1.1001", vxLegacy: true, want: true},
+		{name: "172.30.8.0", vxLegacy: true},
+		{name: "fd00::1", vxLegacy: true},
+		{name: "swp1", err: "no type"},
+		{name: "172.30.8.0", err: "no type"},
+		{name: "swp1", typ: "bogus", vxLegacy: true, err: `unknown type "bogus"`},
+	} {
+		unnumbered, err := bgpNeighborUnnumbered(tc.name, &nvue.BGPNeighbor{Type: tc.typ}, tc.vxLegacy)
+		if tc.err != "" {
+			require.ErrorContains(t, err, tc.err, "%+v", tc)
+
+			continue
+		}
+		require.NoError(t, err, "%+v", tc)
+		require.Equal(t, tc.want, unnumbered, "%+v", tc)
+	}
 }
 
 func TestUpdateSwitchStateErrors(t *testing.T) {
