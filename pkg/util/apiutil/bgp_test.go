@@ -65,10 +65,11 @@ func TestGetBGPNeighborsUnnumbered(t *testing.T) {
 	}
 
 	// E1/1 and E1/2 are plain SFP28 ports on the S5248F, E1/53 a breakout-capable QSFP28
-	newProfile := func(silicon string) *wiringapi.SwitchProfile {
+	newProfile := func(silicon string, nosType meta.NOSType) *wiringapi.SwitchProfile {
 		sp := switchprofile.DellS5248FON.DeepCopy()
 		sp.Namespace = kmetav1.NamespaceDefault
 		sp.Spec.SwitchSilicon = silicon
+		sp.Spec.NOSType = nosType
 
 		return sp
 	}
@@ -96,14 +97,17 @@ func TestGetBGPNeighborsUnnumbered(t *testing.T) {
 	}
 
 	for _, tt := range []struct {
-		name     string
-		silicon  string
-		reported []string
-		expected map[string]neighbor // neighbor key -> connection and port it belongs to
+		name       string
+		silicon    string
+		nosType    meta.NOSType
+		reported   []string
+		expected   map[string]neighbor // neighbor key -> connection and port it belongs to
+		overlayBFD bool
 	}{
 		{
 			name:     "fabric links",
 			silicon:  switchprofile.SiliconVS,
+			nosType:  meta.NOSTypeSONiCBCMVS,
 			reported: []string{"E1/1", "E1/2", "E1/53/1", "172.30.11.2"},
 			expected: map[string]neighbor{
 				"E1/1":        {conn: fabricConn.Name, port: "E1/1"},
@@ -113,10 +117,25 @@ func TestGetBGPNeighborsUnnumbered(t *testing.T) {
 			},
 		},
 		{
+			// Cumulus runs BFD on the overlay sessions between the loopbacks too
+			name:     "on Cumulus",
+			silicon:  switchprofile.SiliconVS,
+			nosType:  meta.NOSTypeCumulusVX,
+			reported: []string{"E1/1", "E1/2", "E1/53/1", "172.30.11.2"},
+			expected: map[string]neighbor{
+				"E1/1":        {conn: fabricConn.Name, port: "E1/1"},
+				"E1/2":        {conn: fabricConn.Name, port: "E1/2"},
+				"E1/53/1":     {conn: fabricConn.Name, port: "E1/53/1"},
+				"172.30.11.2": {port: "Lo"},
+			},
+			overlayBFD: true,
+		},
+		{
 			// the peering runs over the workaround SVI, one per link, named after the port the
 			// VLAN was allocated for
 			name:     "on TH5",
 			silicon:  switchprofile.SiliconBroadcomTH5,
+			nosType:  meta.NOSTypeSONiCBCMBase,
 			reported: []string{"E1/1.3123", "E1/2.3124", "E1/53.3125", "172.30.11.2"},
 			expected: map[string]neighbor{
 				"E1/1.3123":   {conn: fabricConn.Name, port: "E1/1"},
@@ -135,7 +154,7 @@ func TestGetBGPNeighborsUnnumbered(t *testing.T) {
 			ag := newAgent()
 			ag.Status.State.BGPNeighbors = reported(tt.reported...)
 
-			objs := []kclient.Object{sw, spineSw, newProfile(tt.silicon), ag} //nolint:prealloc
+			objs := []kclient.Object{sw, spineSw, newProfile(tt.silicon, tt.nosType), ag} //nolint:prealloc
 			for _, conn := range []*wiringapi.Connection{fabricConn} {
 				conn := conn.DeepCopy()
 				conn.Default()
@@ -164,9 +183,9 @@ func TestGetBGPNeighborsUnnumbered(t *testing.T) {
 				require.Equal(t, agentapi.BGPNeighborSessionStateEstablished, neigh.SessionState,
 					"neighbor %s must join the state the agent reports", key)
 
-				// BFD runs on the link sessions only, which are expected even without a BFD session reported
+				// BFD runs on the link sessions, which are expected even without a BFD session reported
 				peer, ok := status[self].BFDPeers["default"][key]
-				if want.port == "Lo" {
+				if want.port == "Lo" && !tt.overlayBFD {
 					require.False(t, ok, "loopback neighbor %s must not be a BFD peer", key)
 
 					continue
@@ -219,35 +238,51 @@ func TestGetBGPNeighborsUnnumberedExternal(t *testing.T) {
 		return att
 	}
 
-	ag := &agentapi.Agent{Name: self, Namespace: kmetav1.NamespaceDefault}
-	ag.Status.State.BGPNeighbors = map[string]map[string]agentapi.SwitchStateBGPNeighbor{
-		"VrfEext": {
-			"E1/3.101": {SessionState: agentapi.BGPNeighborSessionStateEstablished},
-			"10.0.0.2": {SessionState: agentapi.BGPNeighborSessionStateEstablished},
-		},
-	}
-
 	sw := &wiringapi.Switch{
 		Name: self, Namespace: kmetav1.NamespaceDefault,
 		Spec: wiringapi.SwitchSpec{Role: wiringapi.SwitchRoleServerLeaf, Profile: switchprofile.DellS5248FON.Name},
 	}
 
-	kube := fake.NewClientBuilder().WithScheme(scheme).
-		WithObjects(sw, sp, ag, conn, ext, attach("unnum", 101, "", ""), attach("num", 102, "10.0.0.1/30", "10.0.0.2")).
-		WithStatusSubresource(ag).Build()
-	require.NoError(t, kube.Status().Update(t.Context(), ag))
+	// the VRF of the external is named by the agent of the switch NOS
+	for _, tt := range []struct {
+		nosType meta.NOSType
+		vrf     string
+	}{
+		{nosType: meta.NOSTypeSONiCBCMBase, vrf: "VrfEext"},
+		{nosType: meta.NOSTypeCumulusMlx, vrf: "ext-ext"},
+	} {
+		vrf := tt.vrf
+		t.Run(string(tt.nosType), func(t *testing.T) {
+			sp := sp.DeepCopy()
+			sp.Spec.NOSType = tt.nosType
 
-	status, err := apiutil.GetBGPStatus(t.Context(), kube, &meta.FabricConfig{}, apiutil.SwitchFilter{Names: []string{self}})
-	require.NoError(t, err)
-	neighs := status[self].Neighbors["VrfEext"]
-	require.Len(t, neighs, 2)
+			ag := &agentapi.Agent{Name: self, Namespace: kmetav1.NamespaceDefault}
+			ag.Status.State.BGPNeighbors = map[string]map[string]agentapi.SwitchStateBGPNeighbor{
+				vrf: {
+					"E1/3.101": {SessionState: agentapi.BGPNeighborSessionStateEstablished},
+					"10.0.0.2": {SessionState: agentapi.BGPNeighborSessionStateEstablished},
+				},
+			}
 
-	for key, unnumbered := range map[string]bool{"E1/3.101": true, "10.0.0.2": false} {
-		neigh, ok := neighs[key]
-		require.True(t, ok, "neighbor %s must be present", key)
-		require.True(t, neigh.Expected, "neighbor %s must be expected", key)
-		require.Equal(t, unnumbered, neigh.Unnumbered, "neighbor %s", key)
-		require.Equal(t, "E1/3", neigh.Port)
-		require.Equal(t, agentapi.BGPNeighborSessionStateEstablished, neigh.SessionState)
+			kube := fake.NewClientBuilder().WithScheme(scheme).
+				WithObjects(sw, sp, ag, conn, ext, attach("unnum", 101, "", ""), attach("num", 102, "10.0.0.1/30", "10.0.0.2")).
+				WithStatusSubresource(ag).Build()
+			require.NoError(t, kube.Status().Update(t.Context(), ag))
+
+			status, err := apiutil.GetBGPStatus(t.Context(), kube, &meta.FabricConfig{}, apiutil.SwitchFilter{Names: []string{self}})
+			require.NoError(t, err)
+			require.Len(t, status[self].Neighbors, 2, "only the default VRF and the one of the external")
+			neighs := status[self].Neighbors[vrf]
+			require.Len(t, neighs, 2)
+
+			for key, unnumbered := range map[string]bool{"E1/3.101": true, "10.0.0.2": false} {
+				neigh, ok := neighs[key]
+				require.True(t, ok, "neighbor %s must be present", key)
+				require.True(t, neigh.Expected, "neighbor %s must be expected", key)
+				require.Equal(t, unnumbered, neigh.Unnumbered, "neighbor %s", key)
+				require.Equal(t, "E1/3", neigh.Port)
+				require.Equal(t, agentapi.BGPNeighborSessionStateEstablished, neigh.SessionState)
+			}
+		})
 	}
 }
