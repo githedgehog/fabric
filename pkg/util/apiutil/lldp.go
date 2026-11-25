@@ -4,12 +4,18 @@
 package apiutil
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"log/slog"
+	"maps"
+	"slices"
 	"strings"
 
+	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
+	gwintapi "go.githedgehog.com/fabric/api/gwint/v1alpha1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
+	kapierrors "k8s.io/apimachinery/pkg/api/errors"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -337,6 +343,172 @@ func lldpNeighbors(ctx context.Context, data *lldpData, in *switchInput, opts LL
 
 			out[ifaceName] = status
 		}
+	}
+
+	return out, nil
+}
+
+// GetGatewayLLDPNeighbors returns the LLDP neighbors of the gateways wired to the switches selected by the filter, keyed
+// by gateway name and interface. A selected gateway gets all of its links, including the ones to other switches.
+func GetGatewayLLDPNeighbors(ctx context.Context, kube kclient.Reader, filter SwitchFilter, opts LLDPNeighborsOpts) (map[string]map[string]LLDPNeighborStatus, error) {
+	if err := filter.Check(ctx, kube); err != nil {
+		return nil, err
+	}
+
+	selected := map[string]bool{}
+	if len(filter.Names) > 0 {
+		for _, name := range filter.Names {
+			selected[name] = true
+		}
+	} else {
+		swList := &wiringapi.SwitchList{}
+		if err := kube.List(ctx, swList, kclient.InNamespace(kmetav1.NamespaceDefault), kclient.MatchingLabels(filter.FabricLabels(true))); err != nil {
+			return nil, fmt.Errorf("listing switches: %w", err)
+		}
+		for _, sw := range swList.Items {
+			selected[sw.Name] = true
+		}
+	}
+
+	connSel := filter.FabricLabels(false)
+	connSel[wiringapi.LabelConnectionType] = wiringapi.ConnectionTypeGateway
+	connList := &wiringapi.ConnectionList{}
+	if err := kube.List(ctx, connList, kclient.InNamespace(kmetav1.NamespaceDefault), kclient.MatchingLabels(connSel)); err != nil {
+		return nil, fmt.Errorf("listing gateway connections: %w", err)
+	}
+
+	gwConns := map[string][]*wiringapi.Connection{}
+	gateways := map[string]bool{}
+	for idx := range connList.Items {
+		conn := &connList.Items[idx]
+		if conn.Spec.Gateway == nil || len(conn.Spec.Gateway.Links) == 0 {
+			continue
+		}
+
+		// a gateway connection is always between a single switch and a single gateway
+		link := conn.Spec.Gateway.Links[0]
+		gwName := link.Gateway.DeviceName()
+		gwConns[gwName] = append(gwConns[gwName], conn)
+		if selected[link.Switch.DeviceName()] {
+			gateways[gwName] = true
+		}
+	}
+
+	// only nos2API and the cache are needed, it's always the switch on the other end that's looked up
+	data := &lldpData{nos2API: map[string]map[string]string{}}
+	in := &switchInput{cache: &switchCache{
+		kube:     kube,
+		switches: map[string]*wiringapi.Switch{},
+		profiles: map[string]*wiringapi.SwitchProfile{},
+	}}
+
+	// switches advertise the deployment ID in their description, see the fabric links
+	descriptions := map[string]string{}
+	description := func(swName string) (string, error) {
+		if descr, ok := descriptions[swName]; ok {
+			return descr, nil
+		}
+
+		ag := &agentapi.Agent{}
+		if err := kube.Get(ctx, kclient.ObjectKey{Name: swName, Namespace: kmetav1.NamespaceDefault}, ag); err != nil {
+			if !kapierrors.IsNotFound(err) {
+				return "", fmt.Errorf("getting agent %s: %w", swName, err)
+			}
+
+			slog.Warn("Agent not found, not checking the neighbor description", "name", swName)
+			descriptions[swName] = ""
+
+			return "", nil
+		}
+		descriptions[swName] = wiringapi.SwitchLLDPDescription(ag.Spec.Config.DeploymentID)
+
+		return descriptions[swName], nil
+	}
+
+	out := map[string]map[string]LLDPNeighborStatus{}
+	for _, gwName := range slices.Sorted(maps.Keys(gateways)) {
+		ag := &gwintapi.GatewayAgent{}
+		if err := kube.Get(ctx, kclient.ObjectKey{Name: gwName, Namespace: kmetav1.NamespaceDefault}, ag); err != nil {
+			if kapierrors.IsNotFound(err) {
+				slog.Warn("GatewayAgent not found", "name", gwName)
+
+				continue
+			}
+
+			return nil, fmt.Errorf("getting gateway agent %s: %w", gwName, err)
+		}
+
+		// dataplanes before fabric#1695 report no interfaces, so there is nothing to check
+		if len(ag.Status.State.Interfaces) == 0 {
+			continue
+		}
+
+		neighbors := map[string]LLDPNeighborStatus{}
+		for _, conn := range gwConns[gwName] {
+			for _, link := range conn.Spec.Gateway.Links {
+				ifaceName := link.Gateway.LocalPortName()
+				if _, ok := neighbors[ifaceName]; ok {
+					return nil, fmt.Errorf("duplicate port %s on gateway %s", ifaceName, gwName) //nolint:err113
+				}
+
+				// the gateway may be wired to switches outside of the filter, which shouldn't fail the selected ones
+				swName := link.Switch.DeviceName()
+				swPort, err := normalizePortName(ctx, in, swName, link.Switch.LocalPortName())
+				if err != nil {
+					slog.Warn("Can't normalize the switch port name", "gateway", gwName, "port", link.Switch.PortName(), "err", err)
+					swPort = link.Switch.LocalPortName()
+				}
+
+				descr, err := description(swName)
+				if err != nil {
+					return nil, err
+				}
+
+				neighbors[ifaceName] = LLDPNeighborStatus{
+					ConnectionName: conn.Name,
+					ConnectionType: conn.Spec.Type(),
+					Type:           LLDPNeighborTypeGateway,
+					Expected:       LLDPNeighbor{Name: swName, Port: swPort, Description: descr},
+				}
+			}
+		}
+
+		for ifaceName, iface := range ag.Status.State.Interfaces {
+			for _, neighbor := range iface.LLDPNeighbors {
+				status := neighbors[ifaceName]
+
+				port := cmp.Or(neighbor.Port, neighbor.PortID)
+
+				// switches advertise their NOS port names
+				if status.Expected.Name != "" {
+					ports, err := data.nos2APIPorts(ctx, in, status.Expected.Name)
+					if err != nil {
+						slog.Warn("Can't map the neighbor NOS port names", "switch", status.Expected.Name, "err", err)
+						// only tried once per switch, the neighbor port is reported as advertised
+						data.nos2API[status.Expected.Name] = map[string]string{}
+					} else if apiPort, ok := ports[neighbor.PortID]; ok {
+						port = apiPort
+					}
+				}
+
+				ignoredPrefix, ignoredSuffix := lldpNeighborNameCut(neighbor.SystemName, status.Expected.Name, opts)
+
+				status.Actual = append(status.Actual, LLDPNeighbor{
+					Name:          neighbor.SystemName,
+					Description:   neighbor.SystemDescription,
+					Port:          port,
+					MAC:           neighbor.MAC,
+					TTL:           neighbor.TTL,
+					LastUpdate:    neighbor.LastUpdate,
+					IgnoredPrefix: ignoredPrefix,
+					IgnoredSuffix: ignoredSuffix,
+				})
+
+				neighbors[ifaceName] = status
+			}
+		}
+
+		out[gwName] = neighbors
 	}
 
 	return out, nil

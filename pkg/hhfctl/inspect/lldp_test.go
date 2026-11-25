@@ -175,7 +175,7 @@ func TestLLDPIgnoredNameParts(t *testing.T) {
 	matching, ok := lldpMatchingNeighbor(status)
 	require.True(t, ok)
 	require.Equal(t, neighbor, matching)
-	require.Empty(t, lldpStrictErrs("ds5000-02", "E1/1/1", status))
+	require.Empty(t, lldpStrictErrs("switch ds5000-02", "E1/1/1", status))
 
 	out := &LLDPOut{Neighbors: map[string]map[string]apiutil.LLDPNeighborStatus{
 		"ds5000-02": {"E1/1/1": status},
@@ -276,7 +276,7 @@ func TestLLDPStrictErrs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			errs := lldpStrictErrs("sw", "E1/5/1", tt.status)
+			errs := lldpStrictErrs("switch sw", "E1/5/1", tt.status)
 
 			got := make([]string, 0, len(errs))
 			for _, err := range errs {

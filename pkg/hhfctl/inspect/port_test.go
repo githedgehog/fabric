@@ -11,6 +11,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
+	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,6 +26,7 @@ func TestPortConnection(t *testing.T) {
 	require.NoError(t, wiringapi.AddToScheme(scheme))
 	require.NoError(t, agentapi.AddToScheme(scheme))
 	require.NoError(t, vpcapi.AddToScheme(scheme))
+	require.NoError(t, gwapi.AddToScheme(scheme))
 
 	// stored connections are always defaulted, which sets the switch list labels
 	connGen := func(name string, spec wiringapi.ConnectionSpec) kclient.Object {

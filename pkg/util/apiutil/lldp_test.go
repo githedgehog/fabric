@@ -15,18 +15,25 @@
 package apiutil_test
 
 import (
+	"context"
+	"maps"
+	"slices"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
+	gwintapi "go.githedgehog.com/fabric/api/gwint/v1alpha1"
 	"go.githedgehog.com/fabric/api/meta"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/ctrl/switchprofile"
 	"go.githedgehog.com/fabric/pkg/util/apiutil"
 	kmetav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 )
 
 // TestGetLLDPNeighbors covers the mapping from the agent reported neighbors to the expected wiring, in particular the
@@ -349,4 +356,129 @@ func TestGetLLDPNeighborsFabricMACPortID(t *testing.T) {
 	require.Len(t, actual, 1)
 	require.Equal(t, "Fabric leaf-1/E1/2 spine-1--fabric--leaf-1", actual[0].Port)
 	require.NotEqual(t, neighbors["E1/2"].Expected.Port, actual[0].Port)
+}
+
+// TestGetGatewayLLDPNeighbors covers the gateway side: the switch advertises its NOS port name, which is mapped back to
+// the API one (VS: E1/3 is Ethernet2), and a gateway wired to a selected switch gets all of its links.
+func TestGetGatewayLLDPNeighbors(t *testing.T) {
+	t.Parallel()
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, wiringapi.AddToScheme(scheme))
+	require.NoError(t, agentapi.AddToScheme(scheme))
+	require.NoError(t, gwintapi.AddToScheme(scheme))
+
+	sw := func(name string) *wiringapi.Switch {
+		return &wiringapi.Switch{
+			Name: name, Namespace: kmetav1.NamespaceDefault,
+			Spec: wiringapi.SwitchSpec{Profile: meta.SwitchProfileVS},
+		}
+	}
+
+	gwConn := func(swPort, gwPort string) *wiringapi.Connection {
+		swName, _, _ := strings.Cut(swPort, "/")
+		gwName, _, _ := strings.Cut(gwPort, "/")
+		c := &wiringapi.Connection{
+			Name: gwName + "--gateway--" + swName, Namespace: kmetav1.NamespaceDefault,
+			Spec: wiringapi.ConnectionSpec{Gateway: &wiringapi.ConnGateway{Links: []wiringapi.GatewayLink{{
+				Switch:  wiringapi.ConnFabricLinkSwitch{BasePortName: wiringapi.NewBasePortName(swPort)},
+				Gateway: wiringapi.ConnGatewayLinkGateway{BasePortName: wiringapi.NewBasePortName(gwPort)},
+			}}}},
+		}
+		// populates the connection type label the gateway connections are listed by
+		c.Default()
+
+		return c
+	}
+
+	gwAgent := func(name string, ifaces map[string]gwintapi.GatewayStateInterface) *gwintapi.GatewayAgent {
+		return &gwintapi.GatewayAgent{
+			Name: name, Namespace: kmetav1.NamespaceDefault,
+			Status: gwintapi.GatewayAgentStatus{State: gwintapi.GatewayState{Interfaces: ifaces}},
+		}
+	}
+
+	profile := switchprofile.VS.DeepCopy()
+	profile.Namespace = kmetav1.NamespaceDefault
+
+	missingGets := 0
+	kube := fake.NewClientBuilder().WithScheme(scheme).WithInterceptorFuncs(interceptor.Funcs{
+		Get: func(ctx context.Context, kube kclient.WithWatch, key kclient.ObjectKey, obj kclient.Object, opts ...kclient.GetOption) error {
+			if _, ok := obj.(*wiringapi.Switch); ok && key.Name == "spine-3" {
+				missingGets++
+			}
+
+			return kube.Get(ctx, key, obj, opts...)
+		},
+	}).WithObjects(
+		profile,
+		sw("spine-1"),
+		sw("spine-2"),
+		gwConn("spine-1/E1/3", "gw-1/port1"),
+		gwConn("spine-2/E1/1", "gw-1/port2"),
+		gwConn("spine-2/E1/2", "gw-2/port1"),
+		gwConn("spine-1/E1/4", "gw-3/port1"),
+		// the switch object is gone, which must not fail the gateway's other links
+		gwConn("spine-3/E1/1", "gw-1/port4"),
+		&agentapi.Agent{
+			Name: "spine-1", Namespace: kmetav1.NamespaceDefault,
+			Spec: agentapi.AgentSpec{Config: agentapi.AgentSpecConfig{DeploymentID: "1234"}},
+		},
+		gwAgent("gw-1", map[string]gwintapi.GatewayStateInterface{
+			"port1": {LLDPNeighbors: []gwintapi.GatewayStateLLDPNeighbor{{
+				SystemName:        "spine-1",
+				SystemDescription: "Hedgehog Fabric 1234",
+				PortID:            "Ethernet2",
+				Port:              "Ethernet2",
+				MAC:               "0a:00:00:00:2a:01",
+			}}},
+			// the wired switch is gone, so its neighbors are reported as advertised
+			"port4": {LLDPNeighbors: []gwintapi.GatewayStateLLDPNeighbor{
+				{SystemName: "spine-3", PortID: "Ethernet0"},
+				{SystemName: "spine-3", PortID: "Ethernet1"},
+			}},
+			// not wired, still reported
+			"port3": {LLDPNeighbors: []gwintapi.GatewayStateLLDPNeighbor{{
+				SystemName: "server-1",
+				PortID:     "enp2s1",
+			}}},
+		}),
+		gwAgent("gw-2", map[string]gwintapi.GatewayStateInterface{"port1": {}}),
+		// a dataplane that doesn't report interfaces yet
+		gwAgent("gw-3", nil),
+	).Build()
+
+	all, err := apiutil.GetGatewayLLDPNeighbors(t.Context(), kube, apiutil.SwitchFilter{Names: []string{"spine-1"}}, apiutil.LLDPNeighborsOpts{})
+	require.NoError(t, err)
+	require.Equal(t, []string{"gw-1"}, slices.Sorted(maps.Keys(all)))
+	neighbors := all["gw-1"]
+
+	port1 := neighbors["port1"]
+	require.Equal(t, apiutil.LLDPNeighborTypeGateway, port1.Type)
+	require.Equal(t, "gw-1--gateway--spine-1", port1.ConnectionName)
+	require.Equal(t, wiringapi.ConnectionTypeGateway, port1.ConnectionType)
+	require.Equal(t, apiutil.LLDPNeighbor{Name: "spine-1", Port: "E1/3", Description: "Hedgehog Fabric 1234"}, port1.Expected)
+	require.Len(t, port1.Actual, 1)
+	require.Equal(t, "E1/3", port1.Actual[0].Port)
+	require.True(t, port1.Actual[0].Matches(port1.Expected))
+
+	// the link to the switch that isn't selected is still the gateway's, its agent is missing so there is no description
+	port2 := neighbors["port2"]
+	require.Equal(t, apiutil.LLDPNeighbor{Name: "spine-2", Port: "E1/1"}, port2.Expected)
+	require.Empty(t, port2.Actual)
+
+	// the port name is left as wired when the switch can't be looked up
+	require.Equal(t, apiutil.LLDPNeighbor{Name: "spine-3", Port: "E1/1"}, neighbors["port4"].Expected)
+	require.Len(t, neighbors["port4"].Actual, 2)
+	require.ElementsMatch(t, []string{"Ethernet0", "Ethernet1"}, []string{neighbors["port4"].Actual[0].Port, neighbors["port4"].Actual[1].Port})
+	// once for the wired port name and once for the neighbor port mapping, not per neighbor
+	require.Equal(t, 2, missingGets)
+
+	port3 := neighbors["port3"]
+	require.Empty(t, port3.Expected.Name)
+	require.Equal(t, "enp2s1", port3.Actual[0].Port)
+
+	all, err = apiutil.GetGatewayLLDPNeighbors(t.Context(), kube, apiutil.SwitchFilter{}, apiutil.LLDPNeighborsOpts{})
+	require.NoError(t, err)
+	require.Equal(t, []string{"gw-1", "gw-2"}, slices.Sorted(maps.Keys(all)))
 }

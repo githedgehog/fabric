@@ -43,8 +43,9 @@ type LLDPIn struct {
 }
 
 type LLDPOut struct {
-	Neighbors map[string]map[string]apiutil.LLDPNeighborStatus `json:"neighbors"`
-	Errs      []error                                          `json:"errors"`
+	Neighbors        map[string]map[string]apiutil.LLDPNeighborStatus `json:"neighbors"`
+	GatewayNeighbors map[string]map[string]apiutil.LLDPNeighborStatus `json:"gatewayNeighbors,omitempty"`
+	Errs             []error                                          `json:"errors"`
 }
 
 const lldpExtraNeighbor = "<extra>"
@@ -112,7 +113,7 @@ func lldpNeighborRows(n apiutil.LLDPNeighborStatus, showAll bool) ([]lldpNeighbo
 
 // lldpStrictErrs reports what doesn't match the wiring on a port. A port that has the neighbor it's wired to is fine
 // no matter what else shows up on it, and one with nothing expected has nothing to be wrong about.
-func lldpStrictErrs(swName, port string, n apiutil.LLDPNeighborStatus) []error {
+func lldpStrictErrs(device, port string, n apiutil.LLDPNeighborStatus) []error {
 	if n.Type == apiutil.LLDPNeighborTypeExternal || n.Expected.Name == "" {
 		return nil
 	}
@@ -136,19 +137,19 @@ func lldpStrictErrs(swName, port string, n apiutil.LLDPNeighborStatus) []error {
 		found = true
 
 		if !strings.EqualFold(n.Expected.Port, actual.Port) {
-			errs = append(errs, fmt.Errorf("switch %s: %s: expected neighbor port %q, got %q", swName, port, n.Expected.Port, actual.Port)) //nolint:err113
+			errs = append(errs, fmt.Errorf("%s: %s: expected neighbor port %q, got %q", device, port, n.Expected.Port, actual.Port)) //nolint:err113
 		}
 
 		if n.Expected.Description != "" && !strings.EqualFold(n.Expected.Description, actual.Description) {
-			errs = append(errs, fmt.Errorf("switch %s: %s: expected neighbor description %q, got %q", swName, port, n.Expected.Description, actual.Description)) //nolint:err113
+			errs = append(errs, fmt.Errorf("%s: %s: expected neighbor description %q, got %q", device, port, n.Expected.Description, actual.Description)) //nolint:err113
 		}
 	}
 
 	if !found {
 		if len(unexpected) == 0 {
-			errs = append(errs, fmt.Errorf("switch %s: %s: expected neighbor %q not found", swName, port, n.Expected.Name)) //nolint:err113
+			errs = append(errs, fmt.Errorf("%s: %s: expected neighbor %q not found", device, port, n.Expected.Name)) //nolint:err113
 		} else {
-			errs = append(errs, fmt.Errorf("switch %s: %s: expected neighbor %q not found, but found: %v", swName, port, n.Expected.Name, unexpected)) //nolint:err113
+			errs = append(errs, fmt.Errorf("%s: %s: expected neighbor %q not found, but found: %v", device, port, n.Expected.Name, unexpected)) //nolint:err113
 		}
 	}
 
@@ -209,100 +210,109 @@ func (out *LLDPOut) MarshalText(in LLDPIn, now time.Time) (string, error) {
 		return append(data, row)
 	}
 
-	for _, swName := range slices.Sorted(maps.Keys(out.Neighbors)) {
-		str.WriteString("Switch: " + swName + "\n")
+	for _, group := range []struct {
+		kind    string
+		devices map[string]map[string]apiutil.LLDPNeighborStatus
+	}{{"Switch", out.Neighbors}, {"Gateway", out.GatewayNeighbors}} {
+		kind, devices := group.kind, group.devices
 
-		data := [][]string{}
-		anyHidden := false
+		for _, name := range slices.Sorted(maps.Keys(devices)) {
+			devStr := fmt.Sprintf("%s: %s\n", kind, name)
+			str.WriteString(devStr)
 
-		ports := slices.Collect(maps.Keys(out.Neighbors[swName]))
-		wiringapi.SortPortNames(ports)
+			data := [][]string{}
+			anyHidden := false
 
-		for _, port := range ports {
-			if strings.HasPrefix(port, wiringapi.ManagementPortPrefix) {
-				continue
-			}
+			ports := slices.Collect(maps.Keys(devices[name]))
+			wiringapi.SortPortNames(ports)
 
-			n := out.Neighbors[swName][port]
-
-			// values the wiring doesn't define are reported as is, there is nothing to compare them to
-			diff := func(actual, expected string) string {
-				if expected == "" || strings.EqualFold(expected, actual) {
-					return actual
+			for _, port := range ports {
+				// gateway interface names are free-form, only switches have management ports
+				if kind == "Switch" && strings.HasPrefix(port, wiringapi.ManagementPortPrefix) {
+					continue
 				}
 
-				want := "(want " + expected + ")"
-				external := n.Type == apiutil.LLDPNeighborTypeExternal
+				n := devices[name][port]
 
-				// nothing is reported, so the expectation carries the highlight
-				if actual == "" {
-					if external {
-						return want
+				// values the wiring doesn't define are reported as is, there is nothing to compare them to
+				diff := func(actual, expected string) string {
+					if expected == "" || strings.EqualFold(expected, actual) {
+						return actual
 					}
 
-					return red(want)
+					want := "(want " + expected + ")"
+					external := n.Type == apiutil.LLDPNeighborTypeExternal
+
+					// nothing is reported, so the expectation carries the highlight
+					if actual == "" {
+						if external {
+							return want
+						}
+
+						return red(want)
+					}
+
+					// the expectation isn't what's wrong, only the actual value
+					if !external {
+						actual = red(actual)
+					}
+
+					return actual + " " + want
 				}
 
-				// the expectation isn't what's wrong, only the actual value
-				if !external {
-					actual = red(actual)
-				}
-
-				return actual + " " + want
-			}
-
-			// nothing on the port, but the wiring still says what should have been
-			if len(n.Actual) == 0 {
-				data = appendRow(data, []string{
-					port, n.ConnectionName, n.ConnectionType,
-					diff("", n.Expected.Name), diff("", n.Expected.Port), "", "",
-				}, diff("", n.Expected.Description))
-
-				continue
-			}
-
-			// a port can have more than one neighbor, each rendered one gets its own row
-			rows, hidden := lldpNeighborRows(n, in.ShowAll)
-
-			for _, row := range rows {
-				actual := row.neighbor
-
-				// extras aren't the wired neighbor, nothing to compare them to
-				if row.extra {
+				// nothing on the port, but the wiring still says what should have been
+				if len(n.Actual) == 0 {
 					data = appendRow(data, []string{
-						port, n.ConnectionName, lldpExtraNeighbor,
-						actual.Name, actual.Port, actual.MAC, lldpNeighborAge(now, actual, in.TTL),
-					}, actual.Description)
+						port, n.ConnectionName, n.ConnectionType,
+						diff("", n.Expected.Name), diff("", n.Expected.Port), "", "",
+					}, diff("", n.Expected.Description))
 
 					continue
 				}
 
-				// reported as advertised, with the ignored parts dimmed so it's visible why it still matches
-				sn := actual.Name
-				if !strings.EqualFold(actual.MatchedName(), n.Expected.Name) {
-					sn = diff(actual.Name, n.Expected.Name)
-				} else if actual.IgnoredPrefix != "" || actual.IgnoredSuffix != "" {
-					sn = dim(actual.IgnoredPrefix) + actual.MatchedName() + dim(actual.IgnoredSuffix)
+				// a port can have more than one neighbor, each rendered one gets its own row
+				rows, hidden := lldpNeighborRows(n, in.ShowAll)
+
+				for _, row := range rows {
+					actual := row.neighbor
+
+					// extras aren't the wired neighbor, nothing to compare them to
+					if row.extra {
+						data = appendRow(data, []string{
+							port, n.ConnectionName, lldpExtraNeighbor,
+							actual.Name, actual.Port, actual.MAC, lldpNeighborAge(now, actual, in.TTL),
+						}, actual.Description)
+
+						continue
+					}
+
+					// reported as advertised, with the ignored parts dimmed so it's visible why it still matches
+					sn := actual.Name
+					if !strings.EqualFold(actual.MatchedName(), n.Expected.Name) {
+						sn = diff(actual.Name, n.Expected.Name)
+					} else if actual.IgnoredPrefix != "" || actual.IgnoredSuffix != "" {
+						sn = dim(actual.IgnoredPrefix) + actual.MatchedName() + dim(actual.IgnoredSuffix)
+					}
+
+					sp := diff(actual.Port, n.Expected.Port)
+					sd := diff(actual.Description, n.Expected.Description)
+
+					// only happens on a full match, so sn is never a red diff here
+					if hidden > 0 {
+						sn += fmt.Sprintf(" +%d", hidden)
+						anyHidden = true
+					}
+
+					// MAC and age are only reported by the neighbor, nothing to compare them to
+					data = appendRow(data, []string{port, n.ConnectionName, n.ConnectionType, sn, sp, actual.MAC, lldpNeighborAge(now, actual, in.TTL)}, sd)
 				}
-
-				sp := diff(actual.Port, n.Expected.Port)
-				sd := diff(actual.Description, n.Expected.Description)
-
-				// only happens on a full match, so sn is never a red diff here
-				if hidden > 0 {
-					sn += fmt.Sprintf(" +%d", hidden)
-					anyHidden = true
-				}
-
-				// MAC and age are only reported by the neighbor, nothing to compare them to
-				data = appendRow(data, []string{port, n.ConnectionName, n.ConnectionType, sn, sp, actual.MAC, lldpNeighborAge(now, actual, in.TTL)}, sd)
 			}
-		}
 
-		str.WriteString(RenderTable(headers, data))
+			str.WriteString(RenderTable(headers, data))
 
-		if anyHidden {
-			str.WriteString("Note: +N means N more neighbors on the port, use --show-all to see them\n")
+			if anyHidden {
+				str.WriteString("Note: +N means N more neighbors on the port, use --show-all to see them\n")
+			}
 		}
 	}
 
@@ -328,10 +338,12 @@ func LLDP(ctx context.Context, kube kclient.Reader, in LLDPIn) (*LLDPOut, error)
 		return nil, fmt.Errorf("invalid switch filter: %w", err)
 	}
 
-	neighbors, err := apiutil.GetLLDPNeighbors(ctx, kube, filter, apiutil.LLDPNeighborsOpts{
+	opts := apiutil.LLDPNeighborsOpts{
 		IgnorePrefixes: in.IgnorePrefixes,
 		IgnoreSuffixes: in.IgnoreSuffixes,
-	})
+	}
+
+	neighbors, err := apiutil.GetLLDPNeighbors(ctx, kube, filter, opts)
 	if err != nil {
 		return nil, fmt.Errorf("getting lldp neighbors: %w", err)
 	}
@@ -359,7 +371,25 @@ func LLDP(ctx context.Context, kube kclient.Reader, in LLDPIn) (*LLDPOut, error)
 			out.Neighbors[swName][name] = n
 
 			if in.Strict {
-				out.Errs = append(out.Errs, lldpStrictErrs(swName, name, n)...)
+				out.Errs = append(out.Errs, lldpStrictErrs("switch "+swName, name, n)...)
+			}
+		}
+	}
+
+	if !in.GatewayConns {
+		return out, nil
+	}
+
+	gwNeighbors, err := apiutil.GetGatewayLLDPNeighbors(ctx, kube, filter, opts)
+	if err != nil {
+		return nil, fmt.Errorf("getting gateway lldp neighbors: %w", err)
+	}
+
+	out.GatewayNeighbors = gwNeighbors
+	if in.Strict {
+		for _, gwName := range slices.Sorted(maps.Keys(gwNeighbors)) {
+			for _, port := range slices.Sorted(maps.Keys(gwNeighbors[gwName])) {
+				out.Errs = append(out.Errs, lldpStrictErrs("gateway "+gwName, port, gwNeighbors[gwName][port])...)
 			}
 		}
 	}

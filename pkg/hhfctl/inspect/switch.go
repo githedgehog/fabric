@@ -156,7 +156,7 @@ func (out *SwitchOut) MarshalText(in SwitchIn, now time.Time) (string, error) {
 				state = fmt.Sprintf("%s/%s", port.InterfaceState.AdminStatus, port.InterfaceState.OperStatus)
 				speed = port.InterfaceState.Speed
 				if port.InterfaceState.AutoNegotiate {
-					speed += "/auto"
+					speed += SpeedAutoNeg
 				}
 			}
 

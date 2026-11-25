@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
+	gwintapi "go.githedgehog.com/fabric/api/gwint/v1alpha1"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -32,7 +33,8 @@ import (
 )
 
 const (
-	NativeVLAN = "native"
+	NativeVLAN   = "native"
+	SpeedAutoNeg = "/auto"
 )
 
 type ConnectionIn struct {
@@ -48,8 +50,9 @@ type ConnectionOut struct {
 }
 
 type ConnectionOutPort struct {
-	Name  string                         `json:"name,omitempty"`
-	State *agentapi.SwitchStateInterface `json:"state,omitempty"`
+	Name         string                          `json:"name,omitempty"`
+	State        *agentapi.SwitchStateInterface  `json:"state,omitempty"`
+	GatewayState *gwintapi.GatewayStateInterface `json:"gatewayState,omitempty"`
 }
 
 func (out *ConnectionOut) MarshalText(_ ConnectionIn, now time.Time) (string, error) {
@@ -164,11 +167,36 @@ func Connection(ctx context.Context, kube kclient.Reader, in ConnectionIn) (*Con
 		return nil, errors.Wrapf(err, "failed to get connection %s endpoints", conn.Name)
 	}
 
+	gwName := ""
+	if conn.Spec.Gateway != nil && len(conn.Spec.Gateway.Links) > 0 {
+		gwName = conn.Spec.Gateway.Links[0].Gateway.DeviceName()
+	}
+	var gwAgent *gwintapi.GatewayAgent
+
 	agents := map[string]*agentapi.Agent{}
 	for _, port := range ports {
 		parts := strings.SplitN(port, "/", 2)
 		swName := parts[0]
 		portName := parts[1]
+
+		if swName == gwName {
+			if gwAgent == nil {
+				gwAgent = &gwintapi.GatewayAgent{}
+				if err := kube.Get(ctx, kclient.ObjectKey{Name: gwName, Namespace: kmetav1.NamespaceDefault}, gwAgent); err != nil {
+					if !kapierrors.IsNotFound(err) {
+						return nil, fmt.Errorf("getting gateway agent %s: %w", gwName, err)
+					}
+				}
+			}
+
+			outPort := &ConnectionOutPort{Name: port}
+			if state, ok := gwAgent.Status.State.Interfaces[portName]; ok {
+				outPort.GatewayState = &state
+			}
+			out.Ports = append(out.Ports, outPort)
+
+			continue
+		}
 
 		agent, exists := agents[swName]
 		if !exists {
