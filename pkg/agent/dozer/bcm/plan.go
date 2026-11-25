@@ -24,6 +24,7 @@ import (
 	"net"
 	"net/netip"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -439,9 +440,16 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 		// each uint32 is a priority associated to a community list
 		// we should be setting local preferences, given higher preference in reverse order
 		// of priority
-		prios := slices.Sorted(maps.Keys(agent.Spec.Config.GatewayCommunities))
+		prios := map[uint32]string{}
+		for prioStr, comm := range agent.Spec.Config.GatewayCommunities {
+			prio, err := strconv.ParseUint(prioStr, 10, 32)
+			if err != nil {
+				return fmt.Errorf("parsing gateway community priority %q: %w", prioStr, err)
+			}
+			prios[uint32(prio)] = comm
+		}
 		comms := slices.Sorted(maps.Values(agent.Spec.Config.GatewayCommunities))
-		numPrios := len(agent.Spec.Config.GatewayCommunities)
+		numPrios := len(prios)
 
 		// if we have more than 100 priority levels we will clash with the remote peering default route
 		// block indexes
@@ -453,10 +461,9 @@ func planFabricConnections(agent *agentapi.Agent, spec *dozer.Spec) error {
 		// learned from the gateway (e.g. to export them to BGP externals)
 		spec.CommunityLists[BGPCommListAllGwPrios] = &dozer.SpecCommunityList{Members: comms}
 
-		for idx, prioStr := range prios {
-			commVal := agent.Spec.Config.GatewayCommunities[prioStr]
-			commName := gwPrioCommListName(prioStr)
-			spec.CommunityLists[commName] = &dozer.SpecCommunityList{Members: []string{commVal}}
+		for idx, prio := range slices.Sorted(maps.Keys(prios)) {
+			commName := fmt.Sprintf("gw-prio-%d", prio)
+			spec.CommunityLists[commName] = &dozer.SpecCommunityList{Members: []string{prios[prio]}}
 			l2vpnNeighRMap.Statements[fmt.Sprintf("%d", idx+1)] = &dozer.SpecRouteMapStatement{
 				Conditions:         dozer.SpecRouteMapConditions{MatchCommunityList: new(commName)},
 				SetLocalPreference: new(GwPrioPreferenceBase + uint32(numPrios-idx)), //nolint:gosec
@@ -3521,10 +3528,6 @@ func setupPhysicalInterfaceWithPortChannel(spec *dozer.Spec, name, description, 
 	spec.Interfaces[name] = physicalIface
 
 	return nil
-}
-
-func gwPrioCommListName(prioIdx string) string {
-	return fmt.Sprintf("gw-prio-%s", prioIdx)
 }
 
 func extBFDProfileName(attach string) string {
