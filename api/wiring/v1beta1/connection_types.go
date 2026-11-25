@@ -554,6 +554,9 @@ func (connSpec *ConnectionSpec) Endpoints() ([]string, []string, []string, map[s
 		if len(switches) != 1 {
 			return nil, nil, nil, nil, errors.Errorf("one switches must be used for gateway connection")
 		}
+		if len(gateways) != 1 {
+			return nil, nil, nil, nil, errors.Errorf("one gateway must be used for gateway connection")
+		}
 		if len(ports) != 2*len(connSpec.Gateway.Links) {
 			return nil, nil, nil, nil, errors.Errorf("unique ports must be used for gateway connection")
 		}
