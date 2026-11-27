@@ -193,6 +193,10 @@ func TestPlan(t *testing.T) {
 		{name: "l3vni-leaf-01"},  // standalone, static externals connected to it
 		{name: "l3vni-leaf-02"},  // standalone, no externals
 		{name: "l3vni-spine-01"}, // spine
+		// group: hbgpacl
+		// l3vni-leaf-01 with vpc-01/default restricted and an unattached isolated hostBGP subnet in vpc-01,
+		// both with extra prefixes (#1834)
+		{name: "hbgpacl-leaf-01"}, // filtering ACL drops by destination for own and isolated extra prefixes
 		// group: mixedext
 		// the l3vni group with ext-sp-01, a static external, part way through a migration to BGP:
 		// leaf-01 holds the original static attachment plus a BGP one, leaf-02 holds a BGP

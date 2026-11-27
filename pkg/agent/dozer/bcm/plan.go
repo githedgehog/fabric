@@ -3149,15 +3149,26 @@ func buildVNIVPCFilteringACL(agent *agentapi.Agent, vpcName string, vpc vpcapi.V
 		},
 	}
 
+	// prefix -> action, the entry sequence number is the prefix's subnet ID
+	denyPrefixes := map[string]dozer.SpecACLEntryAction{}
+	extraPrefixes := map[string]bool{}
+
 	if vpc.IsSubnetRestricted(subnetName) {
 		acl.Entries[1] = &dozer.SpecACLEntry{
 			SourceAddress:      new(subnet.Subnet),
 			DestinationAddress: new(subnet.Subnet),
 			Action:             dozer.SpecACLEntryActionDrop,
 		}
+		// matching src/dst pairs would take (N+1)^2 entries with the extra prefixes; the ACL is on the host's
+		// own port, so the destination alone is enough (#1834)
+		if subnet.HostBGP {
+			acl.Entries[1].SourceAddress = nil
+			for prefix := range subnet.HostBGPExtraPrefixes {
+				denyPrefixes[prefix] = dozer.SpecACLEntryActionDrop
+				extraPrefixes[prefix] = true
+			}
+		}
 	}
-
-	denySubnets := map[string]bool{}
 
 	for otherSubnetName, otherSubnet := range vpc.Subnets {
 		if otherSubnetName == subnetName {
@@ -3165,7 +3176,11 @@ func buildVNIVPCFilteringACL(agent *agentapi.Agent, vpcName string, vpc vpcapi.V
 		}
 
 		if vpc.IsSubnetIsolated(otherSubnetName) {
-			denySubnets[otherSubnet.Subnet] = true
+			denyPrefixes[otherSubnet.Subnet] = dozer.SpecACLEntryActionDiscard
+			for prefix := range otherSubnet.HostBGPExtraPrefixes {
+				denyPrefixes[prefix] = dozer.SpecACLEntryActionDiscard
+				extraPrefixes[prefix] = true
+			}
 		}
 	}
 
@@ -3180,28 +3195,38 @@ func buildVNIVPCFilteringACL(agent *agentapi.Agent, vpcName string, vpc vpcapi.V
 			}
 
 			if otherSubnet, ok := vpc.Subnets[otherSubnetName]; ok {
-				delete(denySubnets, otherSubnet.Subnet)
+				delete(denyPrefixes, otherSubnet.Subnet)
+				for prefix := range otherSubnet.HostBGPExtraPrefixes {
+					delete(denyPrefixes, prefix)
+				}
 			} else {
 				return nil, errors.Errorf("permit policy #%d: subnet %s not found in VPC %s", permitIdx, otherSubnetName, vpcName)
 			}
 		}
 	}
 
-	for subnet := range denySubnets {
-		subnetID := agent.Spec.Catalog.SubnetIDs[subnet]
+	for prefix, action := range denyPrefixes {
+		subnetID := agent.Spec.Catalog.SubnetIDs[prefix]
+		// the upgrade dry-run plans with the config saved by the old agent, whose catalog predates the IDs
+		// for extra prefixes; failing here would skip the upgrade
+		if subnetID == 0 && extraPrefixes[prefix] {
+			slog.Warn("No subnet ID for hostBGP extra prefix, skipping its ACL entry", "vpc", vpcName, "prefix", prefix)
+
+			continue
+		}
 		if subnetID == 0 {
-			return nil, errors.Errorf("no subnet id found for vpc %s subnet %s", vpcName, subnet)
+			return nil, errors.Errorf("no subnet id found for vpc %s prefix %s", vpcName, prefix)
 		}
 		if subnetID < 100 {
-			return nil, errors.Errorf("subnet id for vpc %s subnet %s is too small", vpcName, subnet)
+			return nil, errors.Errorf("subnet id for vpc %s prefix %s is too small", vpcName, prefix)
 		}
 		if subnetID >= 65000 {
-			return nil, errors.Errorf("subnet id for vpc %s subnet %s is too large", vpcName, subnet)
+			return nil, errors.Errorf("subnet id for vpc %s prefix %s is too large", vpcName, prefix)
 		}
 
 		acl.Entries[subnetID] = &dozer.SpecACLEntry{
-			DestinationAddress: new(subnet),
-			Action:             dozer.SpecACLEntryActionDiscard,
+			DestinationAddress: new(prefix),
+			Action:             action,
 		}
 	}
 
