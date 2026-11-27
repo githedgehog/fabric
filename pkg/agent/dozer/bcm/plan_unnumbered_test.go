@@ -47,6 +47,7 @@ func TestPlanUnnumberedFabricMeshLinks(t *testing.T) {
 			Interfaces:     map[string]*dozer.SpecInterface{},
 			RouteMaps:      map[string]*dozer.SpecRouteMap{},
 			PrefixLists:    map[string]*dozer.SpecPrefixList{},
+			AsPathLists:    map[string]*dozer.SpecAsPathList{},
 			CommunityLists: map[string]*dozer.SpecCommunityList{},
 			VRFs: map[string]*dozer.SpecVRF{
 				VRFDefault: {BGP: &dozer.SpecVRFBGP{Neighbors: map[string]*dozer.SpecVRFBGPNeighbor{}}},
@@ -80,6 +81,8 @@ func TestPlanUnnumberedFabricMeshLinks(t *testing.T) {
 		ag.Spec.Config.SpineLeaf = &agentapi.AgentSpecConfigSpineLeaf{}
 		ag.Spec.Config.VTEPSubnet = "172.30.12.0/24"
 		ag.Spec.Config.ProtocolSubnet = "172.30.11.0/24"
+		ag.Spec.Switch.Topology.Domains = []string{"default"}
+		ag.Spec.Config.Domains = map[string]wiringapi.FabricDomainSpec{"default": {SpineASN: 65100, GatewayASN: 65200}}
 
 		return ag
 	}

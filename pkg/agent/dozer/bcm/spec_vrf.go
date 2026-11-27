@@ -433,6 +433,16 @@ var specVRFBGPNeighborEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP
 			}
 		}
 
+		var ipv4AllowOwnAS *oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis_AfiSafi_AllowOwnAs
+		if value.IPv4AllowOwnAS != nil {
+			ipv4AllowOwnAS = &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis_AfiSafi_AllowOwnAs{
+				Config: &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis_AfiSafi_AllowOwnAs_Config{
+					Enabled: new(true),
+					AsCount: value.IPv4AllowOwnAS,
+				},
+			}
+		}
+
 		var l2VPNEVPNAllowOwnAS *oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis_AfiSafi_AllowOwnAs
 		if value.L2VPNEVPNAllowOwnAS != nil {
 			l2VPNEVPNAllowOwnAS = &oc.OpenconfigNetworkInstance_NetworkInstances_NetworkInstance_Protocols_Protocol_Bgp_Neighbors_Neighbor_AfiSafis_AfiSafi_AllowOwnAs{
@@ -498,6 +508,7 @@ var specVRFBGPNeighborEnforcer = &DefaultValueEnforcer[string, *dozer.SpecVRFBGP
 								},
 								ApplyPolicy: ipApplyPolicy,
 								Ipv4Unicast: ipv4Unicast,
+								AllowOwnAs:  ipv4AllowOwnAS,
 							},
 							oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_L2VPN_EVPN: {
 								AfiSafiName: oc.OpenconfigBgpTypes_AFI_SAFI_TYPE_L2VPN_EVPN,
@@ -888,6 +899,7 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 						var ipv4ImportPolicies []string
 						var ipv4ExportPolicies []string
 						var ipv4ASOverride *bool
+						var ipv4AllowOwnAS *uint8
 						var ipv4MaxPrefixes *uint32
 						var ipv4MaxPrefixesRestart *uint16
 						var ipv4MaxPrefixesWarnPct *uint8
@@ -904,6 +916,10 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 									ipv4ExportPolicies = ocIPv4Unicast.ApplyPolicy.Config.ExportPolicy
 								}
 								ipv4ASOverride = ocIPv4Unicast.Config.AsOverride
+							}
+							if ocIPv4Unicast != nil && ocIPv4Unicast.AllowOwnAs != nil && ocIPv4Unicast.AllowOwnAs.Config != nil &&
+								ocIPv4Unicast.AllowOwnAs.Config.Enabled != nil && *ocIPv4Unicast.AllowOwnAs.Config.Enabled {
+								ipv4AllowOwnAS = ocIPv4Unicast.AllowOwnAs.Config.AsCount
 							}
 							if ocIPv4Unicast != nil && ocIPv4Unicast.Ipv4Unicast != nil && ocIPv4Unicast.Ipv4Unicast.PrefixLimit != nil &&
 								ocIPv4Unicast.Ipv4Unicast.PrefixLimit.Config != nil {
@@ -962,6 +978,7 @@ func unmarshalOCVRFs(ocVal *oc.OpenconfigNetworkInstance_NetworkInstances) (map[
 							IPv4UnicastImportPolicies: ipv4ImportPolicies,
 							IPv4UnicastExportPolicies: ipv4ExportPolicies,
 							IPv4ASOverride:            ipv4ASOverride,
+							IPv4AllowOwnAS:            ipv4AllowOwnAS,
 							IPv4MaxPrefixes:           ipv4MaxPrefixes,
 							IPv4MaxPrefixesRestart:    ipv4MaxPrefixesRestart,
 							IPv4MaxPrefixesWarnPct:    ipv4MaxPrefixesWarnPct,

@@ -18,6 +18,12 @@ asPathLists:
   gateway-origin:
     members:
     - ^65534$
+  gateway-origin-any-hop:
+    members:
+    - _65534$
+  leaf-transit:
+    members:
+    - _65100_
   other-domain-spines:
     members:
     - _65010_
@@ -290,6 +296,20 @@ routeMaps:
         conditions:
           matchPrefixLists: static-ext-subnets
         result: accept
+  loopback-import:
+    statements:
+      "10":
+        conditions:
+          matchAsPathList: gateway-origin-any-hop
+          matchPrefixLists: all-vtep-prefixes
+        result: accept
+      "20":
+        conditions:
+          matchAsPathList: leaf-transit
+        result: reject
+      "65535":
+        conditions: {}
+        result: accept
   protocol-loopback-only:
     statements:
       "10":
@@ -328,9 +348,12 @@ vrfs:
           description: Fabric leaf-01 loopback (spine-link)
           disableConnectedCheck: true
           enabled: true
+          ipv4AllowOwnAS: 1
           ipv4Unicast: true
           ipv4UnicastExportPolicies:
           - loopback-all-vteps
+          ipv4UnicastImportPolicies:
+          - loopback-import
           l2vpnEvpn: true
           l2vpnEvpnImportPolicies:
           - l2vpn-neighbors
@@ -340,9 +363,12 @@ vrfs:
           description: Fabric leaf-02 loopback (spine-link)
           disableConnectedCheck: true
           enabled: true
+          ipv4AllowOwnAS: 1
           ipv4Unicast: true
           ipv4UnicastExportPolicies:
           - loopback-all-vteps
+          ipv4UnicastImportPolicies:
+          - loopback-import
           l2vpnEvpn: true
           l2vpnEvpnImportPolicies:
           - l2vpn-neighbors
@@ -352,9 +378,12 @@ vrfs:
           description: Fabric leaf-03 loopback (spine-link)
           disableConnectedCheck: true
           enabled: true
+          ipv4AllowOwnAS: 1
           ipv4Unicast: true
           ipv4UnicastExportPolicies:
           - loopback-all-vteps
+          ipv4UnicastImportPolicies:
+          - loopback-import
           l2vpnEvpn: true
           l2vpnEvpnImportPolicies:
           - l2vpn-neighbors
@@ -364,9 +393,12 @@ vrfs:
           description: Fabric leaf-04 loopback (spine-link)
           disableConnectedCheck: true
           enabled: true
+          ipv4AllowOwnAS: 1
           ipv4Unicast: true
           ipv4UnicastExportPolicies:
           - loopback-all-vteps
+          ipv4UnicastImportPolicies:
+          - loopback-import
           l2vpnEvpn: true
           l2vpnEvpnImportPolicies:
           - l2vpn-neighbors
@@ -376,9 +408,12 @@ vrfs:
           description: Fabric leaf-05 loopback (spine-link)
           disableConnectedCheck: true
           enabled: true
+          ipv4AllowOwnAS: 1
           ipv4Unicast: true
           ipv4UnicastExportPolicies:
           - loopback-all-vteps
+          ipv4UnicastImportPolicies:
+          - loopback-import
           l2vpnEvpn: true
           l2vpnEvpnImportPolicies:
           - l2vpn-neighbors
