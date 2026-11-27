@@ -117,7 +117,9 @@ jobs:
         env:
           commit_sha: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
-          echo "version=v0-${commit_sha::9}" >> "$GITHUB_OUTPUT"
+          # "g" prefix (as in git describe) so an all-digit short SHA with a leading zero
+          # isn't parsed as a numeric semver pre-release identifier, e.g. v0-033328406
+          echo "version=v0-g${commit_sha::9}" >> "$GITHUB_OUTPUT"
           echo "ref=${commit_sha}" >> "$GITHUB_OUTPUT"
 
       - name: Build all and push temp artifacts
