@@ -15,10 +15,12 @@
 package inspect
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"log/slog"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -26,6 +28,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 	agentapi "go.githedgehog.com/fabric/api/agent/v1beta1"
+	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
+	gwintapi "go.githedgehog.com/fabric/api/gwint/v1alpha1"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	kapierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -49,6 +53,10 @@ type PortOut struct {
 	VPCAttachments      map[string]*vpcapi.VPCAttachmentSpec      `json:"vpcAttachments,omitempty"`
 	AttachedVPCs        map[string]*vpcapi.VPCSpec                `json:"attachedVPCs,omitempty"`
 	ExternalAttachments map[string]*vpcapi.ExternalAttachmentSpec `json:"externalAttachments,omitempty"` // if External conn
+
+	// if a gateway port
+	GatewayInterfaceState   *gwintapi.GatewayStateInterface   `json:"gatewayInterfaceState,omitempty"`
+	GatewayTransceiverState *gwintapi.GatewayStateTransceiver `json:"gatewayTransceiverState,omitempty"`
 }
 
 func (out *PortOut) MarshalText(_ PortIn, now time.Time) (string, error) {
@@ -142,6 +150,99 @@ func (out *PortOut) MarshalText(_ PortIn, now time.Time) (string, error) {
 
 			str.WriteString("\n")
 		}
+	}
+
+	if iface := out.GatewayInterfaceState; iface != nil {
+		speed := iface.Speed
+		if iface.AutoNegotiate {
+			speed += SpeedAutoNeg
+		}
+
+		lastChange := "-"
+		if iface.LastChange != nil && !iface.LastChange.IsZero() {
+			lastChange = HumanizeTime(now, iface.LastChange.Time)
+		}
+
+		flaps := "-"
+		if iface.LinkFlapCount != nil {
+			flaps = fmt.Sprintf("%d", *iface.LinkFlapCount)
+		}
+
+		str.WriteString("\nInterface:\n")
+		str.WriteString(RenderTable(
+			[]string{"Oper", "Speed", "FEC", "MAC", "Changed", "Flaps"},
+			[][]string{{string(iface.OperStatus), speed, iface.FEC, iface.MAC, lastChange, flaps}},
+		))
+
+		if counters := iface.Counters; counters != nil {
+			lastClear := "-"
+			if counters.LastClear != nil && !counters.LastClear.IsZero() {
+				lastClear = HumanizeTime(now, counters.LastClear.Time)
+			}
+
+			str.WriteString("\nPort Counters (↓ In ↑ Out):\n")
+			str.WriteString(RenderTable(
+				[]string{"Bits/sec In", "Bits/sec Out", "Pkts/sec In", "Pkts/sec Out", "Clear", "Errors", "Discards"},
+				[][]string{
+					{
+						fmt.Sprintf("↓ %s", humanize.CommafWithDigits(counters.InBitsPerSecond, 0)),
+						fmt.Sprintf("↑ %s", humanize.CommafWithDigits(counters.OutBitsPerSecond, 0)),
+						fmt.Sprintf("↓ %s", humanize.CommafWithDigits(counters.InPktsPerSecond, 0)),
+						fmt.Sprintf("↑ %s", humanize.CommafWithDigits(counters.OutPktsPerSecond, 0)),
+						lastClear,
+						fmt.Sprintf("↓ %d ↑ %d ", counters.InErrors, counters.OutErrors),
+						fmt.Sprintf("↓ %d ↑ %d", counters.InDiscards, counters.OutDiscards),
+					},
+				},
+			))
+		}
+
+		if len(iface.LLDPNeighbors) > 0 {
+			neighborData := [][]string{}
+			for _, neighbor := range iface.LLDPNeighbors {
+				updated := "-"
+				if neighbor.LastUpdate != nil && !neighbor.LastUpdate.IsZero() {
+					updated = HumanizeTime(now, neighbor.LastUpdate.Time)
+				}
+
+				neighborData = append(neighborData, []string{
+					neighbor.SystemName,
+					cmp.Or(neighbor.Port, neighbor.PortID),
+					neighbor.PortDescription,
+					neighbor.MAC,
+					neighbor.Model,
+					updated,
+				})
+			}
+
+			str.WriteString("\nLLDP Neighbors:\n")
+			str.WriteString(RenderTable(
+				[]string{"Name", "Port", "Port Description", "MAC", "Model", "Updated"},
+				neighborData,
+			))
+		}
+
+		str.WriteString("\n")
+	}
+
+	if tr := out.GatewayTransceiverState; tr != nil {
+		str.WriteString("Transceiver:\n")
+		fmt.Fprintf(&str, "  Description: %s\n", tr.Description)
+		fmt.Fprintf(&str, "  FormFactor: %s / %s\n", tr.FormFactor, tr.ConnectorType)
+		fmt.Fprintf(&str, "  CableClass: %s\n", tr.CableClass)
+		if tr.CableLength != 0 {
+			fmt.Fprintf(&str, "  CableLength: %sm\n", strconv.FormatFloat(tr.CableLength, 'f', -1, 64))
+		}
+		fmt.Fprintf(&str, "  SerialNumber: %s\n", tr.SerialNumber)
+		fmt.Fprintf(&str, "  Vendor: %q part %q rev %q\n", tr.Vendor, tr.VendorPart, tr.VendorRev)
+		if tr.Voltage != 0 {
+			fmt.Fprintf(&str, "  Voltage: %s\n", humanize.CommafWithDigits(tr.Voltage, 2))
+		}
+		if tr.Temperature != 0 {
+			fmt.Fprintf(&str, "  Temperature: %s\n", humanize.CommafWithDigits(tr.Temperature, 2))
+		}
+
+		str.WriteString("\n")
 	}
 
 	if out.BreakoutState != nil {
@@ -247,6 +348,13 @@ func Port(ctx context.Context, kube kclient.Reader, in PortIn) (*PortOut, error)
 	portName := parts[1]
 	if swName == "" || portName == "" {
 		return nil, errors.New("port must be in format <switch-name>/<port-name>")
+	}
+
+	gw := &gwapi.Gateway{}
+	if err := kube.Get(ctx, kclient.ObjectKey{Name: swName, Namespace: kmetav1.NamespaceDefault}, gw); err == nil {
+		return gatewayPort(ctx, kube, in.Port, swName, portName)
+	} else if !kapierrors.IsNotFound(err) {
+		return nil, fmt.Errorf("getting gateway %s: %w", swName, err)
 	}
 
 	out := &PortOut{
@@ -359,6 +467,51 @@ func Port(ctx context.Context, kube kclient.Reader, in PortIn) (*PortOut, error)
 				out.ExternalAttachments[extAttach.Name] = new(extAttach.Spec)
 			}
 		}
+	}
+
+	return out, nil
+}
+
+func gatewayPort(ctx context.Context, kube kclient.Reader, port, gwName, ifaceName string) (*PortOut, error) {
+	out := &PortOut{}
+
+	// gateway connections have no list label for the gateway
+	conns := &wiringapi.ConnectionList{}
+	if err := kube.List(ctx, conns, kclient.InNamespace(kmetav1.NamespaceDefault), kclient.MatchingLabels{
+		wiringapi.LabelConnectionType: wiringapi.ConnectionTypeGateway,
+	}); err != nil {
+		return nil, fmt.Errorf("listing gateway connections: %w", err)
+	}
+
+	for _, conn := range conns.Items {
+		if conn.Spec.Gateway == nil {
+			continue
+		}
+
+		if slices.ContainsFunc(conn.Spec.Gateway.Links, func(link wiringapi.GatewayLink) bool { return link.Gateway.PortName() == port }) {
+			out.ConnectionName = new(conn.Name)
+			out.Connection = new(conn.Spec)
+
+			break
+		}
+	}
+
+	ag := &gwintapi.GatewayAgent{}
+	if err := kube.Get(ctx, kclient.ObjectKey{Name: gwName, Namespace: kmetav1.NamespaceDefault}, ag); err != nil {
+		if kapierrors.IsNotFound(err) {
+			slog.Warn("GatewayAgent object not found, skipping actual port state", "name", gwName)
+
+			return out, nil
+		}
+
+		return nil, fmt.Errorf("getting gateway agent %s: %w", gwName, err)
+	}
+
+	if state, ok := ag.Status.State.Interfaces[ifaceName]; ok {
+		out.GatewayInterfaceState = &state
+	}
+	if state, ok := ag.Status.State.Transceivers[ifaceName]; ok {
+		out.GatewayTransceiverState = &state
 	}
 
 	return out, nil

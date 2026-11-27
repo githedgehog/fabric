@@ -756,6 +756,29 @@ func TestConnectionValidation(t *testing.T) {
 			err:        true,
 		},
 		{
+			name: "gateway-conn-two-links",
+			conn: gwConnGen("gw-1", func(conn *wiringapi.Connection) {
+				conn.Spec.Gateway.Links = append(conn.Spec.Gateway.Links, wiringapi.GatewayLink{
+					Switch:  wiringapi.ConnFabricLinkSwitch{BasePortName: wiringapi.NewBasePortName("spine-01/E1/2"), IP: "172.30.128.2/31"},
+					Gateway: wiringapi.ConnGatewayLinkGateway{BasePortName: wiringapi.NewBasePortName("gateway-1/enp2s2"), IP: "172.30.128.3/31"},
+				})
+			}),
+			withClient: true,
+			objects:    base,
+		},
+		{
+			name: "gateway-conn-two-gateways",
+			conn: gwConnGen("gw-1", func(conn *wiringapi.Connection) {
+				conn.Spec.Gateway.Links = append(conn.Spec.Gateway.Links, wiringapi.GatewayLink{
+					Switch:  wiringapi.ConnFabricLinkSwitch{BasePortName: wiringapi.NewBasePortName("spine-01/E1/2"), IP: "172.30.128.2/31"},
+					Gateway: wiringapi.ConnGatewayLinkGateway{BasePortName: wiringapi.NewBasePortName("gateway-2/enp2s1"), IP: "172.30.128.3/31"},
+				})
+			}),
+			withClient: true,
+			objects:    base,
+			err:        true,
+		},
+		{
 			name: "half-numbered-gateway",
 			conn: gwConnGen("gw-1", func(conn *wiringapi.Connection) {
 				conn.Spec.Gateway.Links[0].Gateway.IP = ""

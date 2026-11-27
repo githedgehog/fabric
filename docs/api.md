@@ -2026,6 +2026,159 @@ _Appears in:_
 | `vpcs` _object (keys:string, values:[VPCStatus](#vpcstatus))_ | VPCs is the status of the VPCs where key is the vpc (vpcinfo) name |  |  |
 | `peerings` _object (keys:string, values:[PeeringStatus](#peeringstatus))_ | Peerings is the status of the VPCs peerings where key is VPC1->VPC2 and data is for one direction only |  |  |
 | `bgp` _[BGPStatus](#bgpstatus)_ | BGP is BGP status |  |  |
+| `interfaces` _object (keys:string, values:[GatewayStateInterface](#gatewaystateinterface))_ | Interfaces state, keyed by the spec interface name |  |  |
+| `transceivers` _object (keys:string, values:[GatewayStateTransceiver](#gatewaystatetransceiver))_ | Transceivers state, keyed by the spec interface name |  |  |
+
+
+#### GatewayStateInterface
+
+
+
+
+
+
+
+_Appears in:_
+- [GatewayState](#gatewaystate)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `oper` _[InterfaceOperStatus](#interfaceoperstatus)_ |  |  | Enum: [up down testing unknown dormant notPresent lowerLayerDown] <br /> |
+| `mac` _string_ |  |  |  |
+| `change` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#time-v1-meta)_ | When the oper status last changed |  |  |
+| `speed` _string_ | Link speed, e.g. 2.5G, 25G, 100G |  | Pattern: `^[0-9]+(\.[0-9]+)?[MGT]$` <br /> |
+| `auto` _boolean_ |  |  |  |
+| `fec` _string_ | FEC mode, e.g. rs, fc, disabled |  |  |
+| `counters` _[GatewayStateInterfaceCounters](#gatewaystateinterfacecounters)_ |  |  |  |
+| `lldpNeighbors` _[GatewayStateLLDPNeighbor](#gatewaystatelldpneighbor) array_ |  |  |  |
+| `linkFlapCount` _integer_ | Number of link flaps |  | Format: int64 <br />Maximum: 4.294967295e+09 <br />Minimum: 0 <br /> |
+
+
+#### GatewayStateInterfaceCounters
+
+
+
+GatewayStateInterfaceCounters are in bits, not bytes, like the switch ones
+
+
+
+_Appears in:_
+- [GatewayStateInterface](#gatewaystateinterface)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `inb` _integer_ |  |  |  |
+| `inbps` _float_ |  |  |  |
+| `ind` _integer_ |  |  |  |
+| `ine` _integer_ |  |  |  |
+| `inpps` _float_ |  |  |  |
+| `outb` _integer_ |  |  |  |
+| `outbps` _float_ |  |  |  |
+| `outd` _integer_ |  |  |  |
+| `oute` _integer_ |  |  |  |
+| `outpps` _float_ |  |  |  |
+| `clear` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#time-v1-meta)_ | When the counters were last reset, e.g. on dataplane start |  |  |
+
+
+#### GatewayStateLLDPNeighbor
+
+
+
+
+
+
+
+_Appears in:_
+- [GatewayStateInterface](#gatewaystateinterface)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `chassis` _string_ |  |  |  |
+| `sysName` _string_ |  |  |  |
+| `sysDescr` _string_ |  |  |  |
+| `portID` _string_ |  |  |  |
+| `portDescr` _string_ |  |  |  |
+| `ttl` _integer_ | TTL advertised by the neighbor, seconds |  |  |
+| `updated` _[Time](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.37/#time-v1-meta)_ | When the neighbor entry was last updated |  |  |
+| `manuf` _string_ |  |  |  |
+| `model` _string_ |  |  |  |
+| `serial` _string_ |  |  |  |
+| `mac` _string_ | MAC of the neighbor port: the LLDP source MAC, or the port ID if it's a MAC address |  |  |
+| `port` _string_ | Human-readable neighbor port name: the port ID, or the port description if the port ID is a MAC address |  |  |
+
+
+#### GatewayStateTransceiver
+
+
+
+
+
+
+
+_Appears in:_
+- [GatewayState](#gatewaystate)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `descr` _string_ | Human-readable module type, e.g. "OSFP112 800GBASE-DR8" or "SFP+ 10GBASE-LR" |  |  |
+| `cable` _string_ | Cable class, e.g. DAC or FIBER |  |  |
+| `formFactor` _string_ | OpenConfig form factor, e.g. SFP_PLUS, OSFP112 |  |  |
+| `connType` _string_ | OpenConfig connector type, e.g. LC_CONNECTOR, MPO_2x12_CONNECTOR, NO_SEPARABLE_CONNECTOR (DACs) |  |  |
+| `present` _string_ | PRESENT or NOT_PRESENT |  |  |
+| `length` _float_ | Cable length in meters |  |  |
+| `temp` _float_ | Module temperature in Celsius |  |  |
+| `voltage` _float_ | Module supply voltage in volts |  |  |
+| `serial` _string_ |  |  |  |
+| `vendor` _string_ |  |  |  |
+| `vendorPart` _string_ |  |  |  |
+| `vendorOUI` _string_ |  |  |  |
+| `vendorRev` _string_ |  |  |  |
+| `firmware` _string_ |  |  |  |
+| `cmis` _string_ | CMIS module state, e.g. Ready; CMIS modules only |  |  |
+| `cmisRev` _string_ |  |  |  |
+| `cmisApp` _integer_ | Active CMIS application selection code |  |  |
+| `channels` _object (keys:string, values:[GatewayStateTransceiverChannel](#gatewaystatetransceiverchannel))_ | Per-lane state, keyed by the lane index starting from 0 |  |  |
+
+
+#### GatewayStateTransceiverChannel
+
+
+
+
+
+
+
+_Appears in:_
+- [GatewayStateTransceiver](#gatewaystatetransceiver)
+
+| Field | Description | Default | Validation |
+| --- | --- | --- | --- |
+| `in` _float_ | Input (rx) power in dBm |  |  |
+| `out` _float_ | Output (tx) power in dBm |  |  |
+| `bias` _float_ | Laser bias current in mA |  |  |
+
+
+#### InterfaceOperStatus
+
+_Underlying type:_ _string_
+
+
+
+_Validation:_
+- Enum: [up down testing unknown dormant notPresent lowerLayerDown]
+
+_Appears in:_
+- [GatewayStateInterface](#gatewaystateinterface)
+
+| Field | Description |
+| --- | --- |
+| `up` |  |
+| `down` |  |
+| `testing` |  |
+| `unknown` |  |
+| `dormant` |  |
+| `notPresent` |  |
+| `lowerLayerDown` |  |
 
 
 #### PeeringStatus

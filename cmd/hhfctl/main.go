@@ -1238,16 +1238,65 @@ Examples:
 						},
 					},
 					{
-						Name:    "port",
-						Aliases: []string{"switchport"},
-						Usage:   "Inspect Switch Port (connection if used in one, counters, VPC and External attachments, etc.)",
+						Name:  "gateway",
+						Usage: "Inspect Gateway (status, ports, transceivers, counters, etc.)",
 						Flags: []cli.Flag{
 							verboseFlag,
 							outputFlag,
 							&cli.StringFlag{
 								Name:     "name",
 								Aliases:  []string{"n"},
-								Usage:    "full switch port name (<switch-name>/<port-name>, e.g. 's5248-02/E1/2')",
+								Usage:    "gateway name",
+								Required: true,
+							},
+							&cli.BoolFlag{
+								Name:    "ports",
+								Aliases: []string{"p"},
+								Usage:   "include ports information",
+							},
+							&cli.BoolFlag{
+								Name:    "transceivers",
+								Aliases: []string{"t"},
+								Usage:   "include transceivers information",
+							},
+							&cli.BoolFlag{
+								Name:    "counters",
+								Aliases: []string{"c"},
+								Usage:   "include counters",
+							},
+							&cli.BoolFlag{
+								Name:    "lasers",
+								Aliases: []string{"l"},
+								Usage:   "include laser details",
+							},
+						},
+						Before: func(_ *cli.Context) error {
+							return setupLogger(verbose)
+						},
+						Action: func(cCtx *cli.Context) error {
+							return errors.Wrapf(inspect.Run(ctx, inspect.Gateway, inspect.Args{
+								Verbose: verbose,
+								Output:  inspect.OutputType(output),
+							}, inspect.GatewayIn{
+								Name:         cCtx.String("name"),
+								Ports:        cCtx.Bool("ports"),
+								Transceivers: cCtx.Bool("transceivers"),
+								Counters:     cCtx.Bool("counters"),
+								Lasers:       cCtx.Bool("lasers"),
+							}, os.Stdout), "failed to inspect Gateway")
+						},
+					},
+					{
+						Name:    "port",
+						Aliases: []string{"switchport"},
+						Usage:   "Inspect Switch or Gateway Port (connection if used in one, counters, VPC and External attachments, etc.)",
+						Flags: []cli.Flag{
+							verboseFlag,
+							outputFlag,
+							&cli.StringFlag{
+								Name:     "name",
+								Aliases:  []string{"n"},
+								Usage:    "full switch or gateway port name (<device-name>/<port-name>, e.g. 's5248-02/E1/2' or 'gateway-1/port1')",
 								Required: true,
 							},
 						},
@@ -1260,7 +1309,7 @@ Examples:
 								Output:  inspect.OutputType(output),
 							}, inspect.PortIn{
 								Port: cCtx.String("name"),
-							}, os.Stdout), "failed to inspect Switch Port")
+							}, os.Stdout), "failed to inspect Port")
 						},
 					},
 					{
@@ -1452,7 +1501,7 @@ Examples:
 							},
 							&cli.BoolFlag{
 								Name:  "gateway-conns",
-								Usage: "include gateway neighbors (gateway connections)",
+								Usage: "include gateway neighbors (gateway connections), and the gateways wired to the switches with their own neighbors",
 								Value: true,
 							},
 							&cli.BoolFlag{

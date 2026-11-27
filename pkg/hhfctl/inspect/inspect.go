@@ -33,6 +33,7 @@ import (
 	dhcpapi "go.githedgehog.com/fabric/api/dhcp/v1beta1"
 	fcintapi "go.githedgehog.com/fabric/api/fcint/v1alpha1"
 	gwapi "go.githedgehog.com/fabric/api/gateway/v1alpha1"
+	gwintapi "go.githedgehog.com/fabric/api/gwint/v1alpha1"
 	vpcapi "go.githedgehog.com/fabric/api/vpc/v1beta1"
 	wiringapi "go.githedgehog.com/fabric/api/wiring/v1beta1"
 	"go.githedgehog.com/fabric/pkg/util/kubeutil"
@@ -85,6 +86,7 @@ func Run[TIn In, TOut Out[TIn]](ctx context.Context, f Func[TIn, TOut], args Arg
 		agentapi.AddToScheme,
 		dhcpapi.AddToScheme,
 		gwapi.AddToScheme,
+		gwintapi.AddToScheme,
 		fcintapi.AddToScheme,
 		coreapi.AddToScheme,
 	)
