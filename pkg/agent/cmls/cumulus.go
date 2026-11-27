@@ -57,6 +57,7 @@ type ConfigIn struct {
 	ManagementIP     string
 	ProtocolIP       string
 	VTEPIP           string
+	VTEPSubnet       string
 	ASN              uint32
 	RouterID         string
 	VXLANSource      string
@@ -69,14 +70,16 @@ type ConfigIn struct {
 	BFD              bool
 	BaseVPCCommunity string
 	BGPNeighbors     []BGPNeighbor
-	StaticExtSubnets map[uint32]string // subnet ID -> static external link subnet or routed subnet in the default VRF
+	StaticExtSubnets map[uint32]string // subnet ID -> static external link subnet or routed subnet in the default VRF, of the whole fabric on a spine
 	StaticRoutes     map[string][]string
 	Gateway          *GatewayConfig
 	GatewayPrios     []GatewayPrio
 	Ports            []*PortConfig
 	Bonds            []*BondConfig
 	ESLAG            bool
+	ESLAGBridgePorts []string // the ESLAG bonds in the bridge, which need the VXLAN device as backup port
 	Subinterfaces    []*SubinterfaceConfig
+	AnycastMAC       string
 	Subnets          []*SubnetConfig
 	SubnetACLs       []*SubnetConfig
 	Restricted       []*SubnetConfig
@@ -110,8 +113,7 @@ type BGPNeighbor struct {
 }
 
 type GatewayConfig struct {
-	ASN        uint32
-	VTEPSubnet string
+	ASN uint32
 }
 
 // GatewayPrio is a gateway priority community, the routes with a higher priority (a lower number) get a higher local
@@ -127,6 +129,7 @@ type VPC struct {
 	Name        string
 	VRF         string
 	VNI         uint32
+	IRBVLAN     uint16
 	Subnets     map[uint32]string // subnet VNI % 100 -> subnet, as NVUE only allows a single prefix per rule
 	RouteSumm   []string
 	Peers       []VPCPeer
@@ -182,6 +185,7 @@ type External struct {
 	Name              string
 	VRF               string
 	VNI               uint32
+	IRBVLAN           uint16
 	Static            bool
 	Routes            map[string][]string
 	Neighbors         []*ExternalNeighbor
@@ -339,7 +343,19 @@ type SubnetConfig struct {
 	HostBGP       bool
 }
 
+// anycastMAC is the MAC of the VPC subnet SVIs on all the leaves
+const anycastMAC = "00:00:00:11:11:11"
+
 func buildConfig(agent *agentapi.Agent) (*bytes.Buffer, error) {
+	cfgIn, err := buildConfigIn(agent)
+	if err != nil {
+		return nil, err
+	}
+
+	return renderConfig(fullCfgTmpl, cfgIn)
+}
+
+func buildConfigIn(agent *agentapi.Agent) (*ConfigIn, error) {
 	isSpine := agent.IsSpineLeaf() && agent.Spec.Switch.Role.IsSpine()
 	isLeaf := agent.IsSpineLeaf() && agent.Spec.Switch.Role.IsLeaf()
 
@@ -572,11 +588,7 @@ func buildConfig(agent *agentapi.Agent) (*bytes.Buffer, error) {
 					if asn == 0 {
 						return nil, fmt.Errorf("conn %s: no gateway ASN for domain %s", connName, domains[0]) //nolint:err113
 					}
-					vtepSubnet, err := netip.ParsePrefix(agent.Spec.Config.VTEPSubnet)
-					if err != nil {
-						return nil, fmt.Errorf("conn %s: parsing VTEP subnet: %w", connName, err)
-					}
-					gateway = &GatewayConfig{ASN: asn, VTEPSubnet: vtepSubnet.Masked().String()}
+					gateway = &GatewayConfig{ASN: asn}
 				}
 
 				ip, err := netip.ParsePrefix(link.Switch.IP)
@@ -911,10 +923,17 @@ func buildConfig(agent *agentapi.Agent) (*bytes.Buffer, error) {
 			slices.Sort(routes[prefix.String()])
 		}
 
+		// the L3VNI VLAN is pinned so the external SVIs have a known name, and VRFs never collide with them
+		irbVLAN := agent.Spec.Catalog.IRBVLANs[vpcName]
+		if irbVLAN == 0 {
+			return nil, fmt.Errorf("vpc %s: no IRB VLAN", vpcName) //nolint:err113
+		}
+
 		vpcs = append(vpcs, VPC{
 			Name:        vpcName,
 			VRF:         vpcVRF(vpcName),
 			VNI:         vpcVNIs[vpcName],
+			IRBVLAN:     irbVLAN,
 			Subnets:     subnets,
 			RouteSumm:   routeSumm[vpcName],
 			Peers:       slices.SortedFunc(slices.Values(peers[vpcName]), func(a, b VPCPeer) int { return cmp.Compare(a.Name, b.Name) }),
@@ -952,7 +971,14 @@ func buildConfig(agent *agentapi.Agent) (*bytes.Buffer, error) {
 			if vni == 0 {
 				return nil, fmt.Errorf("external %s: no VNI", attach.External) //nolint:err113
 			}
-			ext = &External{Name: attach.External, VRF: extVRF(attach.External), VNI: vni, Routes: map[string][]string{}}
+			irbVLAN := agent.Spec.Catalog.IRBVLANs[librarian.ReqForExt(attach.External)]
+			if irbVLAN == 0 {
+				return nil, fmt.Errorf("external %s: no IRB VLAN", attach.External) //nolint:err113
+			}
+			ext = &External{
+				Name: attach.External, VRF: extVRF(attach.External), VNI: vni, IRBVLAN: irbVLAN,
+				IPv4Namespace: extSpec.IPv4Namespace, Routes: map[string][]string{},
+			}
 			externals[attach.External] = ext
 		}
 
@@ -1095,14 +1121,38 @@ func buildConfig(agent *agentapi.Agent) (*bytes.Buffer, error) {
 	staticRoutes := map[string][]string{}
 	for _, connName := range slices.Sorted(maps.Keys(agent.Spec.Connections)) {
 		conn := agent.Spec.Connections[connName]
-		if conn.StaticExternal == nil || conn.StaticExternal.Link.Switch.DeviceName() != agent.Name {
+		if conn.StaticExternal == nil {
+			continue
+		}
+		cfg := conn.StaticExternal.Link.Switch
+
+		// the spines get the default VRF ones of all the leaves only to pass their subnets on, so a broken one is skipped
+		// rather than failing the spine
+		if cfg.DeviceName() != agent.Name {
+			if !isSpine || conn.StaticExternal.WithinVPC != "" {
+				continue
+			}
+			subnets := slices.Clone(cfg.Subnets)
+			if ip, err := netip.ParsePrefix(cfg.IP); err == nil {
+				subnets = append(subnets, ip.Masked().String())
+			}
+			for _, subnet := range subnets {
+				prefix, err := netip.ParsePrefix(subnet)
+				id := agent.Spec.Catalog.SubnetIDs[subnet]
+				if err != nil || !prefix.Addr().Is4() || id < 100 || id >= 65000 {
+					slog.Warn("Skipping a static external subnet of another switch", "conn", connName, "subnet", subnet, "id", id)
+
+					continue
+				}
+				staticExtSubnets[id] = prefix.String()
+			}
+
 			continue
 		}
 		if !isLeaf {
 			return nil, fmt.Errorf("conn %s: static externals are only supported on leaves", connName) //nolint:err113
 		}
 
-		cfg := conn.StaticExternal.Link.Switch
 		ip, err := netip.ParsePrefix(cfg.IP)
 		if err != nil || !ip.Addr().Is4() {
 			return nil, fmt.Errorf("conn %s: invalid IP %q", connName, cfg.IP) //nolint:err113
@@ -1168,22 +1218,34 @@ func buildConfig(agent *agentapi.Agent) (*bytes.Buffer, error) {
 		}
 	}
 
-	// the traffic from the fabric to the IPv4 namespace subnets mustn't leave through an external
+	// the traffic from the fabric to the IPv4 namespace subnets mustn't leave through an external, nor come back from
+	// another border leaf over the external VNI: when the local session is down, the VPCs can pick the leaked EVPN path
+	// of the external VRF, and the other border leaf would route it to any VPC leaked into its external VRF
 	for _, nsName := range slices.Sorted(maps.Keys(egressNamespaces)) {
 		ns, ok := agent.Spec.IPv4Namespaces[nsName]
 		if !ok {
 			return nil, fmt.Errorf("external %s: ipv4 namespace %s not found", egressNamespaces[nsName], nsName) //nolint:err113
 		}
-		acl := &ACL{Name: ipnsEgressACL(nsName)}
-		for idx, subnet := range ns.Subnets {
+		subnets := []string{}
+		for _, subnet := range ns.Subnets {
 			parsed, err := netip.ParsePrefix(subnet)
 			if err != nil || !parsed.Addr().Is4() {
 				return nil, fmt.Errorf("ipv4 namespace %s: invalid subnet %q", nsName, subnet) //nolint:err113
 			}
-			acl.Rules = append(acl.Rules, ACLRule{ID: uint32(10 * (idx + 1)), DstIP: parsed.String()})
+			subnets = append(subnets, parsed.String())
 		}
-		acl.Rules = append(acl.Rules, ACLRule{ID: 65535, Permit: true})
-		acls = append(acls, acl)
+		egress := &ACL{Name: ipnsEgressACL(nsName)}
+		noPeering := &ACL{Name: "no-ipns-peering--" + nsName}
+		for srcIdx, src := range subnets {
+			egress.Rules = append(egress.Rules, ACLRule{ID: uint32(10 * (srcIdx + 1)), DstIP: src})
+			// same rule IDs as SONiC
+			for dstIdx, dst := range subnets {
+				noPeering.Rules = append(noPeering.Rules, ACLRule{ID: uint32(srcIdx*100 + dstIdx + 1), SrcIP: src, DstIP: dst})
+			}
+		}
+		egress.Rules = append(egress.Rules, ACLRule{ID: 65535, Permit: true})
+		noPeering.Rules = append(noPeering.Rules, ACLRule{ID: 65535, Permit: true})
+		acls = append(acls, egress, noPeering)
 	}
 
 	bgpExternals := len(ipv4Namespaces) > 0
@@ -1577,10 +1639,14 @@ func buildConfig(agent *agentapi.Agent) (*bytes.Buffer, error) {
 	}
 
 	// bonds and their members are only up when attached, the same as the unbundled ports
+	eslagBridgePorts := []string{}
 	for _, bond := range bonds {
 		bond.Up = bond.Attached || agent.Spec.Switch.EnableAllPorts
 		for _, port := range bond.Members {
 			port.Up = bond.Up
+		}
+		if bond.ESI != "" && len(bond.VLANs) > 0 {
+			eslagBridgePorts = append(eslagBridgePorts, bond.Name)
 		}
 	}
 
@@ -1592,6 +1658,16 @@ func buildConfig(agent *agentapi.Agent) (*bytes.Buffer, error) {
 		return strings.Compare(a.Name, b.Name)
 	})
 
+	// the spines pass all the VTEPs on to the leaves, the gateway gets them all
+	vtepSubnet := ""
+	if isSpine || gateway != nil {
+		prefix, err := netip.ParsePrefix(agent.Spec.Config.VTEPSubnet)
+		if err != nil {
+			return nil, fmt.Errorf("parsing VTEP subnet %q: %w", agent.Spec.Config.VTEPSubnet, err)
+		}
+		vtepSubnet = prefix.Masked().String()
+	}
+
 	cfgIn := ConfigIn{
 		Hostname:         agent.Name,
 		Users:            users,
@@ -1599,6 +1675,7 @@ func buildConfig(agent *agentapi.Agent) (*bytes.Buffer, error) {
 		ManagementIP:     agent.Spec.Switch.IP,
 		ProtocolIP:       agent.Spec.Switch.ProtocolIP,
 		VTEPIP:           agent.Spec.Switch.VTEPIP,
+		VTEPSubnet:       vtepSubnet,
 		ASN:              agent.Spec.Switch.ASN,
 		RouterID:         protocolIP.Addr().String(),
 		VXLANSource:      vtepIP.Addr().String(),
@@ -1618,7 +1695,9 @@ func buildConfig(agent *agentapi.Agent) (*bytes.Buffer, error) {
 		Ports:            ports,
 		Bonds:            bonds,
 		ESLAG:            eslag,
+		ESLAGBridgePorts: eslagBridgePorts,
 		Subinterfaces:    subifs,
+		AnycastMAC:       anycastMAC,
 		Subnets:          subnets,
 		SubnetACLs:       slices.DeleteFunc(slices.Clone(aclSubnets), func(subnet *SubnetConfig) bool { return len(subnet.Deny) == 0 && !subnet.DenySelf }),
 		Restricted:       slices.DeleteFunc(slices.Clone(aclSubnets), func(subnet *SubnetConfig) bool { return subnet.RestrictedACL == "" }),
@@ -1634,7 +1713,7 @@ func buildConfig(agent *agentapi.Agent) (*bytes.Buffer, error) {
 		cfgIn.DHCPServer = controlVIP.Addr().String()
 	}
 
-	return renderConfig(fullCfgTmpl, cfgIn)
+	return &cfgIn, nil
 }
 
 // ZTPConfigIn only has what's needed to reach the switch and to install the agent, which replaces the whole config on
@@ -1998,7 +2077,6 @@ func externalBGPPolicy(agent *agentapi.Agent, ext *External, extSpec vpcapi.Exte
 		return fmt.Errorf("external %s: ipv4 namespace %s not found", ext.Name, extSpec.IPv4Namespace) //nolint:err113
 	}
 
-	ext.IPv4Namespace = extSpec.IPv4Namespace
 	ext.InboundCommunity = extSpec.InboundCommunity
 	ext.OutboundCommunity = extSpec.OutboundCommunity
 	// the inbound community stays on the routes, as the import of the external routes into the VPCs matches it
@@ -2248,9 +2326,13 @@ func Enforce(ctx context.Context, _ /* processor */ dozer.Processor, agent *agen
 		return err
 	}
 
-	cfgBuf, err := buildConfig(agent)
+	cfgIn, err := buildConfigIn(agent)
 	if err != nil {
 		return fmt.Errorf("building full config: %w", err)
+	}
+	cfgBuf, err := renderConfig(fullCfgTmpl, cfgIn)
+	if err != nil {
+		return fmt.Errorf("rendering full config: %w", err)
 	}
 
 	if dryRun {
@@ -2282,6 +2364,7 @@ func Enforce(ctx context.Context, _ /* processor */ dozer.Processor, agent *agen
 		}
 	} else if len(bytes.TrimSpace(diff)) == 0 {
 		slog.Debug("Config is already applied")
+		redoPostUps(ctx, cfgIn)
 
 		return nil
 	}
@@ -2295,7 +2378,31 @@ func Enforce(ctx context.Context, _ /* processor */ dozer.Processor, agent *agen
 		return fmt.Errorf("writing applied diff file: %w", err)
 	}
 
+	redoPostUps(ctx, cfgIn)
+
 	return nil
+}
+
+// redoPostUps runs the ifupdown2 snippets' post-up commands again on every enforce, as ifupdown2 only warns when one
+// fails and a later run with no config diff would never repair it; the post-ups stay to have the state before the
+// agent starts. Failures are only logged, as an error would crash-loop the agent on its saved config and block any new
+// one
+func redoPostUps(ctx context.Context, cfg *ConfigIn) {
+	if len(cfg.Subnets) == 0 {
+		return
+	}
+
+	for _, subnet := range cfg.Subnets {
+		if err := run(ctx, "bridge-fdb", "bridge", "fdb", "replace", cfg.AnycastMAC, "dev", "br_default",
+			"vlan", strconv.Itoa(int(subnet.VLAN)), "self", "local"); err != nil {
+			slog.Error("Failed to add the local bridge fdb entry", "subnet", subnet.Name, "err", err)
+		}
+	}
+	for _, bond := range cfg.ESLAGBridgePorts {
+		if err := run(ctx, "bridge-link", "bridge", "link", "set", "dev", bond, "backup_port", "vxlan48"); err != nil {
+			slog.Error("Failed to set the bridge backup port", "bond", bond, "err", err)
+		}
+	}
 }
 
 const sudoersPath = "/etc/sudoers.d/hedgehog"

@@ -6,8 +6,10 @@ package cmls
 import (
 	"bytes"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -521,6 +523,18 @@ func TestBuildConfigErrors(t *testing.T) {
 			err: "external ext-01: no VNI",
 		},
 		{
+			name:    "vx-ext-no-irb-vlan",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate: func(agent *agentapi.Agent) {
+				withExtAttachments(map[string]vpcapi.ExternalAttachmentSpec{
+					"leaf-01--ext-01": {Connection: "leaf-01--external", External: "ext-01"},
+				})(agent)
+				delete(agent.Spec.Catalog.IRBVLANs, "ext@ext-01")
+			},
+			err: "external ext-01: no IRB VLAN",
+		},
+		{
 			name:    "vx-ext-attach-invalid-ip",
 			profile: &switchprofile.CumulusVX,
 			port:    "E1/1",
@@ -904,6 +918,13 @@ func TestBuildConfigErrors(t *testing.T) {
 			err:     "vpc vpc-01: no VNI",
 		},
 		{
+			name:    "vx-vpc-no-irb-vlan",
+			profile: &switchprofile.CumulusVX,
+			port:    "E1/1",
+			mutate:  func(agent *agentapi.Agent) { delete(agent.Spec.Catalog.IRBVLANs, "vpc-01") },
+			err:     "vpc vpc-01: no IRB VLAN",
+		},
+		{
 			name:    "vx-vpc-vni-not-multiple-of-100",
 			profile: &switchprofile.CumulusVX,
 			port:    "E1/1",
@@ -968,6 +989,7 @@ func TestBuildConfigErrors(t *testing.T) {
 					Catalog: agentapi.CatalogSpec{
 						VPCVNIs:       map[string]uint32{"vpc-01": 100, "vpc-02": 200},
 						VPCSubnetVNIs: map[string]map[string]uint32{"vpc-01": {"default": 101}, "vpc-02": {"default": 201}},
+						IRBVLANs:      map[string]uint16{"vpc-01": 3001, "vpc-02": 3002},
 					},
 				},
 			}
@@ -1073,6 +1095,7 @@ func withExtAttachments(attaches map[string]vpcapi.ExternalAttachmentSpec) func(
 			Static:        &vpcapi.ExternalStaticSpec{Prefixes: []string{"0.0.0.0/0"}},
 		}}
 		agent.Spec.Catalog.VPCVNIs["ext@ext-01"] = 300
+		agent.Spec.Catalog.IRBVLANs["ext@ext-01"] = 3000
 		agent.Spec.Config.BaseVPCCommunity = testBaseVPCCommunity
 		agent.Spec.IPv4Namespaces = map[string]vpcapi.IPv4NamespaceSpec{"default": {Subnets: []string{"10.0.0.0/16"}}}
 		agent.Spec.ExternalAttachments = attaches
@@ -1223,6 +1246,149 @@ func TestBuildConfig(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestBuildConfigLeafPassesGatewayVTEPs(t *testing.T) {
+	agData, err := os.ReadFile(filepath.Join(testdataDir, "vx-leaf-01.in.agent.yaml"))
+	require.NoError(t, err, "reading agent file")
+	ag := &agentapi.Agent{}
+	require.NoError(t, kyaml.Unmarshal(agData, ag), "unmarshalling agent data")
+	ag.Spec.SwitchProfile = switchprofile.CumulusVX.Spec.DeepCopy()
+	ag.Spec.Connections["leaf-01--gateway--gateway-1"] = wiringapi.ConnectionSpec{Gateway: &wiringapi.ConnGateway{
+		Links: []wiringapi.GatewayLink{{
+			Switch:  wiringapi.ConnFabricLinkSwitch{BasePortName: wiringapi.BasePortName{Port: "leaf-01/E1/30"}, IP: "172.30.128.20/31"},
+			Gateway: wiringapi.ConnGatewayLinkGateway{BasePortName: wiringapi.BasePortName{Port: "gateway-1/enp2s1"}, IP: "172.30.128.21/31"},
+		}},
+	}}
+
+	cfg, err := buildConfig(ag)
+	require.NoError(t, err, "building full config")
+
+	var parsed []struct {
+		Set struct {
+			Router struct {
+				Policy struct {
+					RouteMap map[string]struct {
+						Rule map[string]struct {
+							Match map[string]string `json:"match"`
+						} `json:"rule"`
+					} `json:"route-map"`
+				} `json:"policy"`
+			} `json:"router"`
+		} `json:"set"`
+	}
+	require.NoError(t, kyaml.Unmarshal(cfg.Bytes(), &parsed), "parsing full config")
+	require.Len(t, parsed, 1)
+	require.Equal(t,
+		map[string]string{"as-path-list": "gateway-origin", "ip-prefix-list": "all-vtep-prefixes", "type": "ipv4"},
+		parsed[0].Set.Router.Policy.RouteMap["underlay-to-spines"].Rule["30"].Match,
+	)
+}
+
+func TestBuildConfigESLAGBackupPort(t *testing.T) {
+	agData, err := os.ReadFile(filepath.Join(testdataDir, "vx-leaf-01.in.agent.yaml"))
+	require.NoError(t, err, "reading agent file")
+	ag := &agentapi.Agent{}
+	require.NoError(t, kyaml.Unmarshal(agData, ag), "unmarshalling agent data")
+	ag.Spec.SwitchProfile = switchprofile.CumulusVX.Spec.DeepCopy()
+
+	cfg, err := buildConfigIn(ag)
+	require.NoError(t, err, "building full config")
+	require.Equal(t, []string{"bond2"}, cfg.ESLAGBridgePorts)
+
+	// an ESLAG bond without attachments isn't a bridge port, so it gets no backup port
+	delete(ag.Spec.VPCAttachments, "s06-v1")
+	cfg, err = buildConfigIn(ag)
+	require.NoError(t, err, "building full config")
+	require.Empty(t, cfg.ESLAGBridgePorts)
+	rendered, err := renderConfig(fullCfgTmpl, cfg)
+	require.NoError(t, err, "rendering full config")
+	require.NotContains(t, rendered.String(), "backup_port")
+}
+
+func TestBuildConfigNoIPNSPeeringPairs(t *testing.T) {
+	agData, err := os.ReadFile(filepath.Join(testdataDir, "vx-leaf-01.in.agent.yaml"))
+	require.NoError(t, err, "reading agent file")
+	ag := &agentapi.Agent{}
+	require.NoError(t, kyaml.Unmarshal(agData, ag), "unmarshalling agent data")
+	ag.Spec.SwitchProfile = switchprofile.CumulusVX.Spec.DeepCopy()
+	ag.Spec.IPv4Namespaces["default"] = vpcapi.IPv4NamespaceSpec{Subnets: []string{"10.0.0.0/16", "10.1.0.0/16"}}
+
+	cfg, err := buildConfig(ag)
+	require.NoError(t, err, "building full config")
+
+	type match struct {
+		Src string `json:"source-ip"`
+		Dst string `json:"dest-ip"`
+	}
+	var parsed []struct {
+		Set struct {
+			ACL map[string]struct {
+				Rule map[string]struct {
+					Action map[string]any `json:"action"`
+					Match  struct {
+						IP match `json:"ip"`
+					} `json:"match"`
+				} `json:"rule"`
+			} `json:"acl"`
+		} `json:"set"`
+	}
+	require.NoError(t, kyaml.Unmarshal(cfg.Bytes(), &parsed), "parsing full config")
+	require.Len(t, parsed, 1)
+
+	rules := parsed[0].Set.ACL["no-ipns-peering--default"].Rule
+	actual := map[string]match{}
+	for id, rule := range rules {
+		action := "deny"
+		if _, ok := rule.Action["permit"]; ok {
+			action = "permit"
+		}
+		require.Equal(t, id == "65535", action == "permit", "rule %s action %s", id, action)
+		actual[id] = rule.Match.IP
+	}
+	require.Equal(t, map[string]match{
+		"1":     {Src: "10.0.0.0/16", Dst: "10.0.0.0/16"},
+		"2":     {Src: "10.0.0.0/16", Dst: "10.1.0.0/16"},
+		"101":   {Src: "10.1.0.0/16", Dst: "10.0.0.0/16"},
+		"102":   {Src: "10.1.0.0/16", Dst: "10.1.0.0/16"},
+		"65535": {},
+	}, actual)
+}
+
+func TestBuildConfigSpineSkipsBrokenStaticExternal(t *testing.T) {
+	agData, err := os.ReadFile(filepath.Join(testdataDir, "vx-spine-01.in.agent.yaml"))
+	require.NoError(t, err, "reading agent file")
+	ag := &agentapi.Agent{}
+	require.NoError(t, kyaml.Unmarshal(agData, ag), "unmarshalling agent data")
+	ag.Spec.SwitchProfile = switchprofile.CumulusVX.Spec.DeepCopy()
+	delete(ag.Spec.Catalog.SubnetIDs, "10.198.0.0/24")
+	conn := ag.Spec.Connections["leaf-01--static-external"]
+	conn.StaticExternal.Link.Switch.NextHop = "invalid"
+	ag.Spec.Connections["leaf-01--static-external"] = conn
+
+	cfg, err := buildConfig(ag)
+	require.NoError(t, err, "building full config")
+
+	var parsed []struct {
+		Set struct {
+			Router struct {
+				Policy struct {
+					PrefixList map[string]struct {
+						Rule map[string]struct {
+							Match map[string]any `json:"match"`
+						} `json:"rule"`
+					} `json:"prefix-list"`
+				} `json:"policy"`
+			} `json:"router"`
+		} `json:"set"`
+	}
+	require.NoError(t, kyaml.Unmarshal(cfg.Bytes(), &parsed), "parsing full config")
+	require.Len(t, parsed, 1)
+	subnets := []string{}
+	for _, rule := range parsed[0].Set.Router.Policy.PrefixList["static-ext-subnets"].Rule {
+		subnets = slices.AppendSeq(subnets, maps.Keys(rule.Match))
+	}
+	require.ElementsMatch(t, []string{"10.199.0.0/16", "172.31.1.0/24"}, subnets)
 }
 
 // requireNoNulls fails on a null anywhere in a generated config, as NVUE rejects a set with a null value, which is what

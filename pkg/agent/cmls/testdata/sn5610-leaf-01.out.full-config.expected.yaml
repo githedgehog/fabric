@@ -78,6 +78,19 @@
             action:
               permit: {}
         type: ipv4
+      no-ipns-peering--default:
+        rule:
+          '1':
+            action:
+              deny: {}
+            match:
+              ip:
+                dest-ip: 10.0.0.0/16
+                source-ip: 10.0.0.0/16
+          '65535':
+            action:
+              permit: {}
+        type: ipv4
     interface:
       eth0:
         ipv6:
@@ -1235,14 +1248,11 @@
         description: VPC vpc-01/default
         ipv4:
           address:
-            172.30.99.233/32: {}
-          vrr:
-            address:
-              10.0.1.1/24: {}
-            mac-address: 00:00:00:11:11:11
-            state: enabled
+            10.0.1.1/24: {}
         ipv6:
           state: disabled
+        link:
+          mac-address: 00:00:00:11:11:11
         type: svi
         vlan: 1001
         vrf: vpc-vpc-01
@@ -1250,14 +1260,11 @@
         description: VPC vpc-02/default
         ipv4:
           address:
-            172.30.99.234/32: {}
-          vrr:
-            address:
-              10.0.2.1/24: {}
-            mac-address: 00:00:00:11:11:11
-            state: enabled
+            10.0.2.1/24: {}
         ipv6:
           state: disabled
+        link:
+          mac-address: 00:00:00:11:11:11
         type: svi
         vlan: 1002
         vrf: vpc-vpc-02
@@ -1265,17 +1272,21 @@
         description: VPC vpc-03/default
         ipv4:
           address:
-            172.30.99.235/32: {}
-          vrr:
-            address:
-              10.0.3.1/24: {}
-            mac-address: 00:00:00:11:11:11
-            state: enabled
+            10.0.3.1/24: {}
         ipv6:
           state: disabled
+        link:
+          mac-address: 00:00:00:11:11:11
         type: svi
         vlan: 1003
         vrf: vpc-vpc-03
+      vlan3000_l3:
+        acl:
+          no-ipns-peering--default:
+            inbound: {}
+        base-interface: br_l3vni
+        type: svi
+        vlan: 3000
     bridge:
       domain:
         br_default:
@@ -1410,6 +1421,17 @@
                 community:
                   50001:9: {}
         prefix-list:
+          own-loopbacks:
+            rule:
+              '10':
+                action: permit
+                match:
+                  172.30.8.2/32: {}
+              '20':
+                action: permit
+                match:
+                  172.30.12.0/32: {}
+            type: ipv4
           vpc-not-subnets--vpc-01:
             rule:
               '1':
@@ -1656,27 +1678,19 @@
                 match:
                   interface: lo
                   type: ipv4
-          w_ecmp_cumulative:
+          underlay-to-spines:
             rule:
               '10':
                 action:
                   permit: {}
-                description: enable_w_ecmp_adjustment
-                set:
-                  ext-community-bw: cumulative
-          w_ecmp_origin:
-            rule:
-              '10':
-                action:
-                  permit: {}
-                description: enable_w_ecmp_origination
+                match:
+                  ip-prefix-list: own-loopbacks
+                  type: ipv4
                 set:
                   ext-community-bw: multipaths
       adaptive-routing:
         state: enabled
         profile: profile-custom
-      vrr:
-        state: enabled
     vrf:
       default:
         router:
@@ -1696,16 +1710,7 @@
                   ipv4-unicast:
                     policy:
                       outbound:
-                        route-map: w_ecmp_origin
-                    state: enabled
-                bfd:
-                  profile: underlay
-              underlay_leaf:
-                address-family:
-                  ipv4-unicast:
-                    policy:
-                      outbound:
-                        route-map: w_ecmp_cumulative
+                        route-map: underlay-to-spines
                     state: enabled
                 bfd:
                   profile: underlay
@@ -1721,7 +1726,7 @@
                 bfd:
                   profile: overlay
                 multihop-ttl: 2
-                update-source: lo
+                update-source: 172.30.8.2
             neighbor:
               172.30.128.0:
                 description: fabric underlay to spine spine-01/E1/1
@@ -1757,6 +1762,7 @@
       vpc-vpc-01:
         evpn:
           state: enabled
+          vlan: 3002
           vni:
             '300': {}
         router:
@@ -1791,6 +1797,7 @@
       vpc-vpc-02:
         evpn:
           state: enabled
+          vlan: 3003
           vni:
             '400': {}
         router:
@@ -1814,6 +1821,7 @@
       vpc-vpc-03:
         evpn:
           state: enabled
+          vlan: 3004
           vni:
             '500': {}
         router:
@@ -1846,6 +1854,7 @@
       ext-ext-snp-02:
         evpn:
           state: enabled
+          vlan: 3000
           vni:
             '100': {}
         router:
@@ -1960,11 +1969,14 @@
               ar.ibm = ingress
           ifupdown2_eni:
             vlan1001: |
-              address-virtual-ipv6-addrgen off
+              address 172.30.99.233/32
+              post-up bridge fdb replace 00:00:00:11:11:11 dev br_default vlan 1001 self local
             vlan1002: |
-              address-virtual-ipv6-addrgen off
+              address 172.30.99.234/32
+              post-up bridge fdb replace 00:00:00:11:11:11 dev br_default vlan 1002 self local
             vlan1003: |
-              address-virtual-ipv6-addrgen off
+              address 172.30.99.235/32
+              post-up bridge fdb replace 00:00:00:11:11:11 dev br_default vlan 1003 self local
       control-plane:
         acl:
           acl-default-dos:

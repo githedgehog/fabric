@@ -879,6 +879,13 @@
                   172.30.12.0/22:
                     max-prefix-len: 32
             type: ipv4
+          own-loopbacks:
+            rule:
+              '10':
+                action: permit
+                match:
+                  172.30.8.0/32: {}
+            type: ipv4
         route-map:
           gateway-export:
             rule:
@@ -904,22 +911,24 @@
                 match:
                   interface: lo
                   type: ipv4
-          w_ecmp_cumulative:
+          underlay-to-leaves:
             rule:
               '10':
                 action:
                   permit: {}
-                description: enable_w_ecmp_adjustment
+                match:
+                  ip-prefix-list: own-loopbacks
+                  type: ipv4
                 set:
                   ext-community-bw: cumulative
-          w_ecmp_origin:
-            rule:
-              '10':
+              '20':
                 action:
                   permit: {}
-                description: enable_w_ecmp_origination
+                match:
+                  ip-prefix-list: all-vtep-prefixes
+                  type: ipv4
                 set:
-                  ext-community-bw: multipaths
+                  ext-community-bw: cumulative
     vrf:
       default:
         router:
@@ -945,19 +954,12 @@
                   l2vpn-evpn:
                     state: enabled
                 remote-as: 65534
-              underlay_spine:
-                address-family:
-                  ipv4-unicast:
-                    policy:
-                      outbound:
-                        route-map: w_ecmp_origin
-                    state: enabled
               underlay_leaf:
                 address-family:
                   ipv4-unicast:
                     policy:
                       outbound:
-                        route-map: w_ecmp_cumulative
+                        route-map: underlay-to-leaves
                     state: enabled
               overlay:
                 address-family:
@@ -966,7 +968,7 @@
                   l2vpn-evpn:
                     state: enabled
                 multihop-ttl: 2
-                update-source: lo
+                update-source: 172.30.8.0
             neighbor:
               172.30.128.1:
                 description: fabric underlay to leaf leaf-01/E1/5
