@@ -652,6 +652,8 @@ network-instances:
                     - advertise-afi-safi: IPV4_UNICAST
                       config:
                         advertise-afi-safi: IPV4_UNICAST
+                        route-map:
+                        - ext-evpn-advertise--default
             config:
               as: 65101
               as-notation: ASDOT
@@ -726,6 +728,8 @@ network-instances:
                     - advertise-afi-safi: IPV4_UNICAST
                       config:
                         advertise-afi-safi: IPV4_UNICAST
+                        route-map:
+                        - ext-evpn-advertise--default
             config:
               as: 65101
               as-notation: ASDOT
@@ -1359,6 +1363,13 @@ routing-policy:
             - "50001:9"
             community-set-name: all-gw-prios
             match-set-options: ANY
+        - community-set-name: any-community
+          config:
+            action: PERMIT
+            community-member:
+            - REGEX:.*
+            community-set-name: any-community
+            match-set-options: ANY
         - community-set-name: gw-prio-0
           config:
             action: PERMIT
@@ -1743,6 +1754,31 @@ routing-policy:
         name: vtep-prefix
   policy-definitions:
     policy-definition:
+    - config:
+        name: ext-evpn-advertise--default
+      name: ext-evpn-advertise--default
+      statements:
+        statement:
+        - actions:
+            config:
+              policy-result: REJECT_ROUTE
+          conditions:
+            match-prefix-set:
+              config:
+                prefix-set: ipns-subnets--default
+          config:
+            name: "10"
+          name: "10"
+        - actions:
+            config:
+              policy-result: ACCEPT_ROUTE
+          conditions:
+            bgp-conditions:
+              config:
+                community-set: all-externals
+          config:
+            name: "20"
+          name: "20"
     - config:
         name: ext-import--ext-snp-02
       name: ext-import--ext-snp-02
@@ -2191,6 +2227,10 @@ routing-policy:
       statements:
         statement:
         - actions:
+            bgp-actions:
+              set-community-delete:
+                config:
+                  community-set-delete: any-community
             config:
               policy-result: ACCEPT_ROUTE
           conditions:
@@ -2206,6 +2246,10 @@ routing-policy:
       statements:
         statement:
         - actions:
+            bgp-actions:
+              set-community-delete:
+                config:
+                  community-set-delete: any-community
             config:
               policy-result: ACCEPT_ROUTE
           conditions:

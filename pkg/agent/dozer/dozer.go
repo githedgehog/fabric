@@ -265,6 +265,7 @@ type SpecRouteMap struct {
 type SpecRouteMapStatement struct {
 	Conditions         SpecRouteMapConditions `json:"conditions,omitempty"`
 	SetCommunities     []string               `json:"setCommunities,omitempty"`
+	DeleteCommunities  *string                `json:"deleteCommunities,omitempty"` // community list of the ones to remove
 	SetLocalPreference *uint32                `json:"setLocalPreference,omitempty"`
 	Result             SpecRouteMapResult     `json:"result,omitempty"`
 }

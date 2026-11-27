@@ -226,9 +226,7 @@ func (external *External) Validate(ctx context.Context, kube kclient.Reader, fab
 		// While static prefixes are present the external may also have BGP attachments, and a
 		// static route only carries baseVPCCommunity, not the inbound one. Any
 		// route-map that matches on the inbound community would then drop the static route
-		// outright rather than merely rank it lower: on a switch holding both kinds
-		// ext-inbound--<ext> is also the EVPN advertise policy, so the static route would never be
-		// re-originated as a type-5, and the same applies to the leak into a VPC VRF.
+		// outright rather than merely rank it lower, e.g. on the leak into a VPC VRF.
 		if external.Spec.InboundCommunity != "" || external.Spec.OutboundCommunity != "" {
 			return nil, errors.Errorf("inboundCommunity and outboundCommunity must be empty when static configuration is present")
 		}

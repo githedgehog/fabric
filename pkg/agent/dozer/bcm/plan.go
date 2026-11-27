@@ -66,6 +66,7 @@ const (
 	AsPathListGatewayOrigin      = "gateway-origin"
 	BGPCommListAllExternals      = "all-externals"
 	BGPCommListAllGwPrios        = "all-gw-prios"
+	BGPCommListAnyCommunity      = "any-community"
 	MgmtIface                    = "Management0"
 	FabricBFDProfile             = "fabric"
 	ExternalBFDIntervalMS        = uint32(300)
@@ -1296,8 +1297,27 @@ func planExternals(agent *agentapi.Agent, spec *dozer.Spec) error {
 					Neighbors: map[string]*dozer.SpecVRFBGPNeighbor{},
 				},
 			}
-			if extHasBGP[externalName] {
-				vrfSpec.BGP.L2VPNEVPN.AdvertiseIPv4UnicastRouteMaps = []string{extInboundRouteMapName(externalName)}
+			if agent.IsSpineLeaf() {
+				// only what came from the external, never the VPC subnets leaked in by external peerings,
+				// whatever communities they carry
+				advertiseRouteMap := extEVPNAdvertiseRouteMapName(external.IPv4Namespace)
+				spec.RouteMaps[advertiseRouteMap] = &dozer.SpecRouteMap{
+					Statements: map[string]*dozer.SpecRouteMapStatement{
+						"10": {
+							Conditions: dozer.SpecRouteMapConditions{
+								MatchPrefixList: new(ipnsSubnetsPrefixListName(external.IPv4Namespace)),
+							},
+							Result: dozer.SpecRouteMapResultReject,
+						},
+						"20": {
+							Conditions: dozer.SpecRouteMapConditions{
+								MatchCommunityList: new(BGPCommListAllExternals),
+							},
+							Result: dozer.SpecRouteMapResultAccept,
+						},
+					},
+				}
+				vrfSpec.BGP.L2VPNEVPN.AdvertiseIPv4UnicastRouteMaps = []string{advertiseRouteMap}
 			}
 			if extHasStatic[externalName] {
 				vrfSpec.TableConnections = map[string]*dozer.SpecVRFTableConnection{
@@ -2920,13 +2940,18 @@ func planHostBGPSubnet(agent *agentapi.Agent, spec *dozer.Spec, vpcName string, 
 		Prefixes: prefixes,
 	}
 
-	// create routemap filtering anything that is not the prefix list above
+	// create routemap filtering anything that is not the prefix list above, and dropping the host's
+	// communities so that it can't set the ones the fabric acts on (e.g. all-externals, gateway priorities)
+	spec.CommunityLists[BGPCommListAnyCommunity] = &dozer.SpecCommunityList{
+		Members: []string{"REGEX:.*"},
+	}
 	rmName := vpcSubnetVIPsOnlyRouteMapName(vpcName, subnetName)
 	spec.RouteMaps[rmName] = &dozer.SpecRouteMap{
 		Statements: map[string]*dozer.SpecRouteMapStatement{
 			"10": {
-				Conditions: dozer.SpecRouteMapConditions{MatchPrefixList: new(plName)},
-				Result:     dozer.SpecRouteMapResultAccept,
+				Conditions:        dozer.SpecRouteMapConditions{MatchPrefixList: new(plName)},
+				DeleteCommunities: new(BGPCommListAnyCommunity),
+				Result:            dozer.SpecRouteMapResultAccept,
 			},
 		},
 	}
@@ -3606,6 +3631,10 @@ func vpcRedistributeStaticRouteMapName(vpc string) string {
 
 func ipnsSubnetsPrefixListName(ipns string) string {
 	return fmt.Sprintf("ipns-subnets--%s", ipns)
+}
+
+func extEVPNAdvertiseRouteMapName(ipns string) string {
+	return fmt.Sprintf("ext-evpn-advertise--%s", ipns)
 }
 
 func ipnsSubnetsRouteMapName(ipns string) string {
