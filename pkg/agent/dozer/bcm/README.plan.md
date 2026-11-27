@@ -226,11 +226,13 @@ in L2VNI mode (see #vpcs):
   - ECMP of up to 64 paths for eBGP, none for iBGP (which we do not use)
   - redistribute static and connected routes in default VRF / underlay
   - enable L2VPN, advertise all VNIs, and duplicate address detection
+  - disable fast-external-failover, see [Loopback sessions and link failures](#loopback-sessions-and-link-failures)
     ```
     router bgp 65101
      router-id 172.30.8.0
      log-neighbor-changes
      timers 60 180
+     no fast-external-failover
      !
      address-family ipv4 unicast
       redistribute connected
@@ -308,12 +310,13 @@ and assigning it a /31 IPv4 address from the hydration pool, e.g.:
      ip address 172.30.128.5/31
     ```
 1. create a BGP session in the default VRF with the peer /31 on the other side of
-the fabric link, enabling IPv4 unicast with BFD and advertising our own protocol
-loopback, e.g.:
+the fabric link, enabling IPv4 unicast with BFD and GTSM and advertising our own
+protocol loopback, e.g.:
     ```
     neighbor 172.30.128.6
      description "Fabric as7712-03/E1/28 as7712-03--fabric--s5232-03"
      remote-as 65100
+     ttl-security hops 1
      bfd
      bfd profile fabric
      !
@@ -343,7 +346,7 @@ neighbor 172.30.8.0
  description "Fabric as7712-03 loopback (spine-link)"
  remote-as 65100
  update-source 172.30.8.3
- disable-connected-check
+ ttl-security hops 1
  !
  address-family ipv4 unicast
   activate
@@ -362,7 +365,7 @@ neighbor 172.30.8.3
  description "Fabric s5232-03 loopback (spine-link)"
  remote-as 65102
  update-source 172.30.8.0
- disable-connected-check
+ ttl-security hops 1
  !
  address-family ipv4 unicast
   activate
@@ -376,6 +379,27 @@ neighbor 172.30.8.3
 
 A leaf with a [gateway connection](#gateway-connections) also advertises the gateway VTEPs,
 so that they reach the rest of the fabric.
+
+#### Loopback sessions and link failures
+
+The loopback and link sessions use GTSM (`ttl-security hops 1`), and the default VRF has
+`no fast-external-failover`, so that a loopback session survives the loss of one of several
+parallel links to its neighbor:
+- with `fast-external-failover`, a session whose peer counts as directly connected (TTL 1,
+  or GTSM with 1 hop) goes down as soon as the interface it uses does. For a loopback session
+  that is one specific link out of the parallel ones, so losing that link alone resets the
+  session and withdraws its EVPN routes.
+- without it, a GTSM session goes down when it loses the route to its peer instead: a loopback
+  session with the last link to its neighbor, a link session with its own link. A numbered
+  session without GTSM does not, and waits for BFD; this is why the link sessions use GTSM too.
+- unlike `ebgp-multihop`, GTSM keeps a loopback session from forming across 2 hops, e.g.
+  between two leaves through a spine.
+- the loopback sessions have no BFD: when a link fails with the carrier still up, their
+  multihop BFD times out together with the link's BFD and resets the session anyway.
+
+GTSM must be set on both ends, so a session between a switch with it and one without stays
+down. With GTSM, BFD on numbered link sessions is multihop. The gateway sessions have no GTSM
+yet and so rely on BFD to go down when their link fails.
 
 #### Unnumbered links
 
@@ -394,6 +418,7 @@ and the session is keyed by the interface rather than by the peer IP:
 neighbor interface Ethernet3
  description "Fabric spine-01/E1/1 spine-01--fabric--leaf-01"
  remote-as 65100
+ ttl-security hops 1
  bfd
  bfd profile fabric
  capability extended-nexthop
@@ -409,16 +434,7 @@ A deliberate difference from the [host-BGP](#host-bgp-subnets) sessions, which a
 unnumbered: `remote-as` stays explicit rather than `remote-as external`. The peer ASN is
 what keeps a miscabled link from establishing and forming a topology we never intended.
 
-The per-node session over the protocol loopbacks is unaffected — it is IPv4-addressed and
-multihop either way.
-
-The session has no peer IP to be reported under, so the agent keys its state (and the BFD
-session under it) by the port instead — `E1/1`, or `E1/1.3123` for the TH5 workaround SVI
-below. The NOS interface name the device actually uses (`Ethernet3`, `Vlan3123`) is
-translated away in `state.go`, so it never reaches the API. On a breakout-capable port that
-port name is the first subport, `E1/53/1` rather than the `E1/53` the wiring spells, since the
-agent resolves interfaces through the NOS port mapping; `apiutil` normalizes the wiring name
-the same way before matching.
+The per-node session over the protocol loopbacks is unaffected: it is IPv4-addressed either way.
 
 ### Mesh Connections (i.e. leaf-leaf)
 
@@ -439,12 +455,13 @@ and assigning it a /31 IPv4 address from the hydration pool, e.g.:
      ip address 172.30.128.2/31
     ```
 1. create a BGP session in the default VRF with the peer /31 on the other side of
-the mesh link, enabling IPv4 unicast with BFD and advertising our own protocol
-loopback, e.g.:
+the mesh link, enabling IPv4 unicast with BFD and GTSM and advertising our own
+protocol loopback, e.g.:
     ```
     neighbor 172.30.128.3
      description "Fabric leaf-02/E1/5 leaf-01--mesh--leaf-02"
      remote-as 65102
+     ttl-security hops 1
      bfd
      bfd profile fabric
      !
@@ -465,13 +482,14 @@ unicast, where we will advertise all VTEPs we know about (a mesh leaf has to tra
 its peers, so it never uses the narrower `loopback-vtep`), and for EVPN, where we will
 exchange overlay routes. This session will go down if all of the point-to-point sessions
 above are down, which would mean that this leaf is no longer able to reach this particular
-neighbor.
+neighbor. Mesh link and loopback sessions use GTSM for the same reasons as the fabric ones,
+see [Loopback sessions and link failures](#loopback-sessions-and-link-failures).
 ```
 neighbor 172.30.8.2
   description "Fabric leaf-03 loopback (mesh)"
   remote-as 65103
   update-source 172.30.8.0
-  disable-connected-check
+  ttl-security hops 1
   !
   address-family ipv4 unicast
    activate

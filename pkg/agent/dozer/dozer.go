@@ -175,13 +175,14 @@ type SpecVRF struct {
 type SpecVRFInterface struct{}
 
 type SpecVRFBGP struct {
-	AS                 *uint32                        `json:"as,omitempty"`
-	RouterID           *string                        `json:"routerID,omitempty"`
-	NetworkImportCheck *bool                          `json:"networkImportCheck,omitempty"`
-	ASDot              *bool                          `json:"asDot,omitempty"`
-	IPv4Unicast        SpecVRFBGPIPv4Unicast          `json:"ipv4Unicast,omitempty"`
-	L2VPNEVPN          SpecVRFBGPL2VPNEVPN            `json:"l2vpnEvpn,omitempty"`
-	Neighbors          map[string]*SpecVRFBGPNeighbor `json:"neighbors,omitempty"`
+	AS                     *uint32                        `json:"as,omitempty"`
+	RouterID               *string                        `json:"routerID,omitempty"`
+	NetworkImportCheck     *bool                          `json:"networkImportCheck,omitempty"`
+	ASDot                  *bool                          `json:"asDot,omitempty"`
+	DisableFastExtFailover bool                           `json:"disableFastExtFailover,omitempty"`
+	IPv4Unicast            SpecVRFBGPIPv4Unicast          `json:"ipv4Unicast,omitempty"`
+	L2VPNEVPN              SpecVRFBGPL2VPNEVPN            `json:"l2vpnEvpn,omitempty"`
+	Neighbors              map[string]*SpecVRFBGPNeighbor `json:"neighbors,omitempty"`
 }
 
 type SpecVRFBGPIPv4Unicast struct {
@@ -225,6 +226,7 @@ type SpecVRFBGPNeighbor struct {
 	L2VPNEVPNAllowOwnAS       *bool    `json:"l2vpnEvpnAllowOwnAS,omitempty"`
 	BFDProfile                *string  `json:"bfdProfile,omitempty"`
 	DisableConnectedCheck     *bool    `json:"disableConnectedCheck,omitempty"`
+	TTLSecurityHops           *uint8   `json:"ttlSecurityHops,omitempty"`
 	UpdateSource              *string  `json:"updateSource,omitempty"`
 	ExtendedNexthop           *bool    `json:"extendedNexthop,omitempty"`
 }
